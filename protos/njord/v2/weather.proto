@@ -38,6 +38,7 @@ enum Domain {
   DOMAIN_SOLAR = 4;
   DOMAIN_MARINE = 5;
   DOMAIN_SEASONAL = 6;
+  DOMAIN_SATELLITE = 7;
 }
 
 message GetDomainDataRequest {
@@ -62,6 +63,7 @@ message DomainDataUpdate {
     FloodData flood = 12;
     SolarData solar = 13;
     MarineData marine = 14;
+    SatelliteData satellite = 15;
   }
 }
 
@@ -134,6 +136,20 @@ message SolarSample {
   double diffuse_radiation = 3;
   double shortwave_radiation = 4;
   double sunshine_duration = 5;
+}
+
+message SatelliteData {
+  repeated SatelliteSample points = 1;
+}
+
+// Satellite-observed irradiance in W/m2; a missing component is unset.
+message SatelliteSample {
+  google.protobuf.Timestamp valid_at = 1;
+  optional double ghi = 2;
+  optional double direct_radiation = 3;
+  optional double diffuse_radiation = 4;
+  optional double dni = 5;
+  optional double gti = 6;
 }
 
 message MarineData {

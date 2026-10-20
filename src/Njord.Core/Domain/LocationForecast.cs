@@ -15,7 +15,8 @@ public sealed record LocationForecast(
     DomainForecast<FloodPoint>? Flood = null,
     DomainForecast<SolarPoint>? Solar = null,
     DomainForecast<MarinePoint>? Marine = null,
-    DomainForecast<SeasonalPoint>? Seasonal = null)
+    DomainForecast<SeasonalPoint>? Seasonal = null,
+    DomainForecast<SatelliteRadiationPoint>? Satellite = null)
 {
     public LocationForecast With(DomainKind domain, IDomainForecast forecast) => domain switch
     {
@@ -25,6 +26,7 @@ public sealed record LocationForecast(
         DomainKind.Solar => this with { Solar = Cast<SolarPoint>(domain, forecast) },
         DomainKind.Marine => this with { Marine = Cast<MarinePoint>(domain, forecast) },
         DomainKind.Seasonal => this with { Seasonal = Cast<SeasonalPoint>(domain, forecast) },
+        DomainKind.Satellite => this with { Satellite = Cast<SatelliteRadiationPoint>(domain, forecast) },
         _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null)
     };
 
@@ -36,6 +38,7 @@ public sealed record LocationForecast(
         DomainKind.Solar => Solar,
         DomainKind.Marine => Marine,
         DomainKind.Seasonal => Seasonal,
+        DomainKind.Satellite => Satellite,
         _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null)
     };
 
@@ -44,7 +47,8 @@ public sealed record LocationForecast(
         && HasFields(AirQuality, required.AirQuality, static (point, param) => point.HasFields(param))
         && HasFields(Flood, required.Flood, static (point, param) => point.HasFields(param))
         && HasFields(Marine, required.Marine, static (point, param) => point.HasFields(param))
-        && HasFields(Seasonal, required.Seasonal, static (point, param) => point.HasFields(param));
+        && HasFields(Seasonal, required.Seasonal, static (point, param) => point.HasFields(param))
+        && HasFields(Satellite, required.Satellite, static (point, param) => point.HasFields(param));
 
     private static bool HasFields<TPoint, TParam>(DomainForecast<TPoint>? forecast, TParam required, Func<TPoint, TParam, bool> check)
         where TPoint : IHasValidTime

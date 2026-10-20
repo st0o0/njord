@@ -3,6 +3,7 @@ using Njord.Core.Configuration.Polling;
 using Njord.Core.Domain;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Seasonal;
+using Njord.Forecast.Solar;
 using Njord.Forecast.Weather;
 
 namespace Njord.Core.Tests.Configuration.Polling;
@@ -36,6 +37,20 @@ public sealed class BudgetCalculatorSpec
             () => Assert.Equal(4L * 720, result.ProjectedMonthlyCalls),
             () => Assert.Equal(300_000, result.MonthlyLimit),
             () => Assert.True(result.WithinBudget));
+    }
+
+    [Fact]
+    public void Should_count_the_satellite_domain_once_per_poll_cycle()
+    {
+        var scope = Scope(locations: 2);
+        var polling = new PollingOptions { PollInterval = TimeSpan.FromHours(1) };
+        var resolved = new ResolvedRequirements(new DomainRequirements(Satellite: SatelliteParams.GlobalTilted));
+
+        var result = BudgetCalculator.Validate(scope, new WeatherOptions(), polling, resolved);
+
+        Assert.Multiple(
+            () => Assert.Equal(2, result.DomainCallsPerCycle),
+            () => Assert.Equal(2L * 720, result.ProjectedMonthlyCalls));
     }
 
     [Fact]

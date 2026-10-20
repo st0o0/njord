@@ -36,6 +36,10 @@ public abstract record PipelineEvent
         Location Location,
         DomainForecast<SeasonalPoint> Forecast) : PipelineEvent;
 
+    public sealed record SatelliteDataReceived(
+        Location Location,
+        DomainForecast<SatelliteRadiationPoint> Forecast) : PipelineEvent;
+
     public sealed record AlertRaised(
         Location Location,
         Alert Alert,
@@ -135,6 +139,15 @@ public abstract record PipelineEvent
         double SwellPeriod,
         string? WindRelation,
         DateTimeOffset BestStart) : PipelineEvent;
+
+    // Irradiance in W/m2 of the newest observed hour; BlendedKwhPerM2 is the next 24 h (observed hours from the
+    // satellite, later hours from the ensemble) and null while no ensemble tilted irradiance is known.
+    public sealed record SatelliteRadiationComputed(
+        Location Location,
+        DateTimeOffset ObservedAt,
+        double GlobalTilted,
+        double? GlobalHorizontal,
+        double? BlendedKwhPerM2) : PipelineEvent;
 
     public sealed record SeasonalOutlookComputed(
         Location Location,

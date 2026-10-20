@@ -20,6 +20,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
     private readonly FakeFloodClient _flood = new();
     private readonly FakeMarineClient _marine = new();
     private readonly FakeSeasonalClient _seasonal = new();
+    private readonly FakeSatelliteRadiationClient _satellite = new();
     private readonly SwitchableBudgetProvider _budget = new();
     private Akka.TestKit.TestProbe _apiCalls = null!;
 
@@ -40,7 +41,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         }));
         var weatherOptions = Options.Create(new WeatherOptions());
         return Sys.ActorOf(
-            Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _seasonal, _time, options, weatherOptions, Options.Create(new AirQualityOptions()), Options.Create(new MarineOptions()), Options.Create(new FloodOptions()), Options.Create(new SeasonalOptions()), TestRequirements.Resolved, _budget, FetchTimeouts.Default)),
+            Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _seasonal, _satellite, _time, options, weatherOptions, Options.Create(new AirQualityOptions()), Options.Create(new MarineOptions()), Options.Create(new FloodOptions()), Options.Create(new SeasonalOptions()), Options.Create(new SatelliteOptions()), TestRequirements.Resolved, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }
 

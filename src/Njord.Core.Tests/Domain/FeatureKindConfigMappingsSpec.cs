@@ -39,6 +39,7 @@ public sealed class FeatureKindConfigMappingsSpec
     [InlineData(FeatureKind.SwimmingConditions, "SwimmingConditions")]
     [InlineData(FeatureKind.SurfConditions, "SurfConditions")]
     [InlineData(FeatureKind.SeasonalOutlook, "SeasonalOutlook")]
+    [InlineData(FeatureKind.SatelliteRadiation, "SatelliteRadiation")]
     public void Should_map_every_feature_kind_to_its_config_key(FeatureKind kind, string expected)
     {
         Assert.Equal(expected, kind.ToConfigKey());

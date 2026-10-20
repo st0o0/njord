@@ -19,6 +19,7 @@ internal static class DomainDataProtoMappings
         PipelineEvent.FloodDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Flood = e.Forecast.ToFloodData() }),
         PipelineEvent.SolarDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Solar = e.Forecast.ToSolarData() }),
         PipelineEvent.MarineDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Marine = e.Forecast.ToMarineData() }),
+        PipelineEvent.SatelliteDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Satellite = e.Forecast.ToSatelliteData() }),
         _ => null,
     };
 
@@ -29,6 +30,7 @@ internal static class DomainDataProtoMappings
         PipelineEvent.FloodDataReceived => DomainKind.Flood,
         PipelineEvent.SolarDataReceived => DomainKind.Solar,
         PipelineEvent.MarineDataReceived => DomainKind.Marine,
+        PipelineEvent.SatelliteDataReceived => DomainKind.Satellite,
         _ => null,
     };
 
@@ -39,6 +41,7 @@ internal static class DomainDataProtoMappings
         PipelineEvent.FloodDataReceived e => e.Location,
         PipelineEvent.SolarDataReceived e => e.Location,
         PipelineEvent.MarineDataReceived e => e.Location,
+        PipelineEvent.SatelliteDataReceived e => e.Location,
         _ => null,
     };
 
@@ -74,6 +77,13 @@ internal static class DomainDataProtoMappings
     private static SolarData ToSolarData(this DomainForecast<SolarPoint> forecast)
     {
         var data = new SolarData();
+        data.Points.AddRange(forecast.Points.Select(p => p.ToProto()));
+        return data;
+    }
+
+    private static SatelliteData ToSatelliteData(this DomainForecast<SatelliteRadiationPoint> forecast)
+    {
+        var data = new SatelliteData();
         data.Points.AddRange(forecast.Points.Select(p => p.ToProto()));
         return data;
     }
@@ -155,6 +165,17 @@ internal static class DomainDataProtoMappings
             ShortwaveRadiation = p.ShortwaveRadiation,
             SunshineDuration = p.SunshineDuration,
         };
+
+    public static SatelliteSample ToProto(this SatelliteRadiationPoint p)
+    {
+        var sample = new SatelliteSample { ValidAt = p.ValidFrom.ToTimestamp() };
+        if (p.GHI is { } ghi) { sample.Ghi = ghi; }
+        if (p.DirectRadiation is { } direct) { sample.DirectRadiation = direct; }
+        if (p.DiffuseRadiation is { } diffuse) { sample.DiffuseRadiation = diffuse; }
+        if (p.DNI is { } dni) { sample.Dni = dni; }
+        if (p.GTI is { } gti) { sample.Gti = gti; }
+        return sample;
+    }
 
     public static MarineSample ToProto(this MarinePoint p)
     {

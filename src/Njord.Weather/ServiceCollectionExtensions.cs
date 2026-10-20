@@ -39,6 +39,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDomainHandler, BBQScoreHandler>();
         services.AddSingleton<IDomainHandler, ApproachingFrontHandler>();
         services.AddSingleton<IDomainHandler, SeasonalOutlookHandler>();
+        services.AddSingleton<IDomainHandler, SatelliteRadiationHandler>();
 
         return services;
     }

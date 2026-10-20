@@ -3,6 +3,7 @@ using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
 using Njord.Forecast.Marine;
+using Njord.Forecast.Solar;
 using Njord.Forecast.Weather;
 
 namespace Njord.Core.Tests.Domain;
@@ -76,6 +77,17 @@ public sealed class DomainRequirementsSpec
         Assert.Multiple(
             () => Assert.True(requirements.Requires(DomainKind.Marine)),
             () => Assert.False(requirements.Requires(DomainKind.Weather)));
+    }
+
+    [Fact]
+    public void Should_require_the_satellite_domain_for_required_or_optional_satellite_params()
+    {
+        Assert.Multiple(
+            () => Assert.True(new DomainRequirements(Satellite: SatelliteParams.GlobalTilted).Requires(DomainKind.Satellite)),
+            () => Assert.True(new DomainRequirements(OptionalSatellite: SatelliteParams.GlobalHorizontal).Requires(DomainKind.Satellite)),
+            () => Assert.Equal(
+                SatelliteParams.GlobalTilted | SatelliteParams.GlobalHorizontal,
+                (new DomainRequirements(Satellite: SatelliteParams.GlobalTilted) | new DomainRequirements(OptionalSatellite: SatelliteParams.GlobalHorizontal)).AllSatellite));
     }
 
     [Fact]

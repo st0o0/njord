@@ -22,6 +22,7 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
         services.AddNjordOptions<MarineOptions>(configuration);
         services.AddNjordOptions<FloodOptions>(configuration);
         services.AddNjordOptions<SeasonalOptions>(configuration);
+        services.AddNjordOptions<SatelliteOptions>(configuration);
 
         services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
         services.TryAddSingleton(FetchTimeouts.Default);
@@ -51,6 +52,10 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
             client.BaseAddress = new Uri("https://seasonal-api.open-meteo.com/");
         });
 
+        AddTypedClient<ISatelliteRadiationClient, SatelliteRadiationClient>(services, (_, client) =>
+        {
+            client.BaseAddress = new Uri("https://satellite-api.open-meteo.com/");
+        });
 
         services.AddSingleton<IActorRegistration>(new GatewayActorRegistration());
     }

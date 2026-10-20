@@ -11,6 +11,7 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Marine;
+using Njord.Forecast.Solar;
 using Njord.Forecast.Weather;
 using Njord.Messages.Forecast;
 using Njord.OpenMeteo.Mapping;
@@ -45,6 +46,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private readonly IFloodClient _floodClient;
     private readonly IMarineClient _marineClient;
     private readonly ISeasonalClient _seasonalClient;
+    private readonly ISatelliteRadiationClient _satelliteClient;
     private readonly TimeProvider _timeProvider;
     private readonly NjordOptions _options;
     private readonly WeatherOptions _weather;
@@ -52,11 +54,13 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private readonly MarineOptions _marine;
     private readonly FloodOptions _flood;
     private readonly SeasonalOptions _seasonal;
+    private readonly SatelliteOptions _satellite;
     private readonly IReadOnlyList<string> _weatherVariables;
     private readonly IReadOnlyList<string> _airQualityVariables;
     private readonly IReadOnlyList<string> _floodVariables;
     private readonly IReadOnlyList<string> _marineVariables;
     private readonly IReadOnlyList<string> _seasonalVariables;
+    private readonly IReadOnlyList<string> _satelliteVariables;
     private readonly FetchTimeouts _timeouts;
     private readonly int _weatherWeight;
     private readonly IGatewayBudgetGate _gate;
@@ -72,6 +76,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         IFloodClient floodClient,
         IMarineClient marineClient,
         ISeasonalClient seasonalClient,
+        ISatelliteRadiationClient satelliteClient,
         TimeProvider timeProvider,
         IOptions<NjordOptions> options,
         IOptions<WeatherOptions> weather,
@@ -79,6 +84,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         IOptions<MarineOptions> marine,
         IOptions<FloodOptions> flood,
         IOptions<SeasonalOptions> seasonal,
+        IOptions<SatelliteOptions> satellite,
         ResolvedRequirements resolved,
         IBudgetProvider budgetProvider,
         FetchTimeouts timeouts)
@@ -88,6 +94,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         _floodClient = floodClient;
         _marineClient = marineClient;
         _seasonalClient = seasonalClient;
+        _satelliteClient = satelliteClient;
         _timeProvider = timeProvider;
         _options = options.Value;
         _weather = weather.Value;
@@ -97,11 +104,13 @@ public sealed class OpenMeteoGateway : ReceiveActor
         _marine = marine.Value;
         _flood = flood.Value;
         _seasonal = seasonal.Value;
+        _satellite = satellite.Value;
         _weatherVariables = requirements.AllWeather.ToApiNames();
         _airQualityVariables = requirements.AllAirQuality.ToApiNames();
         _floodVariables = requirements.AllFlood.ToApiNames();
         _marineVariables = requirements.AllMarine.ToApiNames();
         _seasonalVariables = requirements.AllSeasonal.ToApiNames();
+        _satelliteVariables = requirements.AllSatellite.ToApiNames();
         _weatherWeight = BudgetCalculator.ComputeWeight(_weatherVariables.Count, WeatherForecastDays);
         _gate = new GatewayBudgetGate(budgetProvider, Context.GetActor<IBudgetTracker>(), timeProvider);
 
@@ -141,7 +150,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         var id = NextId();
         _pending[id] = new PendingDomainRequest(Sender, msg.Location, msg.Domain, new Location(location.Name, location.Latitude.Value, location.Longitude.Value));
 
-        if (msg.Domain is not (DomainKind.Weather or DomainKind.AirQuality or DomainKind.Flood or DomainKind.Marine or DomainKind.Seasonal))
+        if (msg.Domain is not (DomainKind.Weather or DomainKind.AirQuality or DomainKind.Flood or DomainKind.Marine or DomainKind.Seasonal or DomainKind.Satellite))
         {
             Reply(id, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.PipelineUnavailable));
             return;
@@ -213,6 +222,9 @@ public sealed class OpenMeteoGateway : ReceiveActor
             DomainKind.Seasonal => (await _seasonalClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
                     _seasonalVariables, CancellationToken.None))
                 ?.ToDomainForecast(now, _seasonal.ForecastMonths),
+            DomainKind.Satellite => (await _satelliteClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
+                    _satelliteVariables, _satellite.PastHours, CancellationToken.None))
+                ?.ToDomainForecast(now)?.TrimTrailing((SatelliteRadiationPoint p, SatelliteParams f) => p.HasFields(f)),
             _ => (await _floodClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
                     _floodVariables, _flood.ForecastDays, _flood.IncludeEnsemble, CancellationToken.None))
                 ?.ToDomainForecast(now),

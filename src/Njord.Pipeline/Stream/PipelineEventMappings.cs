@@ -20,6 +20,7 @@ internal static class PipelineEventMappings
         DomainKind.Solar => new PipelineEvent.SolarDataReceived(received.Location, Typed<SolarPoint>(received)),
         DomainKind.Marine => new PipelineEvent.MarineDataReceived(received.Location, Typed<MarinePoint>(received)),
         DomainKind.Seasonal => new PipelineEvent.SeasonalDataReceived(received.Location, Typed<SeasonalPoint>(received)),
+        DomainKind.Satellite => new PipelineEvent.SatelliteDataReceived(received.Location, Typed<SatelliteRadiationPoint>(received)),
         _ => throw new ArgumentOutOfRangeException(nameof(received), received.Domain, null),
     };
 

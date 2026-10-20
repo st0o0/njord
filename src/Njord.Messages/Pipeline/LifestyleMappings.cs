@@ -21,6 +21,7 @@ public static class LifestyleMappings
         LifestyleKind.FrontApproaching => "front_approaching",
         LifestyleKind.SurfConditions => "surf_conditions",
         LifestyleKind.SeasonalOutlook => "seasonal_outlook",
+        LifestyleKind.SatelliteRadiation => "satellite_radiation",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
@@ -70,6 +71,7 @@ public static class LifestyleMappings
             ("temp_drop", Number(e.TempDrop)))),
         PipelineEvent.SurfConditionsComputed e => new LifestyleUpdate(e.Location, LifestyleKind.SurfConditions, SurfFields(e)),
         PipelineEvent.SeasonalOutlookComputed e => new LifestyleUpdate(e.Location, LifestyleKind.SeasonalOutlook, SeasonalFields(e)),
+        PipelineEvent.SatelliteRadiationComputed e => new LifestyleUpdate(e.Location, LifestyleKind.SatelliteRadiation, SatelliteFields(e)),
         _ => null,
     };
 
@@ -91,6 +93,27 @@ public static class LifestyleMappings
             fields[$"{prefix}_temp_anomaly"] = Number(e.Months[i].TempAnomaly);
             fields[$"{prefix}_precip_anomaly"] = Number(e.Months[i].PrecipAnomaly);
             fields[$"{prefix}_confidence"] = e.Months[i].Confidence.ToWireName();
+        }
+
+        return fields;
+    }
+
+    private static IReadOnlyDictionary<string, string> SatelliteFields(PipelineEvent.SatelliteRadiationComputed e)
+    {
+        var fields = new Dictionary<string, string>
+        {
+            ["observed_at"] = Time(e.ObservedAt),
+            ["gti"] = Number(e.GlobalTilted),
+        };
+
+        if (e.GlobalHorizontal is { } ghi)
+        {
+            fields["ghi"] = Number(ghi);
+        }
+
+        if (e.BlendedKwhPerM2 is { } blended)
+        {
+            fields["blended_kwh_per_m2"] = Number(blended);
         }
 
         return fields;

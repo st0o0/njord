@@ -3,6 +3,7 @@ using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
 using Njord.Forecast.Marine;
 using Njord.Forecast.Seasonal;
+using Njord.Forecast.Solar;
 using Njord.Forecast.Weather;
 
 namespace Njord.Core.Domain;
@@ -17,7 +18,9 @@ public readonly record struct DomainRequirements(
     FloodParams OptionalFlood = default,
     MarineParams OptionalMarine = default,
     SeasonalParams Seasonal = default,
-    SeasonalParams OptionalSeasonal = default)
+    SeasonalParams OptionalSeasonal = default,
+    SatelliteParams Satellite = default,
+    SatelliteParams OptionalSatellite = default)
 {
     public WeatherParams AllWeather => Weather | OptionalWeather;
 
@@ -29,6 +32,8 @@ public readonly record struct DomainRequirements(
 
     public SeasonalParams AllSeasonal => Seasonal | OptionalSeasonal;
 
+    public SatelliteParams AllSatellite => Satellite | OptionalSatellite;
+
     public static DomainRequirements operator |(DomainRequirements a, DomainRequirements b) => new(
         a.Weather | b.Weather,
         a.AirQuality | b.AirQuality,
@@ -39,7 +44,9 @@ public readonly record struct DomainRequirements(
         a.OptionalFlood | b.OptionalFlood,
         a.OptionalMarine | b.OptionalMarine,
         a.Seasonal | b.Seasonal,
-        a.OptionalSeasonal | b.OptionalSeasonal);
+        a.OptionalSeasonal | b.OptionalSeasonal,
+        a.Satellite | b.Satellite,
+        a.OptionalSatellite | b.OptionalSatellite);
 
     public bool Requires(DomainKind domain) => domain switch
     {
@@ -48,6 +55,7 @@ public readonly record struct DomainRequirements(
         DomainKind.Flood => AllFlood != default,
         DomainKind.Marine => AllMarine != default,
         DomainKind.Seasonal => AllSeasonal != default,
+        DomainKind.Satellite => AllSatellite != default,
         _ => false,
     };
 }

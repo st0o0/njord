@@ -26,6 +26,7 @@ public sealed class GatewayRestartSpec : NjordActorSpec
     private readonly FakeFloodClient _flood = new();
     private readonly FakeMarineClient _marine = new();
     private readonly FakeSeasonalClient _seasonal = new();
+    private readonly FakeSatelliteRadiationClient _satellite = new();
     private readonly FaultyOnceBudgetProvider _budget = new();
 
     protected override bool UseTestPersistence => false;
@@ -107,7 +108,7 @@ public sealed class GatewayRestartSpec : NjordActorSpec
         var flood = Wrap(new FloodOptions());
         return Sys.ActorOf(
             Props.Create(() => new OpenMeteoGateway(
-                _weather, _airQuality, _flood, _marine, _seasonal, _time, options, weather, airQuality, marine, flood, Wrap(new SeasonalOptions()),
+                _weather, _airQuality, _flood, _marine, _seasonal, _satellite, _time, options, weather, airQuality, marine, flood, Wrap(new SeasonalOptions()), Wrap(new SatelliteOptions()),
                 TestRequirements.Resolved, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }

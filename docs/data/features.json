@@ -434,6 +434,15 @@
     ]
   },
   {
+    "key": "SatelliteRadiation",
+    "category": "Energy",
+    "description": "Satellite-observed solar irradiance blended with the ensemble forecast",
+    "enabledByDefault": false,
+    "domains": [
+      "Satellite"
+    ]
+  },
+  {
     "key": "FloodRisk",
     "category": "Flood",
     "description": "River discharge flood risk warning",

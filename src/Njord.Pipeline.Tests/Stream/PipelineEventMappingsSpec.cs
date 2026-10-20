@@ -54,6 +54,16 @@ public sealed class PipelineEventMappingsSpec
     }
 
     [Fact]
+    public void Satellite_data_maps_to_a_satellite_data_event()
+    {
+        var satellite = new DomainForecast<SatelliteRadiationPoint>(DomainKind.Satellite, Start, TimeResolution.Hourly, [new SatelliteRadiationPoint(Start, GTI: 400)]);
+
+        var mapped = new DomainDataReceived(Lucerne, DomainKind.Satellite, satellite).ToPipelineEvent();
+
+        Assert.Same(satellite, Assert.IsType<PipelineEvent.SatelliteDataReceived>(mapped).Forecast);
+    }
+
+    [Fact]
     public void Data_of_the_wrong_type_for_its_domain_is_rejected()
     {
         var received = new DomainDataReceived(Lucerne, DomainKind.Marine, DomainData.Flood(Start));

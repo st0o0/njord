@@ -4,44 +4,37 @@ The Ensemble API provides modeled solar radiation forecasts, but satellite-obser
 
 ## What Changes
 
-- New `ISatelliteRadiationClient` + `SatelliteRadiationClient` in `src/Njord.OpenMeteo/` - thin typed client for `satellite-radiation-api.open-meteo.com/v1/radiation`, built with `OpenMeteoRequestBuilder`; tilt and azimuth are passed in by the caller.
-- New `SatelliteRadiationResponse` DTO registered in `OpenMeteoJsonContext`.
-- New `SatelliteRadiationService` (`BackgroundService`) in `src/Njord.OpenMeteo/` - fetches hourly per location (configurable interval) while the toggle is enabled and stores the recent satellite data. Standalone: not an actor, not a `DomainKind`, not routed through the Gateway.
-- New `ISatelliteRadiationStore` + in-memory `SatelliteRadiationStore` in `src/Njord.Core/Domain/`.
-- New `SatelliteRadiationPoint` in `src/Njord.Forecast/Solar/` with `GHI`, `DirectRadiation`, `DiffuseRadiation`, `DNI`, `GTI` (all `double?`).
-- Enhanced `SolarYieldHandler`: uses satellite data for past/current hours and the ensemble forecast for future hours, blended at the transition point. Without satellite data the handler behaves exactly as today.
-- New `EnrichmentOptions.SatelliteRadiation` toggle (default false, it adds API calls); mirrored in the Config Builder and `docker-compose.example.yml`.
-- `SolarYieldOptions.Tilt` / `Azimuth` are passed to the satellite API for GTI; no new options for orientation.
-- gRPC + MQTT: satellite-based data is surfaced through the existing Solar/Lifestyle wire (`LifestyleMappings.ToLifestyleUpdate()`), no new proto message.
+- New `DomainKind.Satellite` with `SatelliteRadiationPoint` (`GHI`, `DirectRadiation`, `DiffuseRadiation`, `DNI`, `GTI`, all `double?`) and the `[Flags] SatelliteParams` enum in `src/Njord.Forecast/Solar/`. Same pattern as Weather, AirQuality, Flood, Marine and Seasonal: the gateway fetches it, the PollWorker learns its roughly hourly update cycle through Discovery, the pipeline carries it as `SatelliteDataReceived`.
+- New `ISatelliteRadiationClient` + `SatelliteRadiationClient` in `src/Njord.OpenMeteo/` - thin typed client for `satellite-api.open-meteo.com/v1/archive` (see design D1), built with `OpenMeteoRequestBuilder`; tilt and azimuth come from `SolarYieldOptions`.
+- New `SatelliteOptions` (`Njord:Satellite:PastHours`, default 6, 1..48).
+- New feature `FeatureKind.SatelliteRadiation` (config key `SatelliteRadiation`, category Energy, off by default, about 720 calls/month/location) with `SatelliteRadiationHandler`, which emits `SatelliteRadiationComputed` (newest observed GTI/GHI and the blended next-24 h irradiation).
+- `SolarIrradianceBlend` (Njord.Weather): satellite GTI for hours up to the newest observation, ensemble GTI for later hours; satellite data older than 3 h is ignored. `SolarYieldHandler` uses it, so without satellite data it behaves exactly as before.
+- gRPC: `DOMAIN_SATELLITE = 7`, `SatelliteData`/`SatelliteSample` in the domain data oneof. The computed event reaches gRPC and MQTT through the existing lifestyle wire (`LifestyleKind.SatelliteRadiation`, `satellite_radiation`).
+- Config Builder: `Satellite` domain and the `SatelliteRadiation` feature in `docs/data/features.json`; `docker-compose.example.yml`, configuration docs, `AGENTS.md`.
 
 ## Relation to ensemble GTI
 
-The Ensemble API also offers Global Tilted Irradiance (with tilt/azimuth request parameters). Satellite radiation therefore complements rather than competes with the ensemble: the ensemble remains the only source for future hours (the satellite API only observes the past and nowcast), while the satellite API supplies measured values for recent hours. Whether satellite data could eventually replace ensemble solar data for the observed window, and whether ensemble GTI should replace the heuristic `OrientationFactor` in `SolarYieldHandler`, is evaluated in design D6 and left as a follow-up; this change does not remove any ensemble variable.
+`SolarYield` already reads the ensemble `global_tilted_irradiance`, so both sources are GTI. The ensemble stays the only source for future hours; the satellite supplies measured values for the observed hours. No ensemble variable is removed.
 
 ## Non-goals
 
 - Historical radiation analysis (past days or weeks).
-- Replacing the Ensemble radiation forecast entirely (it stays the source for future hours).
-- Real-time (sub-hourly) updates.
-- Making `Solar` a polled `DomainKind` or routing satellite data through the Gateway/PollWorker.
-- Switching `SolarYieldHandler` to ensemble GTI (separate follow-up).
+- Replacing the ensemble radiation forecast.
+- A background service, store or out-of-band fetching: the satellite data is a normal polled domain.
+- Smoothing at the seam between observed and forecast hours.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `satellite-radiation`: ISatelliteRadiationClient, SatelliteRadiationService, ISatelliteRadiationStore, SatelliteRadiationPoint, satellite/ensemble blend in SolarYield.
-
-### Modified Capabilities
-
-- `enrichment-config`: `SatelliteRadiation` toggle added.
+- `satellite-radiation`: Satellite domain, client, feature, handler and the satellite/ensemble blend.
 
 ## Impact
 
-- **Njord.OpenMeteo** (`src/Njord.OpenMeteo/`): client, response DTO, `SatelliteRadiationService`, `Mapping/SatelliteRadiationResponseMappings.cs`; registration in `Configuration/OpenMeteoSetupContainer.cs`.
-- **Njord.Core** (`src/Njord.Core/`): `Domain/ISatelliteRadiationStore.cs`, `Configuration/EnrichmentOptions.cs`, a small interval options class (design D2).
-- **Njord.Forecast** (`src/Njord.Forecast/Solar/`): `SatelliteRadiationPoint`.
-- **Njord.Weather** (`src/Njord.Weather/Lifestyle/SolarYieldHandler.cs`): store dependency and blend.
-- **Njord.Messages / Grpc / Mqtt**: mapping coverage only.
-- **Docs**: Config Builder (`docs/.vitepress/theme/builder`, `docs/data/enrichment.json`), `docker-compose.example.yml`, `appsettings.Example.json`.
-- **API budget**: 1 call per location per hour when enabled, about 720 calls/month per location (about 24/day), against 300k/month and 10k/day. Ten locations is about 7.2k calls/month (2.4 %). Weight 1 per call. Off by default. Not a polled domain, so `BudgetCalculator` does not count it; it is covered by the 80 % startup margin and task 2.5 checks whether the budget model should include it when the toggle is on. Politeness: one request per location per interval, jittered first run, 15 min retry on failure, no burst at startup.
+- **Njord.Forecast**: `DomainKind.Satellite`, `Solar/SatelliteRadiationPoint.cs`, `Solar/SatelliteParams.cs`.
+- **Njord.Core**: `DomainRequirements` (`Satellite`/`OptionalSatellite`), `LocationForecast.Satellite`, `FeatureKind.SatelliteRadiation`, `SatelliteOptions` + validator, `BudgetCalculator` counts the domain per poll cycle.
+- **Njord.OpenMeteo**: client, response DTO, `SatelliteParamsMappings`, `SatelliteRadiationResponseMappings`, gateway dispatch, registration.
+- **Njord.Pipeline / Polling**: `SatelliteDataReceived` mapping, telemetry tag.
+- **Njord.Weather**: `SolarIrradianceBlend`, `SatelliteRadiationHandler`, `SolarYieldHandler`.
+- **Njord.Messages / Grpc / protos**: `SatelliteRadiationComputed`, lifestyle mapping, proto domain and sample.
+- **API budget**: with the default 60 min poll interval one call per location and hour, about 720 calls/month (about 24/day), weight 1, against 300k/month and 10k/day. Ten locations is about 7.2k calls/month (2.4 %). It is a normal domain, so `BudgetCalculator` and the 80 % startup guard already count it. Off by default.

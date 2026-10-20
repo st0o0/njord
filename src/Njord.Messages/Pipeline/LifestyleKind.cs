@@ -17,4 +17,5 @@ public enum LifestyleKind
     FrontApproaching,
     SurfConditions,
     SeasonalOutlook,
+    SatelliteRadiation,
 }

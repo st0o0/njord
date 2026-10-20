@@ -141,6 +141,7 @@ public sealed class ProtoMappingsSpec
     [InlineData(DomainKind.Flood, Domain.Flood)]
     [InlineData(DomainKind.Solar, Domain.Solar)]
     [InlineData(DomainKind.Marine, Domain.Marine)]
+    [InlineData(DomainKind.Satellite, Domain.Satellite)]
     public void Domain_kinds_map_to_their_proto_domain_and_back(DomainKind kind, Domain expected)
     {
         Assert.Multiple(

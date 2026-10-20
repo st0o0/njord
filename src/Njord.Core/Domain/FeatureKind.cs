@@ -36,4 +36,5 @@ public enum FeatureKind
     SwimmingConditions,
     SurfConditions,
     SeasonalOutlook,
+    SatelliteRadiation,
 }

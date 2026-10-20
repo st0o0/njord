@@ -26,6 +26,7 @@ public sealed class LifestyleMappingsSpec
         { new PipelineEvent.FrontApproaching(Lucerne, TimeSpan.FromHours(6), 4, 5), LifestyleKind.FrontApproaching, "front_approaching" },
         { new PipelineEvent.SurfConditionsComputed(Lucerne, 85, "excellent", 1.8, 14, "offshore", At), LifestyleKind.SurfConditions, "surf_conditions" },
         { new PipelineEvent.SeasonalOutlookComputed(Lucerne, []), LifestyleKind.SeasonalOutlook, "seasonal_outlook" },
+        { new PipelineEvent.SatelliteRadiationComputed(Lucerne, At, 450, 380, 3.2), LifestyleKind.SatelliteRadiation, "satellite_radiation" },
     };
 
     [Theory]
@@ -111,6 +112,32 @@ public sealed class LifestyleMappingsSpec
                 ["month_2_confidence"] = "low",
             },
             update.Data);
+    }
+
+    [Fact]
+    public void Satellite_fields_carry_the_observed_irradiance_and_the_blended_total()
+    {
+        var update = new PipelineEvent.SatelliteRadiationComputed(Lucerne, At, 450.5, 380, 3.25).ToLifestyleUpdate();
+
+        Assert.NotNull(update);
+        Assert.Equal(
+            new Dictionary<string, string>
+            {
+                ["observed_at"] = "2026-07-01T06:00:00Z",
+                ["gti"] = "450.5",
+                ["ghi"] = "380",
+                ["blended_kwh_per_m2"] = "3.25",
+            },
+            update.Data);
+    }
+
+    [Fact]
+    public void Satellite_fields_leave_out_what_is_unknown()
+    {
+        var update = new PipelineEvent.SatelliteRadiationComputed(Lucerne, At, 450, null, null).ToLifestyleUpdate();
+
+        Assert.NotNull(update);
+        Assert.Equal(["gti", "observed_at"], update.Data.Keys.Order());
     }
 
     [Theory]

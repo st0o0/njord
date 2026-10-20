@@ -38,6 +38,7 @@ public static class FeatureKindConfigMappings
         FeatureKind.SwimmingConditions => "SwimmingConditions",
         FeatureKind.SurfConditions => "SurfConditions",
         FeatureKind.SeasonalOutlook => "SeasonalOutlook",
+        FeatureKind.SatelliteRadiation => "SatelliteRadiation",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown feature kind."),
     };
 

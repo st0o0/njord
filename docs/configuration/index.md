@@ -85,13 +85,14 @@ You switch features on, njord derives which API domains to poll. Each feature ha
 | `ApproachingFront` | Insight | off | Weather |
 | `SeasonalOutlook` | Insight | off | Seasonal |
 | `SolarYield` | Solar | off | Weather |
+| `SatelliteRadiation` | Solar | off | Satellite |
 | `FloodRisk` | Flood | off | Flood |
 | `FloodRain` | Flood | off | Weather, Flood |
 | `FloodTimeline` | Flood | off | Flood |
 | `SwimmingConditions` | Marine | off | Marine |
 | `SurfConditions` | Marine | off | Weather, Marine |
 
-The defaults poll Weather and Air Quality (two calls per location and cycle). Enabling `FloodRisk` adds Flood; disabling `PollenAlert` and `Pm25Alert` drops Air Quality. A disabled feature is not evaluated even when its domain data is present because another feature needs it, so each weather alert can be switched off on its own. `SeasonalOutlook` reads the Seasonal domain (monthly anomalies, `Njord:Seasonal:ForecastMonths`, default 3, max 6); it learns its own roughly daily update cycle like every domain and costs about one call per day and location. At least one feature must be enabled. The former `Njord:Enrichments` section is no longer read.
+The defaults poll Weather and Air Quality (two calls per location and cycle). Enabling `FloodRisk` adds Flood; disabling `PollenAlert` and `Pm25Alert` drops Air Quality. A disabled feature is not evaluated even when its domain data is present because another feature needs it, so each weather alert can be switched off on its own. `SeasonalOutlook` reads the Seasonal domain (monthly anomalies, `Njord:Seasonal:ForecastMonths`, default 3, max 6); it learns its own roughly daily update cycle like every domain and costs about one call per day and location. `SatelliteRadiation` reads the Satellite domain (observed GHI and tilted irradiance from `satellite-api.open-meteo.com`, tilt and azimuth from `Njord:SolarYield`, `Njord:Satellite:PastHours`, default 6, max 48); it learns its roughly hourly update cycle like every domain and costs about 720 calls per month and location. With `SolarYield` enabled as well, observed hours use the satellite irradiance and later hours the ensemble. At least one feature must be enabled. The former `Njord:Enrichments` section is no longer read.
 
 ```json
 { "Njord": { "Features": { "FloodRisk": true, "PollenAlert": false, "HeatAlert": false } } }

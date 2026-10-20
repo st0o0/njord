@@ -26,6 +26,7 @@ internal static class WireEnumMappings
         DomainKind.Solar => ProtoDomain.Solar,
         DomainKind.Marine => ProtoDomain.Marine,
         DomainKind.Seasonal => ProtoDomain.Seasonal,
+        DomainKind.Satellite => ProtoDomain.Satellite,
         _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null),
     };
 
@@ -37,6 +38,7 @@ internal static class WireEnumMappings
         ProtoDomain.Solar => DomainKind.Solar,
         ProtoDomain.Marine => DomainKind.Marine,
         ProtoDomain.Seasonal => DomainKind.Seasonal,
+        ProtoDomain.Satellite => DomainKind.Satellite,
         _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null),
     };
 

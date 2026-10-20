@@ -1,57 +1,41 @@
 ## Context
 
-`Njord.OpenMeteo` fetches only `DomainKind` domains through the Gateway; `Solar` exists in the model and event vocabulary only. `SolarYieldHandler` (`src/Njord.Weather/Lifestyle/`) currently sums the next 24 h of ensemble `DirectRadiation + DiffuseRadiation`, applies `SystemEfficiency` (0.8) and a heuristic `OrientationFactor` from `SolarYieldOptions` (`PeakKw`, `Azimuth` 180, `Tilt` 30), and emits `PipelineEvent.SolarYieldComputed`. `SolarPoint` has non-nullable doubles. The seasonal-outlook change introduces the standalone pattern (BackgroundService + Core store + handler); this change follows it.
+Seasonal was redesigned as a normal domain; satellite radiation follows the same path. `SolarYieldHandler` reads the ensemble `global_tilted_irradiance` (tilt/azimuth from `SolarYieldOptions` sent by `WeatherClient`) over the next 24 h and applies `SystemEfficiency`.
 
 ## Goals / Non-Goals
 
 **Goals:** measured radiation for recent hours, GTI for the configured panel orientation, a more accurate `SolarYield` for the current day, opt-in.
 
-**Non-Goals:** historical analysis, replacing the ensemble forecast, sub-hourly updates, `Solar` as polled domain.
+**Non-Goals:** historical analysis, replacing the ensemble forecast, sub-hourly updates, a separate fetch loop.
 
 ## Decisions
 
-### D1: BackgroundService, store, handler (not a DomainKind)
+### D1: API shape (verified against the live API)
 
-`SatelliteRadiationService` (`BackgroundService` in `Njord.OpenMeteo`) writes to `ISatelliteRadiationStore` (interface and in-memory implementation in `Njord.Core/Domain`, thread-safe, keyed by location, overwritten per fetch); `SolarYieldHandler` reads it. This keeps the "one PollWorker per location, per-domain timers" guardrail intact and the feature libraries independent (they meet only in Core). The service runs only when `EnrichmentOptions.SatelliteRadiation` is enabled and skips locations without coordinates with a warning. All timing via `TimeProvider`.
+The endpoint is `https://satellite-api.open-meteo.com/v1/archive` (not `satellite-radiation-api.../v1/radiation`, which does not resolve). Hourly variables `shortwave_radiation` (GHI), `direct_radiation`, `diffuse_radiation`, `direct_normal_irradiance`, `global_tilted_irradiance`, all W/m2, `null` where missing. `tilt` and `azimuth` use the same convention as the ensemble API (0 = south), so the compass azimuth of `SolarYieldOptions` (180 = south) is converted with `azimuth - 180`, exactly like `WeatherClient`. `past_hours` and `forecast_hours` select the window; the client sends `past_hours = SatelliteOptions.PastHours` and `forecast_hours = 1`. Times are requested with `timeformat=unixtime`, `timezone=UTC`. The ensemble API offers GTI too, which is what `SolarYield` already uses.
 
-### D2: Hourly fetch interval
+### D2: A normal DomainKind
 
-Satellite data refreshes roughly every 15-60 minutes depending on the satellite, so an hourly fetch captures every useful update. The interval is a config value (default 60 min, validated, minimum 15 min for politeness) in a small options class registered with `AddNjordOptions<T>` (name decided in task 2.1). The first run is jittered; on failure retry after 15 min and keep the previous data.
+`DomainKind.Satellite`, `SatelliteRadiationPoint` (hourly, `IHasValidTime`, `HasFields(SatelliteParams)`), `LocationForecast.Satellite`, `DomainRequirements.Satellite/OptionalSatellite`. The gateway dispatches `FetchDomain(Satellite)` to `ISatelliteRadiationClient`; the PollWorker learns the roughly hourly cycle via Discovery like any domain. No hosted service, store or special timers. The poll interval needs no hint: Discovery measures it.
 
-### D3: Blend satellite (past/current) with ensemble (future)
+### D3: Feature and cost
 
-For each hour of the 24 h window: hours at or before the latest satellite timestamp use satellite values, later hours use the ensemble forecast. The transition point is the last satellite timestamp that is not after `time.GetUtcNow()`. Satellite data older than a staleness bound (3 h, constant pinned by spec) is ignored and the handler falls back to pure ensemble, so a stalled service degrades to today's behavior. No smoothing at the seam in this change; it is a hard switch, a documented simplification.
+`FeatureKind.SatelliteRadiation` (config key `SatelliteRadiation`, Energy, off by default) requires `Satellite: GlobalTilted` and optionally `GlobalHorizontal`. With the default 60 min poll interval `BudgetCalculator` counts the domain once per poll cycle like Weather/AirQuality/Flood/Marine, which is about 720 calls/month/location; the Config Builder derives the same from `features.json`. `SolarYieldHandler` deliberately does NOT require the Satellite domain: enabling `SolarYield` alone must not add calls. It uses satellite data when the `SatelliteRadiation` feature delivers it.
 
-### D4: GTI uses SolarYieldOptions.Tilt/Azimuth
+### D4: Blend satellite (observed) with ensemble (forecast)
 
-The client receives `tilt` and `azimuth` from `SolarYieldOptions` (no new orientation config). Conversion of njord azimuth (180 = south) to the API convention is checked in task 1.1 and pinned by a client spec. When satellite GTI is available for an hour, the handler uses it directly and does not apply `OrientationFactor` to that hour (the orientation is already in the value); ensemble hours keep `OrientationFactor`. This avoids double counting.
+`SolarIrradianceBlend.Hours(forecast, now, 24)` walks the ensemble hours of the window. Hours at or before the newest satellite observation with a GTI use the satellite GTI, all other hours the ensemble GTI. The newest observation is the latest satellite point with a GTI whose `ValidFrom` is not after `now`; it is ignored when older than 3 h (`StaleAfter`), so a stalled domain degrades to ensemble-only. The seam is a hard switch, a documented simplification. The ensemble GTI already contains the panel orientation, so there is no separate orientation factor.
 
-### D5: Off by default
+### D5: SatelliteRadiationHandler output
 
-The toggle defaults to false: about 720 calls/month/location. `SolarYieldHandler.ConfigKey` stays `SolarYield`; `SatelliteRadiation` is a separate `EnrichmentOptions` toggle that only takes effect together with `SolarYield` (task 3.4 decides between validator warning and rejection). `EnrichmentConfigKeySpec` gets an allow-list entry if the toggle has no handler of its own.
+Triggered by Satellite arrivals (the engine only calls handlers that require the arrived domain). It emits `SatelliteRadiationComputed(Location, ObservedAt, GlobalTilted, GlobalHorizontal?, BlendedKwhPerM2?)`: the newest observed hour and, when ensemble GTI is known (SolarYield enabled), the blended 24 h irradiation in kWh/m2. It emits nothing without a usable observation. `SolarYieldHandler` itself is only re-evaluated on Weather arrivals, so its yield picks up fresh satellite data at the next weather cycle; the hourly view is the `SatelliteRadiationComputed` event.
 
-### D6: Ensemble GTI - complement or replace
+### D6: Wire
 
-The Ensemble Mean API has Global Tilted Irradiance built in (tilt and azimuth request parameters). This changes the picture:
-
-- **Future hours:** only the ensemble (or another forecast API) can supply them; satellite cannot. The ensemble stays authoritative for the forecast side, so satellite cannot fully replace it.
-- **Recent hours:** satellite is measured, ensemble is modeled; satellite wins on accuracy, which is the purpose of this change. Here satellite complements the ensemble; it could replace the ensemble solar data for the observed window only.
-- **Orientation:** ensemble GTI would make the heuristic `OrientationFactor` obsolete for forecast hours and give both sources the same physical basis (GTI), turning the blend into GTI-to-GTI. That requires adding GTI to the ensemble variable set (`WeatherVariables`, which changes the variable count and the `ceil(variables / 10)` budget weight, currently 4) and is therefore a separate, budget-relevant change.
-
-Decision for this change: complement. Satellite GTI for observed hours, ensemble direct+diffuse with `OrientationFactor` for future hours. Task 1.1 verifies ensemble GTI availability and records the outcome; if confirmed, a follow-up change (`solar-yield-gti`) moves the forecast side to ensemble GTI and may make the satellite call's role purely "observed correction". The blend is written against a small per-hour "irradiance on panel" abstraction so that follow-up only swaps the forecast side.
-
-### D7: Wire via existing Solar/Lifestyle path
-
-`SolarYieldComputed` keeps its shape; it carries more accurate numbers when satellite data was used. Whether to expose the source mix is decided in task 5.1; if added, it is a new nullable/defaulted member flattened by `ToLifestyleUpdate()` (string map entry), with an explicit wire-name switch for any closed set. No new proto message.
-
-### D8: SatelliteRadiationPoint
-
-New positional record in `src/Njord.Forecast/Solar/` implementing `IHasValidTime`, all radiation members `double?` (the API returns nulls for missing slots): `GHI`, `DirectRadiation`, `DiffuseRadiation`, `DNI`, `GTI`. `SolarPoint` is not changed.
+gRPC gets `DOMAIN_SATELLITE = 7` and `SatelliteData`/`SatelliteSample` (optional doubles) in the domain data oneof. `SatelliteRadiationComputed` flattens through `ToLifestyleUpdate()` as `LifestyleKind.SatelliteRadiation` (`satellite_radiation`) with `observed_at`, `gti`, optional `ghi` and `blended_kwh_per_m2`. No new proto message for it.
 
 ## Risks / Trade-offs
 
-- **[API shape unverified]** Variable names, units, time resolution, regional satellite coverage and the azimuth convention are unconfirmed. Mitigation: task 1.1 gate; uncovered locations yield nulls and fall back to ensemble.
 - **[Hard seam in the blend]** Possible step at the transition; accepted, measured data wins.
-- **[Budget]** Opt-in, outside `BudgetCalculator`; documented in the proposal.
-- **[In-memory store]** Empty after restart until the first fetch; the handler falls back to ensemble meanwhile.
-- **[Double orientation correction]** Avoided by D4.
+- **[Coverage]** Regions outside the satellite footprint return nulls; the handler then emits nothing and SolarYield stays ensemble-only.
+- **[SolarYield refresh]** SolarYield is recomputed per Weather arrival, not per Satellite arrival (D5).

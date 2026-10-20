@@ -8,4 +8,5 @@ public enum DomainKind
     Solar,
     Marine,
     Seasonal,
+    Satellite,
 }

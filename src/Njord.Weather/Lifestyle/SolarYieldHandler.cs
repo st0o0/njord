@@ -15,17 +15,10 @@ public sealed class SolarYieldHandler : IDomainHandler
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.GlobalTiltedIrradiance));
 
+    // Observed hours come from the satellite when the SatelliteRadiation feature delivers them, later hours from the ensemble.
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {
-        if (current.Weather is not { } weather)
-        {
-            return [];
-        }
-
-        var hours = ForecastQueries.Upcoming(weather, time.GetUtcNow(), 24)
-            .Where(point => point.GlobalTiltedIrradiance is not null)
-            .Select(point => (point.ValidFrom, Radiation: point.GlobalTiltedIrradiance!.Value))
-            .ToList();
+        var hours = SolarIrradianceBlend.Hours(current, time.GetUtcNow(), 24);
         if (hours.Count == 0)
         {
             return [];
