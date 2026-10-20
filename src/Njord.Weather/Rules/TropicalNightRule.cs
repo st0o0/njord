@@ -13,7 +13,7 @@ public sealed class TropicalNightRule : IAlertRule<DomainForecast<WeatherPoint>>
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var thresholds = options.TropicalNight();
-        var night = forecast.Next24Hours(now).Where(p => p.IsDay == false && p.Temperature is not null).ToList();
+        var night = forecast.Next24Hours(now).Where(p => p is { IsDay: false, Temperature: not null }).ToList();
         if (night.Count == 0)
         {
             return Alert.None(Type);

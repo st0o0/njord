@@ -51,7 +51,7 @@ public sealed class SwimmingConditionsRule : IAlertRule<DomainForecast<MarinePoi
             return (AlertSeverity.Red, DangerousWaveHeightMeters);
         }
 
-        if (point.WaterTemperature is { } cold && cold < DangerousWaterTemperatureCelsius)
+        if (point.WaterTemperature is < DangerousWaterTemperatureCelsius)
         {
             return (AlertSeverity.Red, DangerousWaterTemperatureCelsius);
         }
@@ -61,7 +61,7 @@ public sealed class SwimmingConditionsRule : IAlertRule<DomainForecast<MarinePoi
             return (AlertSeverity.Yellow, ModerateWaveHeightMeters);
         }
 
-        if (point.WaterTemperature is { } cool && cool < ModerateWaterTemperatureCelsius)
+        if (point.WaterTemperature is < ModerateWaterTemperatureCelsius)
         {
             return (AlertSeverity.Yellow, ModerateWaterTemperatureCelsius);
         }

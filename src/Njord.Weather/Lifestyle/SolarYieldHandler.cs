@@ -23,7 +23,7 @@ public sealed class SolarYieldHandler(IOptions<SolarYieldOptions> options) : IDo
         }
 
         var hours = ForecastQueries.Upcoming(weather, time.GetUtcNow(), 24)
-            .Where(point => point.DirectRadiation.HasValue && point.DiffuseRadiation.HasValue)
+            .Where(point => point is { DirectRadiation: not null, DiffuseRadiation: not null })
             .Select(point => (point.ValidFrom, Radiation: point.DirectRadiation!.Value + point.DiffuseRadiation!.Value))
             .ToList();
         if (hours.Count == 0)
