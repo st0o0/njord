@@ -1,7 +1,5 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Persistence;
-using Njord.Core.Configuration.Polling;
 using Njord.Core.Domain;
 using Servus.Application.Startup;
 
@@ -11,10 +9,9 @@ public sealed class ConfigSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddNjordOptions<NjordOptions>(configuration);
-        services.AddNjordOptions<PersistenceOptions>(configuration);
+        services.AddNjordOptions<NjordOptions, NjordOptionsValidator>();
+        services.AddNjordOptions<PersistenceOptions, PersistenceOptionsValidator>();
 
-        services.AddSingleton<ConfigView>();
         services.AddSingleton(static sp => ServiceInfoMappings.ToServiceInfo(
             sp.GetRequiredService<IOptions<NjordOptions>>().Value,
             sp.GetRequiredService<IOptions<PollingOptions>>().Value,

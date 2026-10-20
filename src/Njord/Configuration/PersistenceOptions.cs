@@ -1,0 +1,12 @@
+using Njord.Core.Configuration;
+namespace Njord.Configuration;
+
+public sealed class PersistenceOptions : IConfigSection
+{
+    public const string SectionName = "Njord:Persistence";
+    static string IConfigSection.SectionName => SectionName;
+
+    public PersistenceProvider Provider { get; set; } = PersistenceProvider.Sqlite;
+    public string? ConnectionString { get; set; }
+    public string DataPath { get; set; } = "data/njord.db";
+}

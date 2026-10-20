@@ -1,8 +1,8 @@
 using Njord.Configuration;
 using Njord.Core;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
 using Njord.Core.Domain;
+using Njord.Core.Polling;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;

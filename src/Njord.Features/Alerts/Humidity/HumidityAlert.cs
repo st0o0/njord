@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
+using Njord.Features.Alerts.Shared;
 using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
@@ -21,9 +22,7 @@ public sealed class HumidityAlert(IOptions<HumidityConfig> config) : FeatureRule
 
     protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
     {
-        var thresholds = SeverityThresholds.TryCreate(config.Value.Thresholds, ScanDirection.Max, out var t)
-            ? t
-            : throw new InvalidOperationException("Invalid humidity thresholds");
+        var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Max);
         var day = ctx.Current.Weather.NextHoursInclusive(ctx.Now).Where(p => p is { IsDay: > 0.5, DewPoint: not null }).ToList();
         if (day.MaxBy(p => p.DewPoint) is not { DewPoint: { } dewPoint } muggiest)
         {

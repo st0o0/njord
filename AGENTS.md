@@ -25,9 +25,9 @@ src/
     Actors/             #   ShardMessageExtractor, StreamSupervision, stream handshake messages
     Domain/             #   IDomainHandler, IAlertRule, IFeature, FeatureCategory,
                         #   FeatureDescriptor, FeatureResolution, LocationForecast, DomainDataReceived
-    Configuration/      #   NjordOptions, LocationOptions, WeatherOptions, FeatureOptions, AlertOptions,
-                        #   SolarYieldOptions, WeatherVariables, ConfigView, AddNjordOptions + validators
-      Polling/ Persistence/ Health/   # PollingOptions, BudgetCalculator, FetchTimeouts, ...
+    Configuration/      #   IConfigSection, NjordOptions, LocationOptions, WeatherOptions, FloodOptions, PollingOptions,
+                        #   HealthOptions, FeatureOptions, WeatherVariables, AddNjordOptions + validators
+    Polling/            #   CallWeight, RequestBudget (free-tier constants, DailyLimit), FetchTimeouts
   Njord.OpenMeteo/      # (-> Core) OpenMeteoGateway, GatewayBudgetGate, 6 typed clients (Weather, AirQuality, Flood, Marine, Seasonal, SatelliteRadiation), OpenMeteoRequestBuilder,
                         #   response DTOs, Mapping/
   Njord.Budget/         # BudgetTracker (persistent), usage accounting, health check
@@ -112,7 +112,7 @@ SHARD REGIONS (Sharded Entity)
   parameter settings. The requested variables follow the enabled handlers: the `Requirements` of all
   enabled handlers are OR-ed (`FeatureResolution.RequiredParams`) and mapped to API names by
   `ParamMappings.ToApiNames()`; the clients only build the URL. `ProjectionEngine` skips a handler whose
-  required fields are missing from the stream (`LocationForecast.HasFields`). `BudgetCalculator` uses the same
+  required fields are missing from the stream (`LocationForecast.HasFields`). `BudgetGuard` uses the same
   resolved requirements: Weather costs `ceil(variables / 10) * ceil(forecastDays / 14)` calls per cycle,
   every other required domain 1.
 - **Per-domain forecast days.** `Njord:AirQuality` (5, max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92,
@@ -127,19 +127,19 @@ SHARD REGIONS (Sharded Entity)
 - **Domains:** `Weather`, `AirQuality`, `Flood`, `Marine`, `Seasonal`, `Satellite` (`DomainKind`); the gateway fetches all of them.
 - **Explicit coordinates.** A location is `Name`, `Latitude` and `Longitude`, all required (`NjordOptionsValidator`).
 - **Free tier assumed** (non-commercial): budget defaults to 300k/month, 600/min, optional
-  `Polling:BudgetOverride`. Startup validates projected usage (`BudgetCalculator`: locations x required
+  `Polling:BudgetOverride`. Startup validates projected usage (`BudgetGuard`: locations x required
   domains x poll cycles x call weight) against 80 % of the monthly budget.
 - **Any change to polling needs a budget estimate** against 300k/month, 10k/day, and politeness toward
   a free service. Weather weighs `ceil(variables / 10)` calls (4 standard and with solar); others 1.
 - **Seasonal is a normal domain** (`DomainKind.Seasonal`, `SeasonalPoint`, `TimeResolution.Monthly`): the gateway fetches
-  `seasonal-api.open-meteo.com` for `SeasonalOutlook`, the PollWorker learns its roughly daily cycle, `BudgetCalculator`
+  `seasonal-api.open-meteo.com` for `SeasonalOutlook`, the PollWorker learns its roughly daily cycle, `BudgetGuard`
   counts it as 30 calls/month/location instead of once per poll cycle. The API delivers ensemble-mean
   `temperature_2m_anomaly` (K) and `precipitation_anomaly` (mm; `SeasonalOutlookHandler` converts to % of the normal
   month with `precipitation_mean`); confidence follows the lead time. `Njord:Seasonal:ForecastMonths` (3) limits the months kept.
 - **Satellite is a normal domain** (`DomainKind.Satellite`, `SatelliteRadiationPoint` in `Njord.Forecast/Solar`): the gateway
   fetches `satellite-api.open-meteo.com/v1/archive` (GHI, direct, diffuse, DNI, GTI; tilt/azimuth from `SolarYieldOptions`,
   `Njord:Satellite:PastHours`) for `SatelliteRadiation` (off by default, about 720 calls/month/location, counted per poll
-  cycle by `BudgetCalculator`). `SolarIrradianceBlend` takes satellite GTI up to the newest observation (ignored when
+  cycle by `BudgetGuard`). `SolarIrradianceBlend` takes satellite GTI up to the newest observation (ignored when
   older than 3 h) and ensemble GTI afterwards; `SolarYieldHandler` and `SatelliteRadiationHandler` use it.
 - Poll interval 60 min and discovery interval 20 min are config values.
 - Wire text for closed sets comes from explicit mappings, never `ToString()`.
@@ -172,9 +172,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 900 tests (Forecast 68, Messages 69, Persistence 14, Core 155, OpenMeteo 134, Budget 18,
-Polling 103, Pipeline 51, Features 214, Grpc 41, Architecture 16,
-IntegrationTests 17). One test per `[Fact]` and per `[Theory]` data row.
+Current total: 927 tests (Forecast 64, Messages 21, Persistence 14, Core 80, OpenMeteo 169, Budget 18,
+Polling 115, Pipeline 50, Features 222, Grpc 133, Architecture 14, IntegrationTests 27). One test per `[Fact]` and per `[Theory]` data row.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),
 `appsettings.Development.json`, environment variables (`Njord__Persistence__DataPath`), `appsettings.Example.json`
@@ -260,8 +259,11 @@ Rules apply to production code.
 
 ## Options
 
-One options class per concern with its own `SectionName`, registered with `AddNjordOptions<T>(configuration)`
-(binds the section, lets a configured list replace its default, registers `<T>Validator`, `ValidateOnStart`).
+One options class per concern with its own `SectionName`, implementing `IConfigSection` (`static abstract SectionName`), registered with `AddNjordOptions<T>()`
+(`AddOptions<T>().BindConfiguration(T.SectionName).ValidateOnStart()`) or `AddNjordOptions<T, TValidator>()` when it has
+cross-field rules (explicit `IValidateOptions<T>`, failures collected with context). Options live with their owner
+(OpenMeteo options and `OpenMeteoOptionsValidator` in `Njord.OpenMeteo`, `PollingOptionsValidator` and `BudgetGuard` in
+`Njord.Polling`, `PersistenceOptions` in the Host, alert thresholds validated per feature).
 Defaults are property initializers.
 
 | Section | Class | Content |
@@ -283,7 +285,7 @@ Defaults are property initializers.
 The Config Builder (`docs/.vitepress/theme/builder`: `types.ts`, `budget.ts`, `serializer.ts`,
 `ConfigBuilder.vue`, data in `docs/data/features.json` (generated from the descriptors) and `docs/data/enrichment.json`
 (alert thresholds)) mirrors the toggles, their required domains, per-feature marginal cost and the
-`BudgetCalculator` formula; change them together with the options and `docker-compose.example.yml`.
+`BudgetGuard` formula; change them together with the options and `docker-compose.example.yml`.
 
 ## References
 

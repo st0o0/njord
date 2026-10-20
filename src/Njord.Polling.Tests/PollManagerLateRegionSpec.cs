@@ -23,7 +23,7 @@ public sealed class PollManagerLateRegionSpec : NjordActorSpec
         {
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
         }));
-        services.AddSingleton(TestConfigView.Create());
+        services.AddSingleton(Options.Create(AppSettingsDefaults.Options<PollingOptions>()));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

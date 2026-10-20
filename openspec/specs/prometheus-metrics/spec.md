@@ -36,7 +36,7 @@ The budget layer SHALL expose four observable gauges on the `Njord.Budget` meter
 - `njord_budget_limit_monthly` (ObservableGauge): resolved monthly limit.
 - `njord_gateway_throttle_wait_seconds` (Histogram): time a fetch target was parked by `GatewayThrottleStage` before being released.
 
-Budget usage SHALL be published by `BudgetTracker` into the `BudgetUsageState` owned by `Njord.Budget` (after recovery and after each persisted `ApiCallRecorded`). The used gauges read that state and the limit gauges read the effective budget from the current polling configuration (`ConfigView`), so a budget change is visible without any component pushing limits.
+Budget usage SHALL be published by `BudgetTracker` into the `BudgetUsageState` owned by `Njord.Budget` (after recovery and after each persisted `ApiCallRecorded`). The used gauges read that state and the limit gauges read the effective budget from the current polling configuration (`IOptions<PollingOptions>`), so a budget change is visible without any component pushing limits.
 
 #### Scenario: Budget gauges reflect actor state
 - **WHEN** `BudgetTracker` has recorded 150 requests today and 4200 this month

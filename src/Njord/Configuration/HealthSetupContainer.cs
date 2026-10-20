@@ -10,7 +10,7 @@ public sealed class HealthSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddNjordOptions<HealthOptions>(configuration);
+        services.AddNjordOptions<HealthOptions, HealthOptionsValidator>();
         services.AddRequestTimeouts();
 
         services.AddHealthChecks()

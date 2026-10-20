@@ -1,8 +1,11 @@
+using Njord.Core.Configuration;
+
 namespace Njord.Features.Alerts.Fog;
 
-public sealed class FogConfig
+public sealed class FogConfig : IConfigSection
 {
     public const string SectionName = "Njord:Features:Weather:Fog";
+    static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
     public int PersistentHours { get; set; } = 4;
 }

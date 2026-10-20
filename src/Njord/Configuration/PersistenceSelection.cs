@@ -1,4 +1,3 @@
-using Njord.Core.Configuration.Persistence;
 
 namespace Njord.Configuration;
 

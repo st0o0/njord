@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
+using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -31,7 +31,7 @@ public sealed class PollManagerCycleSpec : NjordActorSpec
         {
             Locations = [new LocationOptions { Name = _location, Latitude = 47.05, Longitude = 8.31 }],
         }));
-        services.AddSingleton(TestConfigView.Create(polling: AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = TimeSpan.FromHours(1))));
+        services.AddSingleton(Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = TimeSpan.FromHours(1))));
     }
 
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider) =>

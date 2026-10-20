@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
+using Njord.OpenMeteo.Configuration;
 
 namespace Njord.OpenMeteo;
 

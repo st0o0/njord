@@ -31,13 +31,13 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
     private static readonly DateTimeOffset T0 = TestTimeConstants.BudgetEpoch;
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(T0);   // Microsoft.Extensions.Time.Testing
     private readonly BudgetUsageState _usage = new();
-    private ConfigView _config = TestConfigView.Create();
+    private readonly IOptions<PollingOptions> _polling = Options.Create(new PollingOptions());
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
         => services.AddSingleton<TimeProvider>(_time);
 
     private IActorRef CreateActor(string? name = null) => Sys.ActorOf(
-        Props.Create(() => new BudgetTracker(_time, _usage, _config)),
+        Props.Create(() => new BudgetTracker(_time, _polling)),
         name ?? $"budget-tracker-{Guid.NewGuid():N}");   // unique name per test
 
     [Fact(Timeout = TestTimeouts.Hosted)]

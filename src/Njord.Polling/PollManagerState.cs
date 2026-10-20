@@ -17,7 +17,7 @@ internal sealed record PollManagerConfig(
 
         foreach (var location in locations)
         {
-            var target = new PollTarget(new Location(location.Name, location.Latitude.Value, location.Longitude.Value));
+            var target = new PollTarget(new Location(location.Name, location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault()));
             targets.Add(target);
             targetsById[target.Id] = target;
         }

@@ -89,7 +89,7 @@ The system SHALL provide an `AkkaSetupContainer` extending `ActorSystemSetupCont
 - **THEN** it holds the defaults of the `Njord:Health` section in `appsettings.json`
 
 ### Requirement: BudgetSetupContainer registers the budget usage state, gauges and check
-`BudgetSetupContainer` SHALL register the `BudgetUsageState`, the observable budget gauges (reading the usage state and the effective budget from `ConfigView`) and the `budget` health check (failure status `Unhealthy`).
+`BudgetSetupContainer` SHALL register the `BudgetUsageState`, the observable budget gauges (reading the usage state and the effective budget from `IOptions<PollingOptions>`) and the `budget` health check (failure status `Unhealthy`).
 
 #### Scenario: Gauges follow the usage and the configured budget
 - **WHEN** the usage state receives new values and the budget override changes

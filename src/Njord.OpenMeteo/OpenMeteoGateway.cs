@@ -6,14 +6,15 @@ using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
 using Njord.Core.Domain;
+using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Marine;
 using Njord.Forecast.Solar;
 using Njord.Forecast.Weather;
 using Njord.Messages.Forecast;
+using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Mapping;
 using Servus.Akka;
 
@@ -111,7 +112,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         _marineVariables = requirements.AllMarine.ToApiNames();
         _seasonalVariables = requirements.AllSeasonal.ToApiNames();
         _satelliteVariables = requirements.AllSatellite.ToApiNames();
-        _weatherWeight = BudgetCalculator.ComputeWeight(_weatherVariables.Count, WeatherForecastDays);
+        _weatherWeight = CallWeight.Of(_weatherVariables.Count, WeatherForecastDays);
         _gate = new GatewayBudgetGate(budgetProvider, Context.GetActor<IBudgetTracker>(), timeProvider);
 
         Receive<FetchDomain>(OnFetchDomain);
@@ -148,7 +149,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         }
 
         var id = NextId();
-        _pending[id] = new PendingDomainRequest(Sender, msg.Location, msg.Domain, new Location(location.Name, location.Latitude.Value, location.Longitude.Value));
+        _pending[id] = new PendingDomainRequest(Sender, msg.Location, msg.Domain, new Location(location.Name, location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault()));
 
         if (msg.Domain is not (DomainKind.Weather or DomainKind.AirQuality or DomainKind.Flood or DomainKind.Marine or DomainKind.Seasonal or DomainKind.Satellite))
         {
@@ -210,22 +211,22 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private async Task<IDomainForecast?> FetchForecastAsync(DomainKind domain, LocationOptions location, DateTimeOffset now) =>
         domain switch
         {
-            DomainKind.Weather => (await _weatherClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
+            DomainKind.Weather => (await _weatherClient.FetchAsync(location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault(),
                     _weatherVariables, WeatherForecastDays, CancellationToken.None))
                 ?.ToDomainForecast(now)?.TrimTrailing((WeatherPoint p, WeatherParams f) => p.HasFields(f)),
-            DomainKind.AirQuality => (await _airQualityClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
+            DomainKind.AirQuality => (await _airQualityClient.FetchAsync(location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault(),
                     _airQualityVariables, Math.Min(_airQuality.ForecastDays, MaxAirQualityForecastDays), CancellationToken.None))
                 ?.ToDomainForecast(now)?.TrimTrailing((AirQualityPoint p, AirQualityParams f) => p.HasFields(f)),
-            DomainKind.Marine => (await _marineClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
+            DomainKind.Marine => (await _marineClient.FetchAsync(location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault(),
                     _marineVariables, _marine.ForecastDays, CancellationToken.None))
                 ?.ToDomainForecast(now)?.TrimTrailing((MarinePoint p, MarineParams f) => p.HasFields(f)),
-            DomainKind.Seasonal => (await _seasonalClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
+            DomainKind.Seasonal => (await _seasonalClient.FetchAsync(location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault(),
                     _seasonalVariables, CancellationToken.None))
                 ?.ToDomainForecast(now, _seasonal.ForecastMonths),
-            DomainKind.Satellite => (await _satelliteClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
+            DomainKind.Satellite => (await _satelliteClient.FetchAsync(location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault(),
                     _satelliteVariables, _satellite.PastHours, CancellationToken.None))
                 ?.ToDomainForecast(now)?.TrimTrailing((SatelliteRadiationPoint p, SatelliteParams f) => p.HasFields(f)),
-            _ => (await _floodClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
+            _ => (await _floodClient.FetchAsync(location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault(),
                     _floodVariables, _flood.ForecastDays, _flood.IncludeEnsemble, CancellationToken.None))
                 ?.ToDomainForecast(now),
         };

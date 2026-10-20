@@ -22,9 +22,7 @@ public sealed class WindChillAlert(IOptions<WindChillConfig> config) : FeatureRu
 
     protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
     {
-        var thresholds = SeverityThresholds.TryCreate(config.Value.Thresholds, ScanDirection.Min, out var t)
-            ? t
-            : throw new InvalidOperationException("Invalid wind chill thresholds");
+        var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Min);
         if (ctx.Current.Weather.NextHoursInclusive(ctx.Now).LowestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } low } coldest)
         {
             return null;

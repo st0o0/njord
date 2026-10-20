@@ -22,9 +22,7 @@ public sealed class HeatAlert(IOptions<HeatConfig> config) : FeatureRule<Weather
 
     protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
     {
-        var thresholds = SeverityThresholds.TryCreate(config.Value.Thresholds, ScanDirection.Max, out var t)
-            ? t
-            : throw new InvalidOperationException("Invalid heat thresholds");
+        var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Max);
         var window = ctx.Current.Weather.NextHoursInclusive(ctx.Now);
         if (window.HighestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } apparent } hottestApparent
             || window.HighestBy(p => p.Temperature) is not { Temperature: { } air } hottestAir)

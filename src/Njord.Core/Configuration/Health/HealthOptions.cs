@@ -1,8 +1,9 @@
 namespace Njord.Core.Configuration.Health;
 
-public sealed class HealthOptions
+public sealed class HealthOptions : IConfigSection
 {
     public const string SectionName = "Njord:Health";
+    static string IConfigSection.SectionName => SectionName;
 
     public double PollOverdueFactor { get; set; } = 2.0;
     public double PollStalledFactor { get; set; } = 3.0;

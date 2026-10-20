@@ -2,6 +2,7 @@ using System.Net;
 using Njord.Core.Configuration;
 using Njord.Forecast;
 using Njord.Forecast.Solar;
+using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo.Tests;

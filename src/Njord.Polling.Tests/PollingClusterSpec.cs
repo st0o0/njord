@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
+using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
@@ -41,7 +41,7 @@ public sealed class PollingClusterSpec : NjordActorSpec
                 new LocationOptions { Name = "zurich", Latitude = 47.37, Longitude = 8.54 },
             ],
         }));
-        services.AddSingleton(TestConfigView.Create());
+        services.AddSingleton(Options.Create(AppSettingsDefaults.Options<PollingOptions>()));
     }
 
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider)

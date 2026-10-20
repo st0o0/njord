@@ -5,7 +5,6 @@ using Akka.Persistence.Sql.Hosting;
 using Akka.Remote.Hosting;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
-using Njord.Core.Configuration.Persistence;
 using Servus.Akka.Startup;
 
 namespace Njord.Configuration;

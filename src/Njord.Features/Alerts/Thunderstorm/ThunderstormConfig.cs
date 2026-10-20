@@ -1,8 +1,11 @@
+using Njord.Core.Configuration;
+
 namespace Njord.Features.Alerts.Thunderstorm;
 
-public sealed class ThunderstormConfig
+public sealed class ThunderstormConfig : IConfigSection
 {
     public const string SectionName = "Njord:Features:Weather:Thunderstorm";
+    static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
     public double CapeThreshold { get; set; } = 1000.0;
     public double PrecipThreshold { get; set; } = 5.0;

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
-using Njord.Core.Configuration.Polling;
+using Njord.Core.Configuration;
+using Njord.Core.Polling;
 using Njord.Tests.Shared;
 
 namespace Njord.OpenMeteo.Tests;

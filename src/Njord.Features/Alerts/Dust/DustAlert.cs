@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
+using Njord.Features.Alerts.Shared;
 using Njord.Forecast.AirQuality;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
@@ -21,9 +22,7 @@ public sealed class DustAlert(IOptions<DustConfig> config) : FeatureRule<AqInput
 
     protected override PipelineEvent? Evaluate(FeatureContext<AqInput> ctx)
     {
-        var thresholds = SeverityThresholds.TryCreate(config.Value.Thresholds, ScanDirection.Max, out var t)
-            ? t
-            : throw new InvalidOperationException("Invalid dust thresholds");
+        var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Max);
         AirQualityPoint? peakPoint = null;
         var peak = 0.0;
         foreach (var point in ctx.Current.AirQuality.NextHoursInclusive(ctx.Now))

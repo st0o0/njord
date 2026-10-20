@@ -36,12 +36,12 @@ public sealed class PollManager : ReceiveActor, IWithTimers
 
     public PollManager(
         IOptions<NjordOptions> options,
-        ConfigView config,
+        IOptions<PollingOptions> polling,
         TimeProvider timeProvider)
     {
         _timeProvider = timeProvider;
         _config = PollManagerConfig.Create(options.Value.Locations);
-        _state = PollManagerState.Create(_config, config.Polling.DiscoveryInterval, timeProvider.GetUtcNow());
+        _state = PollManagerState.Create(_config, polling.Value.DiscoveryInterval, timeProvider.GetUtcNow());
 
         Receive<ResolveRegion>(_ => OnResolveRegion());
         Receive<RegionStateReceived>(OnRegionState);

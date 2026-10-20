@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
+using Njord.Core.Polling;
 using Servus.Akka;
 using Servus.Application.Startup;
 
@@ -17,13 +17,13 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddNjordOptions<WeatherOptions>(configuration);
-        services.AddNjordOptions<AirQualityOptions>(configuration);
-        services.AddNjordOptions<MarineOptions>(configuration);
-        services.AddNjordOptions<FloodOptions>(configuration);
-        services.AddNjordOptions<SeasonalOptions>(configuration);
-        services.AddNjordOptions<SatelliteOptions>(configuration);
-        services.AddNjordOptions<SolarYieldOptions>(configuration);
+        services.AddNjordOptions<WeatherOptions, OpenMeteoOptionsValidator>();
+        services.AddNjordOptions<AirQualityOptions, OpenMeteoOptionsValidator>();
+        services.AddNjordOptions<MarineOptions, OpenMeteoOptionsValidator>();
+        services.AddNjordOptions<FloodOptions, OpenMeteoOptionsValidator>();
+        services.AddNjordOptions<SeasonalOptions, OpenMeteoOptionsValidator>();
+        services.AddNjordOptions<SatelliteOptions, OpenMeteoOptionsValidator>();
+        services.AddNjordOptions<SolarYieldOptions, OpenMeteoOptionsValidator>();
 
         services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
         services.TryAddSingleton(FetchTimeouts.Default);

@@ -1,5 +1,4 @@
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
 using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Messages.Config;
@@ -15,8 +14,8 @@ public static class ServiceInfoMappings
         IEnumerable<IFeatureRule> features) =>
         new(
             scope.ToCatalog(),
-            BudgetCalculator.GetEffectiveBudget(polling).RequestsPerMonth,
-            RequestBudget.OpenMeteoFreeTierDailyLimit,
+            polling.EffectiveBudget.RequestsPerMonth,
+            polling.EffectiveBudget.DailyLimit,
             ActiveEnrichments(features));
 
     public const string EnsembleModelId = "ensemble_mean";

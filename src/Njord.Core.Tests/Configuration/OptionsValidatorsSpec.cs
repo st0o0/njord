@@ -1,5 +1,5 @@
 using Njord.Core.Configuration.Health;
-using Njord.Core.Configuration.Persistence;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration;
 
@@ -31,39 +31,5 @@ public sealed class OptionsValidatorsSpec
         var result = new HealthOptionsValidator().Validate(null, new HealthOptions { BudgetDegradedBelowPercent = percent });
 
         Assert.Contains("BudgetDegradedBelowPercent", ValidationAssert.SingleFailure(result));
-    }
-
-    [Fact]
-    public void Should_reject_postgres_persistence_without_a_connection_string()
-    {
-        var options = new PersistenceOptions { Provider = PersistenceProvider.PostgreSql };
-
-        var result = new PersistenceOptionsValidator().Validate(null, options);
-
-        Assert.Contains("requires a connection string", ValidationAssert.SingleFailure(result));
-    }
-
-    [Fact]
-    public void Should_default_the_persistence_data_path()
-    {
-        Assert.Equal("data/njord.db", new PersistenceOptions().DataPath);
-    }
-
-    [Fact]
-    public void Should_reject_an_unwritable_sqlite_data_directory()
-    {
-        var blocker = Path.GetTempFileName();
-        try
-        {
-            var options = new PersistenceOptions { DataPath = Path.Combine(blocker, "njord.db") };
-
-            var result = new PersistenceOptionsValidator().Validate(null, options);
-
-            Assert.Contains("is not writable", ValidationAssert.SingleFailure(result));
-        }
-        finally
-        {
-            File.Delete(blocker);
-        }
     }
 }

@@ -12,7 +12,7 @@ namespace Njord.Pipeline.Health;
 internal sealed class PipelineHealthCheck(
     ActorRegistry registry,
     TimeProvider timeProvider,
-    ConfigView config,
+    IOptions<PollingOptions> polling,
     IOptions<HealthOptions> options) : IHealthCheck
 {
     private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
@@ -28,7 +28,7 @@ internal sealed class PipelineHealthCheck(
         try
         {
             var health = await manager.Ask<PollHealthResult>(new QueryPollHealth(), AskTimeout, cancellationToken);
-            return Evaluate(health, config.Polling.PollInterval, timeProvider.GetUtcNow(), options.Value);
+            return Evaluate(health, polling.Value.PollInterval, timeProvider.GetUtcNow(), options.Value);
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {

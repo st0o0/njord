@@ -1,9 +1,10 @@
 using Akka.Actor;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
+using Njord.Core.Polling;
 using Njord.Messages.Budget;
 using Njord.Tests.Shared;
 
@@ -12,13 +13,13 @@ namespace Njord.Budget.Tests;
 public sealed class BudgetTrackerSpec : NjordActorSpec
 {
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(TestTimeConstants.BudgetEpoch);
-    private ConfigView _config = TestConfigView.Create();
+    private IOptions<PollingOptions> _polling = Options.Create(AppSettingsDefaults.Options<PollingOptions>());
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services) =>
         services.AddSingleton<TimeProvider>(_time);
 
     private IActorRef CreateTracker() =>
-        Sys.ActorOf(Props.Create(() => new BudgetTracker(_time, _config)), $"budget-tracker-{Guid.NewGuid():N}");
+        Sys.ActorOf(Props.Create(() => new BudgetTracker(_time, _polling)), $"budget-tracker-{Guid.NewGuid():N}");
 
     private async Task<BudgetUsageResult> UsageOf(IActorRef tracker, CancellationToken ct) =>
         await tracker.Ask<BudgetUsageResult>(new QueryBudgetUsage(), TestTimeouts.AwaitAssertMax, ct);
@@ -44,7 +45,7 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Status_pairs_the_usage_with_the_effective_limits()
     {
-        _config = TestConfigView.Create(polling: AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(250_000, 60)));
+        _polling = Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(250_000, 60)));
         var tracker = CreateTracker();
 
         tracker.Tell(new RecordApiCall(2));

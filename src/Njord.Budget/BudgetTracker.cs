@@ -1,7 +1,7 @@
 using Akka.Event;
 using Akka.Persistence;
+using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
 using Njord.Messages.Budget;
 using Njord.Persistence.Events.Budget;
 
@@ -15,14 +15,14 @@ public sealed class BudgetTracker : ReceivePersistentActor
     public override string PersistenceId => "budget-tracker";
 
     private readonly TimeProvider _timeProvider;
-    private readonly ConfigView _config;
+    private readonly PollingOptions _polling;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private BudgetTrackerState _state;
 
-    public BudgetTracker(TimeProvider timeProvider, ConfigView config)
+    public BudgetTracker(TimeProvider timeProvider, IOptions<PollingOptions> polling)
     {
         _timeProvider = timeProvider;
-        _config = config;
+        _polling = polling.Value;
 
         var now = timeProvider.GetUtcNow();
         _state = BudgetTrackerState.Empty with { CurrentMonth = now.Month, CurrentDay = now.DayOfYear };
@@ -63,7 +63,7 @@ public sealed class BudgetTracker : ReceivePersistentActor
 
     private BudgetStatusResult GetStatus()
     {
-        var limits = _config.Polling.ToBudgetAllowance();
+        var limits = BudgetAllowance.From(_polling);
         return new BudgetStatusResult(_state.MonthlyUsed, _state.DailyUsed, limits.Monthly, limits.Daily);
     }
 
@@ -100,7 +100,7 @@ public sealed class BudgetTracker : ReceivePersistentActor
 
     private void LogBudgetTransitions(BudgetTrackerState previous, BudgetTrackerState current)
     {
-        var limits = _config.Polling.ToBudgetAllowance();
+        var limits = BudgetAllowance.From(_polling);
 
         if (current.CurrentMonth != previous.CurrentMonth)
         {

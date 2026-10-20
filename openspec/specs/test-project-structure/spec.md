@@ -3,7 +3,7 @@
 Organization of test projects, their dependency boundaries, shared infrastructure, and which test types belong where.
 ## Requirements
 ### Requirement: Shared test infrastructure project
-The solution SHALL contain a `Njord.Tests.Shared` class library project that holds JSON fixture files, reusable test fakes (`FakeOpenMeteoClient`, `TestConfigView`, `ConfigHarness`), actor-spec support (`NjordActorSpec`, `FeatureServices`, `DisabledAnalyzers`, `AnalysisFixture`), Akka configuration helpers (`TestPersistenceConfig`, `TestTimefactorConfig`), timeout constants (`TestTimeouts`, `TestTimeConstants`), and `TestOptionsMonitor<T>`. This project SHALL NOT be a test project and SHALL NOT contain any test classes. Every file SHALL be used by at least two test projects.
+The solution SHALL contain a `Njord.Tests.Shared` class library project that holds JSON fixture files, reusable test fakes (`FakeOpenMeteoClient`, `ConfigHarness`), actor-spec support (`NjordActorSpec`, `FeatureServices`, `DisabledAnalyzers`, `AnalysisFixture`), Akka configuration helpers (`TestPersistenceConfig`, `TestTimefactorConfig`), timeout constants (`TestTimeouts`, `TestTimeConstants`), and `TestOptionsMonitor<T>`. This project SHALL NOT be a test project and SHALL NOT contain any test classes. Every file SHALL be used by at least two test projects.
 
 #### Scenario: Shared project provides fixture files
 - **WHEN** a test project references `Njord.Tests.Shared`

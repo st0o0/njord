@@ -1,5 +1,6 @@
 using System.Globalization;
 using Njord.Core.Configuration;
+using Njord.OpenMeteo.Configuration;
 
 namespace Njord.OpenMeteo.Tests;
 

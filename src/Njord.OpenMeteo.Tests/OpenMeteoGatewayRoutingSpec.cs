@@ -4,8 +4,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
 using Njord.Core.Domain;
+using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
@@ -14,6 +14,7 @@ using Njord.Forecast.Seasonal;
 using Njord.Forecast.Solar;
 using Njord.Forecast.Weather;
 using Njord.Messages.Forecast;
+using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Mapping;
 using Njord.Tests.Shared;
 

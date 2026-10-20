@@ -22,9 +22,7 @@ public sealed class FrostAlert(IOptions<FrostConfig> config) : FeatureRule<Weath
 
     protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
     {
-        var thresholds = SeverityThresholds.TryCreate(config.Value.Thresholds, ScanDirection.Min, out var t)
-            ? t
-            : throw new InvalidOperationException("Invalid frost thresholds");
+        var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Min);
         var window = ctx.Current.Weather.NextHoursInclusive(ctx.Now);
         if (window.LowestBy(p => p.Temperature) is not { Temperature: { } lowest } coldest)
         {

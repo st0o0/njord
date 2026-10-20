@@ -1,8 +1,12 @@
+using Njord.Core.Configuration;
+
 namespace Njord.Features.Alerts.TropicalNight;
 
-public sealed class TropicalNightConfig
+public sealed class TropicalNightConfig : IConfigSection
 {
     public const string SectionName = "Njord:Features:Weather:TropicalNight";
+    static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
-    public double[] Thresholds { get; set; } = [20, 23, 25];
+    public double[]? Thresholds { get; set; }
+    public double[] EffectiveThresholds => Thresholds ?? [20, 23, 25];
 }

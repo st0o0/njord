@@ -22,9 +22,7 @@ public sealed class StormAlert(IOptions<StormConfig> config) : FeatureRule<Weath
 
     protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
     {
-        var thresholds = SeverityThresholds.TryCreate(config.Value.GustThresholds, ScanDirection.Max, out var t)
-            ? t
-            : throw new InvalidOperationException("Invalid storm thresholds");
+        var thresholds = config.Value.EffectiveGustThresholds.ToSeverity(ScanDirection.Max);
         if (ctx.Current.Weather.NextHoursInclusive(ctx.Now).HighestBy(p => p.WindGusts) is not { WindGusts: { } gust } peak)
         {
             return null;

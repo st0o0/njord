@@ -46,26 +46,26 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddFeatures(this IServiceCollection services, IConfiguration configuration)
     {
         // Alerts
-        services.AddNjordFeatureOptions<DustConfig>();
-        services.AddNjordFeatureOptions<FloodRainConfig>();
-        services.AddNjordFeatureOptions<FloodRiskConfig>();
-        services.AddNjordFeatureOptions<FogConfig>();
-        services.AddNjordFeatureOptions<FrostConfig>();
-        services.AddNjordFeatureOptions<HeatConfig>();
-        services.AddNjordFeatureOptions<HeavyRainConfig>();
-        services.AddNjordFeatureOptions<HumidityConfig>();
-        services.AddNjordFeatureOptions<IceConfig>();
-        services.AddNjordFeatureOptions<Pm25Config>();
-        services.AddNjordFeatureOptions<PollenConfig>();
-        services.AddNjordFeatureOptions<PressureDropConfig>();
-        services.AddNjordFeatureOptions<SnowConfig>();
-        services.AddNjordFeatureOptions<StormConfig>();
-        services.AddNjordFeatureOptions<SwimmingConditionsConfig>();
-        services.AddNjordFeatureOptions<ThunderstormConfig>();
-        services.AddNjordFeatureOptions<TropicalNightConfig>();
-        services.AddNjordFeatureOptions<UvConfig>();
-        services.AddNjordFeatureOptions<VisibilityConfig>();
-        services.AddNjordFeatureOptions<WindChillConfig>();
+        services.AddNjordOptions<DustConfig, DustConfigValidator>();
+        services.AddNjordOptions<FloodRainConfig>();
+        services.AddNjordOptions<FloodRiskConfig>();
+        services.AddNjordOptions<FogConfig>();
+        services.AddNjordOptions<FrostConfig, FrostConfigValidator>();
+        services.AddNjordOptions<HeatConfig, HeatConfigValidator>();
+        services.AddNjordOptions<HeavyRainConfig>();
+        services.AddNjordOptions<HumidityConfig, HumidityConfigValidator>();
+        services.AddNjordOptions<IceConfig>();
+        services.AddNjordOptions<Pm25Config>();
+        services.AddNjordOptions<PollenConfig>();
+        services.AddNjordOptions<PressureDropConfig>();
+        services.AddNjordOptions<SnowConfig>();
+        services.AddNjordOptions<StormConfig, StormConfigValidator>();
+        services.AddNjordOptions<SwimmingConditionsConfig>();
+        services.AddNjordOptions<ThunderstormConfig>();
+        services.AddNjordOptions<TropicalNightConfig, TropicalNightConfigValidator>();
+        services.AddNjordOptions<UvConfig>();
+        services.AddNjordOptions<VisibilityConfig, VisibilityConfigValidator>();
+        services.AddNjordOptions<WindChillConfig, WindChillConfigValidator>();
         services.AddSingleton<IFeatureRule, DustAlert>();
         services.AddSingleton<IFeatureRule, FloodRainAlert>();
         services.AddSingleton<IFeatureRule, FloodRiskAlert>();
@@ -88,25 +88,25 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFeatureRule, WindChillAlert>();
 
         // Scores
-        services.AddNjordFeatureOptions<BbqConfig>();
-        services.AddNjordFeatureOptions<LaundryConfig>();
-        services.AddNjordFeatureOptions<OutdoorConfig>();
+        services.AddNjordOptions<BbqConfig>();
+        services.AddNjordOptions<LaundryConfig>();
+        services.AddNjordOptions<OutdoorConfig>();
         services.AddSingleton<IFeatureRule, BbqScore>();
         services.AddSingleton<IFeatureRule, LaundryScore>();
         services.AddSingleton<IFeatureRule, OutdoorScore>();
 
         // Conditions
-        services.AddNjordFeatureOptions<SurfConditionsConfig>();
-        services.AddNjordFeatureOptions<ApproachingFrontConfig>();
-        services.AddNjordFeatureOptions<PollenTrendConfig>();
-        services.AddNjordFeatureOptions<SatelliteRadiationConfig>();
-        services.AddNjordFeatureOptions<SolarYieldConfig>();
-        services.AddNjordFeatureOptions<CommuteSafetyConfig>();
-        services.AddNjordFeatureOptions<ExerciseAdvisoryConfig>();
-        services.AddNjordFeatureOptions<FloodTimelineConfig>();
-        services.AddNjordFeatureOptions<GardeningConfig>();
-        services.AddNjordFeatureOptions<NightVentilationConfig>();
-        services.AddNjordFeatureOptions<VentilationWindowConfig>();
+        services.AddNjordOptions<SurfConditionsConfig>();
+        services.AddNjordOptions<ApproachingFrontConfig>();
+        services.AddNjordOptions<PollenTrendConfig>();
+        services.AddNjordOptions<SatelliteRadiationConfig>();
+        services.AddNjordOptions<SolarYieldConfig>();
+        services.AddNjordOptions<CommuteSafetyConfig>();
+        services.AddNjordOptions<ExerciseAdvisoryConfig>();
+        services.AddNjordOptions<FloodTimelineConfig>();
+        services.AddNjordOptions<GardeningConfig>();
+        services.AddNjordOptions<NightVentilationConfig>();
+        services.AddNjordOptions<VentilationWindowConfig>();
         services.AddSingleton<IFeatureRule, SurfConditions>();
         services.AddSingleton<IFeatureRule, ApproachingFront>();
         services.AddSingleton<IFeatureRule, PollenTrend>();
@@ -120,11 +120,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFeatureRule, VentilationWindow>();
 
         // Trends
-        services.AddNjordFeatureOptions<ConfidenceTrendConfig>();
+        services.AddNjordOptions<ConfidenceTrendConfig>();
         services.AddSingleton<IFeatureRule, ConfidenceTrend>();
 
         // Forecasts
-        services.AddNjordFeatureOptions<SeasonalOutlookConfig>();
+        services.AddNjordOptions<SeasonalOutlookConfig>();
         services.AddSingleton<IFeatureRule, SeasonalOutlook>();
 
         return services;

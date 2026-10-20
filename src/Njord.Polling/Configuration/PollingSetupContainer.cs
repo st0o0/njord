@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
+using Njord.Core.Polling;
 using Servus.Akka;
 using Servus.Application.Startup;
 
@@ -16,7 +16,7 @@ public sealed class PollingSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddNjordOptions<PollingOptions>(configuration);
+        services.AddNjordOptions<PollingOptions, PollingOptionsValidator>();
 
         services.TryAddSingleton(FetchTimeouts.Default);
 

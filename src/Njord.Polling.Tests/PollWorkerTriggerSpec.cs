@@ -1,6 +1,7 @@
 using Akka.Actor;
 using Njord.Core;
-using Njord.Core.Configuration.Polling;
+using Njord.Core.Configuration;
+using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;

@@ -4,12 +4,13 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
+using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Grpc;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.OpenMeteo;
+using Njord.OpenMeteo.Configuration;
 using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;

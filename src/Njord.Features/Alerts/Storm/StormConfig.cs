@@ -1,8 +1,12 @@
+using Njord.Core.Configuration;
+
 namespace Njord.Features.Alerts.Storm;
 
-public sealed class StormConfig
+public sealed class StormConfig : IConfigSection
 {
     public const string SectionName = "Njord:Features:Weather:Storm";
+    static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
-    public double[] GustThresholds { get; set; } = [17, 25, 33];
+    public double[]? GustThresholds { get; set; }
+    public double[] EffectiveGustThresholds => GustThresholds ?? [17, 25, 33];
 }
