@@ -12,7 +12,6 @@ public sealed class ConfigSetupContainer : IServiceSetupContainer
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddNjordOptions<NjordOptions>(configuration);
-        services.AddLegacyEnrichmentMigration(configuration);
         services.AddNjordOptions<FeatureOptions>(configuration);
         services.AddNjordOptions<PersistenceOptions>(configuration);
 
