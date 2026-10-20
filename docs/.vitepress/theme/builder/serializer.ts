@@ -83,7 +83,7 @@ export function exportAsJson(config: NjordConfig): string {
   n.Polling = polling
   const weather: Record<string, unknown> = {}
   if (config.weather.forecastDays !== defaults.weather.forecastDays) weather.ForecastDays = config.weather.forecastDays
-  if (config.weather.model !== defaults.weather.model) weather.Model = config.weather.model
+  if (config.weather.models.join(',') !== defaults.weather.models.join(',')) weather.Models = config.weather.models
   if (Object.keys(weather).length) n.Weather = weather
   const aq: Record<string, unknown> = {}
   if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) aq.ForecastDays = config.airQuality.forecastDays
@@ -136,7 +136,7 @@ export function exportAsEnvVars(config: NjordConfig): string {
   const defaults = defaultConfig()
   add('Njord__Polling__PollInterval', config.pollInterval)
   if (config.weather.forecastDays !== defaults.weather.forecastDays) add('Njord__Weather__ForecastDays', String(config.weather.forecastDays))
-  if (config.weather.model !== defaults.weather.model) add('Njord__Weather__Model', config.weather.model)
+  if (config.weather.models.join(',') !== defaults.weather.models.join(',')) config.weather.models.forEach((m, i) => add(`Njord__Weather__Models__${i}`, m))
   if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) add('Njord__AirQuality__ForecastDays', String(config.airQuality.forecastDays))
   if (config.airQuality.region !== defaults.airQuality.region) add('Njord__AirQuality__Region', config.airQuality.region)
   if (config.marine.forecastDays !== defaults.marine.forecastDays) add('Njord__Marine__ForecastDays', String(config.marine.forecastDays))
@@ -225,7 +225,9 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   if (n.Weather) {
     config.weather = {
       forecastDays: Number(n.Weather.ForecastDays) || 4,
-      model: n.Weather.Model ?? defaultConfig().weather.model,
+      models: Array.isArray(n.Weather.Models) && n.Weather.Models.length
+        ? n.Weather.Models.map(String)
+        : n.Weather.Model ? [String(n.Weather.Model)] : defaultConfig().weather.models,
     }
   }
   if (n.SolarYield) {
@@ -281,6 +283,7 @@ export function importFromJson(json: string): Partial<NjordConfig> {
 
 export function importFromEnvVars(text: string): Partial<NjordConfig> {
   const config = defaultConfig()
+  let weatherModelsSeen = false
   const lines = text.split('\n').filter(l => l.startsWith('Njord__'))
 
   for (const line of lines) {
@@ -301,7 +304,11 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     }
     else if (parts[0] === 'Weather') {
       if (parts[1] === 'ForecastDays') config.weather.forecastDays = parseInt(value) || 4
-      else if (parts[1] === 'Model' && value) config.weather.model = value
+      else if (parts[1] === 'Model' && value) config.weather.models = [value]
+      else if (parts[1] === 'Models' && value) {
+        if (!weatherModelsSeen) { config.weather.models = []; weatherModelsSeen = true }
+        config.weather.models[parseInt(parts[2]) || 0] = value
+      }
     }
     else if (parts[0] === 'Flood' && parts[1] === 'IncludeEnsemble') {
       config.flood.includeEnsemble = value.toLowerCase() === 'true'

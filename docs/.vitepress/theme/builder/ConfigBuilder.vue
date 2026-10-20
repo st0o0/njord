@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import { reactive, ref, computed, watch, onMounted } from 'vue'
 import { defaultConfig, CATEGORIES, FEATURES, featureLabel, requiredDomains, type NjordConfig, type FeatureOption, type OptionValue } from './types'
+import weatherModels from '../../../data/weather-models.json'
 import { computeBudget, featureCostPerDay, budgetLevel } from './budget'
 import { exportAsJson, exportAsEnvVars, exportAsCompose, autoImport, encodeHash, decodeHash, mergeWithDefaults } from './serializer'
 
 const config = reactive<NjordConfig>(defaultConfig())
+
+function toggleModel(id: string, on: boolean) {
+  const models = config.weather.models.filter(m => m !== id)
+  if (on) models.push(id)
+  config.weather.models = models.length ? models : [id]
+}
 
 const featureGroups = CATEGORIES
   .map(c => ({ ...c, features: FEATURES.filter(f => f.category === c.key) }))
@@ -189,10 +196,13 @@ onMounted(() => {
       </div>
       <details class="advanced">
         <summary>Advanced</summary>
-        <div class="general-row">
-          <label>Model <input v-model="config.weather.model" placeholder="ecmwf_ifs025_ensemble_mean" class="input-wide-model" /></label>
+        <div v-for="m in weatherModels" :key="m.id" class="general-row">
+          <label>
+            <input type="checkbox" :checked="config.weather.models.includes(m.id)" @change="toggleModel(m.id, ($event.target as HTMLInputElement).checked)" />
+            {{ m.displayName }} ({{ m.resolutionKm }} km, {{ m.forecastDays }} days)
+          </label>
         </div>
-        <p class="section-hint">Ensemble model for the weather request. Only written to the config when it differs from the default.</p>
+        <p class="section-hint">The first selected model is the primary one. More than one only takes effect with Weather:ModelComparison enabled, and multiplies the weather API weight by the model count. Only written to the config when it differs from the default.</p>
       </details>
       <div class="weight-display">Weather API call weight: <strong>{{ budget.apiCallWeight }}</strong></div>
       <p class="section-hint">The hourly variables follow from the enabled features; Open-Meteo counts ceil(variables / 10) calls, doubled beyond 14 forecast days.</p>

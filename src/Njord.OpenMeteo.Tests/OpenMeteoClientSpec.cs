@@ -31,8 +31,9 @@ public sealed class OpenMeteoClientSpec
         HttpClient http,
         WeatherParams flags = WeatherParams.Temperature | WeatherParams.EnsembleStdDev,
         SolarYieldOptions? solar = null,
-        WeatherOptions? options = null) =>
-        new(http, Options.Create(options ?? new WeatherOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: flags));
+        WeatherOptions? options = null,
+        EffectiveWeatherModels? models = null) =>
+        new(http, Options.Create(options ?? new WeatherOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: flags), models ?? EffectiveWeatherModels.Default);
 
     private static FloodClient Flood(HttpClient http, FloodOptions? options = null) =>
         new(http, Options.Create(options ?? new FloodOptions()), Needs(flood: FloodParams.Discharge));
@@ -60,8 +61,43 @@ public sealed class OpenMeteoClientSpec
         var uri = await Capture("ensemble-api", http => Weather(http, WeatherParams.Rain | WeatherParams.Temperature), TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            $"/v1/ensemble?latitude=47.05&longitude=8.31&hourly=temperature_2m,rain&models={new WeatherOptions().Model}&wind_speed_unit=ms&forecast_days={new WeatherOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
+            $"/v1/ensemble?latitude=47.05&longitude=8.31&hourly=temperature_2m,rain&models={WeatherOptions.DefaultModel}&wind_speed_unit=ms&forecast_days={new WeatherOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
             uri);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task The_weather_uri_lists_all_effective_models_comma_separated_in_order()
+    {
+        var models = new EffectiveWeatherModels(["ecmwf_aifs025_ensemble_mean", "ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"]);
+
+        var uri = await Capture("ensemble-api", http => Weather(http, WeatherParams.Temperature, models: models), TestContext.Current.CancellationToken);
+
+        Assert.Contains("&models=ecmwf_aifs025_ensemble_mean,ecmwf_ifs025_ensemble_mean,ukmo_global_ensemble_mean_20km&", uri);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task A_multi_model_weather_fetch_returns_the_primary_forecast_and_every_model()
+    {
+        var models = new EffectiveWeatherModels(["ecmwf_aifs025_ensemble_mean", "ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"]);
+        var http = StubOpenMeteoHandler.ClientFor("ensemble-api", HttpStatusCode.OK, OpenMeteoFixtures.WeatherThreeModels);
+
+        var result = await Weather(http, models: models).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
+
+        var success = Assert.IsType<FetchSuccess>(result);
+        var primary = Assert.IsType<DomainForecast<WeatherPoint>>(success.Forecast);
+        Assert.Multiple(
+            () => Assert.Equal(19.5, primary.Points[0].Temperature),
+            () => Assert.Equal(["ecmwf_aifs025_ensemble_mean", "ecmwf_ifs025_ensemble_mean"], success.Models.Keys.Order().ToArray()));
+    }
+
+    [Fact]
+    public void The_weather_call_weight_is_multiplied_by_the_model_count()
+    {
+        var models = new EffectiveWeatherModels(["ecmwf_ifs025_ensemble_mean", "ecmwf_aifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"]);
+        var single = Weather(new HttpClient());
+        var triple = Weather(new HttpClient(), models: models);
+
+        Assert.Equal(single.CallWeight * 3, triple.CallWeight);
     }
 
     [Fact(Timeout = 5000)]
@@ -72,7 +108,7 @@ public sealed class OpenMeteoClientSpec
         var uri = await Capture("ensemble-api", http => Weather(http, WeatherParams.GlobalTiltedIrradiance, solar), TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            $"/v1/ensemble?latitude=47.05&longitude=8.31&hourly=global_tilted_irradiance&models={new WeatherOptions().Model}&wind_speed_unit=ms&tilt=25&azimuth=-45&forecast_days={new WeatherOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
+            $"/v1/ensemble?latitude=47.05&longitude=8.31&hourly=global_tilted_irradiance&models={WeatherOptions.DefaultModel}&wind_speed_unit=ms&tilt=25&azimuth=-45&forecast_days={new WeatherOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
@@ -137,7 +173,7 @@ public sealed class OpenMeteoClientSpec
     public void The_weather_call_weight_follows_the_resolved_variables_and_days()
     {
         var client = new WeatherClient(
-            new HttpClient(), Options.Create(new WeatherOptions { ForecastDays = 4 }), Options.Create(new SolarYieldOptions()), TestRequirements.Resolved);
+            new HttpClient(), Options.Create(new WeatherOptions { ForecastDays = 4 }), Options.Create(new SolarYieldOptions()), TestRequirements.Resolved, EffectiveWeatherModels.Default);
 
         var variables = TestRequirements.All.Weather.ToApiNames();
 

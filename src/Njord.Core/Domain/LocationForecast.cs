@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
@@ -15,8 +16,14 @@ public sealed record LocationForecast(
     DomainForecast<FloodPoint>? Flood = null,
     DomainForecast<MarinePoint>? Marine = null,
     DomainForecast<SeasonalPoint>? Seasonal = null,
-    DomainForecast<SatelliteRadiationPoint>? Satellite = null)
+    DomainForecast<SatelliteRadiationPoint>? Satellite = null,
+    ImmutableDictionary<string, DomainForecast<WeatherPoint>>? ModelWeather = null)
 {
+    public ImmutableDictionary<string, DomainForecast<WeatherPoint>> Models => ModelWeather ?? ImmutableDictionary<string, DomainForecast<WeatherPoint>>.Empty;
+
+    public LocationForecast WithModel(string modelId, DomainForecast<WeatherPoint> forecast) =>
+        this with { ModelWeather = Models.SetItem(modelId, forecast) };
+
     public LocationForecast With(DomainKind domain, IDomainForecast forecast) => domain switch
     {
         DomainKind.Weather => this with { Weather = Cast<WeatherPoint>(domain, forecast) },

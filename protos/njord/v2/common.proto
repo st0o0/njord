@@ -26,6 +26,8 @@ message ModelInfo {
   optional int32 max_forecast_hours = 6;
   optional double resolution_km = 7;
   optional string description = 8;
+  // True exactly for the models that are fetched (the effective models).
+  bool enabled = 9;
 }
 
 enum CoverageTier {

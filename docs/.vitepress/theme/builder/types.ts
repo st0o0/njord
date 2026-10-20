@@ -82,7 +82,7 @@ export interface DeployLimits {
 
 export interface NjordConfig {
   pollInterval: string
-  weather: { forecastDays: number; model: string }
+  weather: { forecastDays: number; models: string[] }
   airQuality: { forecastDays: number; region: string }
   marine: { forecastDays: number }
   flood: { forecastDays: number; includeEnsemble: boolean }
@@ -103,7 +103,7 @@ export interface NjordConfig {
 export function defaultConfig(): NjordConfig {
   return {
     pollInterval: '01:00:00',
-    weather: { forecastDays: 4, model: 'ecmwf_ifs025_ensemble_mean' },
+    weather: { forecastDays: 4, models: ['ecmwf_ifs025_ensemble_mean'] },
     airQuality: { forecastDays: 5, region: 'Global' },
     marine: { forecastDays: 8 },
     flood: { forecastDays: 92, includeEnsemble: false },

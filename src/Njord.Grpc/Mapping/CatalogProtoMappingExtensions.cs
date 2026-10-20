@@ -14,7 +14,16 @@ internal static class CatalogProtoMappingExtensions
     }
 
     public static ModelInfo ToProto(this CatalogModel model) =>
-        new() { Id = model.Id };
+        new()
+        {
+            Id = model.Id,
+            DisplayName = model.DisplayName,
+            Provider = model.Provider,
+            Region = model.Region,
+            ResolutionKm = model.ResolutionKm,
+            MaxForecastHours = model.ForecastDays * 24,
+            Enabled = model.Enabled,
+        };
 
     public static LocationInfo ToProto(this CatalogLocation location) =>
         new()

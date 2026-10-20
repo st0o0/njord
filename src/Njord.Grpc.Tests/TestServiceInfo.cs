@@ -14,10 +14,12 @@ public static class TestServiceInfo
     public static ServiceInfo Create(
         NjordOptions? scope = null,
         PollingOptions? polling = null,
-        IEnumerable<IFeatureRule>? rules = null) =>
+        IEnumerable<IFeatureRule>? rules = null,
+        EffectiveWeatherModels? models = null) =>
         (scope ?? AppSettingsDefaults.Options<NjordOptions>()).ToServiceInfo(
             polling ?? AppSettingsDefaults.Options<PollingOptions>(),
-            rules ?? [new Commute(), new Pollen(), new Pm25()]);
+            rules ?? [new Commute(), new Pollen(), new Pm25()],
+            models ?? EffectiveWeatherModels.Default);
 
     public abstract class StubRule(FeatureCategory category, string name, bool enabled = true) : IFeatureRule
     {

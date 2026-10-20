@@ -41,6 +41,9 @@ services:
       #- Njord__Features__AirQuality__Dust__Enabled=true       # Saharan dust concentration alert (off by default)
       #- Njord__Features__Lifestyle__NightVentilation__Enabled=true
       #- Njord__Features__Insight__ConfidenceTrend__Enabled=true
+      #- Njord__Weather__Models__0=ecmwf_ifs025_ensemble_mean # primary model
+      #- Njord__Weather__Models__1=ecmwf_aifs025_ensemble_mean # secondary, only used with ModelComparison
+      #- Njord__Features__Weather__ModelComparison__Enabled=true # compare all Models, multiplies the weather API weight by the model count
       #- Njord__Features__Insight__SeasonalOutlook__Enabled=true # 3-month outlook, one extra call per day and location
       #- Njord__Features__Energy__SatelliteRadiation__Enabled=true # observed solar irradiance, about 720 extra calls per month and location
       #- Njord__Features__AirQuality__Pollen__Enabled=false

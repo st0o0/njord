@@ -115,16 +115,19 @@ SHARD REGIONS (Sharded Entity)
 
 ## Decisions
 
-- **Ensemble default.** The weather request goes to `v1/ensemble`; there are no model, horizon or
-  parameter settings. The requested variables follow the enabled features: the `Requirements` of all
+- **Ensemble default.** The weather request goes to `v1/ensemble`; `Njord:Weather:Models` (default
+  `ecmwf_ifs025_ensemble_mean`, first = primary; ids from `WeatherModelCatalog`) selects the ensemble-mean models,
+  there are no horizon or parameter settings. Models beyond the first only take effect with the
+  `Weather:ModelComparison` feature (`EffectiveWeatherModels`); rules run on the primary model only and
+  the weather call weight is multiplied by the effective model count. The requested variables follow the enabled features: the `Requirements` of all
   enabled features are OR-ed (`FeatureResolution.RequiredParams`) and mapped to API names by
   `ParamMappings.ToApiNames()`; the clients only build the URL. `FeatureEngine` skips a rule whose
   required fields are missing from the stream (`LocationForecast.HasFields`). `BudgetGuard` uses the same
-  resolved requirements: Weather costs `ceil(variables / 10) * ceil(forecastDays / 14)` calls per cycle,
+  resolved requirements: Weather costs `ceil(variables / 10) * ceil(forecastDays / 14) * modelCount` calls per cycle,
   every other required domain 1.
 - **Per-domain forecast days.** `Njord:AirQuality` (5, max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92,
   max 210) next to `Njord:Weather`.
-- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Category>:<Name>` (36 features; categories see
+- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Category>:<Name>` (37 features; categories see
   `docs/data/features.json`; env `Njord__Features__<Category>__<Name>__Enabled`). 18 are on by default: the 14
   weather alerts (`Weather:Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`, `PressureDrop`, `Thunderstorm`,
   `Ice`, `WindChill`, `Visibility`, `TropicalNight`, `Humidity`), `Lifestyle:Commute`, `AirQuality:Pollen`,
@@ -178,8 +181,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 912 tests (Forecast 58, Messages 21, Persistence 14, Core 74, OpenMeteo 164, Budget 18,
-Polling 116, Pipeline 48, Features 224, Grpc 134, Architecture 14, IntegrationTests 27). One test per `[Fact]` and per `[Theory]` data row.
+Current total: 950 tests (Forecast 58, Messages 21, Persistence 14, Core 83, OpenMeteo 178, Budget 18,
+Polling 118, Pipeline 51, Features 227, Grpc 140, Architecture 14, IntegrationTests 28). One test per `[Fact]` and per `[Theory]` data row.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),
 `appsettings.Development.json`, environment variables (`Njord__Persistence__DataPath`), `appsettings.Example.json`
@@ -278,7 +281,7 @@ Defaults are property initializers.
 | Section | Class | Content |
 |---------|-------|---------|
 | `Njord` | `NjordOptions` | `Locations` (`Name`, `Latitude`, `Longitude`, all required) |
-| `Njord:Weather` | `WeatherOptions` | `ForecastDays` (4, 1..16) |
+| `Njord:Weather` | `WeatherOptions` | `ForecastDays` (4, 1..16), `Models` (`ecmwf_ifs025_ensemble_mean`; known ids in `WeatherModelCatalog`) |
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..8) |
 | `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..6) |

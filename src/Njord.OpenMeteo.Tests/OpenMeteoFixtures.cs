@@ -8,6 +8,9 @@ internal static class OpenMeteoFixtures
     public const string WeatherWithSpread =
         """{"latitude":47.0,"longitude":8.0,"hourly":{"time":[1000],"temperature_2m":[20.5],"temperature_2m_spread":[1.7]}}""";
 
+    public const string WeatherThreeModels =
+        """{"latitude":47.0,"longitude":8.0,"hourly":{"time":[1000,1003600],"temperature_2m_ecmwf_ifs025_ensemble_mean":[20.5,21.0],"temperature_2m_ecmwf_aifs025_ensemble_mean":[19.5,20.0],"temperature_2m_ukmo_global_ensemble_mean_20km":[null,null],"temperature_2m_member01_ecmwf_ifs025_ensemble_mean":[99.0,99.0],"temperature_2m_spread_ecmwf_ifs025_ensemble_mean":[1.5,1.6]}}""";
+
     public const string FloodDaily =
         """{"latitude":47.0,"longitude":8.0,"daily":{"time":[86400],"river_discharge":[120.0]}}""";
 

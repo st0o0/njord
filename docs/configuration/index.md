@@ -82,6 +82,7 @@ You switch features on, njord derives which API domains to poll. Each feature ha
 | `Lifestyle:Gardening` | Lifestyle | off | Weather |
 | `Insight:ConfidenceTrend` | Insight | off | Weather |
 | `Insight:FrontApproaching` | Insight | off | Weather |
+| `Weather:ModelComparison` | Weather | off | Weather |
 | `Insight:SeasonalOutlook` | Insight | off | Seasonal |
 | `Energy:SolarYield` | Solar | off | Weather |
 | `Energy:SatelliteRadiation` | Solar | off | Satellite |

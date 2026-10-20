@@ -80,9 +80,9 @@ public sealed class GrpcConsumer : ReceiveActor
 
     private void HandleQueryDomainData(QueryDomainData msg)
     {
-        Sender.Tell(_state.GetDomainData(msg.Location, msg.Domain) is { } latest
+        Sender.Tell(_state.GetDomainData(msg.Location, msg.Domain, msg.ModelId) is { } latest
             ? new DomainDataResult(latest)
-            : new DomainDataNotAvailable(msg.Location, msg.Domain));
+            : new DomainDataNotAvailable(msg.Location, msg.Domain, msg.ModelId));
     }
 
     private void HandleQueryLatestAnalysis(QueryLatestAnalysis msg)

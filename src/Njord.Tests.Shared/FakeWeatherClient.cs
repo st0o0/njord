@@ -15,6 +15,8 @@ public sealed class FakeWeatherClient : IDomainClient
 
     public bool Throws { get; set; }
 
+    public ImmutableArray<string> ModelIds { get; set; } = [];
+
     private volatile TaskCompletionSource _release = CompletedRelease();
     private int _calls;
 
@@ -53,7 +55,13 @@ public sealed class FakeWeatherClient : IDomainClient
             DewPoint: 12.0,
             UvIndex: 3.0);
 
-        return new FetchSuccess(new DomainForecast<WeatherPoint>(DomainKind.Weather, now, TimeResolution.Hourly, [point]));
+        var forecast = new DomainForecast<WeatherPoint>(DomainKind.Weather, now, TimeResolution.Hourly, [point]);
+        var models = ModelIds.IsDefaultOrEmpty
+            ? ImmutableDictionary<string, IDomainForecast>.Empty
+            : ModelIds.ToImmutableDictionary(
+                id => id,
+                id => (IDomainForecast)(forecast with { Points = [point with { Temperature = 10.0 + id.Length }] }));
+        return new FetchSuccess(forecast) { Models = models };
     }
 
     private static TaskCompletionSource CompletedRelease()

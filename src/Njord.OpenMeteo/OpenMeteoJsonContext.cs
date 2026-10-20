@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 namespace Njord.OpenMeteo;
 
 [JsonSerializable(typeof(WeatherResponse))]
+[JsonSerializable(typeof(WeatherHourlyData))]
 [JsonSerializable(typeof(AirQualityResponse))]
 [JsonSerializable(typeof(FloodResponse))]
 [JsonSerializable(typeof(MarineResponse))]

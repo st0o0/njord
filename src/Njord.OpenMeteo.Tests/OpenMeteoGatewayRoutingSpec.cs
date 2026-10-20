@@ -192,4 +192,24 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
             () => Assert.Equal(PollFailureReason.ModelUnavailable, failed.Reason),
             () => Assert.Equal(0, _weather.Calls));
     }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_multi_model_weather_fetch_offers_every_model_before_the_primary_forecast()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        _weather.ModelIds = ["ukmo", "ecmwf"];
+        await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+
+        Gateway.Tell(new FetchDomain(new Location("lucerne", 0, 0), DomainKind.Weather));
+        var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var first = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var second = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var primary = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.Weather, completed.Domain),
+            () => Assert.Equal(["ecmwf", "ukmo"], new[] { first.ModelId, second.ModelId }.Order()),
+            () => Assert.Null(primary.ModelId),
+            () => Assert.Equal(primary.Data.GetHashCode(), completed.Hash));
+    }
 }

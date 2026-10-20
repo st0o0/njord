@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
@@ -19,15 +20,17 @@ public sealed class WeatherClient : IDomainClient
     private readonly SolarYieldOptions _solar;
     private readonly IReadOnlyList<string> _variables;
     private readonly int _forecastDays;
+    private readonly EffectiveWeatherModels _models;
 
-    public WeatherClient(HttpClient httpClient, IOptions<WeatherOptions> options, IOptions<SolarYieldOptions> solar, ResolvedRequirements requirements)
+    public WeatherClient(HttpClient httpClient, IOptions<WeatherOptions> options, IOptions<SolarYieldOptions> solar, ResolvedRequirements requirements, EffectiveWeatherModels models)
     {
         _httpClient = httpClient;
         _options = options.Value;
+        _models = models;
         _solar = solar.Value;
         _variables = requirements.Value.AllWeather.ToApiNames();
         _forecastDays = Math.Min(_options.ForecastDays, MaxForecastDays);
-        CallWeight = Core.Polling.CallWeight.Of(_variables.Count, _forecastDays);
+        CallWeight = Core.Polling.CallWeight.Of(_variables.Count, _forecastDays) * _models.Count;
     }
 
     public DomainKind Domain => DomainKind.Weather;
@@ -39,7 +42,7 @@ public sealed class WeatherClient : IDomainClient
         var query = new List<(string, string)>
         {
             ("hourly", ClientRequest.List(_variables)),
-            ("models", _options.Model),
+            ("models", ClientRequest.List(_models.Ids)),
             ("wind_speed_unit", "ms"),
         };
         if (_variables.Contains(GlobalTiltedIrradiance))
@@ -51,9 +54,23 @@ public sealed class WeatherClient : IDomainClient
 
         query.Add(("forecast_days", ClientRequest.Number(_forecastDays)));
         var uri = ClientRequest.Uri("v1/ensemble", latitude, longitude, [.. query]);
-        return ClientRequest.ExecuteAsync(
+        return ClientRequest.ExecuteResultAsync(
             () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.WeatherResponse, cancellationToken),
-            response => response.ToDomainForecast(now)?.TrimTrailing((WeatherPoint p, WeatherParams f) => p.HasFields(f)),
+            response => ToSuccess(response.ToModelForecasts(now, _models.Primary)),
             cancellationToken);
+    }
+
+    private FetchResult ToSuccess(ImmutableDictionary<string, DomainForecast<WeatherPoint>> forecasts)
+    {
+        // The primary model leads; when it returned nothing the first remaining model does not stand in for it.
+        if (!forecasts.TryGetValue(_models.Primary, out var primary))
+        {
+            return new FetchEmpty();
+        }
+
+        return new FetchSuccess(primary)
+        {
+            Models = forecasts.ToImmutableDictionary(kv => kv.Key, kv => (IDomainForecast)kv.Value),
+        };
     }
 }

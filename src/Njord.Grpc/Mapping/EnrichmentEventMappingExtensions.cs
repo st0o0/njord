@@ -225,6 +225,12 @@ internal static class EnrichmentEventMappingExtensions
             UpdatedAt = now.ToTimestamp(),
             SeasonalOutlook = r.ToProto(),
         },
+        ModelComparisonResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            ModelComparison = r.ToProto(),
+        },
         FeatureResult r => throw new ArgumentOutOfRangeException(nameof(pipelineEvent), r.GetType().Name, "Unmapped feature result"),
         _ => null,
     };

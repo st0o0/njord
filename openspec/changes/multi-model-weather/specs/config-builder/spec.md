@@ -9,4 +9,4 @@ The Config Builder SHALL list the supported weather models with provider, resolu
 
 #### Scenario: Per-model budget impact
 - **WHEN** a model is toggled
-- **THEN** the builder shows the added calls per month from the same formula as `BudgetCalculator` and updates the budget meter
+- **THEN** the builder shows the added calls per month from the same formula as `BudgetGuard` and updates the budget meter

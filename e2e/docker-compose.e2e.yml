@@ -55,6 +55,9 @@ services:
       - Njord__Features__Flood__FloodTimeline__Enabled=true
       - Njord__Features__Marine__Swimming__Enabled=true
       - Njord__Features__Marine__Surf__Enabled=true
+      - Njord__Weather__Models__0=ecmwf_ifs025_ensemble_mean
+      - Njord__Weather__Models__1=ecmwf_aifs025_ensemble_mean
+      - Njord__Features__Weather__ModelComparison__Enabled=true
       - Njord__Features__Insight__SeasonalOutlook__Enabled=true
 
 

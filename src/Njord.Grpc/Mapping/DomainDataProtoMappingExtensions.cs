@@ -14,13 +14,16 @@ internal static class DomainDataProtoMappingExtensions
 {
     public static DomainDataUpdate? ToDomainDataUpdate(this PipelineEvent pipelineEvent) => pipelineEvent switch
     {
-        PipelineEvent.WeatherDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Weather = e.Forecast.ToWeatherData() }),
+        PipelineEvent.WeatherDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Weather = e.Forecast.ToWeatherData(), Model = e.ModelId ?? string.Empty }),
         PipelineEvent.AirQualityDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { AirQuality = e.Forecast.ToAirQualityData() }),
         PipelineEvent.FloodDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Flood = e.Forecast.ToFloodData() }),
         PipelineEvent.MarineDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Marine = e.Forecast.ToMarineData() }),
         PipelineEvent.SatelliteDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Satellite = e.Forecast.ToSatelliteData() }),
         _ => null,
     };
+
+    public static string? ToModelId(this PipelineEvent pipelineEvent) =>
+        pipelineEvent is PipelineEvent.WeatherDataReceived e ? e.ModelId : null;
 
     public static DomainKind? ToDomainKind(this PipelineEvent pipelineEvent) => pipelineEvent switch
     {

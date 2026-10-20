@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 
 namespace Njord.OpenMeteo.Configuration;
 
@@ -13,7 +14,25 @@ public sealed class OpenMeteoOptionsValidator :
     IValidateOptions<SolarYieldOptions>
 {
     public ValidateOptionsResult Validate(string? name, WeatherOptions options) =>
-        Result(Range("Weather.ForecastDays", options.ForecastDays, 1, 16));
+        Result([
+            Range("Weather.ForecastDays", options.ForecastDays, 1, 16),
+            options.Model is null
+                ? null
+                : "Njord:Weather:Model was replaced by Njord:Weather:Models (a list, the first entry is the primary model).",
+            options.Models is { Length: 0 } ? "Weather.Models must contain at least one model." : null,
+            .. DuplicateModels(options),
+            .. UnknownModels(options)]);
+
+    private static IEnumerable<string> DuplicateModels(WeatherOptions options) =>
+        (options.Models ?? [])
+        .GroupBy(m => m).Where(g => g.Count() > 1)
+        .Select(g => $"Weather.Models contains '{g.Key}' more than once.");
+
+    private static IEnumerable<string> UnknownModels(WeatherOptions options) =>
+        (options.Models ?? [])
+        .Where(m => WeatherModelCatalog.Find(m) is null)
+        .Distinct()
+        .Select(m => $"Weather.Models entry '{m}' is not a known model (known: {string.Join(", ", WeatherModelCatalog.All.Select(i => i.Id))}).");
 
     public ValidateOptionsResult Validate(string? name, AirQualityOptions options) =>
         Result(

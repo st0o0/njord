@@ -36,12 +36,14 @@ public sealed class WeatherGrpcService(
         }
 
         var domain = request.Domain.ToDomain();
+        var primary = location.Models.FirstOrDefault() ?? string.Empty;
+        var modelId = ResolveModel(request, domain, location, primary);
         var result = await actorRegistry.AskAsync<IGrpcConsumer, DomainDataResponse>(
-            new QueryDomainData(location.Location, domain), context);
+            new QueryDomainData(location.Location, domain, modelId), context);
 
         return result switch
         {
-            DomainDataResult found when found.Event.ToDomainDataUpdate() is { } update => update,
+            DomainDataResult found when found.Event.ToDomainDataUpdate() is { } update => WithPrimaryModel(update, primary),
             _ => throw new RpcException(new GrpcStatus(StatusCode.NotFound,
                 $"No {request.Domain} data available yet for '{location.Location.Name}'")),
         };
@@ -80,7 +82,9 @@ public sealed class WeatherGrpcService(
             .Via(killSwitch.Flow<PipelineEvent>())
             .SelectAsync(1, async e =>
             {
-                var update = e.ToDomainDataUpdate();
+                var update = e.ToDomainDataUpdate() is { } mapped
+                    ? WithPrimaryModel(mapped, serviceInfo.Catalog.Locations.FirstOrDefault()?.Models.FirstOrDefault() ?? string.Empty)
+                    : null;
                 if (update is not null)
                 {
                     await responseStream.WriteAsync(update, context.CancellationToken);
@@ -117,6 +121,33 @@ public sealed class WeatherGrpcService(
                 return evt;
             })
             .RunWith(Sink.Ignore<EnrichmentEvent?>(), mat);
+    }
+
+    // Empty or the primary model queries the primary; any other id must be an effective model of the location.
+    private static string? ResolveModel(GetDomainDataRequest request, DomainKind domain, CatalogLocation location, string primary)
+    {
+        if (string.IsNullOrEmpty(request.Model) || (domain == DomainKind.Weather && request.Model == primary))
+        {
+            return null;
+        }
+
+        if (domain != DomainKind.Weather || !location.Models.Contains(request.Model))
+        {
+            throw new RpcException(new GrpcStatus(StatusCode.NotFound,
+                $"Model '{request.Model}' is not enabled for '{location.Location.Name}'"));
+        }
+
+        return request.Model;
+    }
+
+    private static DomainDataUpdate WithPrimaryModel(DomainDataUpdate update, string primary)
+    {
+        if (update.DataCase == DomainDataUpdate.DataOneofCase.Weather && update.Model.Length == 0)
+        {
+            update.Model = primary;
+        }
+
+        return update;
     }
 
     // An empty location streams every location; a non-empty one must be configured.

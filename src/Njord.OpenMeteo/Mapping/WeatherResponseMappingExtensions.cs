@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
 using static Njord.OpenMeteo.Mapping.SeriesAccess;
@@ -6,10 +7,36 @@ namespace Njord.OpenMeteo.Mapping;
 
 internal static class WeatherResponseMappingExtensions
 {
-    public static DomainForecast<WeatherPoint>? ToDomainForecast(
-        this WeatherResponse response, DateTimeOffset modelRun)
+    // One trimmed forecast per model. Several models arrive suffixed; a single model arrives plain and is keyed by
+    // the requested id. A model whose values are all null is omitted.
+    public static ImmutableDictionary<string, DomainForecast<WeatherPoint>> ToModelForecasts(
+        this WeatherResponse response, DateTimeOffset modelRun, string singleModelId)
     {
-        if (response.Hourly is not { } h || h.Time.Length == 0)
+        var hourly = response.Models.IsEmpty
+            ? response.Hourly is { } plain
+                ? ImmutableDictionary<string, WeatherHourlyData>.Empty.Add(singleModelId, plain)
+                : ImmutableDictionary<string, WeatherHourlyData>.Empty
+            : response.Models;
+
+        var forecasts = ImmutableDictionary.CreateBuilder<string, DomainForecast<WeatherPoint>>();
+        foreach (var (model, data) in hourly)
+        {
+            if (data.ToForecast(modelRun)?.TrimTrailing((WeatherPoint p, WeatherParams f) => p.HasFields(f)) is { } forecast)
+            {
+                forecasts[model] = forecast;
+            }
+        }
+
+        return forecasts.ToImmutable();
+    }
+
+    public static DomainForecast<WeatherPoint>? ToDomainForecast(
+        this WeatherResponse response, DateTimeOffset modelRun) =>
+        response.Hourly?.ToForecast(modelRun);
+
+    private static DomainForecast<WeatherPoint>? ToForecast(this WeatherHourlyData h, DateTimeOffset modelRun)
+    {
+        if (h.Time.Length == 0)
         {
             return null;
         }

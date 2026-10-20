@@ -24,15 +24,19 @@ internal static class ClientRequest
 
     public static string List(IEnumerable<string> values) => string.Join(',', values);
 
-    public static async Task<FetchResult> ExecuteAsync<TResponse>(
+    public static Task<FetchResult> ExecuteAsync<TResponse>(
         Func<Task<TResponse?>> request, Func<TResponse, IDomainForecast?> map, CancellationToken cancellationToken)
+        where TResponse : class =>
+        ExecuteResultAsync(request, response => map(response) is { } forecast ? new FetchSuccess(forecast) : new FetchEmpty(), cancellationToken);
+
+    public static async Task<FetchResult> ExecuteResultAsync<TResponse>(
+        Func<Task<TResponse?>> request, Func<TResponse, FetchResult> map, CancellationToken cancellationToken)
         where TResponse : class
     {
         try
         {
             var response = await request();
-            var forecast = response is null ? null : map(response);
-            return forecast is null ? new FetchEmpty() : new FetchSuccess(forecast);
+            return response is null ? new FetchEmpty() : map(response);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
         {

@@ -23,7 +23,7 @@ public sealed class FeatureRegistrationSpec
     {
         var rules = FeatureServices.AllFeatureRules();
 
-        Assert.Equal(36, rules.Count);
+        Assert.Equal(37, rules.Count);
         foreach (var rule in rules)
         {
             Assert.Equal($"Njord:Features:{rule.Descriptor.Category}:{rule.Descriptor.Name}", ConfigSectionOf(rule));

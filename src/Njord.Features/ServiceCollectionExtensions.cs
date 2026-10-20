@@ -33,6 +33,7 @@ using Njord.Features.Conditions.SatelliteRadiation;
 using Njord.Features.Conditions.SolarYield;
 using Njord.Features.Conditions.SurfConditions;
 using Njord.Features.Conditions.VentilationWindow;
+using Njord.Features.Forecasts.ModelComparison;
 using Njord.Features.Forecasts.SeasonalOutlook;
 using Njord.Features.Scores.Bbq;
 using Njord.Features.Scores.Laundry;
@@ -126,6 +127,8 @@ public static class ServiceCollectionExtensions
         // Forecasts
         services.AddNjordOptions<SeasonalOutlookConfig>();
         services.AddSingleton<IFeatureRule, SeasonalOutlook>();
+        services.AddNjordOptions<ModelComparisonConfig>();
+        services.AddSingleton<IFeatureRule, ModelComparison>();
 
         return services;
     }

@@ -44,6 +44,8 @@ enum Domain {
 message GetDomainDataRequest {
   string location = 1;
   Domain domain = 2;
+  // Weather only. Empty selects the primary model; unknown or disabled ids return NOT_FOUND.
+  string model = 3;
 }
 
 message StreamDomainDataRequest {
@@ -58,6 +60,8 @@ message DomainDataUpdate {
   string location = 1;
   Domain domain = 2;
   google.protobuf.Timestamp model_run = 3;
+  // Set only for weather updates: the weather model id the data belongs to.
+  string model = 4;
   oneof data {
     WeatherData weather = 10;
     AirQualityData air_quality = 11;
@@ -232,6 +236,7 @@ message EnrichmentEvent {
     ConfidenceTrend confidence_trend = 80;
     PollenTrend pollen_trend = 81;
     SeasonalOutlook seasonal_outlook = 90;
+    ModelComparison model_comparison = 91;
   }
 }
 
@@ -569,4 +574,23 @@ message SeasonalMonthEntry {
 message SeasonalOutlook {
   ForecastData forecast = 1;
   repeated SeasonalMonthEntry months = 2;
+}
+
+message ModelDayValues {
+  string model = 1;
+  optional double max_temperature = 2;
+  optional double min_temperature = 3;
+  optional double precipitation = 4;
+}
+
+message ModelComparisonDay {
+  int32 year = 1;
+  int32 month = 2;
+  int32 day = 3;
+  repeated ModelDayValues models = 4;
+}
+
+message ModelComparison {
+  ForecastData forecast = 1;
+  repeated ModelComparisonDay days = 2;
 }

@@ -51,8 +51,7 @@ public sealed class PollingOptionsValidatorSpec
     public void Should_reject_polling_that_projects_beyond_eighty_percent_of_the_budget()
     {
         var validator = ValidatorFor(
-            ("Njord:Locations:0:Name", "Lucerne"),
-            ("Njord:Models:0", "icon_d2"));
+            ("Njord:Locations:0:Name", "Lucerne"));
         var options = new PollingOptions
         {
             PollInterval = TimeSpan.FromMinutes(1),
@@ -62,6 +61,26 @@ public sealed class PollingOptionsValidatorSpec
         var result = validator.Validate(null, options);
 
         Assert.Contains("exceeds the guard of 8000", ValidationAssert.SingleFailure(result));
+    }
+
+    [Fact]
+    public void Should_count_every_weather_model_while_model_comparison_is_enabled()
+    {
+        var options = new PollingOptions { BudgetOverride = new RequestBudget(2_500, 600) };
+        (string, string)[] scope =
+        [
+            ("Njord:Locations:0:Name", "Lucerne"),
+            ("Njord:Weather:Models:0", "ecmwf_ifs025_ensemble_mean"),
+            ("Njord:Weather:Models:1", "ecmwf_aifs025_ensemble_mean"),
+            ("Njord:Weather:Models:2", "ukmo_global_ensemble_mean_20km"),
+        ];
+
+        var withoutComparison = ValidatorFor(scope).Validate(null, options);
+        var withComparison = ValidatorFor([.. scope, ("Njord:Features:Weather:ModelComparison:Enabled", "true")]).Validate(null, options);
+
+        Assert.Multiple(
+            () => Assert.True(withoutComparison.Succeeded),
+            () => Assert.Contains("exceeds the guard of 2000", ValidationAssert.SingleFailure(withComparison)));
     }
 
     [Fact]

@@ -245,4 +245,72 @@ public sealed class FeatureEngineSpec
 
         Assert.Equal("received", ex.ParamName);
     }
+
+    private sealed class ModelProbeRule : FeatureRule<ModelComparisonInput>
+    {
+        public List<ModelComparisonInput> Calls { get; } = [];
+
+        public override FeatureDescriptor Descriptor { get; } =
+            new(OutputKind.Forecast, FeatureCategory.Weather, "Probe", true, new DomainRequirements(Weather: WeatherParams.Temperature));
+
+        public override bool Enabled => true;
+
+        protected override ModelComparisonInput? Project(LocationForecast forecast) =>
+            forecast.Weather is { } w ? new(w, forecast.Models) : null;
+
+        protected override PipelineEvent? Evaluate(FeatureContext<ModelComparisonInput> ctx)
+        {
+            Calls.Add(ctx.Current);
+            return new ProbeResult(ctx.Location);
+        }
+    }
+
+    private static DomainDataReceived ModelData(Location location, string modelId, double temperature) =>
+        DomainData.Received(location, DomainData.Weather(Start, 4, (_, p) => p with { Temperature = temperature })) with { ModelId = modelId };
+
+    [Fact]
+    public void A_secondary_model_emits_its_data_event_but_runs_no_rule()
+    {
+        var rule = new ModelProbeRule();
+        var engine = Engine(rule);
+
+        var events = engine.Process(ModelData(DomainData.Lucerne, "ukmo", 8.0));
+
+        var received = Assert.IsType<PipelineEvent.WeatherDataReceived>(Assert.Single(events));
+        Assert.Multiple(
+            () => Assert.Equal("ukmo", received.ModelId),
+            () => Assert.Empty(rule.Calls));
+    }
+
+    [Fact]
+    public void Models_received_before_the_primary_are_merged_into_the_evaluated_forecast()
+    {
+        var rule = new ModelProbeRule();
+        var engine = Engine(rule);
+
+        engine.Process(ModelData(DomainData.Lucerne, "ukmo", 8.0));
+        engine.Process(ModelData(DomainData.Lucerne, "ecmwf", 12.0));
+        var events = engine.Process(Weather(DomainData.Lucerne, 12.0));
+
+        var call = Assert.Single(rule.Calls);
+        Assert.Multiple(
+            () => Assert.Equal(["ecmwf", "ukmo"], call.Models.Keys.Order().ToArray()),
+            () => Assert.Equal(8.0, call.Models["ukmo"].Points[0].Temperature),
+            () => Assert.Null(Assert.IsType<PipelineEvent.WeatherDataReceived>(events[0]).ModelId),
+            () => Assert.Contains(events, e => e is ProbeResult));
+    }
+
+    [Fact]
+    public void A_later_primary_keeps_the_models_of_the_previous_cycle()
+    {
+        var rule = new ModelProbeRule();
+        var engine = Engine(rule);
+
+        engine.Process(ModelData(DomainData.Lucerne, "ukmo", 8.0));
+        engine.Process(Weather(DomainData.Lucerne, 12.0));
+        engine.Process(Weather(DomainData.Lucerne, 13.0));
+
+        Assert.Equal(2, rule.Calls.Count);
+        Assert.Equal(["ukmo"], rule.Calls[1].Models.Keys);
+    }
 }

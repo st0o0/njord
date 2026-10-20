@@ -493,6 +493,35 @@ public sealed class EnrichmentEventMappingsSpec
     }
 
     [Fact]
+    public void Model_comparisons_map_to_the_model_comparison_case_with_one_entry_per_model_and_day()
+    {
+        var evt = Map(new ModelComparisonResult(Lucerne,
+        [
+            new ModelComparisonDay(new DateOnly(2026, 7, 11),
+            [
+                new ModelDayValues("a", 20.5, 11.0, 1.2),
+                new ModelDayValues("b", 18.0, null, null),
+            ]),
+        ]));
+
+        Assert.Equal(Case.ModelComparison, evt.FeatureCase);
+        var day = Assert.Single(evt.ModelComparison.Days);
+        Assert.Equal(2, day.Models.Count);
+        var a = day.Models[0];
+        var b = day.Models[1];
+        Assert.Multiple(
+            () => Assert.Equal((2026, 7, 11), (day.Year, day.Month, day.Day)),
+            () => Assert.Equal("a", a.Model),
+            () => Assert.Equal(20.5, a.MaxTemperature),
+            () => Assert.Equal(11.0, a.MinTemperature),
+            () => Assert.Equal(1.2, a.Precipitation),
+            () => Assert.Equal("b", b.Model),
+            () => Assert.Equal(18.0, b.MaxTemperature),
+            () => Assert.False(b.HasMinTemperature),
+            () => Assert.False(b.HasPrecipitation));
+    }
+
+    [Fact]
     public void Feature_results_without_a_mapping_are_rejected()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new UnmappedResult(Lucerne).ToEnrichmentEvent(Stamp));

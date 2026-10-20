@@ -38,6 +38,18 @@ public sealed class BudgetGuardSpec
     }
 
     [Fact]
+    public void Should_multiply_the_weather_weight_by_the_model_count()
+    {
+        // weather weight 1 x 3 models + air quality 1 = 4 calls x 720 cycles = 2880 calls; 3000 budget -> guard 2400.
+        var message = BudgetGuard.Violation(Scope(), new WeatherOptions(), WithMonthlyBudget(3_000), Resolved(), weatherModelCount: 3);
+
+        Assert.NotNull(message);
+        Assert.Contains("Projected API usage of 2880", message);
+        Assert.Contains("weight 3", message);
+        Assert.Null(BudgetGuard.Violation(Scope(), new WeatherOptions(), WithMonthlyBudget(3_000), Resolved()));
+    }
+
+    [Fact]
     public void Should_count_the_satellite_domain_once_per_poll_cycle()
     {
         var resolved = new ResolvedRequirements(new DomainRequirements(Satellite: SatelliteParams.GlobalTilted));

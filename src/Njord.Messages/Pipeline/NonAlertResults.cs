@@ -41,3 +41,9 @@ public sealed record PollenTrendResult(
 public sealed record SeasonalMonth(DateOnly Month, double TemperatureAnomaly, double PrecipitationAnomalyPercent, ConfidenceLevel Confidence);
 
 public sealed record SeasonalOutlookResult(Location Location, ImmutableArray<SeasonalMonth> Months) : ForecastFeatureResult(Location);
+
+public sealed record ModelDayValues(string ModelId, double? MaxTemperature, double? MinTemperature, double? Precipitation);
+
+public sealed record ModelComparisonDay(DateOnly Date, ImmutableArray<ModelDayValues> Models);
+
+public sealed record ModelComparisonResult(Location Location, ImmutableArray<ModelComparisonDay> Days) : ForecastFeatureResult(Location);

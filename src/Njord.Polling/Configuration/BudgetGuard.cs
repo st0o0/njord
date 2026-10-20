@@ -16,14 +16,17 @@ internal static class BudgetGuard
     private static readonly TimeSpan Month = TimeSpan.FromDays(30);
 
     internal static string? Violation(
-        NjordOptions scope, WeatherOptions weather, PollingOptions polling, ResolvedRequirements resolved, FloodOptions? flood = null)
+        NjordOptions scope, WeatherOptions weather, PollingOptions polling, ResolvedRequirements resolved,
+        FloodOptions? flood = null, int weatherModelCount = 1)
     {
         var requirements = resolved.Value;
         var locationCount = scope.Locations.Count;
 
         var weatherRequired = requirements.Requires(DomainKind.Weather);
         var otherDomains = new[] { DomainKind.AirQuality, DomainKind.Flood, DomainKind.Marine, DomainKind.Satellite }.Count(requirements.Requires);
-        var apiCallWeight = weatherRequired ? CallWeight.Of(System.Numerics.BitOperations.PopCount((ulong)requirements.AllWeather), weather.ForecastDays) : 0;
+        var apiCallWeight = weatherRequired
+            ? CallWeight.Of(System.Numerics.BitOperations.PopCount((ulong)requirements.AllWeather), weather.ForecastDays) * Math.Max(1, weatherModelCount)
+            : 0;
 
         var domainCallsPerCycle = locationCount * ((weatherRequired ? 1 : 0) + otherDomains);
         var floodExtraWeight = requirements.Requires(DomainKind.Flood) && flood is { IncludeEnsemble: true } ? FloodEnsembleWeight - 1 : 0;

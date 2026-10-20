@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 
 namespace Njord.OpenMeteo;
@@ -37,7 +38,12 @@ public sealed record WeatherHourlyData(
     [property: JsonPropertyName("precipitation_spread")] double?[]? PrecipitationSpread = null,
     [property: JsonPropertyName("wind_speed_10m_spread")] double?[]? WindSpeedSpread = null);
 
+[JsonConverter(typeof(WeatherResponseConverter))]
 public sealed record WeatherResponse(
-    [property: JsonPropertyName("latitude")] double Latitude,
-    [property: JsonPropertyName("longitude")] double Longitude,
-    [property: JsonPropertyName("hourly")] WeatherHourlyData? Hourly);
+    double Latitude,
+    double Longitude,
+    WeatherHourlyData? Hourly,
+    ImmutableDictionary<string, WeatherHourlyData>? Models = null)
+{
+    public ImmutableDictionary<string, WeatherHourlyData> Models { get; init; } = Models ?? ImmutableDictionary<string, WeatherHourlyData>.Empty;
+}

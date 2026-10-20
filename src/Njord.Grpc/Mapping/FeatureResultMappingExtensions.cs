@@ -213,4 +213,39 @@ internal static class FeatureResultMappingExtensions
         proto.Months.AddRange(r.Months.Select(month => month.ToProto()));
         return proto;
     }
+
+    public static V2.ModelDayValues ToProto(this ModelDayValues values)
+    {
+        var proto = new V2.ModelDayValues { Model = values.ModelId };
+        if (values.MaxTemperature is { } max)
+        {
+            proto.MaxTemperature = max;
+        }
+
+        if (values.MinTemperature is { } min)
+        {
+            proto.MinTemperature = min;
+        }
+
+        if (values.Precipitation is { } precipitation)
+        {
+            proto.Precipitation = precipitation;
+        }
+
+        return proto;
+    }
+
+    public static V2.ModelComparisonDay ToProto(this Njord.Messages.Pipeline.ModelComparisonDay day)
+    {
+        var proto = new V2.ModelComparisonDay { Year = day.Date.Year, Month = day.Date.Month, Day = day.Date.Day };
+        proto.Models.AddRange(day.Models.Select(m => m.ToProto()));
+        return proto;
+    }
+
+    public static V2.ModelComparison ToProto(this ModelComparisonResult r)
+    {
+        var proto = new V2.ModelComparison { Forecast = new V2.ForecastData() };
+        proto.Days.AddRange(r.Days.Select(day => day.ToProto()));
+        return proto;
+    }
 }

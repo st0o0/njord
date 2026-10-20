@@ -11,6 +11,19 @@ public sealed class GrpcConsumerStateSpec
     private static readonly Location Lucerne = DomainData.Lucerne;
 
     [Fact]
+    public void Weather_data_is_kept_separately_per_model()
+    {
+        var primary = new PipelineEvent.WeatherDataReceived(Lucerne, DomainData.Weather(Anchor, 2));
+        var secondary = new PipelineEvent.WeatherDataReceived(Lucerne, DomainData.Weather(Anchor, 3), "ukmo_global_ensemble_mean_20km");
+
+        var state = GrpcConsumerState.Empty.Apply(primary).Apply(secondary);
+
+        Assert.Multiple(
+            () => Assert.Equal(primary, state.GetDomainData(Lucerne, DomainKind.Weather)),
+            () => Assert.Equal(secondary, state.GetDomainData(Lucerne, DomainKind.Weather, "ukmo_global_ensemble_mean_20km")));
+    }
+
+    [Fact]
     public void Domain_data_is_kept_as_the_latest_event_per_location_and_domain()
     {
         var older = new PipelineEvent.WeatherDataReceived(Lucerne, DomainData.Weather(Anchor, 2));

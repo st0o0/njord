@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
@@ -29,7 +30,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private sealed record PipelineResolved(IActorRef Pipeline);
     private sealed record AttachFailed(string Reason, Exception? Cause);
     private sealed record BranchEnded(long BranchId, Exception? Cause) : IDeadLetterSuppression;
-    private sealed record DomainFetchDone(long RequestId, DomainKind Domain, IDomainForecast Result);
+    private sealed record DomainFetchDone(long RequestId, DomainKind Domain, IDomainForecast Result, ImmutableDictionary<string, IDomainForecast> Models);
     private sealed record DomainFetchFailed(long RequestId, PollFailureReason Reason, string? Detail);
     private sealed record DomainBranchOffered(long RequestId, int Hash, IQueueOfferResult Result);
 
@@ -149,7 +150,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
         return result switch
         {
-            FetchSuccess ok => new DomainFetchDone(id, domain, ok.Forecast),
+            FetchSuccess ok => new DomainFetchDone(id, domain, ok.Forecast, ok.Models),
             FetchError error => new DomainFetchFailed(id, error.Reason, error.Message),
             _ => new DomainFetchFailed(id, PollFailureReason.MalformedPayload, $"The {domainTag} endpoint returned no usable data"),
         };
@@ -168,12 +169,33 @@ public sealed class OpenMeteoGateway : ReceiveActor
             return;
         }
 
-        var data = new DomainDataReceived(pending.Resolved, msg.Domain, msg.Result);
         var hash = msg.Result.GetHashCode();
+        // Per-model data first so the primary forecast is evaluated with all models merged in.
+        var offers = msg.Models
+            .Select(model => new DomainDataReceived(pending.Resolved, msg.Domain, model.Value, model.Key))
+            .Append(new DomainDataReceived(pending.Resolved, msg.Domain, msg.Result))
+            .ToList();
 
-        branch.OfferAsync(data).PipeTo(Self,
+        OfferAllAsync(branch, offers).PipeTo(Self,
             success: result => new DomainBranchOffered(msg.RequestId, hash, result),
             failure: ex => new DomainBranchOffered(msg.RequestId, hash, new QueueOfferResult.Failure(ex)));
+    }
+
+    private static async Task<IQueueOfferResult> OfferAllAsync(
+        ISourceQueueWithComplete<DomainDataReceived> branch,
+        IReadOnlyList<DomainDataReceived> offers)
+    {
+        IQueueOfferResult last = QueueOfferResult.Enqueued.Instance;
+        foreach (var offer in offers)
+        {
+            last = await branch.OfferAsync(offer);
+            if (last is not QueueOfferResult.Enqueued)
+            {
+                return last;
+            }
+        }
+
+        return last;
     }
 
     private void OnDomainBranchOffered(DomainBranchOffered msg) =>

@@ -49,7 +49,7 @@ The system SHALL turn one multi-model response into one weather forecast per mod
 - **THEN** the unsuffixed response shape is mapped to that model's forecast
 
 ### Requirement: Primary model drives enrichments
-Alert rules and lifestyle handlers SHALL evaluate only the primary model's forecast. Secondary models SHALL be stored and served but SHALL NOT trigger enrichment evaluation.
+Feature rules SHALL evaluate only the primary model's forecast. Secondary models SHALL be stored and served but SHALL NOT trigger enrichment evaluation.
 
 #### Scenario: Secondary model updates
 - **WHEN** only a secondary model's data changes

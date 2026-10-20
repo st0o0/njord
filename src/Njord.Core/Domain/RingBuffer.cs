@@ -18,6 +18,16 @@ public sealed class RingBuffer<T>(int capacity)
         }
     }
 
+    public void ReplaceNewest(T item)
+    {
+        if (Count == 0)
+        {
+            throw new InvalidOperationException("The ring is empty.");
+        }
+
+        _buffer[_head] = item;
+    }
+
     public T this[int index]
     {
         get

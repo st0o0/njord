@@ -3,6 +3,8 @@ using Akka.Hosting;
 using Grpc.Core;
 using Njord.Core;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
+using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Messages.Alerts;
 using Njord.Messages.Forecast;
@@ -33,7 +35,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Multiple(
             () => Assert.Equal("Lucerne", location.Name),
             () => Assert.Equal(47.05, location.Latitude),
-            () => Assert.Equal(["ensemble_mean"], location.Models));
+            () => Assert.Equal([WeatherOptions.DefaultModel], location.Models));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -50,6 +52,61 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             () => Assert.Equal(Domain.Weather, response.Domain),
             () => Assert.Equal(Anchor, response.ModelRun.ToDateTimeOffset()),
             () => Assert.Equal(3, response.Weather.Points.Count));
+    }
+
+    private static readonly EffectiveWeatherModels TwoModels = new(["ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"]);
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetDomainData_returns_the_requested_secondary_model_labelled_with_its_id()
+    {
+        var evt = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2), "ukmo_global_ensemble_mean_20km");
+        var service = CreateService(domainEvent: evt, models: TwoModels);
+
+        var response = await service.GetDomainData(
+            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Weather, Model = "ukmo_global_ensemble_mean_20km" },
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.Multiple(
+            () => Assert.Equal("ukmo_global_ensemble_mean_20km", response.Model),
+            () => Assert.Equal(2, response.Weather.Points.Count));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetDomainData_labels_primary_weather_with_the_primary_model_id()
+    {
+        var evt = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2));
+        var service = CreateService(domainEvent: evt, models: TwoModels);
+
+        var response = await service.GetDomainData(
+            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Weather },
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.Equal("ecmwf_ifs025_ensemble_mean", response.Model);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetDomainData_is_not_found_for_a_model_that_is_not_enabled()
+    {
+        var evt = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2));
+        var service = CreateService(domainEvent: evt);
+
+        var ex = await Assert.ThrowsAsync<RpcException>(() => service.GetDomainData(
+            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Weather, Model = "ukmo_global_ensemble_mean_20km" },
+            TestServerCallContext.Create(TestContext.Current.CancellationToken)));
+
+        Assert.Equal(StatusCode.NotFound, ex.StatusCode);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetCatalog_marks_only_the_effective_models_enabled()
+    {
+        var service = CreateService(models: TwoModels);
+
+        var response = await service.GetCatalog(new GetCatalogRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            ["ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"],
+            response.Models.Where(m => m.Enabled).Select(m => m.Id).Order());
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -128,19 +185,19 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(new GetEnrichmentsResponse { Location = "Lucerne" }, response);
     }
 
-    private WeatherGrpcService CreateService(PipelineEvent? domainEvent = null, LatestAnalysisResult? analysis = null)
+    private WeatherGrpcService CreateService(PipelineEvent? domainEvent = null, LatestAnalysisResult? analysis = null, EffectiveWeatherModels? models = null)
     {
         ActorRegistry.Register<IGrpcConsumer>(
             Sys.ActorOf(Props.Create(() => new FakeConsumer(domainEvent, analysis))), overwrite: true);
-        return new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Create(Options), TimeProvider.System);
+        return new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Create(Options, models: models), TimeProvider.System);
     }
 
     private sealed class FakeConsumer : ReceiveActor
     {
         public FakeConsumer(PipelineEvent? domainEvent, LatestAnalysisResult? analysis)
         {
-            Receive<QueryDomainData>(msg => Sender.Tell(domainEvent is null
-                ? new DomainDataNotAvailable(msg.Location, msg.Domain)
+            Receive<QueryDomainData>(msg => Sender.Tell(domainEvent is null || domainEvent.ToModelId() != msg.ModelId
+                ? new DomainDataNotAvailable(msg.Location, msg.Domain, msg.ModelId)
                 : new DomainDataResult(domainEvent)));
             Receive<QueryLatestAnalysis>(msg => Sender.Tell(
                 analysis is null ? new LatestAnalysisNotAvailable(msg.Location) : analysis));

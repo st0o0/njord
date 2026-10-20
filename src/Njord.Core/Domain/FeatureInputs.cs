@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
@@ -8,6 +9,7 @@ using Njord.Forecast.Weather;
 
 namespace Njord.Core.Domain;
 
+public readonly record struct ModelComparisonInput(DomainForecast<WeatherPoint> Weather, ImmutableDictionary<string, DomainForecast<WeatherPoint>> Models);
 public readonly record struct WeatherInput(DomainForecast<WeatherPoint> Weather);
 public readonly record struct AqInput(DomainForecast<AirQualityPoint> AirQuality);
 public readonly record struct WeatherAqInput(DomainForecast<WeatherPoint> Weather, DomainForecast<AirQualityPoint> AirQuality);

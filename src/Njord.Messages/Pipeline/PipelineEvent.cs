@@ -12,7 +12,8 @@ public abstract record PipelineEvent
 {
     public sealed record WeatherDataReceived(
         Location Location,
-        DomainForecast<WeatherPoint> Forecast) : PipelineEvent;
+        DomainForecast<WeatherPoint> Forecast,
+        string? ModelId = null) : PipelineEvent;
 
     public sealed record AirQualityDataReceived(
         Location Location,

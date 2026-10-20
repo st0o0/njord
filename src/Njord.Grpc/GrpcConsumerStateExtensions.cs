@@ -11,7 +11,7 @@ internal static class GrpcConsumerStateExtensions
     {
         if (evt.ToDomainKind() is { } domain && evt.ToDomainLocation() is { } location)
         {
-            return state with { DomainData = state.DomainData.SetItem((location, domain), evt) };
+            return state with { DomainData = state.DomainData.SetItem((location, domain, evt.ToModelId()), evt) };
         }
 
         return evt is FeatureResult result
@@ -19,8 +19,8 @@ internal static class GrpcConsumerStateExtensions
             : state;
     }
 
-    public static PipelineEvent? GetDomainData(this GrpcConsumerState state, Location location, DomainKind domain) =>
-        state.DomainData.GetValueOrDefault((location, domain));
+    public static PipelineEvent? GetDomainData(this GrpcConsumerState state, Location location, DomainKind domain, string? modelId = null) =>
+        state.DomainData.GetValueOrDefault((location, domain, modelId));
 
     public static IReadOnlyList<FeatureResult> GetLatestResults(this GrpcConsumerState state, Location location) =>
         state.Results

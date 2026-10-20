@@ -55,9 +55,13 @@ export function computeBudget(config: NjordConfig): BudgetResult {
   }
 }
 
+function effectiveModelCount(config: NjordConfig, features: Record<string, boolean>): number {
+  return features['Weather:ModelComparison'] ? Math.max(1, config.weather.models.filter(Boolean).length) : 1
+}
+
 function weatherWeight(config: NjordConfig, features: Record<string, boolean>): number {
   return requiredDomains(features).includes('Weather')
-    ? Math.ceil(weatherVariableCount(features) / 10) * Math.ceil(config.weather.forecastDays / 14)
+    ? Math.ceil(weatherVariableCount(features) / 10) * Math.ceil(config.weather.forecastDays / 14) * effectiveModelCount(config, features)
     : 0
 }
 

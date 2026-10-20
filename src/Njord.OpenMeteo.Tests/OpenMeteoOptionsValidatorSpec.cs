@@ -1,4 +1,5 @@
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.OpenMeteo.Configuration;
 using Njord.Tests.Shared;
 
@@ -16,6 +17,46 @@ public sealed class OpenMeteoOptionsValidatorSpec
         var result = _validator.Validate(null, new WeatherOptions { ForecastDays = days });
 
         Assert.Contains("Weather.ForecastDays must be between 1 and 16", ValidationAssert.SingleFailure(result));
+    }
+
+    [Fact]
+    public void Should_reject_an_empty_model_list()
+    {
+        var result = _validator.Validate(null, new WeatherOptions { Models = [] });
+
+        Assert.Equal("Weather.Models must contain at least one model.", ValidationAssert.SingleFailure(result));
+    }
+
+    [Fact]
+    public void Should_reject_a_duplicate_model_naming_it()
+    {
+        var result = _validator.Validate(null, new WeatherOptions { Models = ["ecmwf_ifs025_ensemble_mean", "ecmwf_ifs025_ensemble_mean"] });
+
+        Assert.Equal("Weather.Models contains 'ecmwf_ifs025_ensemble_mean' more than once.", ValidationAssert.SingleFailure(result));
+    }
+
+    [Fact]
+    public void Should_reject_an_unknown_model_naming_it()
+    {
+        var result = _validator.Validate(null, new WeatherOptions { Models = ["ecmwf_ifs025_ensemble_mean", "gfs_ensemble"] });
+
+        Assert.Contains("Weather.Models entry 'gfs_ensemble' is not a known model", ValidationAssert.SingleFailure(result));
+    }
+
+    [Fact]
+    public void Should_reject_the_legacy_model_key_pointing_to_models()
+    {
+        var result = _validator.Validate(null, new WeatherOptions { Model = "ecmwf_ifs025_ensemble_mean" });
+
+        Assert.Contains("Njord:Weather:Models", ValidationAssert.SingleFailure(result));
+    }
+
+    [Fact]
+    public void Should_accept_all_catalog_models()
+    {
+        var result = _validator.Validate(null, new WeatherOptions { Models = [.. WeatherModelCatalog.All.Select(m => m.Id)] });
+
+        Assert.True(result.Succeeded);
     }
 
     [Theory]

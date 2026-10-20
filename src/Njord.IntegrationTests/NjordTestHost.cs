@@ -53,8 +53,6 @@ public sealed class NjordTestHost : IAsyncDisposable
         ["Serilog:MinimumLevel:Override:Microsoft.AspNetCore"] = "Error",
         ["Akka:RemotingPort"] = "0",
         ["Njord:Persistence:DataPath"] = Path.Combine(dataDirectory, "njord.db"),
-        ["Njord:Models:0"] = "icon_eu",
-        ["Njord:Models:1"] = "icon_global",
         ["Njord:Locations:0:Name"] = "luzern",
         ["Njord:Locations:0:Latitude"] = "47.0502",
         ["Njord:Locations:0:Longitude"] = "8.3093",
@@ -63,7 +61,8 @@ public sealed class NjordTestHost : IAsyncDisposable
     public static async Task<NjordTestHost> StartAsync(
         string dataDirectory,
         Action<IDictionary<string, string?>>? configure = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IReadOnlyCollection<string>? weatherModelIds = null)
     {
         var settings = new Dictionary<string, string?>(DefaultSettings(dataDirectory));
         configure?.Invoke(settings);
@@ -76,7 +75,7 @@ public sealed class NjordTestHost : IAsyncDisposable
         builder.Configuration.AddJsonFile(AppSettingsDefaults.ShippedPath, optional: false, reloadOnChange: false);
         builder.Configuration.AddInMemoryCollection(settings);
 
-        var weather = new FakeWeatherClient();
+        var weather = new FakeWeatherClient { ModelIds = [.. weatherModelIds ?? []] };
         var airQuality = new FakeAirQualityClient();
         var flood = new FakeFloodClient();
         var marine = new FakeMarineClient();

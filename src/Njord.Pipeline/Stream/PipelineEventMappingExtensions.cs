@@ -14,7 +14,7 @@ internal static class PipelineEventMappingExtensions
 {
     public static PipelineEvent ToPipelineEvent(this DomainDataReceived received) => received.Domain switch
     {
-        DomainKind.Weather => new PipelineEvent.WeatherDataReceived(received.Location, Typed<WeatherPoint>(received)),
+        DomainKind.Weather => new PipelineEvent.WeatherDataReceived(received.Location, Typed<WeatherPoint>(received), received.ModelId),
         DomainKind.AirQuality => new PipelineEvent.AirQualityDataReceived(received.Location, Typed<AirQualityPoint>(received)),
         DomainKind.Flood => new PipelineEvent.FloodDataReceived(received.Location, Typed<FloodPoint>(received)),
         DomainKind.Marine => new PipelineEvent.MarineDataReceived(received.Location, Typed<MarinePoint>(received)),

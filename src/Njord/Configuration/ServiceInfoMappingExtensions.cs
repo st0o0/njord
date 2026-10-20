@@ -11,23 +11,23 @@ public static class ServiceInfoMappingExtensions
     public static ServiceInfo ToServiceInfo(
         this NjordOptions scope,
         PollingOptions polling,
-        IEnumerable<IFeatureRule> features) =>
+        IEnumerable<IFeatureRule> features,
+        EffectiveWeatherModels models) =>
         new(
-            scope.ToCatalog(),
+            scope.ToCatalog(models),
             polling.EffectiveBudget.RequestsPerMonth,
             polling.EffectiveBudget.DailyLimit,
             ActiveEnrichments(features));
 
-    public const string EnsembleModelId = "ensemble_mean";
-
-    public static CatalogResult ToCatalog(this NjordOptions scope)
+    public static CatalogResult ToCatalog(this NjordOptions scope, EffectiveWeatherModels effective)
     {
-        IReadOnlyList<string> models = [EnsembleModelId];
+        IReadOnlyList<string> models = [.. effective.Ids];
         var locations = scope.Locations
             .Select(location => new CatalogLocation(new Location(location.Name, location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault()), models))
             .ToList();
 
-        return new CatalogResult(locations, [new CatalogModel(EnsembleModelId)]);
+        return new CatalogResult(locations, [.. WeatherModelCatalog.All.Select(m => new CatalogModel(
+            m.Id, m.DisplayName, m.Provider, m.Region, m.ResolutionKm, m.ForecastDays, effective.Contains(m.Id)))]);
     }
 
     private static List<string> ActiveEnrichments(IEnumerable<IFeatureRule> features) =>

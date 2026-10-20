@@ -1,4 +1,6 @@
 using Njord.Core.Domain;
+using Njord.Forecast;
+using Njord.Forecast.Weather;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Pipeline;
@@ -31,7 +33,26 @@ internal sealed class FeatureEngine
             _rings[received.Location.Name] = ring;
         }
 
+        if (received.ModelId is { } modelId)
+        {
+            if (received.Data is DomainForecast<Njord.Forecast.Weather.WeatherPoint> modelWeather)
+            {
+                var latest = (ring.Count > 0 ? ring[0] : new LocationForecast(received.Location)).WithModel(modelId, modelWeather);
+                if (ring.Count > 0)
+                {
+                    ring.ReplaceNewest(latest);
+                }
+                else
+                {
+                    ring.Push(latest);
+                }
+            }
+
+            return events;
+        }
+
         var current = (ring.Count > 0 ? ring[0] : new LocationForecast(received.Location)).With(received.Domain, received.Data);
+        current = current with { ModelWeather = ring.Count > 0 ? ring[0].ModelWeather : null };
         ring.Push(current);
 
         var now = _time.GetUtcNow();

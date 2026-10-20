@@ -1,0 +1,5 @@
+[
+  { "id": "ecmwf_ifs025_ensemble_mean", "displayName": "ECMWF IFS 0.25 deg Ensemble Mean", "provider": "ECMWF", "region": "Global", "resolutionKm": 25, "forecastDays": 15 },
+  { "id": "ecmwf_aifs025_ensemble_mean", "displayName": "ECMWF AIFS 0.25 deg Ensemble Mean", "provider": "ECMWF", "region": "Global", "resolutionKm": 25, "forecastDays": 15 },
+  { "id": "ukmo_global_ensemble_mean_20km", "displayName": "UK Met Office Global Ensemble Mean 20 km", "provider": "UK Met Office", "region": "Global", "resolutionKm": 20, "forecastDays": 7 }
+]

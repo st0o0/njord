@@ -624,6 +624,21 @@
     ]
   },
   {
+    "key": "Weather:ModelComparison",
+    "name": "ModelComparison",
+    "category": "Weather",
+    "output": "Forecast",
+    "description": "Daily temperature and precipitation of every configured weather model side by side",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Temperature",
+      "Precipitation"
+    ]
+  },
+  {
     "key": "Insight:SeasonalOutlook",
     "name": "SeasonalOutlook",
     "category": "Insight",

@@ -28,7 +28,7 @@ public sealed class PollingOptionsValidator(IConfiguration configuration, Resolv
 
         if (failures.Count == 0
             && ReadScope() is { } scope
-            && BudgetGuard.Violation(scope, ReadWeather(), options, requirements, ReadFlood()) is { } violation)
+            && BudgetGuard.Violation(scope, ReadWeather(), options, requirements, ReadFlood(), ReadWeatherModelCount()) is { } violation)
         {
             failures.Add(violation);
         }
@@ -45,6 +45,14 @@ public sealed class PollingOptionsValidator(IConfiguration configuration, Resolv
         var scope = configuration.GetSection(NjordOptions.SectionName).Get<NjordOptions>();
         return scope is null || scope.Locations.Count == 0 ? null : scope;
     }
+
+    // Several models are only requested while the ModelComparison feature is enabled.
+    private int ReadWeatherModelCount() =>
+        configuration.GetValue<bool>($"{ModelComparisonSection}:Enabled")
+            ? ReadWeather().EffectiveModels.Length
+            : 1;
+
+    private const string ModelComparisonSection = "Njord:Features:Weather:ModelComparison";
 
     private FloodOptions ReadFlood() =>
         configuration.GetSection(FloodOptions.SectionName).Get<FloodOptions>() ?? new FloodOptions();
