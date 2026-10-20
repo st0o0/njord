@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Domain;
 using Njord.Forecast;
+using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -46,5 +47,75 @@ public sealed class WeatherAlertHandlerSpec
     public void Handle_returns_nothing_without_weather_data()
     {
         Assert.Empty(FeatureServices.WeatherHandler(Time).Handle(new LocationForecast(Lucerne), null, Time));
+    }
+
+    private static LocationForecast FrostAndHeat() =>
+        new(Lucerne, DomainData.Weather(Now, 48, (hour, point) => hour switch
+        {
+            2 => point with { Temperature = -6.0, ApparentTemperature = -6.0 },
+            3 => point with { Temperature = 40.0, ApparentTemperature = 40.0 },
+            _ => point,
+        }));
+
+    private static IEnumerable<AlertType> RaisedTypes(IReadOnlyList<PipelineEvent> events) =>
+        events.OfType<PipelineEvent.AlertRaised>().Select(e => e.Type);
+
+    [Fact]
+    public void Handle_runs_every_rule_when_all_features_are_enabled()
+    {
+        var types = RaisedTypes(FeatureServices.WeatherHandler(Time).Handle(FrostAndHeat(), null, Time)).ToList();
+
+        Assert.Multiple(
+            () => Assert.Contains(AlertType.Frost, types),
+            () => Assert.Contains(AlertType.Heat, types));
+    }
+
+    [Fact]
+    public void Handle_suppresses_frost_alerts_but_keeps_heat_alerts_when_frost_is_disabled()
+    {
+        var handler = FeatureServices.WeatherHandler(Time, features: f => f[FeatureKind.FrostAlert] = false);
+
+        var types = RaisedTypes(handler.Handle(FrostAndHeat(), null, Time)).ToList();
+
+        Assert.Multiple(
+            () => Assert.DoesNotContain(AlertType.Frost, types),
+            () => Assert.Contains(AlertType.Heat, types));
+    }
+
+    [Fact]
+    public void Handle_suppresses_heat_alerts_but_keeps_frost_alerts_when_heat_is_disabled()
+    {
+        var handler = FeatureServices.WeatherHandler(Time, features: f => f[FeatureKind.HeatAlert] = false);
+
+        var types = RaisedTypes(handler.Handle(FrostAndHeat(), null, Time)).ToList();
+
+        Assert.Multiple(
+            () => Assert.Contains(AlertType.Frost, types),
+            () => Assert.DoesNotContain(AlertType.Heat, types));
+    }
+
+    [Fact]
+    public void Feature_unites_the_requirements_of_the_enabled_rules_only()
+    {
+        var handler = FeatureServices.WeatherHandler(Time, features: f =>
+        {
+            foreach (var kind in Enum.GetValues<FeatureKind>())
+            {
+                f[kind] = kind is FeatureKind.FrostAlert or FeatureKind.StormAlert;
+            }
+        });
+
+        Assert.Equal(
+            WeatherParams.Temperature | WeatherParams.WindGusts | WeatherParams.EnsembleStdDev,
+            handler.Feature.Requirements.Weather);
+    }
+
+    [Fact]
+    public void Features_list_every_rule_feature()
+    {
+        var kinds = FeatureServices.WeatherHandler(Time).Features.Select(f => f.Kind).ToList();
+
+        Assert.Equal(14, kinds.Count);
+        Assert.Equal(kinds.Count, kinds.Distinct().Count());
     }
 }

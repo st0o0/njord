@@ -28,11 +28,12 @@ public static class FeatureServices
                 .AddWeatherDomain())
             .GetServices<IAlertRule<DomainForecast<WeatherPoint>>>()];
 
-    public static WeatherAlertHandler WeatherHandler(TimeProvider time, bool enabled = true) =>
+    public static WeatherAlertHandler WeatherHandler(TimeProvider time, bool enabled = true, Action<FeatureOptions>? features = null) =>
         (WeatherAlertHandler)Build(time, services => services
                 .AddAlertOptions(AppSettingsDefaults.Configuration())
                 .AddWeatherDomain()
-                .Configure<AlertOptions>(options => options.Enabled = enabled))
+                .Configure<AlertOptions>(options => options.Enabled = enabled)
+                .Configure<FeatureOptions>(options => features?.Invoke(options)))
             .GetServices<IDomainHandler>().OfType<WeatherAlertHandler>().Single();
 
     public static IDomainHandler AlertHandler(TimeProvider time, Action<AlertOptions>? configure = null) =>
