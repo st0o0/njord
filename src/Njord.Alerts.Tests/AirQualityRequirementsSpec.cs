@@ -1,19 +1,19 @@
 using Njord.Core.Domain;
 using Njord.Forecast.AirQuality;
-using Njord.Messages.Alerts;
 using Njord.Tests.Shared;
 
 namespace Njord.Alerts.Tests;
 
 public sealed class AirQualityRequirementsSpec
 {
-    private static AirQualityAlertHandler Create(string name) =>
-        new([new PollenAlertRule(), new Pm25AlertRule(), new DustAlertRule()], AlertRuleFixture.OptionsWith(true), name);
+    private static IFeature Rule(string name) =>
+        FeatureServices.AirQualityHandler(new Microsoft.Extensions.Time.Testing.FakeTimeProvider(AirQualityFixture.Now))
+            .Features.Single(f => f.Name == name);
 
     [Fact]
     public void The_pm25_alert_requires_pm25_only()
     {
-        Assert.Equal(new DomainRequirements(AirQuality: AirQualityParams.Pm25), Create("Pm25").Feature.Requirements);
+        Assert.Equal(new DomainRequirements(AirQuality: AirQualityParams.Pm25), Rule("Pm25").Feature.Requirements);
     }
 
     [Fact]
@@ -22,12 +22,12 @@ public sealed class AirQualityRequirementsSpec
         Assert.Equal(
             new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
                 | AirQualityParams.Alder | AirQualityParams.Mugwort),
-            Create("Pollen").Feature.Requirements);
+            Rule("Pollen").Feature.Requirements);
     }
 
     [Fact]
     public void The_dust_alert_requires_dust_only()
     {
-        Assert.Equal(new DomainRequirements(AirQuality: AirQualityParams.Dust), Create("Dust").Feature.Requirements);
+        Assert.Equal(new DomainRequirements(AirQuality: AirQualityParams.Dust), Rule("Dust").Feature.Requirements);
     }
 }

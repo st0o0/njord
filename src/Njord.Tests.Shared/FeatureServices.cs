@@ -36,6 +36,14 @@ public static class FeatureServices
                 .Configure<FeatureOptions>(options => features?.Invoke(options)))
             .GetServices<IDomainHandler>().OfType<WeatherAlertHandler>().Single();
 
+    public static AirQualityAlertHandler AirQualityHandler(TimeProvider time, bool enabled = true, Action<FeatureOptions>? features = null) =>
+        (AirQualityAlertHandler)Build(time, services => services
+                .AddAlertOptions(AppSettingsDefaults.Configuration())
+                .AddAlertHandlers()
+                .Configure<AlertOptions>(options => options.Enabled = enabled)
+                .Configure<FeatureOptions>(options => features?.Invoke(options)))
+            .GetServices<IDomainHandler>().OfType<AirQualityAlertHandler>().Single();
+
     public static IDomainHandler AlertHandler(TimeProvider time, Action<AlertOptions>? configure = null) =>
         Build(time, services =>
             {
