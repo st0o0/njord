@@ -40,11 +40,23 @@ public sealed class OpenMeteoUriBuilderSpec
     [Fact(Timeout = 5000)]
     public async Task The_weather_uri_carries_the_ensemble_model_and_the_given_variables_and_days()
     {
-        var uri = await Capture(client => new WeatherClient(client, Microsoft.Extensions.Options.Options.Create(new WeatherOptions()))
+        var uri = await Capture(client => new WeatherClient(client, Microsoft.Extensions.Options.Options.Create(new WeatherOptions()), Microsoft.Extensions.Options.Options.Create(new SolarYieldOptions()))
             .FetchAsync(47.05, 8.31, ["shortwave_radiation", "rain"], 7, TestContext.Current.CancellationToken));
 
         Assert.Equal(
             "/v1/ensemble?latitude=47.05&longitude=8.31&hourly=shortwave_radiation,rain&models=ecmwf_ifs025_ensemble_mean&wind_speed_unit=ms&forecast_days=7&timeformat=unixtime&timezone=UTC",
+            uri);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task The_weather_uri_carries_tilt_and_azimuth_when_global_tilted_irradiance_is_requested()
+    {
+        var solar = new SolarYieldOptions { Tilt = 25, Azimuth = 135 };
+        var uri = await Capture(client => new WeatherClient(client, Microsoft.Extensions.Options.Options.Create(new WeatherOptions()), Microsoft.Extensions.Options.Options.Create(solar))
+            .FetchAsync(47.05, 8.31, ["global_tilted_irradiance"], 7, TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            "/v1/ensemble?latitude=47.05&longitude=8.31&hourly=global_tilted_irradiance&models=ecmwf_ifs025_ensemble_mean&wind_speed_unit=ms&tilt=25&azimuth=-45&forecast_days=7&timeformat=unixtime&timezone=UTC",
             uri);
     }
 

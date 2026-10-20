@@ -38,6 +38,12 @@ public static class WeatherParamsMappings
         WeatherParams.DirectNormalIrradiance => "direct_normal_irradiance",
         WeatherParams.SunshineDuration => "sunshine_duration",
         WeatherParams.WindDirection => "wind_direction_10m",
+        WeatherParams.GlobalTiltedIrradiance => "global_tilted_irradiance",
+        WeatherParams.SnowDepth => "snow_depth",
+        WeatherParams.WetBulbTemperature => "wet_bulb_temperature_2m",
+        WeatherParams.SnowfallHeight => "snowfall_height",
+        WeatherParams.PrecipitationSpread => "precipitation_spread",
+        WeatherParams.WindSpeedSpread => "wind_speed_10m_spread",
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

@@ -71,7 +71,7 @@ public sealed class HandlerRequirementsSpec
     public void Should_declare_the_radiation_params_the_solar_yield_reads()
     {
         Assert.Equal(
-            new DomainRequirements(Weather: WeatherParams.DirectRadiation | WeatherParams.DiffuseRadiation),
+            new DomainRequirements(Weather: WeatherParams.GlobalTiltedIrradiance),
             Handlers["SolarYield"].Requirements);
     }
 

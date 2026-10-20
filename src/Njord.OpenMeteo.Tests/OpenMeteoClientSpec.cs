@@ -11,7 +11,8 @@ public sealed class OpenMeteoClientSpec
 
     private static WeatherClient Weather(HttpStatusCode status, string body) =>
         new(StubOpenMeteoHandler.ClientFor("ensemble-api", status, body),
-            Microsoft.Extensions.Options.Options.Create(new WeatherOptions()));
+            Microsoft.Extensions.Options.Options.Create(new WeatherOptions()),
+            Microsoft.Extensions.Options.Options.Create(new Njord.Core.Configuration.SolarYieldOptions()));
 
     private static FloodClient Flood(HttpStatusCode status, string body) =>
         new(StubOpenMeteoHandler.ClientFor("flood-api", status, body));

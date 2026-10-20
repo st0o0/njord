@@ -1,6 +1,5 @@
-using Microsoft.Extensions.Options;
-using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Forecast.Weather;
 using Njord.Messages.Pipeline;
 using Njord.Weather.Lifestyle;
 using static Njord.Tests.Shared.AlertRuleFixture;
@@ -10,43 +9,39 @@ namespace Njord.Weather.Tests.Lifestyle;
 
 public sealed class SolarYieldHandlerSpec
 {
-    private static SolarYieldHandler HandlerWith(Action<SolarYieldOptions>? configure = null)
-    {
-        var options = new SolarYieldOptions { Tilt = 35 };
-        configure?.Invoke(options);
-        return new SolarYieldHandler(Options.Create(options));
-    }
-
     private static LocationForecast Sunny() => WeatherOnly(Day((hour, point) => point with
     {
-        DirectRadiation = hour == 3 ? 800.0 : 100.0,
-        DiffuseRadiation = 50.0,
+        GlobalTiltedIrradiance = hour == 3 ? 800.0 : 100.0,
     }));
 
     [Fact]
-    public void Handle_sums_direct_and_diffuse_radiation_scaled_by_efficiency()
+    public void Handle_sums_global_tilted_irradiance_scaled_by_efficiency()
     {
-        var events = HandlerWith().Handle(Sunny(), null, Time);
+        var events = new SolarYieldHandler().Handle(Sunny(), null, Time);
 
         var yield = Assert.IsType<PipelineEvent.SolarYieldComputed>(Assert.Single(events));
         Assert.Multiple(
-            () => Assert.Equal(Math.Round((23 * 150.0 + 850.0) / 1000.0 * SolarYieldHandler.SystemEfficiency, 2), yield.KwhPerKwp),
+            () => Assert.Equal(Math.Round((23 * 100.0 + 800.0) / 1000.0 * SolarYieldHandler.SystemEfficiency, 2), yield.KwhPerKwp),
             () => Assert.Equal(Now.AddHours(3).Hour, yield.PeakHour));
     }
 
     [Fact]
-    public void Handle_lowers_the_yield_for_an_off_south_panel()
+    public void Handle_ignores_direct_and_diffuse_radiation_without_tilted_irradiance()
     {
-        var south = Assert.IsType<PipelineEvent.SolarYieldComputed>(Assert.Single(HandlerWith().Handle(Sunny(), null, Time)));
-        var north = Assert.IsType<PipelineEvent.SolarYieldComputed>(
-            Assert.Single(HandlerWith(o => o.Azimuth = 0).Handle(Sunny(), null, Time)));
+        var forecast = WeatherOnly(Day((_, point) => point with { DirectRadiation = 500.0, DiffuseRadiation = 50.0 }));
 
-        Assert.True(north.KwhPerKwp < south.KwhPerKwp);
+        Assert.Empty(new SolarYieldHandler().Handle(forecast, null, Time));
+    }
+
+    [Fact]
+    public void Requirements_ask_for_global_tilted_irradiance()
+    {
+        Assert.Equal(WeatherParams.GlobalTiltedIrradiance, new SolarYieldHandler().Requirements.Weather);
     }
 
     [Fact]
     public void Handle_returns_nothing_without_radiation_data()
     {
-        Assert.Empty(HandlerWith().Handle(WeatherOnly(Day()), null, Time));
+        Assert.Empty(new SolarYieldHandler().Handle(WeatherOnly(Day()), null, Time));
     }
 }

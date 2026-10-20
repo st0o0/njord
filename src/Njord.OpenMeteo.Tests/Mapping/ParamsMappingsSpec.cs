@@ -35,6 +35,12 @@ public sealed class ParamsMappingsSpec
     [InlineData(WeatherParams.DirectNormalIrradiance, "direct_normal_irradiance")]
     [InlineData(WeatherParams.SunshineDuration, "sunshine_duration")]
     [InlineData(WeatherParams.WindDirection, "wind_direction_10m")]
+    [InlineData(WeatherParams.GlobalTiltedIrradiance, "global_tilted_irradiance")]
+    [InlineData(WeatherParams.SnowDepth, "snow_depth")]
+    [InlineData(WeatherParams.WetBulbTemperature, "wet_bulb_temperature_2m")]
+    [InlineData(WeatherParams.SnowfallHeight, "snowfall_height")]
+    [InlineData(WeatherParams.PrecipitationSpread, "precipitation_spread")]
+    [InlineData(WeatherParams.WindSpeedSpread, "wind_speed_10m_spread")]
     public void Should_map_each_weather_flag_to_its_api_name(WeatherParams param, string expected) =>
         Assert.Equal([expected], param.ToApiNames());
 

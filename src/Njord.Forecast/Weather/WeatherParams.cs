@@ -30,4 +30,10 @@ public enum WeatherParams : long
     DirectNormalIrradiance = 1L << 23,
     SunshineDuration = 1L << 24,
     WindDirection = 1L << 25,
+    GlobalTiltedIrradiance = 1L << 26,
+    SnowDepth = 1L << 27,
+    WetBulbTemperature = 1L << 28,
+    SnowfallHeight = 1L << 29,
+    PrecipitationSpread = 1L << 30,
+    WindSpeedSpread = 1L << 31,
 }

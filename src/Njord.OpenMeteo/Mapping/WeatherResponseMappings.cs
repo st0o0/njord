@@ -26,7 +26,7 @@ internal static class WeatherResponseMappings
                     h.DewPoint, h.UvIndex, h.EnsembleStdDev, h.WindGusts, h.Visibility, h.Cape, h.Rain,
                     h.Snowfall, h.SoilTemperature, h.FreezingLevelHeight, h.IsDay, h.ShortwaveRadiation,
                     h.DirectRadiation, h.DiffuseRadiation, h.DirectNormalIrradiance, h.SunshineDuration,
-                    h.WindDirection))
+                    h.WindDirection, h.GlobalTiltedIrradiance, h.SnowDepth, h.WetBulbTemperature, h.SnowfallHeight, h.PrecipitationSpread, h.WindSpeedSpread))
             {
                 lastValued = i;
             }
@@ -58,7 +58,13 @@ internal static class WeatherResponseMappings
                 DiffuseRadiation: At(h.DiffuseRadiation, i),
                 DirectNormalIrradiance: At(h.DirectNormalIrradiance, i),
                 SunshineDuration: At(h.SunshineDuration, i),
-                WindDirection: At(h.WindDirection, i)));
+                WindDirection: At(h.WindDirection, i),
+                GlobalTiltedIrradiance: At(h.GlobalTiltedIrradiance, i),
+                SnowDepth: At(h.SnowDepth, i),
+                WetBulbTemperature: At(h.WetBulbTemperature, i),
+                SnowfallHeight: At(h.SnowfallHeight, i),
+                PrecipitationSpread: At(h.PrecipitationSpread, i),
+                WindSpeedSpread: At(h.WindSpeedSpread, i)));
         }
 
         if (lastValued < 0)
