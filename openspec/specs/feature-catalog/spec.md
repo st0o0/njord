@@ -1,70 +1,8 @@
 # feature-catalog Specification
 
 ## Purpose
-TBD - created by archiving change feature-centric-config. Update Purpose after archive.
+Catalog of configurable features: type identity, descriptors, and resolution of requirements and cost from the enabled features.
 ## Requirements
-### Requirement: Features are identified by a closed kind
-Every configurable capability SHALL be identified by a member of a closed feature-kind enumeration, never by a free string, and SHALL be described by a descriptor with that kind, a category (WeatherAlerts, AirQuality, Lifestyle, Marine, Flood, Solar or Seasonal), a human-readable description, a default enabled state, required parameters and optional parameters.
-
-#### Scenario: Descriptor content
-- **WHEN** the FrostAlert feature is inspected
-- **THEN** it reports kind FrostAlert, category WeatherAlerts, a non-empty description, its default state and its required weather parameters
-
-#### Scenario: Optional parameters do not gate a feature
-- **WHEN** a feature declares an optional parameter that the fetched data lacks
-- **THEN** the feature SHALL stay active and be evaluated without that parameter
-
-#### Scenario: Kinds are unique
-- **WHEN** all registered features are listed
-- **THEN** no two share a kind
-
-### Requirement: Feature kinds map to configuration keys explicitly
-Each feature kind SHALL map to its configuration key through an explicit mapping covering every member, and the key SHALL equal the member name.
-
-#### Scenario: Every member pinned
-- **WHEN** the mapping is evaluated for each feature kind
-- **THEN** it returns the member name, and an undefined kind throws an out-of-range error
-
-### Requirement: Handlers expose a feature instead of a config key
-Every domain handler SHALL expose a feature descriptor and SHALL NOT expose a separate config key or requirements property.
-
-#### Scenario: Handler registered
-- **WHEN** a handler is registered
-- **THEN** its feature kind has a key in the `Njord:Features` section
-
-### Requirement: Features are toggled individually
-The system SHALL read one boolean per feature from `Njord:Features`, defaulting to the descriptor default, and SHALL reject unknown keys at startup.
-
-#### Scenario: Disable a single alert
-- **WHEN** `Njord:Features:StormAlert` is false and all other defaults apply
-- **THEN** no storm alerts are produced and all other default alerts still are
-
-#### Scenario: Unknown key
-- **WHEN** `Njord:Features:FrostAlertt` is configured
-- **THEN** startup validation fails naming the unknown key
-
-### Requirement: Weather alerts are enabled per rule
-Each weather alert rule SHALL have its own feature, and the weather alert handler SHALL evaluate only rules whose feature is enabled.
-
-#### Scenario: Rule disabled
-- **WHEN** the FrostAlert feature is disabled and temperature drops below 0 C
-- **THEN** no frost alert is emitted while other enabled rules still evaluate
-
-#### Scenario: All rules disabled
-- **WHEN** every weather alert feature is disabled
-- **THEN** the weather alert handler is inactive and contributes no required parameters or domains
-
-### Requirement: Legacy enrichment keys migrate
-The system SHALL read legacy `Njord:Enrichments:*` values, expand `WeatherAlerts` to all individual alert features, map every other legacy key to the feature of the same name, give explicit `Njord:Features` values precedence, and log a warning listing the legacy keys found.
-
-#### Scenario: Legacy WeatherAlerts expands
-- **WHEN** `Njord:Enrichments:WeatherAlerts` is false and no `Njord:Features` entries exist
-- **THEN** all individual weather alert features are disabled
-
-#### Scenario: Explicit feature wins
-- **WHEN** `Njord:Enrichments:WeatherAlerts` is false and `Njord:Features:FrostAlert` is true
-- **THEN** FrostAlert is enabled and the other alert features are disabled
-
 ### Requirement: Feature resolution reports requirements and cost
 Feature resolution SHALL expose all registered features, the enabled features, the union of their required parameters, the required domains, and the marginal monthly API cost of each feature, computed with the same formula as startup budget validation.
 
@@ -80,3 +18,31 @@ Feature resolution SHALL expose all registered features, the enabled features, t
 - **WHEN** the total of enabled features is computed
 - **THEN** it equals the projected usage `BudgetGuard` validates at startup
 
+### Requirement: Features are identified by their C# type
+Every feature SHALL be identified by its C# type, not by a string name, a feature-kind enum member, or any other textual identifier. The feature type IS the identity.
+
+#### Scenario: Feature type uniqueness
+- **WHEN** all registered features are listed
+- **THEN** no two features SHALL share the same C# type
+
+#### Scenario: No Name property
+- **WHEN** a feature is inspected
+- **THEN** it SHALL NOT expose a `Name` property or any string-returning identity method
+
+### Requirement: FeatureDescriptor without Name dependency
+`FeatureDescriptor` SHALL contain `OutputKind`, `FeatureCategory`, `bool DefaultEnabled`, `DomainRequirements Requirements`, and `int PollDepth`. It SHALL NOT reference a name or string identifier. The previous `IFeature.Name`-based config key derivation (`Category:Name`) SHALL be replaced by per-feature `IOptions<T>` binding.
+
+#### Scenario: Descriptor content
+- **WHEN** the FrostAlert feature descriptor is inspected
+- **THEN** it reports category Weather, output Alert, default enabled true, its required weather parameters, and PollDepth 0, but no name
+
+### Requirement: Feature resolution from per-feature config
+Feature resolution SHALL compute enabled features by checking each feature's own `IOptions<T>.Enabled` property, not by looking up a string key in a `FeatureOptions` dictionary. The union of requirements, required domains, and cost computation SHALL use the same formulas as before.
+
+#### Scenario: Feature disabled via its own config
+- **WHEN** `FrostConfig.Enabled` is false
+- **THEN** FrostAlert SHALL be excluded from enabled features and its requirements SHALL NOT contribute to the resolved requirements
+
+#### Scenario: Cost matches startup validation
+- **WHEN** the total of enabled features' requirements is computed
+- **THEN** it SHALL equal the projected usage `BudgetCalculator` validates at startup
