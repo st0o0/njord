@@ -17,7 +17,7 @@ What njord fetches and computes is configured on the server, not in Home Assista
 | Setting | Effect in Home Assistant |
 |---------|--------------------------|
 | `Njord:Locations` | One set of devices and entities per location |
-| `Njord:Enrichment:Alerts:Enabled` | Alert sensors and the alert event entity |
+| `Njord:Features:<Category>:<Name>:Enabled` | One feature (alert, score, condition, ...) and its entities |
 | `Njord:Polling:PollInterval` | How often new data arrives |
 
 See [Configuration](/configuration/).

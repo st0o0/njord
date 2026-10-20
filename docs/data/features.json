@@ -12,6 +12,17 @@
     "weatherParams": [
       "Temperature",
       "EnsembleStdDev"
+    ],
+    "options": [
+      {
+        "name": "Thresholds",
+        "type": "numberArray",
+        "default": [
+          0,
+          -5,
+          -15
+        ]
+      }
     ]
   },
   {
@@ -28,6 +39,17 @@
       "Temperature",
       "ApparentTemperature",
       "EnsembleStdDev"
+    ],
+    "options": [
+      {
+        "name": "Thresholds",
+        "type": "numberArray",
+        "default": [
+          30,
+          35,
+          40
+        ]
+      }
     ]
   },
   {
@@ -43,6 +65,17 @@
     "weatherParams": [
       "EnsembleStdDev",
       "WindGusts"
+    ],
+    "options": [
+      {
+        "name": "GustThresholds",
+        "type": "numberArray",
+        "default": [
+          17,
+          25,
+          33
+        ]
+      }
     ]
   },
   {
@@ -58,6 +91,18 @@
     "weatherParams": [
       "Precipitation",
       "EnsembleStdDev"
+    ],
+    "options": [
+      {
+        "name": "HourlyThreshold",
+        "type": "number",
+        "default": 10
+      },
+      {
+        "name": "DailyThreshold",
+        "type": "number",
+        "default": 25
+      }
     ]
   },
   {
@@ -93,6 +138,13 @@
       "Humidity",
       "DewPoint",
       "EnsembleStdDev"
+    ],
+    "options": [
+      {
+        "name": "PersistentHours",
+        "type": "number",
+        "default": 4
+      }
     ]
   },
   {
@@ -124,6 +176,18 @@
     "weatherParams": [
       "Pressure",
       "EnsembleStdDev"
+    ],
+    "options": [
+      {
+        "name": "Threshold",
+        "type": "number",
+        "default": 5
+      },
+      {
+        "name": "SevereThreshold",
+        "type": "number",
+        "default": 10
+      }
     ]
   },
   {
@@ -141,6 +205,23 @@
       "EnsembleStdDev",
       "WindGusts",
       "Cape"
+    ],
+    "options": [
+      {
+        "name": "CapeThreshold",
+        "type": "number",
+        "default": 1000
+      },
+      {
+        "name": "PrecipThreshold",
+        "type": "number",
+        "default": 5
+      },
+      {
+        "name": "GustThreshold",
+        "type": "number",
+        "default": 15
+      }
     ]
   },
   {
@@ -161,6 +242,13 @@
     "optionalWeatherParams": [
       "Rain",
       "SoilTemperature"
+    ],
+    "options": [
+      {
+        "name": "Threshold",
+        "type": "number",
+        "default": 2
+      }
     ]
   },
   {
@@ -176,6 +264,17 @@
     "weatherParams": [
       "ApparentTemperature",
       "EnsembleStdDev"
+    ],
+    "options": [
+      {
+        "name": "Thresholds",
+        "type": "numberArray",
+        "default": [
+          -10,
+          -20,
+          -30
+        ]
+      }
     ]
   },
   {
@@ -191,6 +290,17 @@
     "weatherParams": [
       "EnsembleStdDev",
       "Visibility"
+    ],
+    "options": [
+      {
+        "name": "Thresholds",
+        "type": "numberArray",
+        "default": [
+          1000,
+          200,
+          50
+        ]
+      }
     ]
   },
   {
@@ -207,6 +317,17 @@
       "Temperature",
       "EnsembleStdDev",
       "IsDay"
+    ],
+    "options": [
+      {
+        "name": "Thresholds",
+        "type": "numberArray",
+        "default": [
+          20,
+          23,
+          25
+        ]
+      }
     ]
   },
   {
@@ -223,6 +344,17 @@
       "DewPoint",
       "EnsembleStdDev",
       "IsDay"
+    ],
+    "options": [
+      {
+        "name": "Thresholds",
+        "type": "numberArray",
+        "default": [
+          16,
+          21,
+          24
+        ]
+      }
     ]
   },
   {
@@ -268,6 +400,17 @@
     ],
     "airQualityParams": [
       "Dust"
+    ],
+    "options": [
+      {
+        "name": "Thresholds",
+        "type": "numberArray",
+        "default": [
+          50,
+          150,
+          500
+        ]
+      }
     ]
   },
   {

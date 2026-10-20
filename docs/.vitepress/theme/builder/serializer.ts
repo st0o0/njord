@@ -1,4 +1,4 @@
-import type { NjordConfig } from './types'
+import type { NjordConfig, OptionValue } from './types'
 import { FEATURES, defaultConfig, defaultFeatures } from './types'
 
 // Only toggles that differ from their default are exported.
@@ -7,6 +7,39 @@ function changedFeatures(features: Record<string, boolean>): [string, boolean][]
   return FEATURES
     .filter(f => (features[f.key] ?? defaults[f.key]) !== defaults[f.key])
     .map(f => [f.key, features[f.key]])
+}
+
+function sameValue(a: OptionValue, b: OptionValue): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
+// Option values of enabled features that differ from the feature default, as [feature key, option name, value].
+function changedOptions(config: NjordConfig): [string, string, OptionValue][] {
+  const result: [string, string, OptionValue][] = []
+  for (const f of FEATURES) {
+    if (!config.features[f.key]) continue
+    for (const o of f.options ?? []) {
+      const value = config.featureOptions[f.key]?.[o.name]
+      if (value !== undefined && !sameValue(value, o.default)) result.push([f.key, o.name, value])
+    }
+  }
+  return result
+}
+
+function parseOptionValue(featureKey: string, option: string, value: unknown): OptionValue | null {
+  const def = FEATURES.find(f => f.key === featureKey)?.options?.find(o => o.name.toLowerCase() === option.toLowerCase())
+  if (!def) return null
+  if (def.type === 'numberArray') {
+    if (!Array.isArray(value)) return null
+    const numbers = value.map(Number)
+    return numbers.some(Number.isNaN) ? null : numbers
+  }
+  const num = Number(value)
+  return Number.isNaN(num) ? null : num
+}
+
+function optionName(featureKey: string, option: string): string | null {
+  return FEATURES.find(f => f.key === featureKey)?.options?.find(o => o.name.toLowerCase() === option.toLowerCase())?.name ?? null
 }
 
 function parseFeatureKey(value: string): string | null {
@@ -20,6 +53,7 @@ export function mergeWithDefaults(partial: Partial<NjordConfig>): NjordConfig {
     ...d,
     ...partial,
     features: { ...defaultFeatures(), ...partial.features },
+    featureOptions: { ...partial.featureOptions },
     weather: { ...d.weather, ...partial.weather },
     airQuality: { ...d.airQuality, ...partial.airQuality },
     marine: { ...d.marine, ...partial.marine },
@@ -67,15 +101,16 @@ export function exportAsJson(config: NjordConfig): string {
     if (config.solarYield.tilt !== defaults.solarYield.tilt) solar.Tilt = config.solarYield.tilt
     if (Object.keys(solar).length) n.SolarYield = solar
   }
-  const changed = changedFeatures(config.features)
-  if (changed.length) {
-    const features: Record<string, Record<string, boolean>> = {}
-    for (const [key, enabled] of changed) {
-      const [category, name] = key.split(':')
-      ;(features[category] ??= {})[name] = enabled
-    }
-    n.Features = features
+  const features: Record<string, Record<string, Record<string, unknown>>> = {}
+  for (const [key, enabled] of changedFeatures(config.features)) {
+    const [category, name] = key.split(':')
+    ;((features[category] ??= {})[name] ??= {}).Enabled = enabled
   }
+  for (const [key, option, value] of changedOptions(config)) {
+    const [category, name] = key.split(':')
+    ;((features[category] ??= {})[name] ??= {})[option] = value
+  }
+  if (Object.keys(features).length) n.Features = features
   if (config.locations.length) {
     n.Locations = config.locations.map(l => {
       const loc: Record<string, unknown> = { Name: l.name, Latitude: l.latitude, Longitude: l.longitude }
@@ -83,24 +118,6 @@ export function exportAsJson(config: NjordConfig): string {
     })
   }
 
-  if (Object.keys(config.enrichment).length) {
-    const enrichment: Record<string, unknown> = {}
-    for (const [feature, settings] of Object.entries(config.enrichment)) {
-      const featureObj: Record<string, unknown> = {}
-      for (const [key, value] of Object.entries(settings as Record<string, unknown>)) {
-        if (key === 'Enabled' && value === true) continue
-        if (key.includes(':')) {
-          const [section, prop] = key.split(':')
-          if (!featureObj[section]) featureObj[section] = {}
-          ;(featureObj[section] as Record<string, unknown>)[prop] = value
-        } else {
-          featureObj[key] = value
-        }
-      }
-      if (Object.keys(featureObj).length) enrichment[feature] = featureObj
-    }
-    if (Object.keys(enrichment).length) n.Enrichment = enrichment
-  }
   const persistence: Record<string, unknown> = {}
   if (config.persistence.provider !== 'Sqlite') {
     persistence.Provider = config.persistence.provider
@@ -126,7 +143,12 @@ export function exportAsEnvVars(config: NjordConfig): string {
   if (config.flood.forecastDays !== defaults.flood.forecastDays) add('Njord__Flood__ForecastDays', String(config.flood.forecastDays))
   if (config.flood.includeEnsemble) add('Njord__Flood__IncludeEnsemble', 'true')
   for (const [key, enabled] of changedFeatures(config.features)) {
-    add(`Njord__Features__${key.replace(':', '__')}`, String(enabled))
+    add(`Njord__Features__${key.replace(':', '__')}__Enabled`, String(enabled))
+  }
+  for (const [key, option, value] of changedOptions(config)) {
+    const prefix = `Njord__Features__${key.replace(':', '__')}__${option}`
+    if (Array.isArray(value)) value.forEach((v, i) => add(`${prefix}__${i}`, String(v)))
+    else add(prefix, String(value))
   }
 
   config.locations.forEach((loc, i) => {
@@ -134,15 +156,6 @@ export function exportAsEnvVars(config: NjordConfig): string {
     if (loc.latitude !== undefined) add(`Njord__Locations__${i}__Latitude`, String(loc.latitude))
     if (loc.longitude !== undefined) add(`Njord__Locations__${i}__Longitude`, String(loc.longitude))
   })
-
-  for (const [feature, settings] of Object.entries(config.enrichment)) {
-    for (const [key, value] of Object.entries(settings as Record<string, unknown>)) {
-      if (key === 'Enabled' && value === true) continue
-      const envKey = key.includes(':') ? key.replace(':', '__') : key
-      if (Array.isArray(value)) value.forEach((v, i) => add(`Njord__Enrichment__${feature}__${envKey}__${i}`, String(v)))
-      else add(`Njord__Enrichment__${feature}__${envKey}`, String(value))
-    }
-  }
 
   if (solarYieldEnabled(config)) {
     if (config.solarYield.peakKw !== defaults.solarYield.peakKw) add('Njord__SolarYield__PeakKw', String(config.solarYield.peakKw))
@@ -203,6 +216,7 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   const n = parsed.Njord ?? parsed
   const config: Partial<NjordConfig> = {}
   config.features = defaultFeatures()
+  config.featureOptions = {}
 
   const pollInterval = n.Polling?.PollInterval
   const discoveryInterval = n.Polling?.DiscoveryInterval
@@ -214,7 +228,6 @@ export function importFromJson(json: string): Partial<NjordConfig> {
       model: n.Weather.Model ?? defaultConfig().weather.model,
     }
   }
-  if (n.Flood?.IncludeEnsemble !== undefined) config.flood.includeEnsemble = n.Flood.IncludeEnsemble === true
   if (n.SolarYield) {
     const d = defaultConfig().solarYield
     config.solarYield = {
@@ -225,14 +238,28 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   }
   if (n.AirQuality) config.airQuality = { forecastDays: Number(n.AirQuality.ForecastDays) || 5, region: n.AirQuality.Region ?? 'Global' }
   if (n.Marine) config.marine = { forecastDays: Number(n.Marine.ForecastDays) || 8 }
-  if (n.Flood) config.flood = { forecastDays: Number(n.Flood.ForecastDays) || 92 }
+  if (n.Flood) {
+    config.flood = {
+      forecastDays: Number(n.Flood.ForecastDays) || defaultConfig().flood.forecastDays,
+      includeEnsemble: n.Flood.IncludeEnsemble === true,
+    }
+  }
   if (discoveryInterval) config.discoveryInterval = discoveryInterval
   if (n.Features && typeof n.Features === 'object') {
     for (const [category, section] of Object.entries(n.Features as Record<string, unknown>)) {
       if (!section || typeof section !== 'object') continue
-      for (const [name, value] of Object.entries(section as Record<string, unknown>)) {
+      for (const [name, settings] of Object.entries(section as Record<string, unknown>)) {
         const key = parseFeatureKey(`${category}:${name}`)
-        if (key) config.features[key] = typeof value === 'boolean' ? value : parseBool(value)
+        if (!key || !settings || typeof settings !== 'object') continue
+        for (const [setting, value] of Object.entries(settings as Record<string, unknown>)) {
+          if (setting.toLowerCase() === 'enabled') {
+            config.features[key] = typeof value === 'boolean' ? value : parseBool(value)
+            continue
+          }
+          const option = optionName(key, setting)
+          const parsed = option ? parseOptionValue(key, option, value) : null
+          if (option && parsed !== null) (config.featureOptions[key] ??= {})[option] = parsed
+        }
       }
     }
   }
@@ -243,7 +270,6 @@ export function importFromJson(json: string): Partial<NjordConfig> {
       longitude: typeof l.Longitude === 'number' ? l.Longitude : 0,
     }))
   }
-  if (n.Enrichment) config.enrichment = n.Enrichment
   if (budgetOverride) config.budgetOverride = budgetOverride
   if (n.Persistence) {
     config.persistence = { provider: n.Persistence.Provider ?? 'Sqlite', connectionString: n.Persistence.ConnectionString ?? '' }
@@ -292,9 +318,25 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     else if (parts[0] === 'AirQuality' && parts[1] === 'Region') config.airQuality.region = value
     else if (parts[0] === 'Marine' && parts[1] === 'ForecastDays') config.marine.forecastDays = parseInt(value) || 8
     else if (parts[0] === 'Flood' && parts[1] === 'ForecastDays') config.flood.forecastDays = parseInt(value) || 92
-    else if (parts[0] === 'Features' && parts.length === 3) {
+    else if (parts[0] === 'Features' && parts.length >= 4) {
       const key = parseFeatureKey(`${parts[1]}:${parts[2]}`)
-      if (key) config.features[key] = parseBool(value)
+      if (!key) continue
+      if (parts[3].toLowerCase() === 'enabled') {
+        config.features[key] = parseBool(value)
+        continue
+      }
+      const option = optionName(key, parts[3])
+      if (!option) continue
+      const num = Number(value)
+      if (Number.isNaN(num)) continue
+      if (parts.length === 5 && /^\d+$/.test(parts[4])) {
+        const current = config.featureOptions[key]?.[option]
+        const arr = Array.isArray(current) ? current : []
+        arr[Number(parts[4])] = num
+        ;(config.featureOptions[key] ??= {})[option] = arr
+      } else if (parts.length === 4) {
+        ;(config.featureOptions[key] ??= {})[option] = num
+      }
     }
     else if (parts[0] === 'Locations') {
       const idx = parseInt(parts[1])
@@ -308,19 +350,6 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
         const parsed = parseFloat(value)
         config.locations[idx].longitude = Number.isNaN(parsed) ? undefined : parsed
       }
-    }
-    else if (parts[0] === 'Enrichment' && parts.length >= 3) {
-      const feature = parts[1]
-      const setting = parts[2]
-      if (!config.enrichment[feature]) config.enrichment[feature] = {}
-      const asNum = Number(value)
-      if (parts.length === 4 && /^\d+$/.test(parts[3])) {
-        const arr = Array.isArray(config.enrichment[feature][setting]) ? config.enrichment[feature][setting] as unknown[] : []
-        arr[Number(parts[3])] = asNum
-        config.enrichment[feature][setting] = arr
-        continue
-      }
-      config.enrichment[feature][setting] = value === 'true' ? true : value === 'false' ? false : !isNaN(asNum) ? asNum : value
     }
     else if (parts[0] === 'Persistence') {
       if (parts[1] === 'Provider') config.persistence.provider = value

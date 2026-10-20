@@ -18,7 +18,7 @@ Every `Njord.<Project>.Tests` project tests exactly one production project; shar
 | Subject | Base | Example |
 |---|---|---|
 | Actor (incl. persistent) | `NjordActorSpec` (`Njord.Tests.Shared`, derives from `Akka.Hosting.TestKit.TestKit`) | `src/Njord.Budget.Tests/BudgetTrackerSpec.cs`, `src/Njord.Polling.Tests/PollWorkerOutcomeSpec.cs` |
-| Analysis feature / pure logic | plain class, no TestKit | `src/Njord.Weather.Tests/WeatherAlertHandlerSpec.cs` |
+| Analysis feature / pure logic | plain class, no TestKit | `src/Njord.Features.Tests/Alerts/WeatherAlertsSpec.cs` |
 | gRPC service (ask and map) | `NjordActorSpec` + a fake actor behind the marker | `src/Njord.Grpc.Tests/WeatherGrpcServiceSpec.cs` |
 | Persistence record wire format | plain class + Verify | `src/Njord.Persistence.Tests/PollWorkerRecordsSpec.cs` |
 | Architecture rule | plain class, ArchUnitNET or reflection | `src/Njord.Architecture.Tests/` |

@@ -1,70 +1,62 @@
 ---
 name: njord-enrichment-feature
-description: Use when adding or changing an enrichment (alerts today) - its domain handler, analyzer and alert rules in the domain project (src/Njord.Weather), the result/settings contracts in Njord.Messages, the handler/rule `Name` + `FeatureDescriptor` (toggle `Njord:Features:<Category>:<Name>`; add the entry to `docs/data/features.json`), DI registration as an IDomainHandler and golden-master snapshots.
+description: Use when adding or changing a feature (alert, score, condition, trend, forecast) - its FeatureRule in src/Njord.Features/<OutputKind>/<Feature>/, the FeatureDescriptor, the <Name>Config section (Njord:Features:<Category>:<Name>), registration in AddFeatures, the result contract in Njord.Messages, the gRPC mapping, docs/data/features.json and the Config Builder.
 ---
 
-# njord enrichment feature
+# njord feature
 
 Rules (static entity set, `TimeProvider`, toggleable features) live in `AGENTS.md` - follow them. This skill is the checklist.
 
 ## Where things live
 
-- **`Njord.Core/Domain`** holds the framework every enrichment plugs into: `IDomainHandler` (`Feature` descriptor plus `Handle(current, previous, time)`, returning `PipelineEvent`s), `IAlertRule<T>` / `AlertOptions` / `AlertClock` and `ForecastQueries` (window and point queries on `DomainForecast<T>`).
-- **`Njord.Messages`** holds each feature's contracts in a domain folder (`Alerts/`): result records (`AlertResult`), enums, `SeverityThresholds`. No analyzer, rule or formula (`ZoneArchitectureSpec`).
-- **Feature library** (`Njord.Weather`, `Njord.AirQuality`, `Njord.Flood`; each references only `Njord.Core` and below) owns its computation:
-
-| Library | Entry point | Units | Helpers |
-|---|---|---|---|
-| `Njord.Weather` | handler | 14 x `IAlertRule<DomainForecast<WeatherPoint>>` in `Rules/` (`FrostRule`, ...) | `AlertWindow` (shared 24 h window) |
-
-The handler of alerts is `WeatherAlertHandler` (triggered by the weather domain), which turns every non-`None` alert into an `AlertResult` (`WireKey` = lowercase rule `Name`).
-
-Naming: `<Feature>Analyzer`, `<Name>Rule`, `<Domain><Feature>Handler`. Never `Computer`, `Calculator`, `Scorer`, `Evaluator` or `Factory` in Messages or a feature library (`ConventionArchitectureSpec` enforces it).
-
-## Rules
-
-- **Stateless.** `IAlertRule.Evaluate(DomainForecast<WeatherPoint>, AlertSettings, DateTimeOffset)` returns one `Alert` (the rule's `Name` identifies it). Thresholds come only from the arguments, so hot reload applies on the next call. A rule never reads another rule's output.
-- **Use the helpers**, never a private window loop: `forecast.Next24Hours(now)`, `SeverityThresholds.Classify`, `settings.Build(...)`. Shared constants (24 h window) live once (`AlertWindow`), not per rule.
-- **Analyzer** takes `IEnumerable<IAlertRule>`, fails fast at construction unless every rule `Name` is unique, and orders the output by `Name` (registration order must not leak).
-- Target size ~120 lines per rule file.
+- **`Njord.Core/Domain`**: `IFeatureRule` (`Descriptor`, `Enabled`, `Execute(ring, now)`), `FeatureRule<TInput>` (base class: `Project(LocationForecast)` builds a typed input, `Evaluate(FeatureContext<TInput>)` returns one `PipelineEvent` or null), `FeatureDescriptor(Output, Category, DefaultEnabled, Requirements, PollDepth)`, `DomainRequirements` (per-domain `XxxParams` flags, `Optional*` flags are requested but never gate), `FeatureInputs`, `FeatureResolution`.
+- **`Njord.Messages`**: result records per feature in a domain folder (`Alerts/`, ...), `OutputKind`, `FeatureResult` family (`AlertResult`, `ScoreResult`, `ConditionResult`, `TrendResult`, `ForecastResult`). No rule or formula.
+- **`Njord.Features/<OutputKind>/<Feature>/`**: the rule, its `<Name>Config` and an optional `<Name>ConfigValidator` side by side (`Alerts/ Scores/ Conditions/ Trends/ Forecasts/`; shared helpers in `<Kind>/Shared/` and top-level `Shared/`).
+- **`Njord.Pipeline/Stream/FeatureEngine`** runs the enabled rules whose domain got new data and whose required fields are present.
 
 ## Checklist
 
-1. **Options + settings** - `AlertOptions` (with `bool Enabled`) and validator in `src/Njord.Core/Configuration/`, threshold accessors there (`AlertOptionsThresholds`), registered by the feature's `AddWeatherDomain()`. Rules take `AlertOptions` directly.
-2. **Result type** - record in `src/Njord.Messages/<Feature>/`; non-alert features return one of `ScoreResult`, `ConditionResult`, `TrendResult`, `ForecastResult` (`src/Njord.Messages/Pipeline/FeatureResult.cs`); there is no per-feature enum, the lowercase `Name` is the wire key.
-3. **Rule** - new class in the feature library (`Rules/`), `public sealed`, parameterless, built on the helpers.
-4. **Register** - in the feature's `AddWeatherDomain()` (`src/Njord.Weather/ServiceCollectionExtensions.cs`): `services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, XxxRule>();` next to the analyzer, options and the `IDomainHandler` registration. The host calls `AddWeatherDomain()` from `src/Njord/Configuration/DomainSetupContainer.cs`; `src/Njord.Pipeline/Stream/ProjectionEngine.cs` invokes every registered `IDomainHandler` whose `Feature.Requirements` cover the changed domain and whose required fields are present.
-5. **Consumers** - gRPC: `ToProto()` in `src/Njord.Grpc/Mapping/AlertProtoMappings.cs` and the event switch in `src/Njord.Grpc/Mapping/EnrichmentEventMappings.cs` (`ToEnrichmentEvent`).
-6. **Tests** - one spec per rule in `src/Njord.Weather.Tests/Rules/<Type>RuleSpec.cs`, plain `[Fact]`s with a hand-built `DomainForecast<WeatherPoint>`. Registration specs cover one rule per type and the `AddWeatherDomain()` registration (`FeatureServices` in `src/Njord.Tests.Shared` builds the rules and handlers from the real registrations). Golden masters: `ProtoMappingGoldenMasterSpec` (`src/Njord.Grpc.Tests`), inputs in `src/Njord.Tests.Shared/AlertScenario.cs` (built with `WeatherForecastBuilder`). A refactoring must keep them green **without re-approval**; approve new `.verified.txt` files only for intended output changes, never edit existing ones.
+1. **Config** - `<Name>Config : IConfigSection` with `const string SectionName = "Njord:Features:<Category>:<Name>"`, `bool Enabled` (default = descriptor `DefaultEnabled`) and the options as property initializers (arrays: nullable property plus `Effective*`). Cross-field rules go in `<Name>ConfigValidator : IValidateOptions<<Name>Config>`.
+2. **Result type** - record in `src/Njord.Messages/<Feature>/` (alerts) or one of the existing `ScoreResult`, `ConditionResult`, `TrendResult`, `ForecastResult` shapes; add the proto message and the `EnrichmentEvent.feature` oneof case in `protos/njord/v2/weather.proto` (extend-only, use the field range of the output kind).
+3. **Rule** - `public sealed class <Name> : FeatureRule<TInput>` taking `IOptions<<Name>Config>`; `Descriptor`, `Enabled => config.Value.Enabled`, `Project`, `Evaluate`. Use `TimeProvider` through `ctx.Now`, never the clock directly.
+4. **Register** in `src/Njord.Features/ServiceCollectionExtensions.cs` (`AddFeatures`): `services.AddNjordOptions<XConfig>()` (or `<XConfig, XConfigValidator>`) and `services.AddSingleton<IFeatureRule, X>()` in the block of its output kind.
+5. **gRPC** - `ToProto()` mapping in `src/Njord.Grpc/Mapping/` and the event switch (`ToEnrichmentEvent`).
+6. **Docs and examples** - hand-maintained entry in `docs/data/features.json` (key `<Category>:<Name>`, default, domains, `options` with names and defaults), the Config Builder budget/serializer if the feature needs special handling (`docs/.vitepress/theme/builder`), `docs/configuration/index.md` feature table, `src/Njord/appsettings.Example.json` and `docker-compose.example.yml` if the options are worth showing.
+7. **Tests** - `src/Njord.Features.Tests/<OutputKind>/`: plain `[Fact]`s with a hand-built forecast, one per rule branch (see `Alerts/WeatherAlertsSpec.cs`). Behavioral only, no data-only specs. Enum-to-wire conversions get a spec pinning every member.
 
-## Worked example - an alert rule (from `FrostRule`)
+## Worked example - an alert (from `FrostAlert`)
 
 ```csharp
-// src/Njord.Weather/Rules/FrostRule.cs
-public sealed class FrostRule : IAlertRule<DomainForecast<WeatherPoint>>
+// src/Njord.Features/Alerts/Frost/FrostAlert.cs
+public sealed class FrostAlert(IOptions<FrostConfig> config) : FeatureRule<WeatherInput>
 {
-    public string Name => "Frost";
+    public override FeatureDescriptor Descriptor { get; } = new(
+        OutputKind.Alert, FeatureCategory.Weather, DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.EnsembleStdDev));
 
-    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
-    {
-        var thresholds = settings.Frost;
-        var window = forecast.Next24Hours(now);
-        if (window.LowestBy(p => p.Temperature) is not { } coldest)
-        {
-            return Alert.None();
-        }
+    public override bool Enabled => config.Value.Enabled;
 
-        var (severity, effectiveThreshold) = thresholds.Classify(coldest.Temperature);
-        // ... details, settings.Build(Type, severity, coldest, details, ...)
-    }
+    protected override WeatherInput? Project(LocationForecast forecast) =>
+        forecast.Weather is { } w ? new(w) : null;
+
+    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx) { /* classify, return FrostAlertResult or null */ }
 }
 
-// src/Njord.Weather/ServiceCollectionExtensions.cs
-services.AddSingleton<IAlertRule, FrostRule>();
+// src/Njord.Features/Alerts/Frost/FrostConfig.cs
+public sealed class FrostConfig : IConfigSection
+{
+    public const string SectionName = "Njord:Features:Weather:Frost";
+    static string IConfigSection.SectionName => SectionName;
+    public bool Enabled { get; set; } = true;
+    public double[]? Thresholds { get; set; }
+    public double[] EffectiveThresholds => Thresholds ?? [0, -5, -15];
+}
 ```
 
 ## Pitfalls
 
 - A feature's entities depend on config (`Enabled`), never on what a poll returned; missing values are `unavailable` states, not missing entities.
-- A handler returns no events when a required domain is missing; it is skipped, not failed.
+- A rule whose required domain data is missing is skipped by the engine, not failed; return null from `Evaluate` when there is nothing to report.
+- Feature names are unique within a category; the config key is `Category:Name`.
 - Feature libraries never reference each other; share only through Core/Messages types.
+- Every new feature changes the polled domains and thus the request budget: check `BudgetGuard` and the Config Builder cost.

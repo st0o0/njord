@@ -17,8 +17,7 @@ Configuration is **static**: it is read once at startup. There is no runtime con
       "BudgetOverride": null
     },
     "Persistence": { "DataPath": "data/njord.db" },
-    "Features": { "Flood": { "FloodRisk": true } },
-    "Enrichment": { "Alerts": { ... } }
+    "Features": { "Flood": { "FloodRisk": { "Enabled": true } } }
   }
 }
 ```
@@ -41,18 +40,18 @@ A minimal setup for Lucerne:
 | `AirQuality:ForecastDays` | `5` | Days of air quality forecast to request (1 to 7) |
 | `Marine:ForecastDays` | `8` | Days of marine forecast to request (1 to 8) |
 | `Flood:ForecastDays` | `92` | Days of river discharge forecast to request (1 to 210) |
-| `Features:<Category>:<Name>` | 14 weather alerts, `Lifestyle:Commute`, `AirQuality:Pollen`, `AirQuality:Pm25` on; all others off | Switches one feature on or off. The domains that are polled are derived from the enabled features (see below) |
+| `Features:<Category>:<Name>:Enabled` | 14 weather alerts, `Lifestyle:Commute`, `AirQuality:Pollen`, `AirQuality:Pm25` on; all others off | Switches one feature on or off. The domains that are polled are derived from the enabled features (see below) |
 | `Persistence:DataPath` | `data/njord.db` | SQLite database file |
 
 ## Defaults
 
 All defaults are property initializers on the options classes. `appsettings.json` in the image only holds logging and Kestrel settings. [`appsettings.Example.json`](https://github.com/st0o0/njord/blob/main/src/Njord/appsettings.Example.json) is a template with deployment-specific keys only.
 
-List-valued defaults (the alert threshold arrays) are built in: a list you configure replaces the built-in list completely, it is never merged by position. To go back to a default, remove your key.
+List-valued defaults (the feature threshold arrays) are built in: a list you configure replaces the built-in list completely, it is never merged by position. To go back to a default, remove your key.
 
 ## Features and domains
 
-You switch features on, njord derives which API domains to poll. Each feature has a toggle under `Njord:Features:<Category>:<Name>` (environment variable `Njord__Features__<Category>__<Name>`); the lowercase name is its key on the wire; the polled domains are the union of the domains the enabled features read. A feature that is not listed keeps its default. The [Config Builder](/builder) shows the extra API calls per day each feature costs.
+You switch features on, njord derives which API domains to poll. Each feature has its own section `Njord:Features:<Category>:<Name>` with an `Enabled` toggle (environment variable `Njord__Features__<Category>__<Name>__Enabled`) and, where it has any, its options such as `Thresholds` (see [Enrichment](./enrichment)); the polled domains are the union of the domains the enabled features read. A feature that is not listed keeps its default. The [Config Builder](/builder) shows the extra API calls per day each feature costs.
 
 | Feature | Category | Default | Domains |
 |---------|----------|---------|---------|
@@ -92,10 +91,10 @@ You switch features on, njord derives which API domains to poll. Each feature ha
 | `Marine:Swimming` | Marine | off | Marine |
 | `Marine:Surf` | Marine | off | Weather, Marine |
 
-The defaults poll Weather and Air Quality (two calls per location and cycle). Enabling `Flood:FloodRisk` adds Flood; disabling `AirQuality:Pollen` and `AirQuality:Pm25` drops Air Quality. A disabled feature is not evaluated even when its domain data is present because another feature needs it, so each weather alert can be switched off on its own. `Insight:SeasonalOutlook` reads the Seasonal domain (monthly anomalies, `Njord:Seasonal:ForecastMonths`, default 3, max 6); it learns its own roughly daily update cycle like every domain and costs about one call per day and location. `Energy:SatelliteRadiation` reads the Satellite domain (observed GHI and tilted irradiance from `satellite-api.open-meteo.com`, tilt and azimuth from `Njord:SolarYield`, `Njord:Satellite:PastHours`, default 6, max 48); it learns its roughly hourly update cycle like every domain and costs about 720 calls per month and location. With `Energy:SolarYield` enabled as well, observed hours use the satellite irradiance and later hours the ensemble. At least one feature must be enabled. The former `Njord:Enrichments` section is no longer read.
+The defaults poll Weather and Air Quality (two calls per location and cycle). Enabling `Flood:FloodRisk` adds Flood; disabling `AirQuality:Pollen` and `AirQuality:Pm25` drops Air Quality. A disabled feature is not evaluated even when its domain data is present because another feature needs it, so each weather alert can be switched off on its own. `Insight:SeasonalOutlook` reads the Seasonal domain (monthly anomalies, `Njord:Seasonal:ForecastMonths`, default 3, max 6); it learns its own roughly daily update cycle like every domain and costs about one call per day and location. `Energy:SatelliteRadiation` reads the Satellite domain (observed GHI and tilted irradiance from `satellite-api.open-meteo.com`, tilt and azimuth from `Njord:SolarYield`, `Njord:Satellite:PastHours`, default 6, max 48); it learns its roughly hourly update cycle like every domain and costs about 720 calls per month and location. With `Energy:SolarYield` enabled as well, observed hours use the satellite irradiance and later hours the ensemble. At least one feature must be enabled.
 
 ```json
-{ "Njord": { "Features": { "Flood": { "FloodRisk": true }, "AirQuality": { "Pollen": false }, "Weather": { "Heat": false } } } }
+{ "Njord": { "Features": { "Flood": { "FloodRisk": { "Enabled": true } }, "AirQuality": { "Pollen": { "Enabled": false } }, "Weather": { "Heat": { "Enabled": false } } } } }
 ```
 
 ## Environment variable overrides
@@ -108,8 +107,8 @@ Njord__Locations__0__Name=Lucerne
 Njord__Locations__0__Latitude=47.05
 Njord__Locations__0__Longitude=8.31
 Njord__Weather__ForecastDays=4
-Njord__Enrichment__Alerts__Enabled=true
-Njord__Features__Flood__FloodRisk=true
+Njord__Features__Flood__FloodRisk__Enabled=true
+Njord__Features__Weather__Frost__Thresholds__0=1
 ```
 
 ::: tip
@@ -120,7 +119,7 @@ Use environment variables for secrets like `Njord__Persistence__ConnectionString
 
 - [Locations](./locations): where to fetch forecasts for
 - [Weather](./weather): solar variables and forecast days
-- [Enrichment](./enrichment): weather, air quality and flood alerts
+- [Enrichment](./enrichment): feature results and alert thresholds
 - [Persistence](./persistence): SQLite or PostgreSQL storage
 - [Budget](./budget): Open-Meteo limits and usage projection
 

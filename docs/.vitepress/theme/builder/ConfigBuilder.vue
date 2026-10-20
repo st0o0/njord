@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { reactive, ref, computed, watch, onMounted } from 'vue'
-import { defaultConfig, CATEGORIES, FEATURES, featureLabel, requiredDomains, type NjordConfig, type EnrichmentFeature } from './types'
+import { defaultConfig, CATEGORIES, FEATURES, featureLabel, requiredDomains, type NjordConfig, type FeatureOption, type OptionValue } from './types'
 import { computeBudget, featureCostPerDay, budgetLevel } from './budget'
 import { exportAsJson, exportAsEnvVars, exportAsCompose, autoImport, encodeHash, decodeHash, mergeWithDefaults } from './serializer'
-import enrichmentData from '../../../data/enrichment.json'
 
-const enrichmentFeatures = enrichmentData as EnrichmentFeature[]
 const config = reactive<NjordConfig>(defaultConfig())
 
 const featureGroups = CATEGORIES
@@ -24,46 +22,42 @@ function costLabel(key: string): string {
   return `+${featureCostPerDay(config, key)} calls/day`
 }
 
-// Only an explicit Enabled flag is stored; a missing flag means the feature default.
-function isEnrichmentEnabled(name: string): boolean {
-  const feature = enrichmentFeatures.find(f => f.name === name)
-  return (config.enrichment[name]?.Enabled as boolean | undefined) ?? feature?.enabledByDefault ?? false
+const featuresWithOptions = computed(() => FEATURES.filter(f => f.options?.length && isFeatureOn(f.key)))
+
+function getOption(key: string, option: FeatureOption): OptionValue {
+  const value = config.featureOptions[key]?.[option.name]
+  return value ?? option.default
 }
 
-function toggleEnrichment(name: string) {
-  const feature = enrichmentFeatures.find(f => f.name === name)
-  const next = !isEnrichmentEnabled(name)
-  if (!config.enrichment[name]) config.enrichment[name] = {}
-  if (next === (feature?.enabledByDefault ?? false)) delete config.enrichment[name].Enabled
-  else config.enrichment[name].Enabled = next
-}
-
-function getEnrichmentOption(feature: string, option: string, defaultVal: unknown): unknown {
-  return config.enrichment[feature]?.[option] ?? defaultVal
-}
-
-function setEnrichmentOption(feature: string, option: string, value: unknown, defaultVal: unknown) {
-  if (!config.enrichment[feature]) config.enrichment[feature] = {}
-  if (value === defaultVal || value === '' || value === undefined) {
-    delete config.enrichment[feature][option]
-  } else {
-    config.enrichment[feature][option] = value
+// A value equal to the default is dropped, so only real overrides reach the export.
+function storeOption(key: string, option: FeatureOption, value: OptionValue | undefined) {
+  const same = value !== undefined && JSON.stringify(value) === JSON.stringify(option.default)
+  if (value === undefined || same) {
+    if (config.featureOptions[key]) {
+      delete config.featureOptions[key][option.name]
+      if (!Object.keys(config.featureOptions[key]).length) delete config.featureOptions[key]
+    }
+    return
   }
+  if (!config.featureOptions[key]) config.featureOptions[key] = {}
+  config.featureOptions[key][option.name] = value
 }
 
-function getArrayOption(feature: string, option: string, defaultVal: unknown): number[] {
-  const value = config.enrichment[feature]?.[option]
-  return [...((Array.isArray(value) ? value : defaultVal) as number[])]
+function getArrayOption(key: string, option: FeatureOption): number[] {
+  return [...(getOption(key, option) as number[])]
 }
 
-function setArrayOption(feature: string, option: string, index: number, raw: string, defaultVal: unknown) {
-  const current = getArrayOption(feature, option, defaultVal)
+function setArrayOption(key: string, option: FeatureOption, index: number, raw: string) {
   const parsed = Number(raw)
   if (raw.trim() === '' || Number.isNaN(parsed)) return
+  const current = getArrayOption(key, option)
   current[index] = parsed
-  const def = defaultVal as number[]
-  const same = current.length === def.length && current.every((v, i) => v === def[i])
-  setEnrichmentOption(feature, option, same ? undefined : current, defaultVal)
+  storeOption(key, option, current)
+}
+
+function setNumberOption(key: string, option: FeatureOption, raw: string) {
+  const parsed = Number(raw)
+  storeOption(key, option, raw.trim() === '' || Number.isNaN(parsed) ? undefined : parsed)
 }
 
 const exportMode = reactive({ format: 'json' as 'json' | 'env' | 'compose' })
@@ -228,52 +222,40 @@ onMounted(() => {
       <p class="section-hint">Used only for domains an enabled feature requires. Defaults: air quality 5, marine 8, flood 92.</p>
     </div>
 
-    <!-- Enrichment -->
-    <div class="section">
-      <h3>Alert settings</h3>
+    <!-- Feature options -->
+    <div v-if="featuresWithOptions.length" class="section">
+      <h3>Feature settings</h3>
       <div class="enrichment-grid">
-        <div v-for="f in enrichmentFeatures" :key="f.name" class="enrichment-card" :class="{ selected: isEnrichmentEnabled(f.name) }">
-          <label class="enrichment-header">
-            <input type="checkbox" :checked="isEnrichmentEnabled(f.name)" @change="toggleEnrichment(f.name)" />
-            <strong>{{ f.name }}</strong>
-            <span v-if="f.enabledByDefault" class="enrichment-badge">default on</span>
-          </label>
-          <div v-if="isEnrichmentEnabled(f.name) && f.options.length" class="enrichment-options">
-            <label v-for="opt in f.options" :key="opt.name" class="enrichment-option" :title="opt.description || ''">
-              <span class="option-name">{{ opt.name.includes(':') ? opt.name.split(':')[1] : opt.name }}</span>
+        <div v-for="f in featuresWithOptions" :key="f.key" class="enrichment-card selected">
+          <div class="enrichment-header"><strong>{{ featureLabel(f.key) }}</strong></div>
+          <div class="enrichment-options">
+            <label v-for="opt in f.options" :key="opt.name" class="enrichment-option">
+              <span class="option-name">{{ opt.name }}</span>
               <span v-if="opt.type === 'numberArray'" class="array-inputs">
                 <input
-                  v-for="(v, idx) in getArrayOption(f.name, opt.name, opt.default)"
+                  v-for="(v, idx) in getArrayOption(f.key, opt)"
                   :key="idx"
                   type="number"
                   step="any"
                   :value="v"
-                  @input="setArrayOption(f.name, opt.name, idx, ($event.target as HTMLInputElement).value, opt.default)"
+                  @input="setArrayOption(f.key, opt, idx, ($event.target as HTMLInputElement).value)"
                   class="option-input option-input-small"
                 />
               </span>
               <input
-                v-else-if="opt.type === 'number'"
+                v-else
                 type="number"
                 step="any"
                 :placeholder="String(opt.default)"
-                :value="getEnrichmentOption(f.name, opt.name, opt.default)"
-                @input="setEnrichmentOption(f.name, opt.name, ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : undefined, opt.default)"
+                :value="getOption(f.key, opt)"
+                @input="setNumberOption(f.key, opt, ($event.target as HTMLInputElement).value)"
                 class="option-input"
               />
-              <input
-                v-else
-                type="text"
-                :placeholder="String(opt.default)"
-                :value="getEnrichmentOption(f.name, opt.name, opt.default)"
-                @input="setEnrichmentOption(f.name, opt.name, ($event.target as HTMLInputElement).value || undefined, opt.default)"
-                class="option-input"
-              />
-              <span v-if="opt.description" class="option-description">{{ opt.description }}</span>
             </label>
           </div>
         </div>
       </div>
+      <p class="section-hint">Only values that differ from the default are written to the config. Threshold lists are three severity steps.</p>
     </div>
 
     <!-- Persistence -->
@@ -323,7 +305,7 @@ onMounted(() => {
         <span :class="'level-' + budgetLevel(budget.percentUsed)">{{ budget.percentUsed.toFixed(1) }}%</span>
       </div>
       <div class="budget-detail">
-        {{ requiredDomains(config.features).length }} domains ({{ requiredDomains(config.features).join(', ') }}) × {{ config.locations.length }} locations = {{ budget.domainCallsPerCycle }} calls/cycle · {{ budget.cyclesPerDay }} cycles/day · weight {{ budget.apiCallWeight }} = {{ budget.callsPerDay.toLocaleString() }} req/day · {{ budget.cyclesPerMonth }} cycles/month
+        {{ requiredDomains(config.features).length }} domains ({{ requiredDomains(config.features).join(', ') }}) Ã— {{ config.locations.length }} locations = {{ budget.domainCallsPerCycle }} calls/cycle Â· {{ budget.cyclesPerDay }} cycles/day Â· weight {{ budget.apiCallWeight }} = {{ budget.callsPerDay.toLocaleString() }} req/day Â· {{ budget.cyclesPerMonth }} cycles/month
       </div>
       <p v-if="budget.overBudget" class="error">Exceeds 80% budget guard ({{ budget.guard.toLocaleString() }}). Disable features, reduce locations or increase the poll interval.</p>
     </div>

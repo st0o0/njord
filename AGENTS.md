@@ -4,7 +4,7 @@
 
 njord - Multi-domain weather intelligence for Home Assistant. A .NET service (Docker container)
 on Akka.NET + Akka.Streams: polls the Open-Meteo APIs (weather ensemble, air quality, flood,
-marine) per location, enriches the data via `IDomainHandler`s, and serves it to Home Assistant
+marine) per location, evaluates feature rules on the data, and serves it to Home Assistant
 over gRPC (the ha-njord integration).
 
 ## Solution structure
@@ -25,27 +25,28 @@ src/
     Actors/             #   IActorRegistration, Forecast/Pipeline stream handshakes shared across libraries
                         #   (actor plumbing used by one library lives there: ShardMessageExtractor in Polling,
                         #   StreamSupervision in Pipeline, GrpcStreamMessages in Grpc)
-    Domain/             #   IDomainHandler, IAlertRule, IFeature, FeatureCategory,
-                        #   FeatureDescriptor, FeatureResolution, LocationForecast, DomainDataReceived
-    Configuration/      #   IConfigSection, NjordOptions (with FindLocation), LocationOptions, WeatherOptions, FloodOptions, PollingOptions,
-                        #   HealthOptions, FeatureOptions, WeatherVariables, AddNjordOptions + validators
+    Domain/             #   IFeatureRule, FeatureRule<TInput>, FeatureDescriptor, FeatureCategory, FeatureContext,
+                        #   FeatureInputs (typed inputs), FeatureResolution, DomainRequirements, LocationForecast,
+                        #   RingBuffer, ForecastQueries, DomainDataReceived
+    Configuration/      #   IConfigSection, NjordOptions (with FindLocation), LocationOptions, WeatherOptions, FloodOptions,
+                        #   PollingOptions, Health/HealthOptions, AddNjordOptions (+ validators)
     Polling/            #   CallWeight, RequestBudget (free-tier constants, DailyLimit), FetchTimeouts
   Njord.OpenMeteo/      # (-> Core) OpenMeteoGateway, GatewayBudgetGate, 6 typed clients (Weather, AirQuality, Flood, Marine, Seasonal, SatelliteRadiation), OpenMeteoRequestBuilder,
-                        #   response DTOs, Mapping/
+                        #   response DTOs, Mapping/, Configuration/ (AirQuality/Marine/Seasonal/Satellite/SolarYield options)
   Njord.Budget/         # BudgetTracker (persistent), usage accounting, health check
-  Njord.Polling/        # PollManager, PollWorker (+ state, mappings), polling Telemetry, PollingSetupContainer
-  Njord.Pipeline/       # Stream/ (ForecastPipeline, ProjectionEngine), Health/ (PipelineHealthCheck), Telemetry
-  Njord.Features/       # (-> Core) every feature: <OutputKind>/<Feature>/ with rule + config side by side
-                        #   (Alerts/ Scores/ Conditions/ Trends/ Forecasts/), <Kind>/Shared/ and top-level Shared/
-                        #   (Scoring), ServiceCollectionExtensions.AddFeatures; typed inputs stay in Core
+  Njord.Polling/        # PollManager, PollWorker (+ state, mappings), polling Telemetry, Configuration/ (BudgetGuard, PollingOptionsValidator)
+  Njord.Pipeline/       # Stream/ (ForecastPipeline, FeatureEngine), Health/ (PipelineHealthCheck), Telemetry
+  Njord.Features/       # (-> Core) every feature: <OutputKind>/<Feature>/ with FeatureRule + <Name>Config (+ validator)
+                        #   side by side (Alerts/ Scores/ Conditions/ Trends/ Forecasts/), <Kind>/Shared/ and top-level
+                        #   Shared/ (Scoring), ServiceCollectionExtensions.AddFeatures; typed inputs stay in Core
   Njord.Grpc/           # WeatherGrpcService, OpsGrpcService, ActorAsk, GrpcConsumer, Mapping/
-  Njord/                # Host: Program.cs, NjordHost, Configuration/ (setup containers), Health/
+  Njord/                # Host: Program.cs, NjordHost, Configuration/ (setup containers, PersistenceOptions), Health/
 
   Njord.Forecast.Tests/ Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
   Njord.OpenMeteo.Tests/ Njord.Budget.Tests/ Njord.Pipeline.Tests/ Njord.Polling.Tests/
   Njord.Features.Tests/ Njord.Grpc.Tests/
   Njord.IntegrationTests/       # whole host via NjordHost + TestServer
-  Njord.Architecture.Tests/     # ArchUnitNET rules (ArchitectureSpec) + FeatureConfigKeySpec
+  Njord.Architecture.Tests/     # ArchUnitNET rules (ArchitectureSpec)
   Njord.Tests.Shared/           # fakes, builders, fixtures, NjordActorSpec (not a test project)
 protos/njord/v2/                # gRPC contracts: weather.proto, ops.proto, common.proto
 docs/                           # VitePress site incl. the Config Builder (docs/.vitepress/theme/builder)
@@ -60,15 +61,19 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 
 - **Feature-driven config.** The operator sets locations and feature toggles; the rest is derived.
   Fetched domains = union of the `Requirements` of the enabled features (`FeatureResolution`).
-- **Every feature is an `IFeature`**: a unique `Name` plus a `FeatureDescriptor` (`Output` (`OutputKind`), `Category`,
-  `DefaultEnabled`, `Requirements`: a `DomainRequirements` of per-domain `XxxParam` flags). An `IDomainHandler`
-  exposes its `Feature` and handles `Handle(current, previous, time)`; required flags gate dispatch (missing
-  data skips the handler), `Optional*` flags are requested from the API but never gate. Each `IAlertRule`
-  declares its own feature; `WeatherAlertHandler` (an `IMultiFeatureHandler`) runs only the enabled rules.
-  The config key is `Category:Name` (`SectionKey()`), the wire key the lowercase name (`WireKey()`);
-  `FeatureConfigKeySpec` pins unique names; the description lives only in `docs/data/features.json`.
-- **Domain projects are plugins.** Weather/AirQuality/Flood/Marine register handlers via
-  `Add<Domain>Domain()`; they never reference each other or the adapters (Grpc).
+- **Every feature is a `FeatureRule<TInput>`** (an `IFeatureRule`) in `Njord.Features/<OutputKind>/<Feature>/`: a
+  `FeatureDescriptor` (`Output` (`OutputKind`), `Category`, `DefaultEnabled`, `Requirements`: a `DomainRequirements` of
+  per-domain `XxxParams` flags, `PollDepth`), `Enabled` from its own config, `Project(LocationForecast)` to a typed
+  input (null skips the rule) and `Evaluate(FeatureContext<TInput>)` returning one result event or null. Required
+  flags gate dispatch (missing data skips the rule), `Optional*` flags are requested from the API but never gate.
+  `FeatureEngine` runs only the enabled rules whose domain got new data and hands them a ring of the last
+  `PollDepth + 1` forecasts for trends.
+- **Every feature owns its config class** `<Name>Config : IConfigSection` with `SectionName`
+  `Njord:Features:<Category>:<Name>`, `Enabled` and its options (thresholds); an optional `<Name>ConfigValidator`.
+  Registered in `AddFeatures` next to the rule. Names are unique per category; the description lives only in
+  `docs/data/features.json` (hand-maintained, with the options and defaults).
+- **Feature libraries are plain libraries.** `Njord.Features` references only Core and below; no feature project
+  references another or an adapter (Grpc).
 - **One `PollWorker` per location, per-domain independent timers.** No rounds, no waiting for all
   domains; each domain learns its own update cycle (Discovery -> learned cycle with miss tolerance).
 - **Streams for data flow, actors for lifecycle; the stable side owns the hubs.** Domain data and
@@ -76,16 +81,16 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 - **Gateway is request/response.** `FetchDomain` gets exactly one `FetchDomainCompleted` (hash only),
   `FetchDomainFailed` or `FetchDomainRejected`; data goes to the pipeline through a SinkRef branch.
 - **Pipeline owns both hubs** (`MergeHub` in, `BroadcastHub` out). All analysis state lives in the
-  `ProjectionEngine` closure, so a gateway restart loses nothing.
-- **Never `Zip` domain sub-streams.** Domains arrive independently; handlers see the current
-  `LocationForecast` and `Previous` for trends.
+  `FeatureEngine` closure, so a gateway restart loses nothing.
+- **Never `Zip` domain sub-streams.** Domains arrive independently; rules see the current
+  `LocationForecast` and, through the ring, earlier ones for trends.
 - **Consumers are output adapters via SourceRef** (`GrpcConsumer`); no relay
   actors. No consumer slows the hub: bounded drop-oldest buffers.
 - **gRPC is an adapter.** Resolve a marker, `ActorAsk` with a `Njord.Messages` message, map with `ToProto()`.
 - **`Njord.Messages` is Akka-free** (refs Forecast only); stream handshakes live in `Njord.Core/Actors`.
-- **Handlers emit `FeatureResult`s** (`AlertResult`, `ScoreResult`, `ConditionResult`, `TrendResult`,
-  `ForecastResult`); non-alert results flatten to `LifestyleUpdate` (wire key + `OutputKind` + string map) for gRPC
-  (`type_name = "lifestyle"`).
+- **Rules emit typed `FeatureResult`s** (`AlertResult`, `ScoreResult`, `ConditionResult`, `TrendResult`,
+  `ForecastResult` and their feature-specific records); gRPC delivers each as an `EnrichmentEvent` whose `feature`
+  oneof case identifies the feature (`weather.proto`).
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow`.
 - **Zone rules are tests** (`ArchitectureSpec`): Forecast/Messages/Persistence reference no other Njord
   project (Messages only Forecast), no Akka in Messages/Persistence, domain projects independent, all classes sealed.
@@ -99,7 +104,7 @@ SINGLETONS (Cluster Singleton)
 ├─ OpenMeteoGateway (non-persistent)                              [OpenMeteo]
 │  └─ GatewayBudgetGate -> typed clients: Weather, AirQuality, Flood, Marine, Seasonal, SatelliteRadiation
 ├─ ForecastPipeline (non-persistent)                              [Pipeline]
-│  └─ MergeHub<DomainDataReceived> -> ProjectionEngine -> IDomainHandler[] -> BroadcastHub<PipelineEvent>
+│  └─ MergeHub<DomainDataReceived> -> FeatureEngine -> IFeatureRule[] -> BroadcastHub<PipelineEvent>
 ├─ BudgetTracker (persistent)                                     [Budget]
 └─ GrpcConsumer (SourceRef consumer of the pipeline)              [Grpc]
 
@@ -111,20 +116,19 @@ SHARD REGIONS (Sharded Entity)
 ## Decisions
 
 - **Ensemble default.** The weather request goes to `v1/ensemble`; there are no model, horizon or
-  parameter settings. The requested variables follow the enabled handlers: the `Requirements` of all
-  enabled handlers are OR-ed (`FeatureResolution.RequiredParams`) and mapped to API names by
-  `ParamMappings.ToApiNames()`; the clients only build the URL. `ProjectionEngine` skips a handler whose
+  parameter settings. The requested variables follow the enabled features: the `Requirements` of all
+  enabled features are OR-ed (`FeatureResolution.RequiredParams`) and mapped to API names by
+  `ParamMappings.ToApiNames()`; the clients only build the URL. `FeatureEngine` skips a rule whose
   required fields are missing from the stream (`LocationForecast.HasFields`). `BudgetGuard` uses the same
   resolved requirements: Weather costs `ceil(variables / 10) * ceil(forecastDays / 14)` calls per cycle,
   every other required domain 1.
 - **Per-domain forecast days.** `Njord:AirQuality` (5, max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92,
   max 210) next to `Njord:Weather`.
-- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Category>:<Name>` (35 features in the
-  categories Weather, AirQuality, Lifestyle, Insight, Energy, Flood, Marine). On by default: the 14 weather
-  alerts (`Weather:Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`,
-  `PressureDrop`, `Thunderstorm`, `Ice`, `WindChill`, `Visibility`,
-  `TropicalNight`, `Humidity`), `Lifestyle:Commute`, `AirQuality:Pollen`, `AirQuality:Pm25`; everything else is off.
-  The old `Njord:Enrichments` section is not read. The entity set follows locations x enabled features.
+- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Category>:<Name>` (36 features; categories see
+  `docs/data/features.json`; env `Njord__Features__<Category>__<Name>__Enabled`). 18 are on by default: the 14
+  weather alerts (`Weather:Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`, `PressureDrop`, `Thunderstorm`,
+  `Ice`, `WindChill`, `Visibility`, `TropicalNight`, `Humidity`), `Lifestyle:Commute`, `AirQuality:Pollen`,
+  `AirQuality:Pm25`; everything else is off. The entity set follows locations x enabled features.
 - **Per-domain discovery.** Every domain of a location learns its own cycle and polls independently.
 - **Domains:** `Weather`, `AirQuality`, `Flood`, `Marine`, `Seasonal`, `Satellite` (`DomainKind`); the gateway fetches all of them.
 - **Explicit coordinates.** A location is `Name`, `Latitude` and `Longitude`, all required (`NjordOptionsValidator`).
@@ -136,17 +140,17 @@ SHARD REGIONS (Sharded Entity)
 - **Seasonal is a normal domain** (`DomainKind.Seasonal`, `SeasonalPoint`, `TimeResolution.Monthly`): the gateway fetches
   `seasonal-api.open-meteo.com` for `SeasonalOutlook`, the PollWorker learns its roughly daily cycle, `BudgetGuard`
   counts it as 30 calls/month/location instead of once per poll cycle. The API delivers ensemble-mean
-  `temperature_2m_anomaly` (K) and `precipitation_anomaly` (mm; `SeasonalOutlookHandler` converts to % of the normal
+  `temperature_2m_anomaly` (K) and `precipitation_anomaly` (mm; `SeasonalOutlook` converts to % of the normal
   month with `precipitation_mean`); confidence follows the lead time. `Njord:Seasonal:ForecastMonths` (3) limits the months kept.
 - **Satellite is a normal domain** (`DomainKind.Satellite`, `SatelliteRadiationPoint` in `Njord.Forecast/Solar`): the gateway
   fetches `satellite-api.open-meteo.com/v1/archive` (GHI, direct, diffuse, DNI, GTI; tilt/azimuth from `SolarYieldOptions`,
   `Njord:Satellite:PastHours`) for `SatelliteRadiation` (off by default, about 720 calls/month/location, counted per poll
   cycle by `BudgetGuard`). `SolarIrradianceBlend` takes satellite GTI up to the newest observation (ignored when
-  older than 3 h) and ensemble GTI afterwards; `SolarYieldHandler` and `SatelliteRadiationHandler` use it.
+  older than 3 h) and ensemble GTI afterwards; `SolarYield` and `SatelliteRadiation` use it.
 - Poll interval 60 min and discovery interval 20 min are config values.
 - Wire text for closed sets comes from explicit mappings, never `ToString()`.
 - Feels-like is `apparent_temperature` from the API, no own computation.
-- Alert thresholds are `Njord:Enrichment:Alerts:*` (three-step severity arrays, `AlertOptionsValidator`).
+- Thresholds live in the feature's own config (`Njord:Features:<Category>:<Name>`, e.g. three-step severity arrays), validated by its `<Name>ConfigValidator`.
 - Options are read at startup (`IOptions<T>`); no hot reload, no runtime config writer.
 
 ## Build & test
@@ -174,8 +178,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 924 tests (Forecast 64, Messages 21, Persistence 14, Core 74, OpenMeteo 169, Budget 18,
-Polling 118, Pipeline 50, Features 222, Grpc 133, Architecture 14, IntegrationTests 27). One test per `[Fact]` and per `[Theory]` data row.
+Current total: 914 tests (Forecast 58, Messages 21, Persistence 14, Core 74, OpenMeteo 169, Budget 18,
+Polling 116, Pipeline 48, Features 222, Grpc 133, Architecture 14, IntegrationTests 27). One test per `[Fact]` and per `[Theory]` data row.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),
 `appsettings.Development.json`, environment variables (`Njord__Persistence__DataPath`), `appsettings.Example.json`
@@ -267,29 +271,27 @@ Rules apply to production code.
 One options class per concern with its own `SectionName`, implementing `IConfigSection` (`static abstract SectionName`), registered with `AddNjordOptions<T>()`
 (`AddOptions<T>().BindConfiguration(T.SectionName).ValidateOnStart()`) or `AddNjordOptions<T, TValidator>()` when it has
 cross-field rules (explicit `IValidateOptions<T>`, failures collected with context). Options live with their owner
-(OpenMeteo options and `OpenMeteoOptionsValidator` in `Njord.OpenMeteo`, `PollingOptionsValidator` and `BudgetGuard` in
-`Njord.Polling`, `PersistenceOptions` in the Host, alert thresholds validated per feature).
+(Njord/Weather/Flood/Polling/Health options in `Njord.Core`, AirQuality/Marine/Seasonal/Satellite/SolarYield options in `Njord.OpenMeteo`, `PollingOptionsValidator` and `BudgetGuard` in
+`Njord.Polling`, `PersistenceOptions` in the Host, feature options in each `<Name>Config`).
 Defaults are property initializers.
 
 | Section | Class | Content |
 |---------|-------|---------|
-| `Njord` | `NjordOptions` | `Locations` (`Name`, optional `Latitude`/`Longitude`) |
-| `Njord:Weather` | `WeatherOptions` | `ForecastDays` (4) |
+| `Njord` | `NjordOptions` | `Locations` (`Name`, `Latitude`, `Longitude`, all required) |
+| `Njord:Weather` | `WeatherOptions` | `ForecastDays` (4, 1..16) |
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..8) |
 | `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..6) |
 | `Njord:Satellite` | `SatelliteOptions` | `PastHours` (6, 1..48) |
-| `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210) |
-| `Njord:Features` | `FeatureOptions` | one toggle per feature (`Category:Name`), default from its descriptor |
-| `Njord:Enrichment:Alerts` | `AlertOptions` | alert thresholds |
+| `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210), `IncludeEnsemble` (false) |
+| `Njord:Features:<Category>:<Name>` | `<Name>Config` | `Enabled` (default from the descriptor) plus the feature's options |
 | `Njord:SolarYield` | `SolarYieldOptions` | `PeakKw` (5.0), `Azimuth` (180), `Tilt` (30) |
 | `Njord:Polling` | `PollingOptions` | `PollInterval` (60 min), `DiscoveryInterval` (20 min), `BudgetOverride` |
 | `Njord:Persistence` | `PersistenceOptions` | `Provider` (Sqlite/PostgreSql), `ConnectionString`, `DataPath` |
 | `Njord:Health` | `HealthOptions` | poll overdue/stalled factors, budget degraded % |
 
 The Config Builder (`docs/.vitepress/theme/builder`: `types.ts`, `budget.ts`, `serializer.ts`,
-`ConfigBuilder.vue`, data in `docs/data/features.json` (generated from the descriptors) and `docs/data/enrichment.json`
-(alert thresholds)) mirrors the toggles, their required domains, per-feature marginal cost and the
+`ConfigBuilder.vue`, data in `docs/data/features.json` (hand-maintained, incl. per-feature options)) mirrors the toggles, their required domains, per-feature marginal cost and the
 `BudgetGuard` formula; change them together with the options and `docker-compose.example.yml`.
 
 ## References

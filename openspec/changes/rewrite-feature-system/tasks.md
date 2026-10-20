@@ -102,10 +102,10 @@ All test projects run sequentially from `src/`: `dotnet run --project <Project>.
 
 - [x] 9.1 Trim `Njord.Architecture.Tests/ArchitectureSpec.cs` to the FunkArr level: plain `[Fact]`s on explicit per-assembly layer fields, no `[Theory]`, no regex-derived namespace sets. Rules: Forecast/Messages/Persistence isolation, no Akka in Messages/Persistence, each feature library (`OpenMeteo`, `Budget`, `Polling`, `Pipeline`, `Features`, `Grpc`) depends on no other feature library, concrete classes sealed. Drop the per-folder `Feature_folders_do_not_depend_on_other_feature_folders` theory
 - [x] 9.2 Delete `FeatureConfigKeySpec` and `FeaturesDataSpec` (the C# type is the feature identity, the compiler guarantees uniqueness; no data-only specs)
-- [ ] 9.2a Test audit across all test projects: delete data-only, constructor and property specs and theories that only re-list a mapping table without behavior; keep one behavioral spec per rule/branch; enum-mapping specs stay (one per conversion, AGENTS.md); report the new total and update the test counts in AGENTS.md
+- [x] 9.2a Test audit across all test projects: delete data-only, constructor and property specs and theories that only re-list a mapping table without behavior; keep one behavioral spec per rule/branch; enum-mapping specs stay (one per conversion, AGENTS.md); report the new total and update the test counts in AGENTS.md
 - [x] 9.3 Update `Njord.IntegrationTests` for new feature registration and pipeline
-- [ ] 9.4 Update `AGENTS.md` architecture section for the new feature system
-- [ ] 9.5 Update `docs/data/features.json` generation for type-based features
-- [ ] 9.6 Update `appsettings.Example.json` and `docker-compose.example.yml` for new config structure
-- [ ] 9.7 Update Config Builder (`docs/.vitepress/theme/builder/`) for new config structure
-- [ ] 9.8 Final validation from `src/`: `dotnet build Njord.slnx`, `dotnet format Njord.slnx --verify-no-changes`, every test project sequentially via `dotnet run --project`; from the repo root `openspec validate rewrite-feature-system --no-interactive`
+- [x] 9.4 Update `AGENTS.md` architecture section for the new feature system
+- [x] 9.5 Update `docs/data/features.json` generation for type-based features
+- [x] 9.6 Update `appsettings.Example.json` and `docker-compose.example.yml` for new config structure
+- [x] 9.7 Update Config Builder (`docs/.vitepress/theme/builder/`) for new config structure
+- [x] 9.8 Final validation from `src/`: `dotnet build Njord.slnx`, `dotnet format Njord.slnx --verify-no-changes`, every test project sequentially via `dotnet run --project`; from the repo root `openspec validate rewrite-feature-system --no-interactive`

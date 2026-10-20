@@ -21,8 +21,8 @@ export interface BudgetResult {
   overBudget: boolean
 }
 
-// Mirrors BudgetCalculator.Validate: per location and poll cycle the Weather domain costs
-// ceil(variables / 10) * ceil(forecastDays / 14) calls (variables = union of the enabled handlers' weather
+// Mirrors BudgetGuard (Njord.Polling): per location and poll cycle the Weather domain costs
+// ceil(variables / 10) * ceil(forecastDays / 14) calls (variables = union of the enabled features' weather
 // requirements), every other required domain costs one call.
 export function computeBudget(config: NjordConfig): BudgetResult {
   const pollMinutes = parseTimeSpan(config.pollInterval)

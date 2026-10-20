@@ -26,10 +26,21 @@ export interface FeatureEntry {
   weatherParams?: string[]
   optionalWeatherParams?: string[]
   airQualityParams?: string[]
+  options?: FeatureOption[]
 }
 
-// Generated from the registered FeatureDescriptors (docs/data/features.json, kept in sync by FeaturesDataSpec),
-// so the builder cannot drift from the service. Config keys are Njord:Features:<category>:<name>.
+// A per-feature setting below Njord:Features:<Category>:<Name>; null/absent in the config means the built-in default.
+export interface FeatureOption {
+  name: string
+  type: 'number' | 'numberArray'
+  default: number | number[]
+}
+
+export type OptionValue = number | number[]
+
+// docs/data/features.json mirrors the registered FeatureRules (descriptor requirements plus the options of each
+// feature config class) and is maintained by hand together with them (see the njord-enrichment-feature skill).
+// Config keys are Njord:Features:<category>:<name>:Enabled and Njord:Features:<category>:<name>:<option>.
 export const FEATURES: FeatureEntry[] = featureData as FeatureEntry[]
 
 export function featureLabel(key: string): string {
@@ -58,12 +69,6 @@ export function weatherVariableCount(features: Record<string, boolean>): number 
   return params.size
 }
 
-export interface EnrichmentFeature {
-  name: string
-  enabledByDefault: boolean
-  options: { name: string; type: string; default: unknown; description?: string }[]
-}
-
 export interface LocationConfig {
   name: string
   latitude: number
@@ -84,7 +89,8 @@ export interface NjordConfig {
   discoveryInterval: string
   features: Record<string, boolean>
   locations: LocationConfig[]
-  enrichment: Record<string, Record<string, unknown>>
+  // Only values that differ from the feature default: featureOptions['Weather:Frost'].Thresholds = [0, -5, -15]
+  featureOptions: Record<string, Record<string, OptionValue>>
   budgetOverride: { requestsPerMonth: number; requestsPerMinute: number } | null
   persistence: { provider: string; connectionString: string }
   dataPath: string
@@ -104,7 +110,7 @@ export function defaultConfig(): NjordConfig {
     discoveryInterval: '00:20:00',
     features: defaultFeatures(),
     locations: [],
-    enrichment: {},
+    featureOptions: {},
     budgetOverride: null,
     persistence: { provider: 'Sqlite', connectionString: '' },
     dataPath: 'data/njord.db',
