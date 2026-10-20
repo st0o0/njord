@@ -41,16 +41,19 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private readonly IAirQualityClient _airQualityClient;
     private readonly IFloodClient _floodClient;
     private readonly IMarineClient _marineClient;
+    private readonly ISeasonalClient _seasonalClient;
     private readonly TimeProvider _timeProvider;
     private readonly NjordOptions _options;
     private readonly WeatherOptions _weather;
     private readonly AirQualityOptions _airQuality;
     private readonly MarineOptions _marine;
     private readonly FloodOptions _flood;
+    private readonly SeasonalOptions _seasonal;
     private readonly IReadOnlyList<string> _weatherVariables;
     private readonly IReadOnlyList<string> _airQualityVariables;
     private readonly IReadOnlyList<string> _floodVariables;
     private readonly IReadOnlyList<string> _marineVariables;
+    private readonly IReadOnlyList<string> _seasonalVariables;
     private readonly FetchTimeouts _timeouts;
     private readonly int _weatherWeight;
     private readonly IGatewayBudgetGate _gate;
@@ -65,12 +68,14 @@ public sealed class OpenMeteoGateway : ReceiveActor
         IAirQualityClient airQualityClient,
         IFloodClient floodClient,
         IMarineClient marineClient,
+        ISeasonalClient seasonalClient,
         TimeProvider timeProvider,
         IOptions<NjordOptions> options,
         IOptions<WeatherOptions> weather,
         IOptions<AirQualityOptions> airQuality,
         IOptions<MarineOptions> marine,
         IOptions<FloodOptions> flood,
+        IOptions<SeasonalOptions> seasonal,
         ResolvedRequirements resolved,
         IBudgetProvider budgetProvider,
         FetchTimeouts timeouts)
@@ -79,6 +84,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         _airQualityClient = airQualityClient;
         _floodClient = floodClient;
         _marineClient = marineClient;
+        _seasonalClient = seasonalClient;
         _timeProvider = timeProvider;
         _options = options.Value;
         _weather = weather.Value;
@@ -87,10 +93,12 @@ public sealed class OpenMeteoGateway : ReceiveActor
         _airQuality = airQuality.Value;
         _marine = marine.Value;
         _flood = flood.Value;
+        _seasonal = seasonal.Value;
         _weatherVariables = requirements.AllWeather.ToApiNames();
         _airQualityVariables = requirements.AllAirQuality.ToApiNames();
         _floodVariables = requirements.AllFlood.ToApiNames();
         _marineVariables = requirements.AllMarine.ToApiNames();
+        _seasonalVariables = requirements.AllSeasonal.ToApiNames();
         _weatherWeight = BudgetCalculator.ComputeWeight(_weatherVariables.Count, WeatherForecastDays);
         _gate = new GatewayBudgetGate(budgetProvider, Context.GetActor<IBudgetTracker>(), timeProvider);
 
@@ -130,7 +138,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         var id = NextId();
         _pending[id] = new PendingDomainRequest(Sender, msg.Location, msg.Domain, new Location(location.Name, location.Latitude.Value, location.Longitude.Value));
 
-        if (msg.Domain is not (DomainKind.Weather or DomainKind.AirQuality or DomainKind.Flood or DomainKind.Marine))
+        if (msg.Domain is not (DomainKind.Weather or DomainKind.AirQuality or DomainKind.Flood or DomainKind.Marine or DomainKind.Seasonal))
         {
             Reply(id, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.PipelineUnavailable));
             return;
@@ -199,6 +207,9 @@ public sealed class OpenMeteoGateway : ReceiveActor
             DomainKind.Marine => (await _marineClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
                     _marineVariables, _marine.ForecastDays, CancellationToken.None))
                 ?.ToDomainForecast(now),
+            DomainKind.Seasonal => (await _seasonalClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
+                    _seasonalVariables, CancellationToken.None))
+                ?.ToDomainForecast(now, _seasonal.ForecastMonths),
             _ => (await _floodClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
                     _floodVariables, _flood.ForecastDays, _flood.IncludeEnsemble, CancellationToken.None))
                 ?.ToDomainForecast(now),

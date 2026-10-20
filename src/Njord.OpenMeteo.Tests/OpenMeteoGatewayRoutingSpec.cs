@@ -10,6 +10,7 @@ using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
 using Njord.Forecast.Marine;
+using Njord.Forecast.Seasonal;
 using Njord.Forecast.Weather;
 using Njord.Messages.Forecast;
 using Njord.OpenMeteo.Mapping;
@@ -24,6 +25,7 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
     private readonly FakeAirQualityClient _airQuality = new();
     private readonly FakeFloodClient _flood = new();
     private readonly FakeMarineClient _marine = new();
+    private readonly FakeSeasonalClient _seasonal = new();
     private Akka.TestKit.TestProbe _attached = null!;
     private Akka.TestKit.TestProbe _forecasts = null!;
 
@@ -44,7 +46,7 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
             }));
             var weatherOptions = Options.Create(new WeatherOptions());
             registry.Register<IForecastGateway>(system.ActorOf(
-                Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _time, options, weatherOptions, Options.Create(new AirQualityOptions()), Options.Create(new MarineOptions()), Options.Create(new FloodOptions()), TestRequirements.Resolved, new SwitchableBudgetProvider(), FetchTimeouts.Default)),
+                Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _seasonal, _time, options, weatherOptions, Options.Create(new AirQualityOptions()), Options.Create(new MarineOptions()), Options.Create(new FloodOptions()), Options.Create(new SeasonalOptions()), TestRequirements.Resolved, new SwitchableBudgetProvider(), FetchTimeouts.Default)),
                 "gateway"));
         });
     }
@@ -113,6 +115,22 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
             () => Assert.Equal(0.4, Assert.Single(forecast.Points).WaveHeight),
             () => Assert.Equal(1, _marine.Calls),
             () => Assert.Equal(0, _weather.Calls + _airQuality.Calls + _flood.Calls));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_seasonal_fetch_uses_the_seasonal_client_and_delivers_monthly_points_within_the_configured_months()
+    {
+        var (completed, received) = await FetchAsync(DomainKind.Seasonal, TestContext.Current.CancellationToken);
+
+        var forecast = Assert.IsType<DomainForecast<SeasonalPoint>>(received.Data);
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.Seasonal, completed.Domain),
+            () => Assert.Equal(TimeResolution.Monthly, forecast.Resolution),
+            () => Assert.Equal(4, forecast.Points.Length),
+            () => Assert.Equal(1.0, forecast.Points[0].TemperatureAnomaly),
+            () => Assert.Equal(TestRequirements.All.Seasonal.ToApiNames(), _seasonal.LastVariables),
+            () => Assert.Equal(1, _seasonal.Calls),
+            () => Assert.Equal(0, _weather.Calls + _airQuality.Calls + _flood.Calls + _marine.Calls));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

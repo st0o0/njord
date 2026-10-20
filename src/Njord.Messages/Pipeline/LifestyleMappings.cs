@@ -20,6 +20,7 @@ public static class LifestyleMappings
         LifestyleKind.FloodTimeline => "flood_timeline",
         LifestyleKind.FrontApproaching => "front_approaching",
         LifestyleKind.SurfConditions => "surf_conditions",
+        LifestyleKind.SeasonalOutlook => "seasonal_outlook",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
@@ -68,8 +69,32 @@ public static class LifestyleMappings
             ("pressure_drop", Number(e.PressureDrop)),
             ("temp_drop", Number(e.TempDrop)))),
         PipelineEvent.SurfConditionsComputed e => new LifestyleUpdate(e.Location, LifestyleKind.SurfConditions, SurfFields(e)),
+        PipelineEvent.SeasonalOutlookComputed e => new LifestyleUpdate(e.Location, LifestyleKind.SeasonalOutlook, SeasonalFields(e)),
         _ => null,
     };
+
+    public static string ToWireName(this OutlookConfidence confidence) => confidence switch
+    {
+        OutlookConfidence.High => "high",
+        OutlookConfidence.Medium => "medium",
+        OutlookConfidence.Low => "low",
+        _ => throw new ArgumentOutOfRangeException(nameof(confidence), confidence, null),
+    };
+
+    private static IReadOnlyDictionary<string, string> SeasonalFields(PipelineEvent.SeasonalOutlookComputed e)
+    {
+        var fields = new Dictionary<string, string>();
+        for (var i = 0; i < e.Months.Length; i++)
+        {
+            var prefix = $"month_{i + 1}";
+            fields[prefix] = e.Months[i].Month;
+            fields[$"{prefix}_temp_anomaly"] = Number(e.Months[i].TempAnomaly);
+            fields[$"{prefix}_precip_anomaly"] = Number(e.Months[i].PrecipAnomaly);
+            fields[$"{prefix}_confidence"] = e.Months[i].Confidence.ToWireName();
+        }
+
+        return fields;
+    }
 
     private static IReadOnlyDictionary<string, string> SurfFields(PipelineEvent.SurfConditionsComputed e)
     {

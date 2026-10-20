@@ -2,6 +2,7 @@ using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
 using Njord.Forecast.Marine;
+using Njord.Forecast.Seasonal;
 using Njord.Forecast.Solar;
 using Njord.Forecast.Weather;
 
@@ -13,7 +14,8 @@ public sealed record LocationForecast(
     DomainForecast<AirQualityPoint>? AirQuality = null,
     DomainForecast<FloodPoint>? Flood = null,
     DomainForecast<SolarPoint>? Solar = null,
-    DomainForecast<MarinePoint>? Marine = null)
+    DomainForecast<MarinePoint>? Marine = null,
+    DomainForecast<SeasonalPoint>? Seasonal = null)
 {
     public LocationForecast With(DomainKind domain, IDomainForecast forecast) => domain switch
     {
@@ -22,6 +24,7 @@ public sealed record LocationForecast(
         DomainKind.Flood => this with { Flood = Cast<FloodPoint>(domain, forecast) },
         DomainKind.Solar => this with { Solar = Cast<SolarPoint>(domain, forecast) },
         DomainKind.Marine => this with { Marine = Cast<MarinePoint>(domain, forecast) },
+        DomainKind.Seasonal => this with { Seasonal = Cast<SeasonalPoint>(domain, forecast) },
         _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null)
     };
 
@@ -32,6 +35,7 @@ public sealed record LocationForecast(
         DomainKind.Flood => Flood,
         DomainKind.Solar => Solar,
         DomainKind.Marine => Marine,
+        DomainKind.Seasonal => Seasonal,
         _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null)
     };
 
@@ -39,7 +43,8 @@ public sealed record LocationForecast(
         HasFields(Weather, required.Weather, static (point, param) => point.HasFields(param))
         && HasFields(AirQuality, required.AirQuality, static (point, param) => point.HasFields(param))
         && HasFields(Flood, required.Flood, static (point, param) => point.HasFields(param))
-        && HasFields(Marine, required.Marine, static (point, param) => point.HasFields(param));
+        && HasFields(Marine, required.Marine, static (point, param) => point.HasFields(param))
+        && HasFields(Seasonal, required.Seasonal, static (point, param) => point.HasFields(param));
 
     private static bool HasFields<TPoint, TParam>(DomainForecast<TPoint>? forecast, TParam required, Func<TPoint, TParam, bool> check)
         where TPoint : IHasValidTime

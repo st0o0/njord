@@ -6,5 +6,6 @@ public enum TimeResolution
     Hourly,
     ThreeHourly,
     SixHourly,
-    Daily
+    Daily,
+    Monthly,
 }

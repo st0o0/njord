@@ -28,7 +28,7 @@ src/
     Configuration/      #   NjordOptions, LocationOptions, WeatherOptions, FeatureOptions, AlertOptions,
                         #   SolarYieldOptions, WeatherVariables, ConfigView, AddNjordOptions + validators
       Polling/ Persistence/ Health/   # PollingOptions, BudgetCalculator, FetchTimeouts, ...
-  Njord.OpenMeteo/      # (-> Core) OpenMeteoGateway, GatewayBudgetGate, 4 typed clients, OpenMeteoRequestBuilder,
+  Njord.OpenMeteo/      # (-> Core) OpenMeteoGateway, GatewayBudgetGate, 5 typed clients (Weather, AirQuality, Flood, Marine, Seasonal), OpenMeteoRequestBuilder,
                         #   response DTOs, Mapping/
   Njord.Budget/         # BudgetTracker (persistent), usage accounting, health check
   Njord.Polling/        # PollManager, PollWorker (+ state, mappings), polling Telemetry, PollingSetupContainer
@@ -96,7 +96,7 @@ SINGLETONS (Cluster Singleton)
 ├─ PollManager (non-persistent, BackoffOnFailure, IWithTimers)    [Polling]
 │  └─ one target per location; StartPolling/StopPolling, poll states + health from reports
 ├─ OpenMeteoGateway (non-persistent)                              [OpenMeteo]
-│  └─ GatewayBudgetGate -> typed clients: Weather, AirQuality, Flood, Marine
+│  └─ GatewayBudgetGate -> typed clients: Weather, AirQuality, Flood, Marine, Seasonal
 ├─ ForecastPipeline (non-persistent)                              [Pipeline]
 │  └─ MergeHub<DomainDataReceived> -> ProjectionEngine -> IDomainHandler[] -> BroadcastHub<PipelineEvent>
 ├─ BudgetTracker (persistent)                                     [Budget]
@@ -118,7 +118,7 @@ SHARD REGIONS (Sharded Entity)
   every other required domain 1.
 - **Per-domain forecast days.** `Njord:AirQuality` (5, max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92,
   max 210) next to `Njord:Weather`.
-- **Feature-driven configuration.** One toggle per `FeatureKind` in `Njord:Features:<Name>` (33 features in the
+- **Feature-driven configuration.** One toggle per `FeatureKind` in `Njord:Features:<Name>` (34 features in the
   categories WeatherAlerts, AirQuality, Lifestyle, Insight, Energy, Flood, Marine). On by default: the 14 weather
   alerts (`FrostAlert`, `HeatAlert`, `StormAlert`, `RainAlert`, `UvAlert`, `FogAlert`, `SnowAlert`,
   `PressureDropAlert`, `ThunderstormAlert`, `IceAlert`, `WindChillAlert`, `VisibilityAlert`,
@@ -126,13 +126,18 @@ SHARD REGIONS (Sharded Entity)
   The old `Njord:Enrichments` section is not read. The entity set follows locations x enabled features.
 - **Per-domain discovery.** Every domain of a location learns its own cycle and polls independently.
 - **Domains:** `Weather`, `AirQuality`, `Flood`, `Solar`, `Marine` (`DomainKind`). The gateway fetches
-  Weather, AirQuality, Flood, Marine; `Solar` exists in the model and event vocabulary only.
+  Weather, AirQuality, Flood, Marine, Seasonal; `Solar` exists in the model and event vocabulary only.
 - **Explicit coordinates.** A location is `Name`, `Latitude` and `Longitude`, all required (`NjordOptionsValidator`).
 - **Free tier assumed** (non-commercial): budget defaults to 300k/month, 600/min, optional
   `Polling:BudgetOverride`. Startup validates projected usage (`BudgetCalculator`: locations x required
   domains x poll cycles x call weight) against 80 % of the monthly budget.
 - **Any change to polling needs a budget estimate** against 300k/month, 10k/day, and politeness toward
   a free service. Weather weighs `ceil(variables / 10)` calls (4 standard and with solar); others 1.
+- **Seasonal is a normal domain** (`DomainKind.Seasonal`, `SeasonalPoint`, `TimeResolution.Monthly`): the gateway fetches
+  `seasonal-api.open-meteo.com` for `SeasonalOutlook`, the PollWorker learns its roughly daily cycle, `BudgetCalculator`
+  counts it as 30 calls/month/location instead of once per poll cycle. The API delivers ensemble-mean
+  `temperature_2m_anomaly` (K) and `precipitation_anomaly` (mm; `SeasonalOutlookHandler` converts to % of the normal
+  month with `precipitation_mean`); confidence follows the lead time. `Njord:Seasonal:ForecastMonths` (3) limits the months kept.
 - Poll interval 60 min and discovery interval 20 min are config values.
 - Wire text for closed sets comes from explicit mappings, never `ToString()`.
 - Feels-like is `apparent_temperature` from the API, no own computation.
@@ -164,8 +169,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 897 tests (Forecast 68, Messages 63, Persistence 14, Core 153, OpenMeteo 128, Budget 18,
-Polling 103, Pipeline 51, Weather 114, AirQuality 20, Flood 28, Marine 63, Grpc 41, Architecture 16,
+Current total: 919 tests (Forecast 68, Messages 69, Persistence 14, Core 155, OpenMeteo 134, Budget 18,
+Polling 103, Pipeline 51, Weather 122, AirQuality 20, Flood 28, Marine 63, Grpc 41, Architecture 16,
 IntegrationTests 17). One test per `[Fact]` and per `[Theory]` data row.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),
@@ -262,6 +267,7 @@ Defaults are property initializers.
 | `Njord:Weather` | `WeatherOptions` | `ForecastDays` (4) |
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..8) |
+| `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..6) |
 | `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210) |
 | `Njord:Features` | `FeatureOptions` | one toggle per `FeatureKind`, default from its descriptor |
 | `Njord:Enrichment:Alerts` | `AlertOptions` | alert thresholds |

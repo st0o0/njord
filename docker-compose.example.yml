@@ -39,6 +39,7 @@ services:
       #- Njord__Features__PollenTrend=true
       #- Njord__Features__NightVentilation=true
       #- Njord__Features__ConfidenceTrend=true
+      #- Njord__Features__SeasonalOutlook=true # 3-month outlook, one extra call per day and location
       #- Njord__Features__PollenAlert=false
       # Poll interval of a model whose update cycle is not learned yet:
       #- Njord__Polling__DiscoveryInterval=00:20:00

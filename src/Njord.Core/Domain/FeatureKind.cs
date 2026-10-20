@@ -35,4 +35,5 @@ public enum FeatureKind
     FloodTimeline,
     SwimmingConditions,
     SurfConditions,
+    SeasonalOutlook,
 }

@@ -16,4 +16,5 @@ public enum LifestyleKind
     FloodTimeline,
     FrontApproaching,
     SurfConditions,
+    SeasonalOutlook,
 }

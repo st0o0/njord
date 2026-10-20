@@ -1,6 +1,6 @@
 import featureData from '../../../data/features.json'
 
-export const DOMAINS = ['Weather', 'AirQuality', 'Flood', 'Marine'] as const
+export const DOMAINS = ['Weather', 'AirQuality', 'Flood', 'Marine', 'Seasonal'] as const
 
 export type DomainName = (typeof DOMAINS)[number]
 

@@ -5,6 +5,8 @@ const DAYS_PER_MONTH = 30
 const GUARD_FACTOR = 0.8
 const FREE_TIER_MONTHLY = 300_000
 const FLOOD_ENSEMBLE_WEIGHT = 5
+// The seasonal domain learns a roughly daily update cycle, so it costs about one call per location and day.
+const SEASONAL_CALLS_PER_DAY = 1
 
 export interface BudgetResult {
   domainCallsPerCycle: number
@@ -29,13 +31,14 @@ export function computeBudget(config: NjordConfig): BudgetResult {
 
   const domains = requiredDomains(config.features)
   const apiCallWeight = weatherWeight(config, config.features)
-  const domainCallsPerCycle = domains.length * config.locations.length
+  const domainCallsPerCycle = domains.filter(d => d !== 'Seasonal').length * config.locations.length
   const callsPerCycle = config.locations.length * callsPerLocationCycle(config, config.features)
 
   const limit = config.budgetOverride?.requestsPerMonth ?? FREE_TIER_MONTHLY
   const guard = Math.round(limit * GUARD_FACTOR)
-  const callsPerDay = Math.round(callsPerCycle * cyclesPerDay)
-  const projected = Math.round(callsPerCycle * cyclesPerMonth)
+  const extraPerDay = domains.includes('Seasonal') ? config.locations.length * SEASONAL_CALLS_PER_DAY : 0
+  const callsPerDay = Math.round(callsPerCycle * cyclesPerDay + extraPerDay)
+  const projected = Math.round(callsPerCycle * cyclesPerMonth + extraPerDay * DAYS_PER_MONTH)
   const percentUsed = limit > 0 ? (projected / limit) * 100 : 0
 
   return {
@@ -60,7 +63,7 @@ function weatherWeight(config: NjordConfig, features: Record<string, boolean>): 
 
 function callsPerLocationCycle(config: NjordConfig, features: Record<string, boolean>): number {
   const domains = requiredDomains(features)
-  const otherDomains = domains.filter(d => d !== 'Weather').length
+  const otherDomains = domains.filter(d => d !== 'Weather' && d !== 'Seasonal').length
   const floodExtraWeight = domains.includes('Flood') && config.flood.includeEnsemble ? FLOOD_ENSEMBLE_WEIGHT - 1 : 0
   return weatherWeight(config, features) + otherDomains + floodExtraWeight
 }
@@ -71,7 +74,8 @@ export function featureCostPerDay(config: NjordConfig, key: string): number {
   const cycles = MINUTES_PER_DAY / (parseTimeSpan(config.pollInterval) || 60)
   const on = { ...config.features, [key]: true }
   const off = { ...config.features, [key]: false }
-  return Math.round((callsPerLocationCycle(config, on) - callsPerLocationCycle(config, off)) * cycles)
+  const seasonal = (requiredDomains(on).includes('Seasonal') ? SEASONAL_CALLS_PER_DAY : 0) - (requiredDomains(off).includes('Seasonal') ? SEASONAL_CALLS_PER_DAY : 0)
+  return Math.round((callsPerLocationCycle(config, on) - callsPerLocationCycle(config, off)) * cycles) + seasonal
 }
 
 export function budgetLevel(percentUsed: number): 'ok' | 'warn' | 'over' {

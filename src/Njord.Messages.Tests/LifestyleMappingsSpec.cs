@@ -25,6 +25,7 @@ public sealed class LifestyleMappingsSpec
         { new PipelineEvent.FloodTimelineComputed(Lucerne, At, 120.5, 2), LifestyleKind.FloodTimeline, "flood_timeline" },
         { new PipelineEvent.FrontApproaching(Lucerne, TimeSpan.FromHours(6), 4, 5), LifestyleKind.FrontApproaching, "front_approaching" },
         { new PipelineEvent.SurfConditionsComputed(Lucerne, 85, "excellent", 1.8, 14, "offshore", At), LifestyleKind.SurfConditions, "surf_conditions" },
+        { new PipelineEvent.SeasonalOutlookComputed(Lucerne, []), LifestyleKind.SeasonalOutlook, "seasonal_outlook" },
     };
 
     [Theory]
@@ -85,6 +86,48 @@ public sealed class LifestyleMappingsSpec
         Assert.Multiple(
             () => Assert.Equal("false", update.Data["wind_considered"]),
             () => Assert.False(update.Data.ContainsKey("wind")));
+    }
+
+    [Fact]
+    public void Seasonal_fields_flatten_each_month_with_anomalies_and_confidence()
+    {
+        var update = new PipelineEvent.SeasonalOutlookComputed(Lucerne,
+        [
+            new MonthlyOutlook("2026-11", 1.5, -12.5, OutlookConfidence.High),
+            new MonthlyOutlook("2026-12", -0.5, 8, OutlookConfidence.Low),
+        ]).ToLifestyleUpdate();
+
+        Assert.NotNull(update);
+        Assert.Equal(
+            new Dictionary<string, string>
+            {
+                ["month_1"] = "2026-11",
+                ["month_1_temp_anomaly"] = "1.5",
+                ["month_1_precip_anomaly"] = "-12.5",
+                ["month_1_confidence"] = "high",
+                ["month_2"] = "2026-12",
+                ["month_2_temp_anomaly"] = "-0.5",
+                ["month_2_precip_anomaly"] = "8",
+                ["month_2_confidence"] = "low",
+            },
+            update.Data);
+    }
+
+    [Theory]
+    [InlineData(OutlookConfidence.High, "high")]
+    [InlineData(OutlookConfidence.Medium, "medium")]
+    [InlineData(OutlookConfidence.Low, "low")]
+    public void Every_outlook_confidence_has_a_wire_name(OutlookConfidence confidence, string wireName)
+    {
+        Assert.Equal(wireName, confidence.ToWireName());
+    }
+
+    [Fact]
+    public void An_undefined_outlook_confidence_has_no_wire_name()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => ((OutlookConfidence)999).ToWireName());
+
+        Assert.Equal("confidence", ex.ParamName);
     }
 
     [Fact]

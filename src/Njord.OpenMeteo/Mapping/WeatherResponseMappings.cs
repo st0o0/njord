@@ -10,61 +10,60 @@ internal static class WeatherResponseMappings
     public static DomainForecast<WeatherPoint>? ToDomainForecast(
         this WeatherResponse response, DateTimeOffset modelRun)
     {
-        if (response.Hourly is not { } h || h.Time.Length == 0)
+        if (response.Hourly is not var (times, temperature, apparentTemperature, windSpeed, precipitation, precipitationProbability, cloudCover, pressure, weatherCode, humidity, dewPoint, uvIndex, ensembleStdDev, windGusts, visibility, cape, rain, snowfall, soilTemperature, freezingLevelHeight, d, shortwaveRadiation, directRadiation, diffuseRadiation, directNormalIrradiance, sunshineDuration, windDirection, globalTiltedIrradiance, snowDepth, wetBulbTemperature, snowfallHeight, precipitationSpread, windSpeedSpread) || times.Length == 0)
         {
             return null;
         }
 
-        var times = h.Time;
         var builder = ImmutableArray.CreateBuilder<WeatherPoint>(times.Length);
         var lastValued = -1;
 
         for (var i = 0; i < times.Length; i++)
         {
-            if (AnyAt(i, h.Temperature, h.ApparentTemperature, h.WindSpeed, h.Precipitation,
-                    h.PrecipitationProbability, h.CloudCover, h.Pressure, h.WeatherCode, h.Humidity,
-                    h.DewPoint, h.UvIndex, h.EnsembleStdDev, h.WindGusts, h.Visibility, h.Cape, h.Rain,
-                    h.Snowfall, h.SoilTemperature, h.FreezingLevelHeight, h.IsDay, h.ShortwaveRadiation,
-                    h.DirectRadiation, h.DiffuseRadiation, h.DirectNormalIrradiance, h.SunshineDuration,
-                    h.WindDirection, h.GlobalTiltedIrradiance, h.SnowDepth, h.WetBulbTemperature, h.SnowfallHeight, h.PrecipitationSpread, h.WindSpeedSpread))
+            if (AnyAt(i, temperature, apparentTemperature, windSpeed, precipitation,
+                    precipitationProbability, cloudCover, pressure, weatherCode, humidity,
+                    dewPoint, uvIndex, ensembleStdDev, windGusts, visibility, cape, rain,
+                    snowfall, soilTemperature, freezingLevelHeight, d, shortwaveRadiation,
+                    directRadiation, diffuseRadiation, directNormalIrradiance, sunshineDuration,
+                    windDirection, globalTiltedIrradiance, snowDepth, wetBulbTemperature, snowfallHeight, precipitationSpread, windSpeedSpread))
             {
                 lastValued = i;
             }
 
             builder.Add(new WeatherPoint(
                 ValidFrom: DateTimeOffset.FromUnixTimeSeconds(times[i]),
-                Temperature: At(h.Temperature, i),
-                ApparentTemperature: At(h.ApparentTemperature, i),
-                WindSpeed: At(h.WindSpeed, i),
-                Precipitation: At(h.Precipitation, i),
-                PrecipitationProbability: At(h.PrecipitationProbability, i),
-                CloudCover: At(h.CloudCover, i),
-                Pressure: At(h.Pressure, i),
-                WeatherCode: At(h.WeatherCode, i) is { } code ? (int)code : null,
-                Humidity: At(h.Humidity, i),
-                DewPoint: At(h.DewPoint, i),
-                UvIndex: At(h.UvIndex, i),
-                EnsembleStdDev: At(h.EnsembleStdDev, i),
-                WindGusts: At(h.WindGusts, i),
-                Visibility: At(h.Visibility, i),
-                Cape: At(h.Cape, i),
-                Rain: At(h.Rain, i),
-                Snowfall: At(h.Snowfall, i),
-                SoilTemperature: At(h.SoilTemperature, i),
-                FreezingLevelHeight: At(h.FreezingLevelHeight, i),
-                IsDay: At(h.IsDay, i) is { } isDay ? isDay > 0.5 : null,
-                ShortwaveRadiation: At(h.ShortwaveRadiation, i),
-                DirectRadiation: At(h.DirectRadiation, i),
-                DiffuseRadiation: At(h.DiffuseRadiation, i),
-                DirectNormalIrradiance: At(h.DirectNormalIrradiance, i),
-                SunshineDuration: At(h.SunshineDuration, i),
-                WindDirection: At(h.WindDirection, i),
-                GlobalTiltedIrradiance: At(h.GlobalTiltedIrradiance, i),
-                SnowDepth: At(h.SnowDepth, i),
-                WetBulbTemperature: At(h.WetBulbTemperature, i),
-                SnowfallHeight: At(h.SnowfallHeight, i),
-                PrecipitationSpread: At(h.PrecipitationSpread, i),
-                WindSpeedSpread: At(h.WindSpeedSpread, i)));
+                Temperature: At(temperature, i),
+                ApparentTemperature: At(apparentTemperature, i),
+                WindSpeed: At(windSpeed, i),
+                Precipitation: At(precipitation, i),
+                PrecipitationProbability: At(precipitationProbability, i),
+                CloudCover: At(cloudCover, i),
+                Pressure: At(pressure, i),
+                WeatherCode: At(weatherCode, i) is { } code ? (int)code : null,
+                Humidity: At(humidity, i),
+                DewPoint: At(dewPoint, i),
+                UvIndex: At(uvIndex, i),
+                EnsembleStdDev: At(ensembleStdDev, i),
+                WindGusts: At(windGusts, i),
+                Visibility: At(visibility, i),
+                Cape: At(cape, i),
+                Rain: At(rain, i),
+                Snowfall: At(snowfall, i),
+                SoilTemperature: At(soilTemperature, i),
+                FreezingLevelHeight: At(freezingLevelHeight, i),
+                IsDay: At(d, i) is { } isDay ? isDay > 0.5 : null,
+                ShortwaveRadiation: At(shortwaveRadiation, i),
+                DirectRadiation: At(directRadiation, i),
+                DiffuseRadiation: At(diffuseRadiation, i),
+                DirectNormalIrradiance: At(directNormalIrradiance, i),
+                SunshineDuration: At(sunshineDuration, i),
+                WindDirection: At(windDirection, i),
+                GlobalTiltedIrradiance: At(globalTiltedIrradiance, i),
+                SnowDepth: At(snowDepth, i),
+                WetBulbTemperature: At(wetBulbTemperature, i),
+                SnowfallHeight: At(snowfallHeight, i),
+                PrecipitationSpread: At(precipitationSpread, i),
+                WindSpeedSpread: At(windSpeedSpread, i)));
         }
 
         if (lastValued < 0)
@@ -74,6 +73,6 @@ internal static class WeatherResponseMappings
 
         return new DomainForecast<WeatherPoint>(
             DomainKind.Weather, modelRun, TimeResolution.Hourly,
-            builder.Take(lastValued + 1).ToImmutableArray());
+            [.. builder.Take(lastValued + 1)]);
     }
 }

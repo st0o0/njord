@@ -53,6 +53,7 @@ services:
       - Njord__Features__FloodTimeline=true
       - Njord__Features__SwimmingConditions=true
       - Njord__Features__SurfConditions=true
+      - Njord__Features__SeasonalOutlook=true
 
 
   homeassistant:

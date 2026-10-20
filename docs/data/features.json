@@ -413,6 +413,15 @@
     ]
   },
   {
+    "key": "SeasonalOutlook",
+    "category": "Insight",
+    "description": "Monthly temperature and precipitation outlook for the next three months",
+    "enabledByDefault": false,
+    "domains": [
+      "Seasonal"
+    ]
+  },
+  {
     "key": "SolarYield",
     "category": "Energy",
     "description": "Expected solar yield from tilted irradiance",

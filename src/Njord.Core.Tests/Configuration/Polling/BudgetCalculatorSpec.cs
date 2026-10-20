@@ -2,6 +2,7 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Domain;
 using Njord.Forecast.AirQuality;
+using Njord.Forecast.Seasonal;
 using Njord.Forecast.Weather;
 
 namespace Njord.Core.Tests.Configuration.Polling;
@@ -35,6 +36,19 @@ public sealed class BudgetCalculatorSpec
             () => Assert.Equal(4L * 720, result.ProjectedMonthlyCalls),
             () => Assert.Equal(300_000, result.MonthlyLimit),
             () => Assert.True(result.WithinBudget));
+    }
+
+    [Fact]
+    public void Should_count_the_seasonal_domain_once_a_day_instead_of_once_per_poll_cycle()
+    {
+        var scope = Scope(locations: 2);
+        var resolved = new ResolvedRequirements(new DomainRequirements(Seasonal: SeasonalParams.TemperatureAnomaly));
+
+        var result = BudgetCalculator.Validate(scope, new WeatherOptions(), new PollingOptions(), resolved);
+
+        Assert.Multiple(
+            () => Assert.Equal(0, result.DomainCallsPerCycle),
+            () => Assert.Equal(2L * 30, result.ProjectedMonthlyCalls));
     }
 
     [Fact]

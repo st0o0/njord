@@ -11,6 +11,7 @@ internal static class DomainKindMappings
         DomainKind.Flood => "flood",
         DomainKind.Solar => "solar",
         DomainKind.Marine => "marine",
+        DomainKind.Seasonal => "seasonal",
         _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null),
     };
 }

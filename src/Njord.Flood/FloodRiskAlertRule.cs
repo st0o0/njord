@@ -50,7 +50,7 @@ public sealed class FloodRiskAlertRule : IAlertRule<DomainForecast<FloodPoint>>
     internal static Alert Build(AlertType type, AlertSeverity severity, double trigger, double threshold, int hoursUntil) =>
         new(type, severity, 1.0, NoDetails.Instance, TriggerValue: trigger, Threshold: threshold, HoursUntil: hoursUntil, Level: ConfidenceLevel.High);
 
-    internal static (double Share, ConfidenceLevel Level) Confidence(FloodPoint point, double threshold)
+    private static (double Share, ConfidenceLevel Level) Confidence(FloodPoint point, double threshold)
     {
         if (point.EnsembleMembers is not { Count: > 0 } members)
         {
@@ -67,7 +67,7 @@ public sealed class FloodRiskAlertRule : IAlertRule<DomainForecast<FloodPoint>>
         return (share, level);
     }
 
-    public static (AlertSeverity Severity, double Threshold) Classify(FloodPoint point)
+    private static (AlertSeverity Severity, double Threshold) Classify(FloodPoint point)
     {
         if (point.DischargeMax is { } max && point.Discharge > max)
         {

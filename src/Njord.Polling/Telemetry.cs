@@ -36,6 +36,7 @@ internal static class Telemetry
         DomainKind.Flood => "flood",
         DomainKind.Solar => "solar",
         DomainKind.Marine => "marine",
+        DomainKind.Seasonal => "seasonal",
         _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, "Unknown domain kind"),
     });
 }

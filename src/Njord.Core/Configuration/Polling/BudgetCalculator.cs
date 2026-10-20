@@ -9,6 +9,8 @@ public static class BudgetCalculator
 
     public const int FloodEnsembleWeight = 5;
 
+    public const int SeasonalCallsPerMonth = 30;
+
     private static readonly TimeSpan Month = TimeSpan.FromDays(30);
 
     public static RequestBudget GetEffectiveBudget(PollingOptions polling) =>
@@ -31,7 +33,8 @@ public static class BudgetCalculator
         var callsPerCycle = locationCount * (apiCallWeight + otherDomains + floodExtraWeight);
 
         var cyclesPerMonth = Month.TotalMinutes / polling.PollInterval.TotalMinutes;
-        var projectedMonthly = (long)Math.Round(callsPerCycle * cyclesPerMonth);
+        var seasonalCalls = requirements.Requires(DomainKind.Seasonal) ? locationCount * SeasonalCallsPerMonth : 0;
+        var projectedMonthly = (long)Math.Round(callsPerCycle * cyclesPerMonth) + seasonalCalls;
 
         var budget = GetEffectiveBudget(polling);
         var usagePercent = budget.RequestsPerMonth > 0

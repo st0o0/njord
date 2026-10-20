@@ -1,7 +1,9 @@
+using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
 using Njord.Forecast.Marine;
+using Njord.Forecast.Seasonal;
 using Njord.Forecast.Solar;
 using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
@@ -29,6 +31,10 @@ public abstract record PipelineEvent
     public sealed record MarineDataReceived(
         Location Location,
         DomainForecast<MarinePoint> Forecast) : PipelineEvent;
+
+    public sealed record SeasonalDataReceived(
+        Location Location,
+        DomainForecast<SeasonalPoint> Forecast) : PipelineEvent;
 
     public sealed record AlertRaised(
         Location Location,
@@ -129,4 +135,8 @@ public abstract record PipelineEvent
         double SwellPeriod,
         string? WindRelation,
         DateTimeOffset BestStart) : PipelineEvent;
+
+    public sealed record SeasonalOutlookComputed(
+        Location Location,
+        ImmutableArray<MonthlyOutlook> Months) : PipelineEvent;
 }

@@ -7,7 +7,10 @@ internal sealed class OpenMeteoRequestBuilder
     private readonly string _endpoint;
     private readonly List<string> _params = [];
 
-    private OpenMeteoRequestBuilder(string endpoint) => _endpoint = endpoint;
+    private OpenMeteoRequestBuilder(string endpoint)
+    {
+        _endpoint = endpoint;
+    }
 
     public static OpenMeteoRequestBuilder To(string endpoint) => new(endpoint);
 
@@ -27,6 +30,12 @@ internal sealed class OpenMeteoRequestBuilder
     public OpenMeteoRequestBuilder WithDaily(IEnumerable<string> variables)
     {
         _params.Add($"daily={string.Join(",", variables)}");
+        return this;
+    }
+
+    public OpenMeteoRequestBuilder WithMonthly(IEnumerable<string> variables)
+    {
+        _params.Add($"monthly={string.Join(",", variables)}");
         return this;
     }
 

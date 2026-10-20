@@ -54,7 +54,7 @@ public sealed class WeatherAlertHandler : IMultiFeatureHandler
     {
         var rules = _rules.Where(rule => features.IsEnabled(rule.Feature)).ToList();
         var requirements = rules.Aggregate(default(DomainRequirements), (all, rule) => all | rule.Feature.Requirements);
-        var representative = (rules.Count > 0 ? rules : _rules).First().Feature;
+        var representative = (rules.Count > 0 ? rules : _rules)[0].Feature;
         return new Enabled(rules, representative with { DefaultEnabled = rules.Count > 0, Requirements = requirements });
     }
 

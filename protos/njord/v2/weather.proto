@@ -37,6 +37,7 @@ enum Domain {
   DOMAIN_FLOOD = 3;
   DOMAIN_SOLAR = 4;
   DOMAIN_MARINE = 5;
+  DOMAIN_SEASONAL = 6;
 }
 
 message GetDomainDataRequest {
