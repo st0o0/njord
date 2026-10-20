@@ -13,8 +13,8 @@ public sealed class FloodRequirementsSpec
         var handler = new FloodRiskHandler(new FloodRiskAlertRule(), AlertRuleFixture.OptionsWith(true));
 
         Assert.Equal(
-            new DomainRequirements(Flood: FloodParam.Discharge | FloodParam.DischargeMedian
-                | FloodParam.DischargeP75 | FloodParam.DischargeMax),
+            new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeMedian
+                | FloodParams.DischargeP75 | FloodParams.DischargeMax),
             handler.Requirements);
     }
 
@@ -25,8 +25,8 @@ public sealed class FloodRequirementsSpec
 
         Assert.Equal(
             new DomainRequirements(
-                Weather: WeatherParam.Precipitation,
-                Flood: FloodParam.Discharge | FloodParam.DischargeMedian | FloodParam.DischargeP75),
+                Weather: WeatherParams.Precipitation,
+                Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75),
             handler.Requirements);
     }
 
@@ -34,7 +34,7 @@ public sealed class FloodRequirementsSpec
     public void The_timeline_handler_requires_discharge_and_the_warning_level()
     {
         Assert.Equal(
-            new DomainRequirements(Flood: FloodParam.Discharge | FloodParam.DischargeP75),
+            new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeP75),
             new FloodTimelineHandler().Requirements);
     }
 }

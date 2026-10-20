@@ -7,90 +7,90 @@ namespace Njord.OpenMeteo.Mapping;
 
 public static class WeatherParamMappings
 {
-    public static IReadOnlyList<string> ToApiNames(this WeatherParam flags) =>
-        [.. Enum.GetValues<WeatherParam>().Where(p => p != WeatherParam.None && flags.HasFlag(p)).Select(ToApiName)];
+    public static IReadOnlyList<string> ToApiNames(this WeatherParams flags) =>
+        [.. Enum.GetValues<WeatherParams>().Where(p => p != WeatherParams.None && flags.HasFlag(p)).Select(ToApiName)];
 
-    private static string ToApiName(WeatherParam param) => param switch
+    private static string ToApiName(WeatherParams param) => param switch
     {
-        WeatherParam.Temperature => "temperature_2m",
-        WeatherParam.ApparentTemperature => "apparent_temperature",
-        WeatherParam.WindSpeed => "wind_speed_10m",
-        WeatherParam.Precipitation => "precipitation",
-        WeatherParam.PrecipitationProbability => "precipitation_probability",
-        WeatherParam.CloudCover => "cloud_cover",
-        WeatherParam.Pressure => "pressure_msl",
-        WeatherParam.WeatherCode => "weather_code",
-        WeatherParam.Humidity => "relative_humidity_2m",
-        WeatherParam.DewPoint => "dew_point_2m",
-        WeatherParam.UvIndex => "uv_index",
-        WeatherParam.EnsembleStdDev => "temperature_2m_spread",
-        WeatherParam.WindGusts => "wind_gusts_10m",
-        WeatherParam.Visibility => "visibility",
-        WeatherParam.Cape => "cape",
-        WeatherParam.Rain => "rain",
-        WeatherParam.Snowfall => "snowfall",
-        WeatherParam.SoilTemperature => "soil_temperature_0_to_10cm",
-        WeatherParam.FreezingLevelHeight => "freezing_level_height",
-        WeatherParam.IsDay => "is_day",
-        WeatherParam.ShortwaveRadiation => "shortwave_radiation",
-        WeatherParam.DirectRadiation => "direct_radiation",
-        WeatherParam.DiffuseRadiation => "diffuse_radiation",
-        WeatherParam.DirectNormalIrradiance => "direct_normal_irradiance",
-        WeatherParam.SunshineDuration => "sunshine_duration",
-        WeatherParam.WindDirection => "wind_direction_10m",
+        WeatherParams.Temperature => "temperature_2m",
+        WeatherParams.ApparentTemperature => "apparent_temperature",
+        WeatherParams.WindSpeed => "wind_speed_10m",
+        WeatherParams.Precipitation => "precipitation",
+        WeatherParams.PrecipitationProbability => "precipitation_probability",
+        WeatherParams.CloudCover => "cloud_cover",
+        WeatherParams.Pressure => "pressure_msl",
+        WeatherParams.WeatherCode => "weather_code",
+        WeatherParams.Humidity => "relative_humidity_2m",
+        WeatherParams.DewPoint => "dew_point_2m",
+        WeatherParams.UvIndex => "uv_index",
+        WeatherParams.EnsembleStdDev => "temperature_2m_spread",
+        WeatherParams.WindGusts => "wind_gusts_10m",
+        WeatherParams.Visibility => "visibility",
+        WeatherParams.Cape => "cape",
+        WeatherParams.Rain => "rain",
+        WeatherParams.Snowfall => "snowfall",
+        WeatherParams.SoilTemperature => "soil_temperature_0_to_10cm",
+        WeatherParams.FreezingLevelHeight => "freezing_level_height",
+        WeatherParams.IsDay => "is_day",
+        WeatherParams.ShortwaveRadiation => "shortwave_radiation",
+        WeatherParams.DirectRadiation => "direct_radiation",
+        WeatherParams.DiffuseRadiation => "diffuse_radiation",
+        WeatherParams.DirectNormalIrradiance => "direct_normal_irradiance",
+        WeatherParams.SunshineDuration => "sunshine_duration",
+        WeatherParams.WindDirection => "wind_direction_10m",
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }
 
 public static class AirQualityParamMappings
 {
-    public static IReadOnlyList<string> ToApiNames(this AirQualityParam flags) =>
-        [.. Enum.GetValues<AirQualityParam>().Where(p => p != AirQualityParam.None && flags.HasFlag(p)).Select(ToApiName)];
+    public static IReadOnlyList<string> ToApiNames(this AirQualityParams flags) =>
+        [.. Enum.GetValues<AirQualityParams>().Where(p => p != AirQualityParams.None && flags.HasFlag(p)).Select(ToApiName)];
 
-    private static string ToApiName(AirQualityParam param) => param switch
+    private static string ToApiName(AirQualityParams param) => param switch
     {
-        AirQualityParam.Pm25 => "pm2_5",
-        AirQualityParam.Pm10 => "pm10",
-        AirQualityParam.Ozone => "ozone",
-        AirQualityParam.NitrogenDioxide => "nitrogen_dioxide",
-        AirQualityParam.EuropeanAqi => "european_aqi",
-        AirQualityParam.BirchPollen => "birch_pollen",
-        AirQualityParam.GrassPollen => "grass_pollen",
-        AirQualityParam.Alder => "alder_pollen",
-        AirQualityParam.Mugwort => "mugwort_pollen",
+        AirQualityParams.Pm25 => "pm2_5",
+        AirQualityParams.Pm10 => "pm10",
+        AirQualityParams.Ozone => "ozone",
+        AirQualityParams.NitrogenDioxide => "nitrogen_dioxide",
+        AirQualityParams.EuropeanAqi => "european_aqi",
+        AirQualityParams.BirchPollen => "birch_pollen",
+        AirQualityParams.GrassPollen => "grass_pollen",
+        AirQualityParams.Alder => "alder_pollen",
+        AirQualityParams.Mugwort => "mugwort_pollen",
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }
 
 public static class FloodParamMappings
 {
-    public static IReadOnlyList<string> ToApiNames(this FloodParam flags) =>
-        [.. Enum.GetValues<FloodParam>().Where(p => p != FloodParam.None && flags.HasFlag(p)).Select(ToApiName)];
+    public static IReadOnlyList<string> ToApiNames(this FloodParams flags) =>
+        [.. Enum.GetValues<FloodParams>().Where(p => p != FloodParams.None && flags.HasFlag(p)).Select(ToApiName)];
 
-    private static string ToApiName(FloodParam param) => param switch
+    private static string ToApiName(FloodParams param) => param switch
     {
-        FloodParam.Discharge => "river_discharge",
-        FloodParam.DischargeMean => "river_discharge_mean",
-        FloodParam.DischargeMedian => "river_discharge_median",
-        FloodParam.DischargeMax => "river_discharge_max",
-        FloodParam.DischargeMin => "river_discharge_min",
-        FloodParam.DischargeP25 => "river_discharge_p25",
-        FloodParam.DischargeP75 => "river_discharge_p75",
+        FloodParams.Discharge => "river_discharge",
+        FloodParams.DischargeMean => "river_discharge_mean",
+        FloodParams.DischargeMedian => "river_discharge_median",
+        FloodParams.DischargeMax => "river_discharge_max",
+        FloodParams.DischargeMin => "river_discharge_min",
+        FloodParams.DischargeP25 => "river_discharge_p25",
+        FloodParams.DischargeP75 => "river_discharge_p75",
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }
 
 public static class MarineParamMappings
 {
-    public static IReadOnlyList<string> ToApiNames(this MarineParam flags) =>
-        [.. Enum.GetValues<MarineParam>().Where(p => p != MarineParam.None && flags.HasFlag(p)).Select(ToApiName)];
+    public static IReadOnlyList<string> ToApiNames(this MarineParams flags) =>
+        [.. Enum.GetValues<MarineParams>().Where(p => p != MarineParams.None && flags.HasFlag(p)).Select(ToApiName)];
 
-    private static string ToApiName(MarineParam param) => param switch
+    private static string ToApiName(MarineParams param) => param switch
     {
-        MarineParam.WaveHeight => "wave_height",
-        MarineParam.WavePeriod => "wave_period",
-        MarineParam.WaveDirection => "wave_direction",
-        MarineParam.WaterTemperature => "sea_surface_temperature",
+        MarineParams.WaveHeight => "wave_height",
+        MarineParams.WavePeriod => "wave_period",
+        MarineParams.WaveDirection => "wave_direction",
+        MarineParams.WaterTemperature => "sea_surface_temperature",
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

@@ -10,21 +10,21 @@ public sealed record FloodPoint(
     double? DischargeP25 = null,
     double? DischargeP75 = null) : IHasValidTime
 {
-    private static readonly FloodParam[] Flags =
-        [.. Enum.GetValues<FloodParam>().Where(p => p != FloodParam.None)];
+    private static readonly FloodParams[] Flags =
+        [.. Enum.GetValues<FloodParams>().Where(p => p != FloodParams.None)];
 
-    public bool HasFields(FloodParam required) =>
+    public bool HasFields(FloodParams required) =>
         Flags.All(flag => !required.HasFlag(flag) || Has(flag));
 
-    private bool Has(FloodParam param) => param switch
+    private bool Has(FloodParams param) => param switch
     {
-        FloodParam.Discharge => Discharge is not null,
-        FloodParam.DischargeMean => DischargeMean is not null,
-        FloodParam.DischargeMedian => DischargeMedian is not null,
-        FloodParam.DischargeMax => DischargeMax is not null,
-        FloodParam.DischargeMin => DischargeMin is not null,
-        FloodParam.DischargeP25 => DischargeP25 is not null,
-        FloodParam.DischargeP75 => DischargeP75 is not null,
+        FloodParams.Discharge => Discharge is not null,
+        FloodParams.DischargeMean => DischargeMean is not null,
+        FloodParams.DischargeMedian => DischargeMedian is not null,
+        FloodParams.DischargeMax => DischargeMax is not null,
+        FloodParams.DischargeMin => DischargeMin is not null,
+        FloodParams.DischargeP25 => DischargeP25 is not null,
+        FloodParams.DischargeP75 => DischargeP75 is not null,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

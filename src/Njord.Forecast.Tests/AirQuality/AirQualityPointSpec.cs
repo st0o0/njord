@@ -11,7 +11,7 @@ public sealed class AirQualityPointSpec
     {
         var point = new AirQualityPoint(At, Pm25: 1, Pm10: 2);
 
-        Assert.True(point.HasFields(AirQualityParam.Pm25 | AirQualityParam.Pm10));
+        Assert.True(point.HasFields(AirQualityParams.Pm25 | AirQualityParams.Pm10));
     }
 
     [Fact]
@@ -19,13 +19,13 @@ public sealed class AirQualityPointSpec
     {
         var point = new AirQualityPoint(At, Pm25: 1);
 
-        Assert.False(point.HasFields(AirQualityParam.Pm25 | AirQualityParam.Pm10));
+        Assert.False(point.HasFields(AirQualityParams.Pm25 | AirQualityParams.Pm10));
     }
 
     [Fact]
     public void Should_report_true_when_nothing_is_requested()
     {
-        Assert.True(new AirQualityPoint(At).HasFields(AirQualityParam.None));
+        Assert.True(new AirQualityPoint(At).HasFields(AirQualityParams.None));
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public sealed class AirQualityPointSpec
     {
         var point = new AirQualityPoint(At, Pm25: 1);
 
-        Assert.True(point.HasFields(AirQualityParam.Pm25));
+        Assert.True(point.HasFields(AirQualityParams.Pm25));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class AirQualityPointSpec
         var point = new AirQualityPoint(At);
 
         Assert.All(
-            Enum.GetValues<AirQualityParam>().Where(p => p != AirQualityParam.None),
+            Enum.GetValues<AirQualityParams>().Where(p => p != AirQualityParams.None),
             flag => Assert.False(point.HasFields(flag)));
     }
 }

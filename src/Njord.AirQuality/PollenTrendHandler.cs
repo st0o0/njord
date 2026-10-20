@@ -20,8 +20,8 @@ public sealed class PollenTrendHandler : IDomainHandler
 
     public string ConfigKey => "PollenTrend";
 
-    public DomainRequirements Requirements { get; } = new(AirQuality: AirQualityParam.BirchPollen | AirQualityParam.GrassPollen
-        | AirQualityParam.Alder | AirQualityParam.Mugwort);
+    public DomainRequirements Requirements { get; } = new(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
+        | AirQualityParams.Alder | AirQualityParams.Mugwort);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

@@ -11,7 +11,7 @@ public sealed class WeatherPointSpec
     {
         var point = new WeatherPoint(At, Temperature: 1, WindSpeed: 2);
 
-        Assert.True(point.HasFields(WeatherParam.Temperature | WeatherParam.WindSpeed));
+        Assert.True(point.HasFields(WeatherParams.Temperature | WeatherParams.WindSpeed));
     }
 
     [Fact]
@@ -19,13 +19,13 @@ public sealed class WeatherPointSpec
     {
         var point = new WeatherPoint(At, Temperature: 1);
 
-        Assert.False(point.HasFields(WeatherParam.Temperature | WeatherParam.WindSpeed));
+        Assert.False(point.HasFields(WeatherParams.Temperature | WeatherParams.WindSpeed));
     }
 
     [Fact]
     public void Should_report_true_when_nothing_is_requested()
     {
-        Assert.True(new WeatherPoint(At).HasFields(WeatherParam.None));
+        Assert.True(new WeatherPoint(At).HasFields(WeatherParams.None));
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public sealed class WeatherPointSpec
     {
         var point = new WeatherPoint(At, Temperature: 1);
 
-        Assert.True(point.HasFields(WeatherParam.Temperature));
+        Assert.True(point.HasFields(WeatherParams.Temperature));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class WeatherPointSpec
         var point = new WeatherPoint(At);
 
         Assert.All(
-            Enum.GetValues<WeatherParam>().Where(p => p != WeatherParam.None),
+            Enum.GetValues<WeatherParams>().Where(p => p != WeatherParams.None),
             flag => Assert.False(point.HasFields(flag)));
     }
 }

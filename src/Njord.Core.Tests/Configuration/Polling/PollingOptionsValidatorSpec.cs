@@ -12,7 +12,7 @@ public sealed class PollingOptionsValidatorSpec
         new(new ConfigurationBuilder()
             .AddInMemoryCollection(scope.ToDictionary(s => s.Key, s => (string?)s.Value))
             .Build(),
-            new ResolvedRequirements(new DomainRequirements(Weather: WeatherParam.Temperature, AirQuality: AirQualityParam.Pm25)));
+            new ResolvedRequirements(new DomainRequirements(Weather: WeatherParams.Temperature, AirQuality: AirQualityParams.Pm25)));
 
     [Theory]
     [InlineData("00:00:00")]

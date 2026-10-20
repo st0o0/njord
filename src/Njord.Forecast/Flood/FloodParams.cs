@@ -1,7 +1,7 @@
 namespace Njord.Forecast.Flood;
 
 [Flags]
-public enum FloodParam
+public enum FloodParams
 {
     None = 0,
     Discharge = 1 << 0,

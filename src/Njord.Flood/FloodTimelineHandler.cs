@@ -9,7 +9,7 @@ public sealed class FloodTimelineHandler : IDomainHandler
 {
     public string ConfigKey => "FloodTimeline";
 
-    public DomainRequirements Requirements { get; } = new(Flood: FloodParam.Discharge | FloodParam.DischargeP75);
+    public DomainRequirements Requirements { get; } = new(Flood: FloodParams.Discharge | FloodParams.DischargeP75);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

@@ -13,15 +13,15 @@ public sealed class AirQualityRequirementsSpec
     [Fact]
     public void The_pm25_alert_requires_pm25_only()
     {
-        Assert.Equal(new DomainRequirements(AirQuality: AirQualityParam.Pm25), Create(AlertType.Pm25).Requirements);
+        Assert.Equal(new DomainRequirements(AirQuality: AirQualityParams.Pm25), Create(AlertType.Pm25).Requirements);
     }
 
     [Fact]
     public void The_pollen_alert_requires_every_pollen_type()
     {
         Assert.Equal(
-            new DomainRequirements(AirQuality: AirQualityParam.BirchPollen | AirQualityParam.GrassPollen
-                | AirQualityParam.Alder | AirQualityParam.Mugwort),
+            new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
+                | AirQualityParams.Alder | AirQualityParams.Mugwort),
             Create(AlertType.Pollen).Requirements);
     }
 
@@ -29,8 +29,8 @@ public sealed class AirQualityRequirementsSpec
     public void The_pollen_trend_requires_every_pollen_type()
     {
         Assert.Equal(
-            new DomainRequirements(AirQuality: AirQualityParam.BirchPollen | AirQualityParam.GrassPollen
-                | AirQualityParam.Alder | AirQualityParam.Mugwort),
+            new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
+                | AirQualityParams.Alder | AirQualityParams.Mugwort),
             new PollenTrendHandler().Requirements);
     }
 }

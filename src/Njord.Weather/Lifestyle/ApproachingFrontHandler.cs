@@ -13,7 +13,7 @@ public sealed class ApproachingFrontHandler : IDomainHandler
 
     public string ConfigKey => "ApproachingFront";
 
-    public DomainRequirements Requirements { get; } = new(Weather: WeatherParam.Pressure | WeatherParam.Temperature | WeatherParam.WindDirection);
+    public DomainRequirements Requirements { get; } = new(Weather: WeatherParams.Pressure | WeatherParams.Temperature | WeatherParams.WindDirection);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

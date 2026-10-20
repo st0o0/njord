@@ -15,8 +15,8 @@ public sealed class CommuteSafetyHandler : IDomainHandler
 
     public string ConfigKey => "CommuteSafety";
 
-    public DomainRequirements Requirements { get; } = new(Weather: WeatherParam.Temperature | WeatherParam.DewPoint | WeatherParam.Humidity
-            | WeatherParam.Precipitation | WeatherParam.WindSpeed);
+    public DomainRequirements Requirements { get; } = new(Weather: WeatherParams.Temperature | WeatherParams.DewPoint | WeatherParams.Humidity
+            | WeatherParams.Precipitation | WeatherParams.WindSpeed);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

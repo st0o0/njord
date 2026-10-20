@@ -8,20 +8,20 @@ public sealed class WeatherParamExtensionsSpec
     [Fact]
     public void Should_count_no_flags_as_zero()
     {
-        Assert.Equal(0, WeatherParam.None.FlagCount());
+        Assert.Equal(0, WeatherParams.None.FlagCount());
     }
 
     [Fact]
     public void Should_count_each_set_flag_once()
     {
-        Assert.Equal(3, (WeatherParam.Temperature | WeatherParam.UvIndex | WeatherParam.WindDirection).FlagCount());
+        Assert.Equal(3, (WeatherParams.Temperature | WeatherParams.UvIndex | WeatherParams.WindDirection).FlagCount());
     }
 
     [Fact]
     public void Should_count_every_defined_flag()
     {
-        var all = Enum.GetValues<WeatherParam>().Aggregate(WeatherParam.None, (a, b) => a | b);
+        var all = Enum.GetValues<WeatherParams>().Aggregate(WeatherParams.None, (a, b) => a | b);
 
-        Assert.Equal(Enum.GetValues<WeatherParam>().Length - 1, all.FlagCount());
+        Assert.Equal(Enum.GetValues<WeatherParams>().Length - 1, all.FlagCount());
     }
 }

@@ -12,23 +12,23 @@ public sealed record AirQualityPoint(
     double? EuropeanAqi = null,
     double? NitrogenDioxide = null) : IHasValidTime
 {
-    private static readonly AirQualityParam[] Flags =
-        [.. Enum.GetValues<AirQualityParam>().Where(p => p != AirQualityParam.None)];
+    private static readonly AirQualityParams[] Flags =
+        [.. Enum.GetValues<AirQualityParams>().Where(p => p != AirQualityParams.None)];
 
-    public bool HasFields(AirQualityParam required) =>
+    public bool HasFields(AirQualityParams required) =>
         Flags.All(flag => !required.HasFlag(flag) || Has(flag));
 
-    private bool Has(AirQualityParam param) => param switch
+    private bool Has(AirQualityParams param) => param switch
     {
-        AirQualityParam.Pm25 => Pm25 is not null,
-        AirQualityParam.Pm10 => Pm10 is not null,
-        AirQualityParam.Ozone => Ozone is not null,
-        AirQualityParam.NitrogenDioxide => NitrogenDioxide is not null,
-        AirQualityParam.EuropeanAqi => EuropeanAqi is not null,
-        AirQualityParam.BirchPollen => BirchPollen is not null,
-        AirQualityParam.GrassPollen => GrassPollen is not null,
-        AirQualityParam.Alder => Alder is not null,
-        AirQualityParam.Mugwort => Mugwort is not null,
+        AirQualityParams.Pm25 => Pm25 is not null,
+        AirQualityParams.Pm10 => Pm10 is not null,
+        AirQualityParams.Ozone => Ozone is not null,
+        AirQualityParams.NitrogenDioxide => NitrogenDioxide is not null,
+        AirQualityParams.EuropeanAqi => EuropeanAqi is not null,
+        AirQualityParams.BirchPollen => BirchPollen is not null,
+        AirQualityParams.GrassPollen => GrassPollen is not null,
+        AirQualityParams.Alder => Alder is not null,
+        AirQualityParams.Mugwort => Mugwort is not null,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

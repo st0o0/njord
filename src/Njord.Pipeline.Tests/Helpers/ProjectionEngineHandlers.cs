@@ -58,10 +58,10 @@ internal static class HandlerRequirements
     public static DomainRequirements For(params DomainKind[] domains) =>
         domains.Aggregate(default(DomainRequirements), (all, domain) => all | domain switch
         {
-            DomainKind.Weather => new DomainRequirements(Weather: WeatherParam.Temperature),
-            DomainKind.AirQuality => new DomainRequirements(AirQuality: AirQualityParam.Pm25),
-            DomainKind.Flood => new DomainRequirements(Flood: FloodParam.Discharge),
-            DomainKind.Marine => new DomainRequirements(Marine: MarineParam.WaveHeight),
+            DomainKind.Weather => new DomainRequirements(Weather: WeatherParams.Temperature),
+            DomainKind.AirQuality => new DomainRequirements(AirQuality: AirQualityParams.Pm25),
+            DomainKind.Flood => new DomainRequirements(Flood: FloodParams.Discharge),
+            DomainKind.Marine => new DomainRequirements(Marine: MarineParams.WaveHeight),
             _ => default,
         });
 }

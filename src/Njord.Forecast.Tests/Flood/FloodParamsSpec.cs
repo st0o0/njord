@@ -2,10 +2,10 @@ using Njord.Forecast.Flood;
 
 namespace Njord.Forecast.Tests.Flood;
 
-public sealed class FloodParamSpec
+public sealed class FloodParamsSpec
 {
-    private static readonly FloodParam[] Flags =
-        [.. Enum.GetValues<FloodParam>().Where(p => p != FloodParam.None)];
+    private static readonly FloodParams[] Flags =
+        [.. Enum.GetValues<FloodParams>().Where(p => p != FloodParams.None)];
 
     [Fact]
     public void Should_give_every_flag_exactly_one_distinct_bit()
@@ -19,18 +19,18 @@ public sealed class FloodParamSpec
     [Fact]
     public void Should_contain_both_members_and_nothing_else_when_two_flags_are_combined()
     {
-        var union = FloodParam.Discharge | FloodParam.DischargeMean;
+        var union = FloodParams.Discharge | FloodParams.DischargeMean;
 
         Assert.Multiple(
-            () => Assert.True(union.HasFlag(FloodParam.Discharge)),
-            () => Assert.True(union.HasFlag(FloodParam.DischargeMean)),
+            () => Assert.True(union.HasFlag(FloodParams.Discharge)),
+            () => Assert.True(union.HasFlag(FloodParams.DischargeMean)),
             () => Assert.Equal(2, Flags.Count(p => union.HasFlag(p))));
     }
 
     [Fact]
     public void Should_combine_all_flags_without_collision()
     {
-        var all = Flags.Aggregate(FloodParam.None, (acc, p) => acc | p);
+        var all = Flags.Aggregate(FloodParams.None, (acc, p) => acc | p);
 
         Assert.Equal(Flags.Length, Flags.Count(p => all.HasFlag(p)));
     }

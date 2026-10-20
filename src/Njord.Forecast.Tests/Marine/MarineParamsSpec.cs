@@ -2,10 +2,10 @@ using Njord.Forecast.Marine;
 
 namespace Njord.Forecast.Tests.Marine;
 
-public sealed class MarineParamSpec
+public sealed class MarineParamsSpec
 {
-    private static readonly MarineParam[] Flags =
-        [.. Enum.GetValues<MarineParam>().Where(p => p != MarineParam.None)];
+    private static readonly MarineParams[] Flags =
+        [.. Enum.GetValues<MarineParams>().Where(p => p != MarineParams.None)];
 
     [Fact]
     public void Should_give_every_flag_exactly_one_distinct_bit()
@@ -19,18 +19,18 @@ public sealed class MarineParamSpec
     [Fact]
     public void Should_contain_both_members_and_nothing_else_when_two_flags_are_combined()
     {
-        var union = MarineParam.WaveHeight | MarineParam.WavePeriod;
+        var union = MarineParams.WaveHeight | MarineParams.WavePeriod;
 
         Assert.Multiple(
-            () => Assert.True(union.HasFlag(MarineParam.WaveHeight)),
-            () => Assert.True(union.HasFlag(MarineParam.WavePeriod)),
+            () => Assert.True(union.HasFlag(MarineParams.WaveHeight)),
+            () => Assert.True(union.HasFlag(MarineParams.WavePeriod)),
             () => Assert.Equal(2, Flags.Count(p => union.HasFlag(p))));
     }
 
     [Fact]
     public void Should_combine_all_flags_without_collision()
     {
-        var all = Flags.Aggregate(MarineParam.None, (acc, p) => acc | p);
+        var all = Flags.Aggregate(MarineParams.None, (acc, p) => acc | p);
 
         Assert.Equal(Flags.Length, Flags.Count(p => all.HasFlag(p)));
     }

@@ -2,10 +2,10 @@ using Njord.Forecast.AirQuality;
 
 namespace Njord.Forecast.Tests.AirQuality;
 
-public sealed class AirQualityParamSpec
+public sealed class AirQualityParamsSpec
 {
-    private static readonly AirQualityParam[] Flags =
-        [.. Enum.GetValues<AirQualityParam>().Where(p => p != AirQualityParam.None)];
+    private static readonly AirQualityParams[] Flags =
+        [.. Enum.GetValues<AirQualityParams>().Where(p => p != AirQualityParams.None)];
 
     [Fact]
     public void Should_give_every_flag_exactly_one_distinct_bit()
@@ -19,18 +19,18 @@ public sealed class AirQualityParamSpec
     [Fact]
     public void Should_contain_both_members_and_nothing_else_when_two_flags_are_combined()
     {
-        var union = AirQualityParam.Pm25 | AirQualityParam.Pm10;
+        var union = AirQualityParams.Pm25 | AirQualityParams.Pm10;
 
         Assert.Multiple(
-            () => Assert.True(union.HasFlag(AirQualityParam.Pm25)),
-            () => Assert.True(union.HasFlag(AirQualityParam.Pm10)),
+            () => Assert.True(union.HasFlag(AirQualityParams.Pm25)),
+            () => Assert.True(union.HasFlag(AirQualityParams.Pm10)),
             () => Assert.Equal(2, Flags.Count(p => union.HasFlag(p))));
     }
 
     [Fact]
     public void Should_combine_all_flags_without_collision()
     {
-        var all = Flags.Aggregate(AirQualityParam.None, (acc, p) => acc | p);
+        var all = Flags.Aggregate(AirQualityParams.None, (acc, p) => acc | p);
 
         Assert.Equal(Flags.Length, Flags.Count(p => all.HasFlag(p)));
     }

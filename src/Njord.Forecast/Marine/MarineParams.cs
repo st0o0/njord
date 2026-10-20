@@ -1,7 +1,7 @@
 namespace Njord.Forecast.Marine;
 
 [Flags]
-public enum MarineParam
+public enum MarineParams
 {
     None = 0,
     WaveHeight = 1 << 0,

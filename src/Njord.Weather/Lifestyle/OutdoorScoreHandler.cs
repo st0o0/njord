@@ -13,12 +13,12 @@ public sealed class OutdoorScoreHandler : IDomainHandler
     public string ConfigKey => "OutdoorScore";
 
     public DomainRequirements Requirements { get; } = new(
-        Weather: WeatherParam.Temperature | WeatherParam.Precipitation | WeatherParam.PrecipitationProbability
-            | WeatherParam.WindSpeed | WeatherParam.CloudCover,
-        AirQuality: AirQualityParam.Pm25,
-        OptionalWeather: WeatherParam.UvIndex,
-        OptionalAirQuality: AirQualityParam.BirchPollen | AirQualityParam.GrassPollen
-            | AirQualityParam.Alder | AirQualityParam.Mugwort);
+        Weather: WeatherParams.Temperature | WeatherParams.Precipitation | WeatherParams.PrecipitationProbability
+            | WeatherParams.WindSpeed | WeatherParams.CloudCover,
+        AirQuality: AirQualityParams.Pm25,
+        OptionalWeather: WeatherParams.UvIndex,
+        OptionalAirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
+            | AirQualityParams.Alder | AirQualityParams.Mugwort);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

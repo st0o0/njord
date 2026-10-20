@@ -13,8 +13,8 @@ public sealed class FloodRainHandler(IAlertRule<FloodRainInput> rule, IOptions<A
     public string ConfigKey => "FloodRain";
 
     public DomainRequirements Requirements { get; } = new(
-        Weather: WeatherParam.Precipitation,
-        Flood: FloodParam.Discharge | FloodParam.DischargeMedian | FloodParam.DischargeP75);
+        Weather: WeatherParams.Precipitation,
+        Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

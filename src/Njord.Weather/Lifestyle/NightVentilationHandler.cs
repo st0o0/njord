@@ -13,7 +13,7 @@ public sealed class NightVentilationHandler : IDomainHandler
 
     public string ConfigKey => "NightVentilation";
 
-    public DomainRequirements Requirements { get; } = new(Weather: WeatherParam.Temperature);
+    public DomainRequirements Requirements { get; } = new(Weather: WeatherParams.Temperature);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

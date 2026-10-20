@@ -24,9 +24,9 @@ public sealed class AirQualityAlertHandler(
 
     public DomainRequirements Requirements { get; } = alertType switch
     {
-        AlertType.Pollen => new(AirQuality: AirQualityParam.BirchPollen | AirQualityParam.GrassPollen
-            | AirQualityParam.Alder | AirQualityParam.Mugwort),
-        AlertType.Pm25 => new(AirQuality: AirQualityParam.Pm25),
+        AlertType.Pollen => new(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
+            | AirQualityParams.Alder | AirQualityParams.Mugwort),
+        AlertType.Pm25 => new(AirQuality: AirQualityParams.Pm25),
         _ => throw new ArgumentOutOfRangeException(nameof(alertType), alertType, "Not an air quality alert type."),
     };
 

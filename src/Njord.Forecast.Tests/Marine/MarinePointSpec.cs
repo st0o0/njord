@@ -11,7 +11,7 @@ public sealed class MarinePointSpec
     {
         var point = new MarinePoint(At, WaveHeight: 1, WavePeriod: 2);
 
-        Assert.True(point.HasFields(MarineParam.WaveHeight | MarineParam.WavePeriod));
+        Assert.True(point.HasFields(MarineParams.WaveHeight | MarineParams.WavePeriod));
     }
 
     [Fact]
@@ -19,13 +19,13 @@ public sealed class MarinePointSpec
     {
         var point = new MarinePoint(At, WaveHeight: 1);
 
-        Assert.False(point.HasFields(MarineParam.WaveHeight | MarineParam.WavePeriod));
+        Assert.False(point.HasFields(MarineParams.WaveHeight | MarineParams.WavePeriod));
     }
 
     [Fact]
     public void Should_report_true_when_nothing_is_requested()
     {
-        Assert.True(new MarinePoint(At).HasFields(MarineParam.None));
+        Assert.True(new MarinePoint(At).HasFields(MarineParams.None));
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public sealed class MarinePointSpec
     {
         var point = new MarinePoint(At, WaveHeight: 1);
 
-        Assert.True(point.HasFields(MarineParam.WaveHeight));
+        Assert.True(point.HasFields(MarineParams.WaveHeight));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class MarinePointSpec
         var point = new MarinePoint(At);
 
         Assert.All(
-            Enum.GetValues<MarineParam>().Where(p => p != MarineParam.None),
+            Enum.GetValues<MarineParams>().Where(p => p != MarineParams.None),
             flag => Assert.False(point.HasFields(flag)));
     }
 }

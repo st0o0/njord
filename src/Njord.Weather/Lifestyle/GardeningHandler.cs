@@ -13,7 +13,7 @@ public sealed class GardeningHandler : IDomainHandler
 
     public string ConfigKey => "GardeningAdvisory";
 
-    public DomainRequirements Requirements { get; } = new(Weather: WeatherParam.Temperature | WeatherParam.WindSpeed | WeatherParam.Precipitation);
+    public DomainRequirements Requirements { get; } = new(Weather: WeatherParams.Temperature | WeatherParams.WindSpeed | WeatherParams.Precipitation);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

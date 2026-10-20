@@ -13,7 +13,7 @@ public sealed class SolarYieldHandler(IOptions<SolarYieldOptions> options) : IDo
 
     public string ConfigKey => "SolarYield";
 
-    public DomainRequirements Requirements { get; } = new(Weather: WeatherParam.DirectRadiation | WeatherParam.DiffuseRadiation);
+    public DomainRequirements Requirements { get; } = new(Weather: WeatherParams.DirectRadiation | WeatherParams.DiffuseRadiation);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

@@ -13,13 +13,13 @@ public sealed class BudgetCalculatorSpec
         Locations = [.. Enumerable.Range(0, locations).Select(i => new LocationOptions { Name = $"L{i}" })],
     };
 
-    private static readonly WeatherParam Eleven =
-        WeatherParam.Temperature | WeatherParam.ApparentTemperature | WeatherParam.WindSpeed | WeatherParam.Precipitation
-        | WeatherParam.PrecipitationProbability | WeatherParam.CloudCover | WeatherParam.Pressure | WeatherParam.WeatherCode
-        | WeatherParam.Humidity | WeatherParam.DewPoint | WeatherParam.UvIndex;
+    private static readonly WeatherParams Eleven =
+        WeatherParams.Temperature | WeatherParams.ApparentTemperature | WeatherParams.WindSpeed | WeatherParams.Precipitation
+        | WeatherParams.PrecipitationProbability | WeatherParams.CloudCover | WeatherParams.Pressure | WeatherParams.WeatherCode
+        | WeatherParams.Humidity | WeatherParams.DewPoint | WeatherParams.UvIndex;
 
-    private static ResolvedRequirements Resolved(WeatherParam weather = WeatherParam.Temperature) =>
-        new(new DomainRequirements(Weather: weather, AirQuality: AirQualityParam.Pm25));
+    private static ResolvedRequirements Resolved(WeatherParams weather = WeatherParams.Temperature) =>
+        new(new DomainRequirements(Weather: weather, AirQuality: AirQualityParams.Pm25));
 
     [Fact]
     public void Should_project_calls_from_locations_domains_cycles_and_weight()
@@ -54,7 +54,7 @@ public sealed class BudgetCalculatorSpec
     public void Should_count_optional_weather_variables_toward_the_weight()
     {
         var optionalOnly = new ResolvedRequirements(new DomainRequirements(
-            Weather: WeatherParam.Temperature, OptionalWeather: Eleven));
+            Weather: WeatherParams.Temperature, OptionalWeather: Eleven));
 
         var result = BudgetCalculator.Validate(Scope(), new WeatherOptions(), new PollingOptions(), optionalOnly);
 
@@ -77,7 +77,7 @@ public sealed class BudgetCalculatorSpec
     {
         var polling = new PollingOptions { PollInterval = TimeSpan.FromHours(1) };
 
-        var result = BudgetCalculator.Validate(Scope(), new WeatherOptions(), polling, Resolved(WeatherParam.None));
+        var result = BudgetCalculator.Validate(Scope(), new WeatherOptions(), polling, Resolved(WeatherParams.None));
 
         Assert.Equal(720L, result.ProjectedMonthlyCalls);
     }

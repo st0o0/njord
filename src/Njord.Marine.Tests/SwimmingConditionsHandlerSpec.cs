@@ -52,7 +52,7 @@ public sealed class SwimmingConditionsHandlerSpec
     public void The_handler_requires_wave_height_and_water_temperature_from_marine_data_only()
     {
         Assert.Equal(
-            new DomainRequirements(Marine: MarineParam.WaveHeight, OptionalMarine: MarineParam.WaterTemperature),
+            new DomainRequirements(Marine: MarineParams.WaveHeight, OptionalMarine: MarineParams.WaterTemperature),
             Handler().Requirements);
     }
 }

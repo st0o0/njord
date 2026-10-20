@@ -11,7 +11,7 @@ public sealed class FloodPointSpec
     {
         var point = new FloodPoint(At, Discharge: 1, DischargeMean: 2);
 
-        Assert.True(point.HasFields(FloodParam.Discharge | FloodParam.DischargeMean));
+        Assert.True(point.HasFields(FloodParams.Discharge | FloodParams.DischargeMean));
     }
 
     [Fact]
@@ -19,13 +19,13 @@ public sealed class FloodPointSpec
     {
         var point = new FloodPoint(At, Discharge: 1);
 
-        Assert.False(point.HasFields(FloodParam.Discharge | FloodParam.DischargeMean));
+        Assert.False(point.HasFields(FloodParams.Discharge | FloodParams.DischargeMean));
     }
 
     [Fact]
     public void Should_report_true_when_nothing_is_requested()
     {
-        Assert.True(new FloodPoint(At).HasFields(FloodParam.None));
+        Assert.True(new FloodPoint(At).HasFields(FloodParams.None));
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public sealed class FloodPointSpec
     {
         var point = new FloodPoint(At, Discharge: 1);
 
-        Assert.True(point.HasFields(FloodParam.Discharge));
+        Assert.True(point.HasFields(FloodParams.Discharge));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class FloodPointSpec
         var point = new FloodPoint(At);
 
         Assert.All(
-            Enum.GetValues<FloodParam>().Where(p => p != FloodParam.None),
+            Enum.GetValues<FloodParams>().Where(p => p != FloodParams.None),
             flag => Assert.False(point.HasFields(flag)));
     }
 }

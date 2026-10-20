@@ -29,40 +29,40 @@ public sealed record WeatherPoint(
     double? SunshineDuration = null,
     double? WindDirection = null) : IHasValidTime
 {
-    private static readonly WeatherParam[] Flags =
-        [.. Enum.GetValues<WeatherParam>().Where(p => p != WeatherParam.None)];
+    private static readonly WeatherParams[] Flags =
+        [.. Enum.GetValues<WeatherParams>().Where(p => p != WeatherParams.None)];
 
-    public bool HasFields(WeatherParam required) =>
+    public bool HasFields(WeatherParams required) =>
         Flags.All(flag => !required.HasFlag(flag) || Has(flag));
 
-    private bool Has(WeatherParam param) => param switch
+    private bool Has(WeatherParams param) => param switch
     {
-        WeatherParam.Temperature => Temperature is not null,
-        WeatherParam.ApparentTemperature => ApparentTemperature is not null,
-        WeatherParam.WindSpeed => WindSpeed is not null,
-        WeatherParam.Precipitation => Precipitation is not null,
-        WeatherParam.PrecipitationProbability => PrecipitationProbability is not null,
-        WeatherParam.CloudCover => CloudCover is not null,
-        WeatherParam.Pressure => Pressure is not null,
-        WeatherParam.WeatherCode => WeatherCode is not null,
-        WeatherParam.Humidity => Humidity is not null,
-        WeatherParam.DewPoint => DewPoint is not null,
-        WeatherParam.UvIndex => UvIndex is not null,
-        WeatherParam.EnsembleStdDev => EnsembleStdDev is not null,
-        WeatherParam.WindGusts => WindGusts is not null,
-        WeatherParam.Visibility => Visibility is not null,
-        WeatherParam.Cape => Cape is not null,
-        WeatherParam.Rain => Rain is not null,
-        WeatherParam.Snowfall => Snowfall is not null,
-        WeatherParam.SoilTemperature => SoilTemperature is not null,
-        WeatherParam.FreezingLevelHeight => FreezingLevelHeight is not null,
-        WeatherParam.IsDay => IsDay is not null,
-        WeatherParam.ShortwaveRadiation => ShortwaveRadiation is not null,
-        WeatherParam.DirectRadiation => DirectRadiation is not null,
-        WeatherParam.DiffuseRadiation => DiffuseRadiation is not null,
-        WeatherParam.DirectNormalIrradiance => DirectNormalIrradiance is not null,
-        WeatherParam.SunshineDuration => SunshineDuration is not null,
-        WeatherParam.WindDirection => WindDirection is not null,
+        WeatherParams.Temperature => Temperature is not null,
+        WeatherParams.ApparentTemperature => ApparentTemperature is not null,
+        WeatherParams.WindSpeed => WindSpeed is not null,
+        WeatherParams.Precipitation => Precipitation is not null,
+        WeatherParams.PrecipitationProbability => PrecipitationProbability is not null,
+        WeatherParams.CloudCover => CloudCover is not null,
+        WeatherParams.Pressure => Pressure is not null,
+        WeatherParams.WeatherCode => WeatherCode is not null,
+        WeatherParams.Humidity => Humidity is not null,
+        WeatherParams.DewPoint => DewPoint is not null,
+        WeatherParams.UvIndex => UvIndex is not null,
+        WeatherParams.EnsembleStdDev => EnsembleStdDev is not null,
+        WeatherParams.WindGusts => WindGusts is not null,
+        WeatherParams.Visibility => Visibility is not null,
+        WeatherParams.Cape => Cape is not null,
+        WeatherParams.Rain => Rain is not null,
+        WeatherParams.Snowfall => Snowfall is not null,
+        WeatherParams.SoilTemperature => SoilTemperature is not null,
+        WeatherParams.FreezingLevelHeight => FreezingLevelHeight is not null,
+        WeatherParams.IsDay => IsDay is not null,
+        WeatherParams.ShortwaveRadiation => ShortwaveRadiation is not null,
+        WeatherParams.DirectRadiation => DirectRadiation is not null,
+        WeatherParams.DiffuseRadiation => DiffuseRadiation is not null,
+        WeatherParams.DirectNormalIrradiance => DirectNormalIrradiance is not null,
+        WeatherParams.SunshineDuration => SunshineDuration is not null,
+        WeatherParams.WindDirection => WindDirection is not null,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

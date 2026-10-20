@@ -12,8 +12,8 @@ public sealed class FloodRiskHandler(IAlertRule<DomainForecast<FloodPoint>> rule
 {
     public string ConfigKey => "FloodRisk";
 
-    public DomainRequirements Requirements { get; } = new(Flood: FloodParam.Discharge | FloodParam.DischargeMedian | FloodParam.DischargeP75
-        | FloodParam.DischargeMax);
+    public DomainRequirements Requirements { get; } = new(Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75
+        | FloodParams.DischargeMax);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

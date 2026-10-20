@@ -22,12 +22,12 @@ public sealed class EnrichmentResolutionSpec
 
     private static readonly IDomainHandler[] All =
     [
-        new StubHandler("WeatherAlerts", new(Weather: WeatherParam.Temperature | WeatherParam.WindGusts)),
-        new StubHandler("CommuteSafety", new(Weather: WeatherParam.Temperature | WeatherParam.Precipitation)),
-        new StubHandler("PollenAlert", new(AirQuality: AirQualityParam.BirchPollen)),
-        new StubHandler("Pm25Alert", new(AirQuality: AirQualityParam.Pm25)),
-        new StubHandler("FloodRisk", new(Flood: FloodParam.Discharge)),
-        new StubHandler("SwimmingConditions", new(Marine: MarineParam.WaveHeight)),
+        new StubHandler("WeatherAlerts", new(Weather: WeatherParams.Temperature | WeatherParams.WindGusts)),
+        new StubHandler("CommuteSafety", new(Weather: WeatherParams.Temperature | WeatherParams.Precipitation)),
+        new StubHandler("PollenAlert", new(AirQuality: AirQualityParams.BirchPollen)),
+        new StubHandler("Pm25Alert", new(AirQuality: AirQualityParams.Pm25)),
+        new StubHandler("FloodRisk", new(Flood: FloodParams.Discharge)),
+        new StubHandler("SwimmingConditions", new(Marine: MarineParams.WaveHeight)),
     ];
 
     [Fact]
@@ -75,11 +75,11 @@ public sealed class EnrichmentResolutionSpec
 
         Assert.Multiple(
             () => Assert.Equal(
-                WeatherParam.Temperature | WeatherParam.WindGusts | WeatherParam.Precipitation,
+                WeatherParams.Temperature | WeatherParams.WindGusts | WeatherParams.Precipitation,
                 requirements.Weather),
-            () => Assert.Equal(AirQualityParam.BirchPollen | AirQualityParam.Pm25, requirements.AirQuality),
-            () => Assert.Equal(FloodParam.None, requirements.Flood),
-            () => Assert.Equal(MarineParam.None, requirements.Marine));
+            () => Assert.Equal(AirQualityParams.BirchPollen | AirQualityParams.Pm25, requirements.AirQuality),
+            () => Assert.Equal(FloodParams.None, requirements.Flood),
+            () => Assert.Equal(MarineParams.None, requirements.Marine));
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed class EnrichmentResolutionSpec
     {
         var requirements = EnrichmentResolution.RequiredParams(new EnrichmentOptions { SwimmingConditions = true }, All);
 
-        Assert.Equal(MarineParam.WaveHeight, requirements.Marine);
+        Assert.Equal(MarineParams.WaveHeight, requirements.Marine);
     }
 
     [Fact]

@@ -38,8 +38,8 @@ public sealed class HandlerRequirementsSpec
         var requirements = Handlers[configKey].Requirements;
 
         Assert.Multiple(
-            () => Assert.NotEqual(WeatherParam.None, requirements.Weather),
-            () => Assert.Equal(AirQualityParam.None, requirements.AirQuality),
+            () => Assert.NotEqual(WeatherParams.None, requirements.Weather),
+            () => Assert.Equal(AirQualityParams.None, requirements.AirQuality),
             () => Assert.False(requirements.Requires(DomainKind.AirQuality)),
             () => Assert.False(requirements.Requires(DomainKind.Flood)),
             () => Assert.False(requirements.Requires(DomainKind.Marine)));
@@ -63,7 +63,7 @@ public sealed class HandlerRequirementsSpec
     public void Should_declare_only_the_params_the_confidence_trend_reads()
     {
         Assert.Equal(
-            new DomainRequirements(Weather: WeatherParam.EnsembleStdDev),
+            new DomainRequirements(Weather: WeatherParams.EnsembleStdDev),
             Handlers["ConfidenceTrend"].Requirements);
     }
 
@@ -71,7 +71,7 @@ public sealed class HandlerRequirementsSpec
     public void Should_declare_the_radiation_params_the_solar_yield_reads()
     {
         Assert.Equal(
-            new DomainRequirements(Weather: WeatherParam.DirectRadiation | WeatherParam.DiffuseRadiation),
+            new DomainRequirements(Weather: WeatherParams.DirectRadiation | WeatherParams.DiffuseRadiation),
             Handlers["SolarYield"].Requirements);
     }
 
@@ -80,6 +80,6 @@ public sealed class HandlerRequirementsSpec
     {
         var requirements = Handlers["ExerciseAdvisory"].Requirements;
 
-        Assert.Equal(AirQualityParam.Pm25 | AirQualityParam.Ozone, requirements.AirQuality);
+        Assert.Equal(AirQualityParams.Pm25 | AirQualityParams.Ozone, requirements.AirQuality);
     }
 }

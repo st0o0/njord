@@ -11,8 +11,8 @@ public sealed class BBQScoreHandler : IDomainHandler
 
     public string ConfigKey => "BBQScore";
 
-    public DomainRequirements Requirements { get; } = new(Weather: WeatherParam.Precipitation | WeatherParam.Temperature | WeatherParam.WindSpeed
-            | WeatherParam.PrecipitationProbability | WeatherParam.CloudCover);
+    public DomainRequirements Requirements { get; } = new(Weather: WeatherParams.Precipitation | WeatherParams.Temperature | WeatherParams.WindSpeed
+            | WeatherParams.PrecipitationProbability | WeatherParams.CloudCover);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

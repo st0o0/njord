@@ -7,22 +7,22 @@ using Njord.Forecast.Weather;
 namespace Njord.Core.Domain;
 
 public readonly record struct DomainRequirements(
-    WeatherParam Weather = default,
-    AirQualityParam AirQuality = default,
-    FloodParam Flood = default,
-    MarineParam Marine = default,
-    WeatherParam OptionalWeather = default,
-    AirQualityParam OptionalAirQuality = default,
-    FloodParam OptionalFlood = default,
-    MarineParam OptionalMarine = default)
+    WeatherParams Weather = default,
+    AirQualityParams AirQuality = default,
+    FloodParams Flood = default,
+    MarineParams Marine = default,
+    WeatherParams OptionalWeather = default,
+    AirQualityParams OptionalAirQuality = default,
+    FloodParams OptionalFlood = default,
+    MarineParams OptionalMarine = default)
 {
-    public WeatherParam AllWeather => Weather | OptionalWeather;
+    public WeatherParams AllWeather => Weather | OptionalWeather;
 
-    public AirQualityParam AllAirQuality => AirQuality | OptionalAirQuality;
+    public AirQualityParams AllAirQuality => AirQuality | OptionalAirQuality;
 
-    public FloodParam AllFlood => Flood | OptionalFlood;
+    public FloodParams AllFlood => Flood | OptionalFlood;
 
-    public MarineParam AllMarine => Marine | OptionalMarine;
+    public MarineParams AllMarine => Marine | OptionalMarine;
 
     public static DomainRequirements operator |(DomainRequirements a, DomainRequirements b) => new(
         a.Weather | b.Weather,

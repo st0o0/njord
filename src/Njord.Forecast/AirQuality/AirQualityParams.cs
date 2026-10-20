@@ -1,7 +1,7 @@
 namespace Njord.Forecast.AirQuality;
 
 [Flags]
-public enum AirQualityParam
+public enum AirQualityParams
 {
     None = 0,
     Pm25 = 1 << 0,

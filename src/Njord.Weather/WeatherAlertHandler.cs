@@ -21,12 +21,12 @@ public sealed class WeatherAlertHandler : IDomainHandler
 
     public string ConfigKey => "WeatherAlerts";
 
-    public DomainRequirements Requirements { get; } = new(Weather: WeatherParam.Temperature | WeatherParam.ApparentTemperature | WeatherParam.WindSpeed
-            | WeatherParam.Precipitation | WeatherParam.Humidity | WeatherParam.DewPoint | WeatherParam.Pressure
-            | WeatherParam.WindGusts | WeatherParam.Visibility | WeatherParam.Cape
-            | WeatherParam.Snowfall | WeatherParam.FreezingLevelHeight | WeatherParam.IsDay
-            | WeatherParam.EnsembleStdDev,
-        OptionalWeather: WeatherParam.Rain | WeatherParam.UvIndex | WeatherParam.SoilTemperature);
+    public DomainRequirements Requirements { get; } = new(Weather: WeatherParams.Temperature | WeatherParams.ApparentTemperature | WeatherParams.WindSpeed
+            | WeatherParams.Precipitation | WeatherParams.Humidity | WeatherParams.DewPoint | WeatherParams.Pressure
+            | WeatherParams.WindGusts | WeatherParams.Visibility | WeatherParams.Cape
+            | WeatherParams.Snowfall | WeatherParams.FreezingLevelHeight | WeatherParams.IsDay
+            | WeatherParams.EnsembleStdDev,
+        OptionalWeather: WeatherParams.Rain | WeatherParams.UvIndex | WeatherParams.SoilTemperature);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {
