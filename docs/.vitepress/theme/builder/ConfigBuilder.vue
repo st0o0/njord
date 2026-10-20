@@ -1,19 +1,27 @@
 <script setup lang="ts">
 import { reactive, ref, computed, watch, onMounted } from 'vue'
-import { defaultConfig, ENRICHMENT_TOGGLES, requiredDomains, type NjordConfig, type EnrichmentFeature } from './types'
-import { computeBudget } from './budget'
-import { exportAsJson, exportAsEnvVars, exportAsCompose, autoImport, findOutdatedKeys, encodeHash, decodeHash, mergeWithDefaults } from './serializer'
+import { defaultConfig, CATEGORIES, FEATURES, featureLabel, requiredDomains, type NjordConfig, type EnrichmentFeature } from './types'
+import { computeBudget, featureCostPerDay, budgetLevel } from './budget'
+import { exportAsJson, exportAsEnvVars, exportAsCompose, autoImport, encodeHash, decodeHash, mergeWithDefaults } from './serializer'
 import enrichmentData from '../../../data/enrichment.json'
 
 const enrichmentFeatures = enrichmentData as EnrichmentFeature[]
 const config = reactive<NjordConfig>(defaultConfig())
 
-function isEnrichmentToggled(key: string): boolean {
-  return !!config.enrichments[key]
+const featureGroups = CATEGORIES
+  .map(c => ({ ...c, features: FEATURES.filter(f => f.category === c.key) }))
+  .filter(g => g.features.length > 0)
+
+function isFeatureOn(key: string): boolean {
+  return !!config.features[key]
 }
 
-function toggleEnrichmentKey(key: string) {
-  config.enrichments[key] = !config.enrichments[key]
+function toggleFeature(key: string) {
+  config.features[key] = !config.features[key]
+}
+
+function costLabel(key: string): string {
+  return `+${featureCostPerDay(config, key)} calls/day`
 }
 
 // Only an explicit Enabled flag is stored; a missing flag means the feature default.
@@ -59,7 +67,7 @@ function setArrayOption(feature: string, option: string, index: number, raw: str
 }
 
 const exportMode = reactive({ format: 'json' as 'json' | 'env' | 'compose' })
-const importText = reactive({ value: '', error: '', outdated: [] as string[] })
+const importText = reactive({ value: '', error: '' })
 const copied = reactive({ show: false })
 const newLocation = ref('')
 const newLatitude = ref<number | ''>('')
@@ -71,7 +79,7 @@ const canAddLocation = computed(() =>
 
 const budget = computed(() => computeBudget(config))
 const memoryTip = computed(() => {
-  if (requiredDomains(config.enrichments).length * config.locations.length > 12) return 'With many domain calls per cycle, consider 256M.'
+  if (requiredDomains(config.features).length * config.locations.length > 12) return 'With many domain calls per cycle, consider 256M.'
   return ''
 })
 const exportOutput = computed(() => {
@@ -104,9 +112,7 @@ function copyExport() {
 
 function doImport() {
   importText.error = ''
-  importText.outdated = []
   try {
-    importText.outdated = findOutdatedKeys(importText.value)
     const partial = autoImport(importText.value)
     Object.assign(config, mergeWithDefaults(partial))
     importText.value = ''
@@ -139,7 +145,6 @@ onMounted(() => {
         <textarea v-model="importText.value" placeholder="Paste appsettings.json, env vars, or docker-compose environment block here..." rows="4" />
         <button @click="doImport" :disabled="!importText.value.trim()">Import</button>
         <p v-if="importText.error" class="error">{{ importText.error }}</p>
-        <p v-for="key in importText.outdated" :key="key" class="error">{{ key }}</p>
       </div>
     </details>
 
@@ -162,20 +167,24 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Enrichment toggles -->
+    <!-- Features -->
     <div class="section">
-      <h3>Enrichments</h3>
-      <div class="domain-grid">
-        <label v-for="t in ENRICHMENT_TOGGLES" :key="t.key" class="domain-card" :class="{ selected: isEnrichmentToggled(t.key) }">
-          <input type="checkbox" :checked="isEnrichmentToggled(t.key)" @change="toggleEnrichmentKey(t.key)" />
-          <div>
-            <strong>{{ t.label }}</strong>
-            <span v-if="t.enabledByDefault" class="enrichment-badge">default on</span>
-            <span class="domain-meta">{{ t.description }} (fetches {{ t.domains.join(', ') }})</span>
-          </div>
-        </label>
+      <h3>Features</h3>
+      <div v-for="g in featureGroups" :key="g.key" class="feature-group">
+        <h4>{{ g.label }}</h4>
+        <div class="domain-grid">
+          <label v-for="f in g.features" :key="f.key" class="domain-card" :class="{ selected: isFeatureOn(f.key) }">
+            <input type="checkbox" :checked="isFeatureOn(f.key)" @change="toggleFeature(f.key)" />
+            <div>
+              <strong>{{ featureLabel(f.key) }}</strong>
+              <span v-if="f.enabledByDefault" class="enrichment-badge">default on</span>
+              <span class="domain-meta">{{ f.description }}</span>
+              <span class="domain-meta cost">{{ costLabel(f.key) }} per location ({{ f.domains.join(', ') }})</span>
+            </div>
+          </label>
+        </div>
       </div>
-      <p class="section-hint">The domains that are fetched follow from the enabled enrichments: {{ requiredDomains(config.enrichments).join(', ') || 'none' }}. Each domain costs one request per location and poll cycle.</p>
+      <p class="section-hint">The domains that are fetched follow from the enabled features: {{ requiredDomains(config.features).join(', ') || 'none' }}. The cost shows the calls per day and location the feature adds on top of the other enabled features; 0 means everything it needs is already fetched.</p>
     </div>
 
     <!-- Weather -->
@@ -192,11 +201,11 @@ onMounted(() => {
         <p class="section-hint">Ensemble model for the weather request. Only written to the config when it differs from the default.</p>
       </details>
       <div class="weight-display">Weather API call weight: <strong>{{ budget.apiCallWeight }}</strong></div>
-      <p class="section-hint">The hourly variables follow from the enabled enrichments; Open-Meteo counts ceil(variables / 10) calls, doubled beyond 14 forecast days.</p>
+      <p class="section-hint">The hourly variables follow from the enabled features; Open-Meteo counts ceil(variables / 10) calls, doubled beyond 14 forecast days.</p>
     </div>
 
     <!-- Solar yield -->
-    <div v-if="config.enrichments.SolarYield" class="section">
+    <div v-if="config.features.SolarYield" class="section">
       <h3>Solar yield</h3>
       <div class="general-row">
         <label>Peak kW <input v-model.number="config.solarYield.peakKw" type="number" step="any" min="0.1" /></label>
@@ -215,12 +224,12 @@ onMounted(() => {
         <label>Flood <input v-model.number="config.flood.forecastDays" type="number" min="1" max="210" /></label>
         <label><input v-model="config.flood.includeEnsemble" type="checkbox" /> Flood ensemble (50 members, raises API cost)</label>
       </div>
-      <p class="section-hint">Used only for domains an enabled enrichment requires. Defaults: air quality 5, marine 8, flood 92.</p>
+      <p class="section-hint">Used only for domains an enabled feature requires. Defaults: air quality 5, marine 8, flood 92.</p>
     </div>
 
     <!-- Enrichment -->
     <div class="section">
-      <h3>Enrichment</h3>
+      <h3>Alert settings</h3>
       <div class="enrichment-grid">
         <div v-for="f in enrichmentFeatures" :key="f.name" class="enrichment-card" :class="{ selected: isEnrichmentEnabled(f.name) }">
           <label class="enrichment-header">
@@ -303,19 +312,19 @@ onMounted(() => {
     </div>
 
     <!-- Budget -->
-    <div class="section budget-section">
+    <div class="section budget-section" :class="'level-' + budgetLevel(budget.percentUsed)">
       <h3>Budget</h3>
       <div class="budget-bar-container">
-        <div class="budget-bar" :style="{ width: Math.min(budget.percentUsed, 100) + '%' }" :class="{ over: budget.overBudget }" />
+        <div class="budget-bar" :style="{ width: Math.min(budget.percentUsed, 100) + '%' }" :class="'level-' + budgetLevel(budget.percentUsed)" />
       </div>
       <div class="budget-stats">
         <span>{{ budget.projected.toLocaleString() }} / {{ budget.limit.toLocaleString() }} req/month</span>
-        <span :class="{ over: budget.overBudget }">{{ budget.percentUsed.toFixed(1) }}%</span>
+        <span :class="'level-' + budgetLevel(budget.percentUsed)">{{ budget.percentUsed.toFixed(1) }}%</span>
       </div>
       <div class="budget-detail">
-        {{ requiredDomains(config.enrichments).length }} domains ({{ requiredDomains(config.enrichments).join(', ') }}) Ã— {{ config.locations.length }} locations = {{ budget.domainCallsPerCycle }} calls/cycle Â· {{ budget.cyclesPerDay }} cycles/day Â· weight {{ budget.apiCallWeight }} = {{ budget.callsPerDay.toLocaleString() }} req/day Â· {{ budget.cyclesPerMonth }} cycles/month
+        {{ requiredDomains(config.features).length }} domains ({{ requiredDomains(config.features).join(', ') }}) × {{ config.locations.length }} locations = {{ budget.domainCallsPerCycle }} calls/cycle · {{ budget.cyclesPerDay }} cycles/day · weight {{ budget.apiCallWeight }} = {{ budget.callsPerDay.toLocaleString() }} req/day · {{ budget.cyclesPerMonth }} cycles/month
       </div>
-      <p v-if="budget.overBudget" class="error">Exceeds 80% budget guard ({{ budget.guard.toLocaleString() }}). Disable enrichments, reduce locations, increase poll interval, or enable fewer enrichments.</p>
+      <p v-if="budget.overBudget" class="error">Exceeds 80% budget guard ({{ budget.guard.toLocaleString() }}). Disable features, reduce locations or increase the poll interval.</p>
     </div>
 
     <!-- Export -->
@@ -393,9 +402,13 @@ button.active { background: var(--vp-c-brand-1); color: white; border-color: var
 .budget-section { }
 .budget-bar-container { height: 8px; background: var(--vp-c-divider); border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
 .budget-bar { height: 100%; background: var(--vp-c-brand-1); border-radius: 4px; transition: width 0.3s; }
-.budget-bar.over { background: var(--vp-c-danger-1); }
+.budget-bar.level-warn { background: var(--vp-c-warning-1); }
+.budget-bar.level-over { background: var(--vp-c-danger-1); }
 .budget-stats { display: flex; justify-content: space-between; font-size: 13px; font-variant-numeric: tabular-nums; }
-.budget-stats .over { color: var(--vp-c-danger-1); font-weight: 600; }
+.budget-stats .level-warn { color: var(--vp-c-warning-1); font-weight: 600; }
+.budget-stats .level-over { color: var(--vp-c-danger-1); font-weight: 600; }
+.feature-group h4 { margin: 12px 0 6px; font-size: 14px; color: var(--vp-c-text-2); }
+.cost { color: var(--vp-c-brand-1); }
 .budget-detail { font-size: 12px; color: var(--vp-c-text-3); margin-top: 4px; }
 
 .export-tabs { display: flex; gap: 4px; margin-bottom: 8px; }

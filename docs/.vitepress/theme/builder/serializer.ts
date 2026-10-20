@@ -1,16 +1,16 @@
 import type { NjordConfig } from './types'
-import { ENRICHMENT_TOGGLES, defaultConfig, defaultEnrichments } from './types'
+import { FEATURES, defaultConfig, defaultFeatures } from './types'
 
 // Only toggles that differ from their default are exported.
-function changedEnrichments(enrichments: Record<string, boolean>): [string, boolean][] {
-  const defaults = defaultEnrichments()
-  return ENRICHMENT_TOGGLES
-    .filter(t => (enrichments[t.key] ?? defaults[t.key]) !== defaults[t.key])
-    .map(t => [t.key, enrichments[t.key]])
+function changedFeatures(features: Record<string, boolean>): [string, boolean][] {
+  const defaults = defaultFeatures()
+  return FEATURES
+    .filter(f => (features[f.key] ?? defaults[f.key]) !== defaults[f.key])
+    .map(f => [f.key, features[f.key]])
 }
 
-function parseEnrichmentKey(value: string): string | null {
-  return ENRICHMENT_TOGGLES.find(t => t.key.toLowerCase() === value.toLowerCase())?.key ?? null
+function parseFeatureKey(value: string): string | null {
+  return FEATURES.find(f => f.key.toLowerCase() === value.toLowerCase())?.key ?? null
 }
 
 // Fills everything an import or a shared URL does not mention with defaults, nested objects included.
@@ -19,7 +19,7 @@ export function mergeWithDefaults(partial: Partial<NjordConfig>): NjordConfig {
   return {
     ...d,
     ...partial,
-    enrichments: { ...defaultEnrichments(), ...partial.enrichments },
+    features: { ...defaultFeatures(), ...partial.features },
     weather: { ...d.weather, ...partial.weather },
     airQuality: { ...d.airQuality, ...partial.airQuality },
     marine: { ...d.marine, ...partial.marine },
@@ -31,7 +31,7 @@ export function mergeWithDefaults(partial: Partial<NjordConfig>): NjordConfig {
 }
 
 function solarYieldEnabled(config: NjordConfig): boolean {
-  return !!config.enrichments.SolarYield
+  return !!config.features.SolarYield
 }
 
 function parseBool(value: unknown): boolean {
@@ -64,8 +64,8 @@ export function exportAsJson(config: NjordConfig): string {
     if (config.solarYield.tilt !== defaults.solarYield.tilt) solar.Tilt = config.solarYield.tilt
     if (Object.keys(solar).length) n.SolarYield = solar
   }
-  const changed = changedEnrichments(config.enrichments)
-  if (changed.length) n.Enrichments = Object.fromEntries(changed)
+  const changed = changedFeatures(config.features)
+  if (changed.length) n.Features = Object.fromEntries(changed)
   if (config.locations.length) {
     n.Locations = config.locations.map(l => {
       const loc: Record<string, unknown> = { Name: l.name, Latitude: l.latitude, Longitude: l.longitude }
@@ -114,8 +114,8 @@ export function exportAsEnvVars(config: NjordConfig): string {
   if (config.marine.forecastDays !== defaults.marine.forecastDays) add('Njord__Marine__ForecastDays', String(config.marine.forecastDays))
   if (config.flood.forecastDays !== defaults.flood.forecastDays) add('Njord__Flood__ForecastDays', String(config.flood.forecastDays))
   if (config.flood.includeEnsemble) add('Njord__Flood__IncludeEnsemble', 'true')
-  for (const [key, enabled] of changedEnrichments(config.enrichments)) {
-    add(`Njord__Enrichments__${key}`, String(enabled))
+  for (const [key, enabled] of changedFeatures(config.features)) {
+    add(`Njord__Features__${key}`, String(enabled))
   }
 
   config.locations.forEach((loc, i) => {
@@ -191,13 +191,11 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   const parsed = JSON.parse(json)
   const n = parsed.Njord ?? parsed
   const config: Partial<NjordConfig> = {}
-  config.enrichments = config.enrichments ?? defaultEnrichments()
+  config.features = defaultFeatures()
 
-  // Root-level keys of versions before 0.5.0 are still read (the export writes the new keys); the
-  // import reports them through findOutdatedKeys.
-  const pollInterval = n.Polling?.PollInterval ?? n.PollInterval
-  const discoveryInterval = n.Polling?.DiscoveryInterval ?? n.DiscoveryInterval
-  const budgetOverride = n.Polling?.BudgetOverride ?? n.BudgetOverride
+  const pollInterval = n.Polling?.PollInterval
+  const discoveryInterval = n.Polling?.DiscoveryInterval
+  const budgetOverride = n.Polling?.BudgetOverride
   if (pollInterval) config.pollInterval = pollInterval
   if (n.Weather) {
     config.weather = {
@@ -218,10 +216,10 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   if (n.Marine) config.marine = { forecastDays: Number(n.Marine.ForecastDays) || 8 }
   if (n.Flood) config.flood = { forecastDays: Number(n.Flood.ForecastDays) || 92 }
   if (discoveryInterval) config.discoveryInterval = discoveryInterval
-  if (n.Enrichments && typeof n.Enrichments === 'object') {
-    for (const [name, value] of Object.entries(n.Enrichments as Record<string, unknown>)) {
-      const key = parseEnrichmentKey(name)
-      if (key) config.enrichments[key] = typeof value === 'boolean' ? value : parseBool(value)
+  if (n.Features && typeof n.Features === 'object') {
+    for (const [name, value] of Object.entries(n.Features as Record<string, unknown>)) {
+      const key = parseFeatureKey(name)
+      if (key) config.features[key] = typeof value === 'boolean' ? value : parseBool(value)
     }
   }
   if (n.Locations) {
@@ -252,11 +250,10 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     const value = line.substring(eq + 1).trim()
     const parts = key.split('__').slice(1)
 
-    // Root-level keys of versions before 0.5.0 are still read; findOutdatedKeys reports them.
-    if (parts[0] === 'Polling' && parts[1] === 'PollInterval' || parts[0] === 'PollInterval') config.pollInterval = value
-    else if (parts[0] === 'Polling' && parts[1] === 'DiscoveryInterval' || parts[0] === 'DiscoveryInterval') config.discoveryInterval = value
-    else if (parts[0] === 'Polling' && parts[1] === 'BudgetOverride' || parts[0] === 'BudgetOverride') {
-      const budgetParts = parts[0] === 'Polling' ? parts.slice(2) : parts.slice(1)
+    if (parts[0] === 'Polling' && parts[1] === 'PollInterval') config.pollInterval = value
+    else if (parts[0] === 'Polling' && parts[1] === 'DiscoveryInterval') config.discoveryInterval = value
+    else if (parts[0] === 'Polling' && parts[1] === 'BudgetOverride') {
+      const budgetParts = parts.slice(2)
       const budget = config.budgetOverride ?? { requestsPerMonth: 0, requestsPerMinute: 0 }
       if (budgetParts[0] === 'RequestsPerMonth') budget.requestsPerMonth = parseInt(value) || 0
       else if (budgetParts[0] === 'RequestsPerMinute') budget.requestsPerMinute = parseInt(value) || 0
@@ -280,9 +277,9 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     else if (parts[0] === 'AirQuality' && parts[1] === 'ForecastDays') config.airQuality.forecastDays = parseInt(value) || 5
     else if (parts[0] === 'Marine' && parts[1] === 'ForecastDays') config.marine.forecastDays = parseInt(value) || 8
     else if (parts[0] === 'Flood' && parts[1] === 'ForecastDays') config.flood.forecastDays = parseInt(value) || 92
-    else if (parts[0] === 'Enrichments' && parts.length === 2) {
-      const key = parseEnrichmentKey(parts[1])
-      if (key) config.enrichments[key] = parseBool(value)
+    else if (parts[0] === 'Features' && parts.length === 2) {
+      const key = parseFeatureKey(parts[1])
+      if (key) config.features[key] = parseBool(value)
     }
     else if (parts[0] === 'Locations') {
       const idx = parseInt(parts[1])
@@ -339,52 +336,6 @@ export function importFromCompose(text: string): Partial<NjordConfig> {
   }
 
   return config
-}
-
-// Root-level keys that moved in 0.5.0. njord refuses to start while one of them is configured.
-const OUTDATED_KEYS: { old: string; current: string }[] = [
-  { old: 'PollInterval', current: 'Polling__PollInterval' },
-  { old: 'DiscoveryInterval', current: 'Polling__DiscoveryInterval' },
-  { old: 'BudgetOverride', current: 'Polling__BudgetOverride' },
-  { old: 'PersistencePath', current: 'Persistence__DataPath' },
-]
-
-// EnabledDomains was replaced by enrichment toggles: the fetched domains are derived from the enabled enrichments.
-const REMOVED_KEYS = ['EnabledDomains']
-
-export function findOutdatedKeys(text: string): string[] {
-  const trimmed = text.trim()
-  const present = new Set<string>()
-  const removed = new Set<string>()
-  if (trimmed.startsWith('{')) {
-    let parsed: Record<string, Record<string, unknown>> | null = null
-    try {
-      parsed = JSON.parse(trimmed)
-    } catch {
-      return []
-    }
-    const n = (parsed?.Njord ?? parsed) as Record<string, unknown>
-    for (const key of OUTDATED_KEYS) if (n && key.old in n) present.add(key.old)
-    for (const key of REMOVED_KEYS) if (n && key in n) removed.add(key)
-  } else {
-    for (const line of trimmed.split('\n')) {
-      const name = line.replace(/^\s*-\s+/, '').split('=')[0].trim()
-      for (const key of OUTDATED_KEYS) {
-        if (name === `Njord__${key.old}` || name.startsWith(`Njord__${key.old}__`)) present.add(key.old)
-      }
-      for (const key of REMOVED_KEYS) {
-        if (name === `Njord__${key}` || name.startsWith(`Njord__${key}__`)) removed.add(key)
-      }
-    }
-  }
-  return [
-    ...OUTDATED_KEYS
-      .filter(key => present.has(key.old))
-      .map(key => `Njord__${key.old} is outdated since 0.5.0, use Njord__${key.current} (JSON: Njord:${key.current.replace('__', ':')})`),
-    ...REMOVED_KEYS
-      .filter(key => removed.has(key))
-      .map(key => `Njord__${key} was removed, the fetched domains follow the enabled enrichments: use Njord__Enrichments__<Name> (JSON: Njord:Enrichments)`),
-  ]
 }
 
 export function autoImport(text: string): Partial<NjordConfig> {

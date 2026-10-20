@@ -1,0 +1,480 @@
+[
+  {
+    "key": "FrostAlert",
+    "category": "WeatherAlerts",
+    "description": "Frost warning from the forecast low",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Temperature",
+      "EnsembleStdDev"
+    ]
+  },
+  {
+    "key": "HeatAlert",
+    "category": "WeatherAlerts",
+    "description": "Heat warning from air and apparent temperature",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Temperature",
+      "ApparentTemperature",
+      "EnsembleStdDev"
+    ]
+  },
+  {
+    "key": "StormAlert",
+    "category": "WeatherAlerts",
+    "description": "Storm warning from wind gusts",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "EnsembleStdDev",
+      "WindGusts"
+    ]
+  },
+  {
+    "key": "RainAlert",
+    "category": "WeatherAlerts",
+    "description": "Heavy rain warning from hourly precipitation",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Precipitation",
+      "EnsembleStdDev"
+    ]
+  },
+  {
+    "key": "UvAlert",
+    "category": "WeatherAlerts",
+    "description": "UV warning from the peak UV index",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "EnsembleStdDev"
+    ],
+    "optionalWeatherParams": [
+      "UvIndex"
+    ]
+  },
+  {
+    "key": "FogAlert",
+    "category": "WeatherAlerts",
+    "description": "Fog warning from dew point spread, wind and humidity",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Temperature",
+      "WindSpeed",
+      "Humidity",
+      "DewPoint",
+      "EnsembleStdDev"
+    ]
+  },
+  {
+    "key": "SnowAlert",
+    "category": "WeatherAlerts",
+    "description": "Snow warning from snowfall and freezing level",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "EnsembleStdDev",
+      "Snowfall",
+      "FreezingLevelHeight"
+    ]
+  },
+  {
+    "key": "PressureDropAlert",
+    "category": "WeatherAlerts",
+    "description": "Warning for a rapid surface pressure drop",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Pressure",
+      "EnsembleStdDev"
+    ]
+  },
+  {
+    "key": "ThunderstormAlert",
+    "category": "WeatherAlerts",
+    "description": "Thunderstorm warning from CAPE, precipitation and gusts",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Precipitation",
+      "EnsembleStdDev",
+      "WindGusts",
+      "Cape"
+    ]
+  },
+  {
+    "key": "IceAlert",
+    "category": "WeatherAlerts",
+    "description": "Black ice warning from freezing temperatures with rain",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Temperature",
+      "Precipitation",
+      "EnsembleStdDev"
+    ],
+    "optionalWeatherParams": [
+      "Rain",
+      "SoilTemperature"
+    ]
+  },
+  {
+    "key": "WindChillAlert",
+    "category": "WeatherAlerts",
+    "description": "Wind chill warning from apparent temperature",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "ApparentTemperature",
+      "EnsembleStdDev"
+    ]
+  },
+  {
+    "key": "VisibilityAlert",
+    "category": "WeatherAlerts",
+    "description": "Low visibility warning",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "EnsembleStdDev",
+      "Visibility"
+    ]
+  },
+  {
+    "key": "TropicalNightAlert",
+    "category": "WeatherAlerts",
+    "description": "Tropical night warning from the night time low",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Temperature",
+      "EnsembleStdDev",
+      "IsDay"
+    ]
+  },
+  {
+    "key": "HumidityAlert",
+    "category": "WeatherAlerts",
+    "description": "Muggy air warning from the daytime dew point",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "DewPoint",
+      "EnsembleStdDev",
+      "IsDay"
+    ]
+  },
+  {
+    "key": "PollenAlert",
+    "category": "AirQuality",
+    "description": "Pollen warning from the highest pollen concentration",
+    "enabledByDefault": true,
+    "domains": [
+      "AirQuality"
+    ],
+    "airQualityParams": [
+      "BirchPollen",
+      "GrassPollen",
+      "Alder",
+      "Mugwort"
+    ]
+  },
+  {
+    "key": "Pm25Alert",
+    "category": "AirQuality",
+    "description": "Fine particulate warning against the WHO guideline",
+    "enabledByDefault": true,
+    "domains": [
+      "AirQuality"
+    ],
+    "airQualityParams": [
+      "Pm25"
+    ]
+  },
+  {
+    "key": "PollenTrend",
+    "category": "AirQuality",
+    "description": "Trend of the pollen load",
+    "enabledByDefault": false,
+    "domains": [
+      "AirQuality"
+    ],
+    "airQualityParams": [
+      "BirchPollen",
+      "GrassPollen",
+      "Alder",
+      "Mugwort"
+    ]
+  },
+  {
+    "key": "CommuteSafety",
+    "category": "Lifestyle",
+    "description": "Commute safety rating from rain, wind and ice risk",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Temperature",
+      "WindSpeed",
+      "Precipitation",
+      "Humidity",
+      "DewPoint"
+    ]
+  },
+  {
+    "key": "ExerciseAdvisory",
+    "category": "Lifestyle",
+    "description": "Exercise advisory from heat, humidity and air quality",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather",
+      "AirQuality"
+    ],
+    "weatherParams": [
+      "Temperature",
+      "Humidity"
+    ],
+    "optionalWeatherParams": [
+      "UvIndex"
+    ],
+    "airQualityParams": [
+      "Pm25",
+      "Ozone"
+    ]
+  },
+  {
+    "key": "LaundryScore",
+    "category": "Lifestyle",
+    "description": "Laundry drying score",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Temperature",
+      "WindSpeed",
+      "Precipitation",
+      "PrecipitationProbability",
+      "CloudCover",
+      "Humidity"
+    ],
+    "optionalWeatherParams": [
+      "SunshineDuration"
+    ]
+  },
+  {
+    "key": "OutdoorScore",
+    "category": "Lifestyle",
+    "description": "Overall outdoor activity score",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather",
+      "AirQuality"
+    ],
+    "weatherParams": [
+      "Temperature",
+      "WindSpeed",
+      "Precipitation",
+      "PrecipitationProbability",
+      "CloudCover"
+    ],
+    "optionalWeatherParams": [
+      "UvIndex"
+    ],
+    "airQualityParams": [
+      "Pm25",
+      "BirchPollen",
+      "GrassPollen",
+      "Alder",
+      "Mugwort"
+    ]
+  },
+  {
+    "key": "BBQScore",
+    "category": "Lifestyle",
+    "description": "Barbecue suitability score",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Temperature",
+      "WindSpeed",
+      "Precipitation",
+      "PrecipitationProbability",
+      "CloudCover"
+    ]
+  },
+  {
+    "key": "NightVentilation",
+    "category": "Lifestyle",
+    "description": "Night cooling ventilation advice",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Temperature"
+    ]
+  },
+  {
+    "key": "VentilationWindow",
+    "category": "Lifestyle",
+    "description": "Best window for airing rooms",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather",
+      "AirQuality"
+    ],
+    "weatherParams": [
+      "Temperature",
+      "Precipitation"
+    ],
+    "airQualityParams": [
+      "Pm25",
+      "BirchPollen",
+      "GrassPollen",
+      "Alder",
+      "Mugwort"
+    ]
+  },
+  {
+    "key": "GardeningAdvisory",
+    "category": "Lifestyle",
+    "description": "Gardening advisory from temperature, wind and rain",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Temperature",
+      "WindSpeed",
+      "Precipitation"
+    ]
+  },
+  {
+    "key": "ConfidenceTrend",
+    "category": "Insight",
+    "description": "Trend of the ensemble forecast confidence",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "EnsembleStdDev"
+    ]
+  },
+  {
+    "key": "ApproachingFront",
+    "category": "Insight",
+    "description": "Early warning when a pressure front approaches",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "Temperature",
+      "Pressure",
+      "WindDirection"
+    ]
+  },
+  {
+    "key": "SolarYield",
+    "category": "Energy",
+    "description": "Expected solar yield from tilted irradiance",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "GlobalTiltedIrradiance"
+    ]
+  },
+  {
+    "key": "FloodRisk",
+    "category": "Flood",
+    "description": "River discharge flood risk warning",
+    "enabledByDefault": false,
+    "domains": [
+      "Flood"
+    ]
+  },
+  {
+    "key": "FloodRain",
+    "category": "Flood",
+    "description": "Flood warning combining heavy rain and rising discharge",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather",
+      "Flood"
+    ],
+    "weatherParams": [
+      "Precipitation"
+    ]
+  },
+  {
+    "key": "FloodTimeline",
+    "category": "Flood",
+    "description": "Discharge timeline for the coming days",
+    "enabledByDefault": false,
+    "domains": [
+      "Flood"
+    ]
+  },
+  {
+    "key": "SwimmingConditions",
+    "category": "Marine",
+    "description": "Swimming conditions from wave height and water temperature",
+    "enabledByDefault": false,
+    "domains": [
+      "Marine"
+    ]
+  },
+  {
+    "key": "SurfConditions",
+    "category": "Marine",
+    "description": "Surf conditions from swell height and period",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather",
+      "Marine"
+    ],
+    "optionalWeatherParams": [
+      "WindDirection"
+    ]
+  }
+]
