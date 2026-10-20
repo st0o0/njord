@@ -1,5 +1,4 @@
 using Akka.Actor;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
@@ -116,7 +115,7 @@ public sealed class GatewayRestartSpec : NjordActorSpec
     {
         var group = FeatureServices.AlertHandler(_time);
         var enrichments = Wrap(new EnrichmentOptions());
-        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(_time, new[] { group }, enrichments, NullLogger<ForecastPipeline>.Instance)), $"pipeline-{Guid.NewGuid():N}");
+        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(_time, new[] { group }, enrichments)), $"pipeline-{Guid.NewGuid():N}");
     }
 
     private static IOptions<T> Wrap<T>(T value)

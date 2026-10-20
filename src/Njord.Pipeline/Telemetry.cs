@@ -22,6 +22,12 @@ internal static class Telemetry
     internal static readonly Counter<long> PipelineEvents =
         Meter.CreateCounter<long>("njord_pipeline_events_total", "{event}");
 
+    internal static readonly Counter<long> HandlerSkipped =
+        Meter.CreateCounter<long>("njord_pipeline_handler_skipped_total", "{skip}");
+
+    internal static readonly Counter<long> ProducerFailed =
+        Meter.CreateCounter<long>("njord_pipeline_producer_failed_total", "{failure}");
+
     internal static readonly Histogram<double> EnrichmentDuration =
         Meter.CreateHistogram<double>("njord_pipeline_enrichment_duration_seconds", "s");
 

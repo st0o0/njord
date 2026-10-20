@@ -1,5 +1,4 @@
 using Akka.Actor;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
@@ -23,7 +22,7 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
         var time = new FakeTimeProvider(Start);
         var group = FeatureServices.AlertHandler(time);
         var options = Options.Create(enrichments ?? new EnrichmentOptions());
-        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(time, new[] { group }, options, NullLogger<ForecastPipeline>.Instance)), $"pipeline-{Guid.NewGuid():N}");
+        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(time, new[] { group }, options)), $"pipeline-{Guid.NewGuid():N}");
     }
 
     private static DomainDataReceived Weather(Location location, double temperature = 10.0) =>

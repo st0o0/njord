@@ -3,7 +3,6 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
@@ -31,12 +30,9 @@ public sealed class ForecastPipeline : ReceiveActor
     private Source<DomainDataReceived, NotUsed>? _inputSource;
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
-    private readonly ILogger<ForecastPipeline> _streamLog;
 
-    public ForecastPipeline(TimeProvider timeProvider, IEnumerable<IDomainHandler> handlers, IOptions<EnrichmentOptions> enrichments,
-        ILogger<ForecastPipeline> streamLog)
+    public ForecastPipeline(TimeProvider timeProvider, IEnumerable<IDomainHandler> handlers, IOptions<EnrichmentOptions> enrichments)
     {
-        _streamLog = streamLog;
         _timeProvider = timeProvider;
         _handlers = EnrichmentResolution.EnabledHandlers(enrichments.Value, handlers);
 
@@ -57,12 +53,11 @@ public sealed class ForecastPipeline : ReceiveActor
     {
         // A producer's failure must never end the MergeHub. Akka.NET 1.5.73 already drops a failed producer
         // (logging an error) although the MergeHub docs say it fails the hub; ending each producer's stream as a
-        // completion keeps the hub safe either way and logs the loss as a warning.
-        var log = _streamLog;
+        // completion keeps the hub safe either way and counts the loss.
         StreamRefs.SinkRef<DomainDataReceived>()
-            .Via(Flow.Create<DomainDataReceived>().RecoverWithRetries(ex =>
+            .Via(Flow.Create<DomainDataReceived>().RecoverWithRetries(_ =>
             {
-                log.LogWarning(ex, "Forecast producer stream failed - detaching it from the pipeline input");
+                Telemetry.ProducerFailed.Add(1);
                 return Source.Empty<DomainDataReceived>();
             }, 1))
             .To(_mergeSink!)
@@ -106,12 +101,11 @@ public sealed class ForecastPipeline : ReceiveActor
         var pipelineOutputSink = _pipelineOutputSink!;
         var handlers = _handlers;
         var timeProvider = _timeProvider;
-        var log = _streamLog;
 
         inputSource
             .StatefulSelectMany<DomainDataReceived, PipelineEvent, NotUsed>(() =>
             {
-                var engine = new ProjectionEngine(handlers, timeProvider, log);
+                var engine = new ProjectionEngine(handlers, timeProvider);
 
                 return received =>
                 {
@@ -124,7 +118,6 @@ public sealed class ForecastPipeline : ReceiveActor
                         Telemetry.PipelineEvents.Add(1, new KeyValuePair<string, object?>("event_type", evt.GetType().Name));
                     }
 
-                    log.LogDebug("Processed {Location}/{Domain}: {EventCount} events", received.Location.Name, received.Domain, events.Count);
                     return events;
                 };
             })
