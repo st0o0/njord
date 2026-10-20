@@ -2,13 +2,14 @@ using System.Net;
 using System.Text;
 using Njord.Core.Configuration;
 using Njord.Model;
+using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo.Tests;
 
 public sealed class OpenMeteoClientSpec
 {
     private static HttpClient StubHttp(HttpStatusCode status, string body, Action<HttpRequestMessage>? inspect = null) =>
-        new(new StubHandler(status, body, inspect)) { BaseAddress = new Uri("https://api.open-meteo.com/") };
+        new(new StubHandler(status, body, inspect)) { BaseAddress = new Uri("https://ensemble-api.open-meteo.com/") };
 
     private static WeatherClient Weather(HttpStatusCode status, string body, Action<HttpRequestMessage>? inspect = null) =>
         new(StubHttp(status, body, inspect), Microsoft.Extensions.Options.Options.Create(new WeatherOptions()));
@@ -106,6 +107,23 @@ public sealed class OpenMeteoClientSpec
         Assert.Contains("timeformat=unixtime", sent.ToString());
         Assert.Contains("timezone=UTC", sent.ToString());
         Assert.Contains("forecast_days=4", sent.ToString());
+        Assert.Contains("models=ecmwf_ifs025_ensemble_mean", sent.ToString());
+        Assert.Contains("temperature_2m_spread", sent.ToString());
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task The_spread_column_is_deserialized_as_ensemble_std_dev()
+    {
+        var client = Weather(HttpStatusCode.OK,
+            """{"latitude":47.0,"longitude":8.0,"hourly":{"time":[1000],"temperature_2m":[20.5],"apparent_temperature":[18.0],"wind_speed_10m":[3.0],"precipitation":[0.0],"precipitation_probability":[10.0],"cloud_cover":[50.0],"pressure_msl":[1013.0],"weather_code":[3],"relative_humidity_2m":[65.0],"dew_point_2m":[12.0],"uv_index":[3.0],"temperature_2m_spread":[1.7]}}""");
+
+        var result = await client.FetchAsync(47.0, 8.0, 4, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result?.Hourly?.EnsembleStdDev);
+        Assert.Equal(1.7, result.Hourly.EnsembleStdDev[0]);
+        var forecast = result.ToDomainForecast(DateTimeOffset.UnixEpoch);
+        Assert.NotNull(forecast);
+        Assert.Equal(1.7, Assert.Single(forecast.Points).EnsembleStdDev);
     }
 
     [Fact(Timeout = 5000)]

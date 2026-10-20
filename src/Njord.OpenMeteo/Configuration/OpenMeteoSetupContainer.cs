@@ -26,7 +26,7 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
 
         AddTypedClient<IWeatherClient, WeatherClient>(services, (_, client) =>
         {
-            client.BaseAddress = new Uri("https://api.open-meteo.com/");
+            client.BaseAddress = new Uri("https://ensemble-api.open-meteo.com/");
         });
 
         AddTypedClient<IAirQualityClient, AirQualityClient>(services, (_, client) =>

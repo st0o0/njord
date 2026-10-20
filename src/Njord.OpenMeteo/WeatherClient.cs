@@ -7,13 +7,16 @@ namespace Njord.OpenMeteo;
 
 public sealed class WeatherClient(HttpClient httpClient, IOptions<WeatherOptions> options) : IWeatherClient
 {
+    internal const string SpreadVariable = "temperature_2m_spread";
+
     public IReadOnlyList<string> HourlyVariables { get; } = WeatherVariables.For(options.Value.IncludeSolar);
 
     public async Task<WeatherResponse?> FetchAsync(double latitude, double longitude, int forecastDays, CancellationToken cancellationToken)
     {
         var uri = OpenMeteoRequestBuilder.To("v1/ensemble")
             .WithLocation(latitude, longitude)
-            .WithHourly(HourlyVariables)
+            .WithHourly([.. HourlyVariables, SpreadVariable])
+            .With("models", options.Value.Model)
             .With("wind_speed_unit", "ms")
             .WithForecastDays(forecastDays)
             .Build();

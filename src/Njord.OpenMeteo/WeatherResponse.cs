@@ -15,7 +15,7 @@ public sealed record WeatherHourlyData(
     [property: JsonPropertyName("relative_humidity_2m")] double?[] Humidity,
     [property: JsonPropertyName("dew_point_2m")] double?[] DewPoint,
     [property: JsonPropertyName("uv_index")] double?[] UvIndex,
-    [property: JsonPropertyName("temperature_2m_std")] double?[]? EnsembleStdDev = null,
+    [property: JsonPropertyName("temperature_2m_spread")] double?[]? EnsembleStdDev = null,
     [property: JsonPropertyName("wind_gusts_10m")] double?[]? WindGusts = null,
     [property: JsonPropertyName("visibility")] double?[]? Visibility = null,
     [property: JsonPropertyName("cape")] double?[]? Cape = null,
