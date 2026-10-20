@@ -41,7 +41,7 @@ Responses grow with the model count (N x variables of ensemble means); the free 
 
 ## Impact
 
-- `src/Njord.Core`: `Configuration/WeatherOptions.cs`, `WeatherOptionsValidator.cs`, `Configuration/Polling/BudgetCalculator.cs`, `Domain/LocationForecast.cs`, `DomainDataReceived`, new `Domain/WeatherModelCatalog.cs`, `FeatureKind` (feature catalog).
+- `src/Njord.Core`: `Configuration/WeatherOptions.cs`, `WeatherOptionsValidator.cs`, `Configuration/Polling/BudgetCalculator.cs`, `Domain/LocationForecast.cs`, `DomainDataReceived`, new `Domain/WeatherModelCatalog.cs`, the `ModelComparison` feature descriptor.
 - `src/Njord.OpenMeteo`: `WeatherClient.cs`, `WeatherResponse.cs`, `Mapping/WeatherResponseMappings.cs`, the gateway only if `FetchSuccess` must carry several forecasts (design, open point).
 - `src/Njord.Messages/Forecast`: model id on `QueryDomainData` / `DomainDataNotAvailable`.
 - `src/Njord.Pipeline`: `ForecastPipeline` / `ProjectionEngine` keep per-model state in the closure.
