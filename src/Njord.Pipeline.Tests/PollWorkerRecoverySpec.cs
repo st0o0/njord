@@ -67,8 +67,8 @@ public sealed class PollWorkerRecoverySpec : PollWorkerSpecBase
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
 
-        // The start is event 1; 49 more outcomes reach sequence number 50.
-        for (var i = 0; i < 49; i++)
+        // The start is event 1; every round persists three events (the aggregate and one per domain), so round 17 crosses sequence number 50 at 52.
+        for (var i = 0; i < 20; i++)
         {
             if (i > 0)
             {
@@ -87,7 +87,7 @@ public sealed class PollWorkerRecoverySpec : PollWorkerSpecBase
                 new LoadSnapshot($"poll-worker-{TargetId}", SnapshotSelectionCriteria.Latest, long.MaxValue),
                 TestTimeouts.RealTimeWaitMax, ct);
             Assert.NotNull(loaded.Snapshot);
-            Assert.Equal(50, loaded.Snapshot.Metadata.SequenceNr);
+            Assert.Equal(52, loaded.Snapshot.Metadata.SequenceNr);
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
         await StopAsync(worker, ct);

@@ -36,6 +36,7 @@ public sealed class WireFormatSpec
 
         Assert.Equal(State, recovered);
     }
+    [Fact] public void Should_deserialize_a_domain_state_written_before_cycle_learning() { const string oldFormat = """{ "Domain": 1, "LastHash": 7 }"""; var recovered = JsonConvert.DeserializeObject<PersistedDomainState>(oldFormat); Assert.Equal(new PersistedDomainState(1, 7), recovered); }
 
     [Fact]
     public void Should_keep_the_stored_numbers_of_persisted_poll_phases()

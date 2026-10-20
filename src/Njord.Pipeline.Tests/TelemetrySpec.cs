@@ -8,6 +8,8 @@ public sealed class TelemetrySpec
         Assert.Multiple(
             () => Assert.Equal("njord_pipeline_data_changed_total", Telemetry.DataChanged.Name),
             () => Assert.Equal("{change}", Telemetry.DataChanged.Unit),
+            () => Assert.Equal("njord_pipeline_domain_polls_total", Telemetry.DomainPolls.Name),
+            () => Assert.Equal("njord_pipeline_cycle_learned_total", Telemetry.CycleLearned.Name),
             () => Assert.Equal("Njord.Pipeline", Telemetry.Meter.Name));
     }
 

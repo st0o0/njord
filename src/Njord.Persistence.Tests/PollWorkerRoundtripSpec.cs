@@ -14,6 +14,9 @@ public sealed class PollWorkerRoundtripSpec
         new ForecastUnchanged(Utc),
         new PollFailed(Utc, TimeSpan.FromMinutes(5)),
         new PollDeferred(Utc, TimeSpan.FromSeconds(5)),
+        new DomainChanged(1, 42, Utc),
+        new DomainUnchanged(1, Utc),
+        new DomainFailed(1, Utc, TimeSpan.FromMinutes(1)),
     ];
 
     [Fact]
@@ -22,7 +25,11 @@ public sealed class PollWorkerRoundtripSpec
         var state = new PersistedPollWorkerState(
             "lucerne", true, TimeSpan.FromMinutes(20), 42, Utc, Utc.AddHours(-3), Utc.AddHours(3),
             2, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 1,
-            new List<PersistedDomainState> { new(0, 7), new(1, null) });
+            new List<PersistedDomainState>
+            {
+                new(0, 7, PersistedPollPhase.Steady, TimeSpan.FromHours(6), 2, Utc.AddHours(-6), TimeSpan.FromHours(6), Utc.AddHours(6)),
+                new(1, null),
+            });
 
         var recovered = PersistenceRoundtripHelper.Roundtrip(state);
 

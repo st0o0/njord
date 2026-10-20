@@ -69,6 +69,7 @@ public sealed class PollWorkerOutcomeSpec : PollWorkerSpecBase
             () => Assert.NotNull(report.State.LastChangeUtc));
     }
 
+    // The aggregate learns from two changes; each domain needs two consistent intervals, so the next poll still follows the discovery interval.
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_second_change_learns_the_cycle()
     {
@@ -85,7 +86,7 @@ public sealed class PollWorkerOutcomeSpec : PollWorkerSpecBase
         Assert.Multiple(
             () => Assert.Equal(PollPhase.Steady, report.State.Phase),
             () => Assert.Equal(10800L, report.State.CycleSeconds),
-            () => Assert.Equal(_time.GetUtcNow() + TimeSpan.FromHours(3) + TimeSpan.FromMinutes(1), report.State.NextPollUtc));
+            () => Assert.Equal(_time.GetUtcNow() + Discovery, report.State.NextPollUtc));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

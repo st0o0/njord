@@ -11,6 +11,12 @@ internal static class Telemetry
     internal static readonly Counter<long> DataChanged =
         Meter.CreateCounter<long>("njord_pipeline_data_changed_total", "{change}");
 
+    internal static readonly Counter<long> DomainPolls =
+        Meter.CreateCounter<long>("njord_pipeline_domain_polls_total", "{poll}");
+
+    internal static readonly Counter<long> CycleLearned =
+        Meter.CreateCounter<long>("njord_pipeline_cycle_learned_total", "{cycle}");
+
     internal static readonly Counter<long> PipelineEvents =
         Meter.CreateCounter<long>("njord_pipeline_events_total", "{event}");
 

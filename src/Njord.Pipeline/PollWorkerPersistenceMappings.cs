@@ -21,7 +21,15 @@ internal static class PollWorkerPersistenceMappings
         state.TransientFailureCount,
         state.DomainStates.IsEmpty
             ? null
-            : [.. state.DomainStates.Select(kv => new PersistedDomainState((int)kv.Key, kv.Value.LastHash))]);
+            : [.. state.DomainStates.Select(kv => new PersistedDomainState(
+                (int)kv.Key,
+                kv.Value.LastHash,
+                kv.Value.Phase.ToPersistence(),
+                kv.Value.LearnedCycle,
+                kv.Value.MissCount,
+                kv.Value.LastChanged,
+                kv.Value.CandidateCycle,
+                kv.Value.NextPollAt))]);
 
     public static PollWorkerState FromPersistence(this PersistedPollWorkerState dto) => new(
         dto is { Location: { } location } ? new PollTarget(new Location(location, 0, 0)) : null,
@@ -38,7 +46,14 @@ internal static class PollWorkerPersistenceMappings
         dto.DomainStates is { Count: > 0 }
             ? dto.DomainStates.ToImmutableDictionary(
                 d => (DomainKind)d.Domain,
-                d => new DomainPollState(d.LastHash))
+                d => new DomainPollState(
+                    d.LastHash,
+                    d.LastChanged,
+                    d.CandidateCycle,
+                    d.LearnedCycle,
+                    d.Phase.ToDomain(),
+                    d.MissCount,
+                    d.NextPollAt ?? DateTimeOffset.MinValue))
             : ImmutableDictionary<DomainKind, DomainPollState>.Empty);
 
     public static PersistedPollPhase ToPersistence(this PollPhase phase) => phase switch

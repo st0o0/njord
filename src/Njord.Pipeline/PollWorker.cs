@@ -13,7 +13,7 @@ namespace Njord.Pipeline;
 
 // One persistent entity per location in the poll shard region. It owns the location's poll state,
 // its timer and at most one fetch round in flight, and reports every start and outcome to the poll manager.
-// On each tick it fetches all enabled domains (initially just Weather/Ensemble) in parallel.
+// On each tick it fetches the enabled domains that are due, each on its own learned cycle, in parallel.
 public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 {
     private const int SnapshotInterval = 50;
@@ -52,6 +52,9 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         Recover<ForecastUnchanged>(evt => _state = _state.Apply(evt));
         Recover<PollFailed>(evt => _state = _state.Apply(evt));
         Recover<PollDeferred>(evt => _state = _state.Apply(evt));
+        Recover<DomainChanged>(evt => _state = _state.Apply(evt));
+        Recover<DomainUnchanged>(evt => _state = _state.Apply(evt));
+        Recover<DomainFailed>(evt => _state = _state.Apply(evt));
         Recover<SnapshotOffer>(offer =>
         {
             if (offer.Snapshot is PersistedPollWorkerState snapshot)
@@ -63,8 +66,8 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
         Command<StartPolling>(OnStartPolling);
         Command<StopPolling>(_ => OnStopPolling());
-        Command<TriggerLocationPoll>(_ => Poll("trigger"));
-        Command<PollDue>(_ => Poll("timer"));
+        Command<TriggerLocationPoll>(_ => Poll("trigger", force: true));
+        Command<PollDue>(_ => Poll("timer", force: false));
         Command<DomainFetchReplied>(OnDomainFetchReplied);
         Command<DomainFetchTimeout>(OnDomainFetchTimeout);
         Command<SaveSnapshotSuccess>(success =>
@@ -140,7 +143,9 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
     }
 
     // Fetches all enabled domains in parallel for this location. Collects results with a timeout.
-    private void Poll(string reason)
+    // A timer poll fetches only the domains that are due (all of them when none is, so a tick never stalls);
+    // a trigger fetches every enabled domain.
+    private void Poll(string reason, bool force)
     {
         if (_state is not { Active: true, Target: { } target })
         {
@@ -156,7 +161,9 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
         Timers.Cancel(PollTimerKey);
         var roundId = Guid.NewGuid();
-        _state = _state.StartRound(roundId, _enabledDomains);
+        IReadOnlyList<DomainKind> due = force ? _enabledDomains : _state.DueDomainsAt(_enabledDomains, _timeProvider.GetUtcNow());
+        var domains = due.Count > 0 ? due : _enabledDomains;
+        _state = _state.StartRound(roundId, domains);
 
         if (!Context.TryGetActor<IForecastGateway>(out var gateway))
         {
@@ -168,7 +175,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         var location = target.Location;
         var timeout = _fetchTimeouts.Reply;
 
-        foreach (var domain in _enabledDomains)
+        foreach (var domain in domains)
         {
             var domainKind = domain;
 
@@ -233,8 +240,8 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         if (results.IsEmpty)
         {
             // No gateway was registered - treat as a transport failure
-            var now = _timeProvider.GetUtcNow();
-            Persist(new PollFailed(now, TimeSpan.Zero), e =>
+            var failedAt = _timeProvider.GetUtcNow();
+            Persist(new PollFailed(failedAt, TimeSpan.Zero), e =>
             {
                 _state = _state.Apply(e);
                 ScheduleNext();
@@ -245,26 +252,70 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         }
 
         var aggregateReply = _state.ChooseAggregateReply(results.Values);
-        var (evt, outcome) = _state.ToEvent(aggregateReply, _timeProvider.GetUtcNow());
+        var now = _timeProvider.GetUtcNow();
+        var (evt, outcome) = _state.ToEvent(aggregateReply, now);
 
-        Persist(evt, e =>
+        // Failed domains of an all-failed round retry on the aggregate's backoff.
+        var domainEvents = _state.ToDomainEvents(results, now, _state.Apply(evt).NextPollUtc - now);
+        List<object> events = [evt, .. domainEvents];
+        var previousSequenceNr = LastSequenceNr;
+        var remaining = events.Count;
+
+        PersistAll(events, e =>
         {
+            var before = e is DomainChanged changed ? _state.GetDomain((DomainKind)changed.Domain) : null;
             _state = _state.Apply(e);
+            RecordDomainTelemetry(e, before);
 
-            // Update per-domain hashes after persistence, so the next round's comparison is correct.
-            foreach (var (domain, result) in results)
+            if (--remaining > 0)
             {
-                if (result is FetchDomainCompleted completed)
-                {
-                    _state = _state.WithDomainHash(domain, completed.Hash);
-                }
+                return;
             }
 
             ScheduleNext();
             Report(outcome);
-            MaybeSnapshot();
+            if (LastSequenceNr / SnapshotInterval > previousSequenceNr / SnapshotInterval)
+            {
+                SaveSnapshot(_state.GetPersistenceState());
+            }
         });
     }
+
+    private void RecordDomainTelemetry(object evt, DomainPollState? before)
+    {
+        switch (evt)
+        {
+            case DomainChanged changed:
+                var domain = (DomainKind)changed.Domain;
+                Telemetry.DomainPolls.Add(1, DomainTag(domain), new KeyValuePair<string, object?>("outcome", "changed"));
+                if (before is { Phase: PollPhase.Discovery } && _state.GetDomain(domain).Phase == PollPhase.Steady)
+                {
+                    Telemetry.CycleLearned.Add(1, DomainTag(domain));
+                    _log.Info("Learned update cycle {Cycle} for {Location}/{Domain}",
+                        _state.GetDomain(domain).LearnedCycle, _state.Target?.Location, domain);
+                }
+
+                break;
+            case DomainUnchanged unchanged:
+                Telemetry.DomainPolls.Add(1, DomainTag((DomainKind)unchanged.Domain),
+                    new KeyValuePair<string, object?>("outcome", "unchanged"));
+                break;
+            case DomainFailed failed:
+                Telemetry.DomainPolls.Add(1, DomainTag((DomainKind)failed.Domain),
+                    new KeyValuePair<string, object?>("outcome", "failed"));
+                break;
+        }
+    }
+
+    private static KeyValuePair<string, object?> DomainTag(DomainKind domain) => new("domain", domain switch
+    {
+        DomainKind.Weather => "weather",
+        DomainKind.AirQuality => "air_quality",
+        DomainKind.Flood => "flood",
+        DomainKind.Solar => "solar",
+        DomainKind.Marine => "marine",
+        _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, "Unknown domain kind"),
+    });
 
     private void LogDomainOutcome(DomainKind domain, FetchDomainResponse reply)
     {

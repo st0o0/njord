@@ -14,4 +14,12 @@ public sealed record PersistedPollWorkerState(
     int TransientFailureCount,
     IReadOnlyList<PersistedDomainState>? DomainStates);
 
-public sealed record PersistedDomainState(int Domain, int? LastHash);
+public sealed record PersistedDomainState(
+    int Domain,
+    int? LastHash,
+    PersistedPollPhase Phase = PersistedPollPhase.Discovery,
+    TimeSpan? LearnedCycle = null,
+    int MissCount = 0,
+    DateTimeOffset? LastChanged = null,
+    TimeSpan? CandidateCycle = null,
+    DateTimeOffset? NextPollAt = null);
