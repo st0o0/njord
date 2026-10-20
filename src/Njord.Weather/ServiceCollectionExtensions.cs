@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Njord.Core.Domain;
 using Njord.Model;
 using Njord.Weather.Alerts.Rules;
@@ -38,6 +39,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDomainHandler, OutdoorScoreHandler>();
         services.AddSingleton<IDomainHandler, BBQScoreHandler>();
         services.AddSingleton<IDomainHandler, ApproachingFrontHandler>();
+        services.AddSingleton<IDomainHandler, ClimateAnomalyHandler>();
+        services.TryAddSingleton<IClimateBaselineStore, ClimateBaselineStore>();
 
         return services;
     }

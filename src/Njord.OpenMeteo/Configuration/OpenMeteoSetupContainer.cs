@@ -11,6 +11,7 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.OpenMeteo;
 using Njord.Core.Configuration.Polling;
+using Njord.Core.Domain;
 using Servus.Akka;
 using Servus.Application.Startup;
 
@@ -47,12 +48,20 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
             client.BaseAddress = new Uri("https://marine-api.open-meteo.com/");
         });
 
+        AddTypedClient<IClimateClient, ClimateClient>(services, (_, client) =>
+        {
+            client.BaseAddress = new Uri("https://climate-api.open-meteo.com/");
+        });
+
         AddTypedClient<IGeocodingClient, GeocodingClient>(services, (_, client) =>
         {
             client.BaseAddress = new Uri("https://geocoding-api.open-meteo.com/");
         });
 
         services.AddHostedService<LocationResolutionService>();
+
+        services.TryAddSingleton<IClimateBaselineStore, ClimateBaselineStore>();
+        services.AddHostedService<ClimateBaselineService>();
 
         services.AddSingleton<IActorRegistration>(new GatewayActorRegistration());
     }

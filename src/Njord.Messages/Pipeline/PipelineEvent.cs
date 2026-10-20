@@ -121,4 +121,10 @@ public abstract record PipelineEvent
         TimeSpan EstimatedIn,
         double PressureDrop,
         double TempDrop) : PipelineEvent;
+
+    public sealed record ClimateAnomalyComputed(
+        Location Location,
+        double TempAnomaly,
+        double PrecipAnomaly,
+        string BaselinePeriod) : PipelineEvent;
 }

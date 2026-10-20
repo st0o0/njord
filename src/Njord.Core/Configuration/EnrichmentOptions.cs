@@ -35,6 +35,7 @@ public sealed class EnrichmentOptions
     public bool BBQScore { get; set; }
     public bool FloodTimeline { get; set; }
     public bool ApproachingFront { get; set; }
+    public bool ClimateAnomaly { get; set; }
 
     public static IReadOnlyCollection<string> Keys => Toggles.Keys.ToArray();
 
