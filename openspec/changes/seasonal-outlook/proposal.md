@@ -7,8 +7,8 @@ The Climate Change API and everything built on it (`IClimateBaselineStore`, `Cli
 ## What Changes
 
 - New `ISeasonalClient` + `SeasonalClient` in `src/Njord.OpenMeteo/` - thin typed client for `seasonal-api.open-meteo.com/v1/seasonal`, built with `OpenMeteoRequestBuilder`. Like the other clients it receives its variables from outside; it owns no variable list.
-- New `SeasonalResponse` / `SeasonalSixHourlyData` response models registered in `OpenMeteoJsonContext`.
-- New `SeasonalOutlookService` (`BackgroundService`) in `src/Njord.OpenMeteo/` - fetches once per day per location, aggregates 6-hourly data to monthly values, derives monthly anomalies against its own baseline (see Baseline), and writes the result to `ISeasonalOutlookStore`. It is standalone: not an actor, not part of the PollWorker/Gateway path.
+- New `SeasonalResponse` / `SeasonalMonthlyData` response models registered in `OpenMeteoJsonContext`. The API returns monthly resolution directly — no 6-hourly aggregation needed.
+- New `SeasonalOutlookService` (`BackgroundService`) in `src/Njord.OpenMeteo/` - fetches once per day per location, reads monthly anomalies (`temperature_2m_anomaly`, `precipitation_sum_anomaly`) directly from the API response, derives confidence from ensemble spread, and writes the result to `ISeasonalOutlookStore`. It is standalone: not an actor, not part of the PollWorker/Gateway path.
 - New `ISeasonalOutlookStore` + in-memory `SeasonalOutlookStore` in `src/Njord.Core/Domain/` (thread-safe, keyed by location, overwritten per fetch).
 - New `SeasonalOutlookHandler` (`IDomainHandler`) in `src/Njord.Weather/Lifestyle/`: `ConfigKey = "SeasonalOutlook"`, `Requirements = new(Weather: WeatherParam.Temperature)` so it piggybacks on weather updates and adds no extra fetched variables beyond what other handlers need. It reads the store and emits `PipelineEvent.SeasonalOutlookComputed`.
 - New `PipelineEvent.SeasonalOutlookComputed` with an `ImmutableArray<MonthlyOutlook>`, and the `MonthlyOutlook` record in `Njord.Messages` (Month "2026-11", TempAnomaly in °C, PrecipAnomaly in %, Confidence High/Medium/Low).
@@ -18,12 +18,7 @@ The Climate Change API and everything built on it (`IClimateBaselineStore`, `Cli
 
 ## Baseline
 
-The service must compare the seasonal forecast with a "normal". Decision order, verified in task 1.1 against the Open-Meteo seasonal docs before any code is written:
-
-1. **Preferred:** the Seasonal API returns anomalies directly (anomaly variants of the temperature and precipitation variables relative to the model climatology). The service requests those and aggregates them; no baseline store, no second API.
-2. **Fallback (only if the API lacks anomalies):** the service owns a private monthly-normal cache fetched from the Open-Meteo Archive API (`archive-api.open-meteo.com`, ERA5 daily data, 10-30 years, fetched once per location and refreshed rarely). This lives inside `SeasonalOutlookService` and is not a shared store. If chosen, the budget and design sections are updated in that task.
-
-The budget below assumes option 1.
+The Open-Meteo Seasonal Forecast API provides `temperature_2m_anomaly` and `precipitation_sum_anomaly` as monthly variables, pre-computed against the ECMWF SEAS5 model climatology (hindcast baseline, 51 ensemble members). No baseline mechanism is needed — the API delivers anomalies directly. No fallback path required.
 
 ## Non-goals
 

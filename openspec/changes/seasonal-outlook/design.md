@@ -18,13 +18,13 @@ Seasonal outlook is a new standalone feature: a daily background fetch, an in-me
 
 `SeasonalOutlookService` (`BackgroundService` in `Njord.OpenMeteo`, daily fetch) writes to `ISeasonalOutlookStore` (interface and in-memory implementation in `Njord.Core/Domain`), and `SeasonalOutlookHandler` (`Njord.Weather/Lifestyle`) reads it. The service owns its loop (`TimeProvider`-driven timer, jittered first run, 24 h interval, 15 min retry, previous outlook kept on failure) and fetches only when `EnrichmentOptions.SeasonalOutlook` is enabled. It is not routed through the Gateway or PollWorker because Seasonal is not a `DomainKind`; this keeps the "one PollWorker per location, per-domain timers" guardrail intact. Feature libraries stay independent: the store interface lives in Core, so Weather and OpenMeteo meet only through it.
 
-### D2: Baseline is self-contained
+### D2: Anomalies from the API, no baseline
 
-Preferred source: anomalies returned by the Seasonal API itself, so njord holds no baseline mechanism at all (task 1.1 confirms variable names and units). Fallback: a private monthly-normal cache inside `SeasonalOutlookService` fed by the Archive API; no shared store, no new public interface. This decision is the first gate of the task list.
+The Open-Meteo Seasonal Forecast API (`seasonal-api.open-meteo.com/v1/seasonal`) provides monthly variables including `temperature_2m_anomaly` and `precipitation_sum_anomaly`, pre-computed against the ECMWF SEAS5 model climatology (hindcast baseline). njord needs no baseline mechanism — the API delivers the anomaly directly. The fallback (task 1.1 gate) of building a private baseline is unnecessary.
 
-### D3: Own 6-hourly to monthly aggregation
+### D3: Monthly response mapping (no aggregation)
 
-`SeasonalResponseMappings` (`src/Njord.OpenMeteo/Mapping/`, extension methods named `ToDomain`/`ToMessage`, stateless) groups the 6-hourly values by UTC year-month: mean for the temperature anomaly, relative percentage for the precipitation anomaly, and the standard deviation across the month for confidence. Months with fewer than half of the expected samples are dropped.
+`SeasonalResponseMappings` (`src/Njord.OpenMeteo/Mapping/`, extension methods named `ToDomain`/`ToMessage`, stateless) reads the monthly anomaly arrays directly. No 6-hourly to monthly aggregation is needed — the API returns monthly resolution. Confidence is derived from the ensemble spread across the 51 members: standard deviation of `temperature_2m_mean` per month — below 1.5°C High, below 3.0°C Medium, otherwise Low.
 
 ### D4: 3-month window
 
