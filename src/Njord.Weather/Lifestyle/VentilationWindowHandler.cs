@@ -16,7 +16,10 @@ public sealed class VentilationWindowHandler : IDomainHandler
 
     public string ConfigKey => "VentilationWindow";
 
-    public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality };
+    public DomainRequirements Requirements { get; } = new(
+        Weather: WeatherParam.Temperature | WeatherParam.Precipitation,
+        AirQuality: AirQualityParam.Pm25 | AirQualityParam.BirchPollen | AirQualityParam.GrassPollen
+            | AirQualityParam.Alder | AirQualityParam.Mugwort);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

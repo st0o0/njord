@@ -7,7 +7,7 @@ public interface IDomainHandler
 {
     string ConfigKey { get; }
 
-    IReadOnlySet<DomainKind> Triggers { get; }
+    DomainRequirements Requirements { get; }
 
     IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time);
 }

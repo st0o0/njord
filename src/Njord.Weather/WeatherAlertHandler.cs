@@ -21,7 +21,11 @@ public sealed class WeatherAlertHandler : IDomainHandler
 
     public string ConfigKey => "WeatherAlerts";
 
-    public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather };
+    public DomainRequirements Requirements { get; } = new(Weather: WeatherParam.Temperature | WeatherParam.ApparentTemperature | WeatherParam.WindSpeed
+            | WeatherParam.Precipitation | WeatherParam.Humidity | WeatherParam.DewPoint | WeatherParam.Pressure
+            | WeatherParam.WindGusts | WeatherParam.Visibility | WeatherParam.Cape | WeatherParam.Rain
+            | WeatherParam.Snowfall | WeatherParam.FreezingLevelHeight | WeatherParam.IsDay
+            | WeatherParam.EnsembleStdDev);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

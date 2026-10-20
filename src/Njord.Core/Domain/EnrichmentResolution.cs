@@ -8,6 +8,12 @@ public static class EnrichmentResolution
     public static IReadOnlyList<IDomainHandler> EnabledHandlers(EnrichmentOptions options, IEnumerable<IDomainHandler> handlers) =>
         [.. handlers.Where(handler => options.IsEnabled(handler.ConfigKey))];
 
-    public static IReadOnlySet<DomainKind> RequiredDomains(EnrichmentOptions options, IEnumerable<IDomainHandler> handlers) =>
-        EnabledHandlers(options, handlers).SelectMany(handler => handler.Triggers).ToHashSet();
+    public static DomainRequirements RequiredParams(EnrichmentOptions options, IEnumerable<IDomainHandler> handlers) =>
+        EnabledHandlers(options, handlers).Aggregate(default(DomainRequirements), (all, handler) => all | handler.Requirements);
+
+    public static IReadOnlySet<DomainKind> RequiredDomains(EnrichmentOptions options, IEnumerable<IDomainHandler> handlers)
+    {
+        var requirements = RequiredParams(options, handlers);
+        return Enum.GetValues<DomainKind>().Where(requirements.Requires).ToHashSet();
+    }
 }

@@ -12,7 +12,11 @@ public sealed class OutdoorScoreHandler : IDomainHandler
 
     public string ConfigKey => "OutdoorScore";
 
-    public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality };
+    public DomainRequirements Requirements { get; } = new(
+        Weather: WeatherParam.Temperature | WeatherParam.Precipitation | WeatherParam.PrecipitationProbability
+            | WeatherParam.WindSpeed | WeatherParam.CloudCover,
+        AirQuality: AirQualityParam.Pm25 | AirQualityParam.BirchPollen | AirQualityParam.GrassPollen
+            | AirQualityParam.Alder | AirQualityParam.Mugwort);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {
@@ -36,7 +40,7 @@ public sealed class OutdoorScoreHandler : IDomainHandler
 
     private static double ScoreHour(WeatherPoint weather, AirQualityPoint air)
     {
-        if (weather is not { Temperature: { } airTemperature, PrecipitationProbability: { } probability, WindSpeed: { } windSpeed, CloudCover: { } cloudCover, UvIndex: { } uvIndex }
+        if (weather is not { Temperature: { } airTemperature, PrecipitationProbability: { } probability, WindSpeed: { } windSpeed, CloudCover: { } cloudCover }
             || air.Pm25 is not { } pm25)
         {
             return 0.0;
@@ -46,7 +50,7 @@ public sealed class OutdoorScoreHandler : IDomainHandler
         var rain = weather.Precipitation > 0.1 ? 0.0 : 1.0 - Scoring.Ramp(probability, 0.0, 100.0);
         var wind = Scoring.Band(windSpeed, -1.0, 0.0, 8.0, 16.0);
         var cloud = 1.0 - 0.5 * Scoring.Ramp(cloudCover, 50.0, 100.0);
-        var uv = 1.0 - Scoring.Ramp(uvIndex, 5.0, 11.0);
+        var uv = weather.UvIndex is { } uvIndex ? 1.0 - Scoring.Ramp(uvIndex, 5.0, 11.0) : 1.0;
         var pollen = new[] { air.BirchPollen, air.GrassPollen, air.Alder, air.Mugwort }.Max() ?? 0.0;
         var airScore = Math.Min(1.0 - Scoring.Ramp(pm25, 15.0, 55.0), 1.0 - Scoring.Ramp(pollen, 20.0, 100.0));
         return 100.0 * (0.3 * temperature + 0.2 * rain + 0.1 * wind + 0.1 * cloud + 0.1 * uv + 0.2 * airScore);

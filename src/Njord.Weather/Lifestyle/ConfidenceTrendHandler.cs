@@ -11,7 +11,7 @@ public sealed class ConfidenceTrendHandler : IDomainHandler
 
     public string ConfigKey => "ConfidenceTrend";
 
-    public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather };
+    public DomainRequirements Requirements { get; } = new(Weather: WeatherParam.EnsembleStdDev);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

@@ -2,6 +2,8 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Forecast;
+using Njord.Forecast.Flood;
+using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
@@ -11,7 +13,9 @@ public sealed class FloodRainHandler(IAlertRule<FloodRainInput> rule, IOptions<A
 {
     public string ConfigKey => "FloodRain";
 
-    public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Flood, DomainKind.Weather };
+    public DomainRequirements Requirements { get; } = new(
+        Weather: WeatherParam.Precipitation,
+        Flood: FloodParam.Discharge | FloodParam.DischargeMedian | FloodParam.DischargeP75);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

@@ -1,29 +1,33 @@
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Forecast;
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Flood;
+using Njord.Forecast.Marine;
+using Njord.Forecast.Weather;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Core.Tests.Domain;
 
 public sealed class EnrichmentResolutionSpec
 {
-    private sealed class StubHandler(string configKey, params DomainKind[] triggers) : IDomainHandler
+    private sealed class StubHandler(string configKey, DomainRequirements requirements) : IDomainHandler
     {
         public string ConfigKey { get; } = configKey;
 
-        public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind>(triggers);
+        public DomainRequirements Requirements { get; } = requirements;
 
         public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time) => [];
     }
 
     private static readonly IDomainHandler[] All =
     [
-        new StubHandler("WeatherAlerts", DomainKind.Weather),
-        new StubHandler("CommuteSafety", DomainKind.Weather),
-        new StubHandler("PollenAlert", DomainKind.AirQuality),
-        new StubHandler("Pm25Alert", DomainKind.AirQuality),
-        new StubHandler("FloodRisk", DomainKind.Flood),
-        new StubHandler("SwimmingConditions", DomainKind.Marine),
+        new StubHandler("WeatherAlerts", new(Weather: WeatherParam.Temperature | WeatherParam.WindGusts)),
+        new StubHandler("CommuteSafety", new(Weather: WeatherParam.Temperature | WeatherParam.Precipitation)),
+        new StubHandler("PollenAlert", new(AirQuality: AirQualityParam.BirchPollen)),
+        new StubHandler("Pm25Alert", new(AirQuality: AirQualityParam.Pm25)),
+        new StubHandler("FloodRisk", new(Flood: FloodParam.Discharge)),
+        new StubHandler("SwimmingConditions", new(Marine: MarineParam.WaveHeight)),
     ];
 
     [Fact]
@@ -62,5 +66,35 @@ public sealed class EnrichmentResolutionSpec
         var keys = EnrichmentResolution.EnabledHandlers(options, All).Select(h => h.ConfigKey);
 
         Assert.Equal(["WeatherAlerts", "PollenAlert", "Pm25Alert", "SwimmingConditions"], keys);
+    }
+
+    [Fact]
+    public void Should_union_the_params_of_all_enabled_handlers()
+    {
+        var requirements = EnrichmentResolution.RequiredParams(new EnrichmentOptions(), All);
+
+        Assert.Multiple(
+            () => Assert.Equal(
+                WeatherParam.Temperature | WeatherParam.WindGusts | WeatherParam.Precipitation,
+                requirements.Weather),
+            () => Assert.Equal(AirQualityParam.BirchPollen | AirQualityParam.Pm25, requirements.AirQuality),
+            () => Assert.Equal(FloodParam.None, requirements.Flood),
+            () => Assert.Equal(MarineParam.None, requirements.Marine));
+    }
+
+    [Fact]
+    public void Should_include_the_params_of_a_newly_enabled_handler()
+    {
+        var requirements = EnrichmentResolution.RequiredParams(new EnrichmentOptions { SwimmingConditions = true }, All);
+
+        Assert.Equal(MarineParam.WaveHeight, requirements.Marine);
+    }
+
+    [Fact]
+    public void Should_require_nothing_when_no_handler_is_enabled()
+    {
+        var requirements = EnrichmentResolution.RequiredParams(new EnrichmentOptions(), []);
+
+        Assert.Equal(default, requirements);
     }
 }

@@ -22,7 +22,13 @@ public sealed class AirQualityAlertHandler(
         _ => throw new ArgumentOutOfRangeException(nameof(alertType), alertType, "Not an air quality alert type."),
     };
 
-    public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.AirQuality };
+    public DomainRequirements Requirements { get; } = alertType switch
+    {
+        AlertType.Pollen => new(AirQuality: AirQualityParam.BirchPollen | AirQualityParam.GrassPollen
+            | AirQualityParam.Alder | AirQualityParam.Mugwort),
+        AlertType.Pm25 => new(AirQuality: AirQualityParam.Pm25),
+        _ => throw new ArgumentOutOfRangeException(nameof(alertType), alertType, "Not an air quality alert type."),
+    };
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

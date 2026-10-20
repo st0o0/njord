@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Domain;
 using Njord.Forecast;
+using Njord.Forecast.Marine;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -48,8 +49,10 @@ public sealed class SwimmingConditionsHandlerSpec
     }
 
     [Fact]
-    public void The_handler_triggers_on_marine_data_only()
+    public void The_handler_requires_wave_height_and_water_temperature_from_marine_data_only()
     {
-        Assert.Equal([DomainKind.Marine], Handler().Triggers);
+        Assert.Equal(
+            new DomainRequirements(Marine: MarineParam.WaveHeight | MarineParam.WaterTemperature),
+            Handler().Requirements);
     }
 }

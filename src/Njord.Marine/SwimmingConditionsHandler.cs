@@ -14,7 +14,7 @@ public sealed class SwimmingConditionsHandler(
 {
     public string ConfigKey => "SwimmingConditions";
 
-    public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Marine };
+    public DomainRequirements Requirements { get; } = new(Marine: MarineParam.WaveHeight | MarineParam.WaterTemperature);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

@@ -1,5 +1,6 @@
 using Njord.Core.Domain;
 using Njord.Forecast;
+using Njord.Forecast.Flood;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Flood;
@@ -8,7 +9,7 @@ public sealed class FloodTimelineHandler : IDomainHandler
 {
     public string ConfigKey => "FloodTimeline";
 
-    public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Flood };
+    public DomainRequirements Requirements { get; } = new(Flood: FloodParam.Discharge | FloodParam.DischargeP75);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

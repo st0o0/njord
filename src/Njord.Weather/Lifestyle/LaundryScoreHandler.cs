@@ -11,7 +11,8 @@ public sealed class LaundryScoreHandler : IDomainHandler
 
     public string ConfigKey => "LaundryScore";
 
-    public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather };
+    public DomainRequirements Requirements { get; } = new(Weather: WeatherParam.Precipitation | WeatherParam.Temperature | WeatherParam.Humidity
+            | WeatherParam.WindSpeed | WeatherParam.PrecipitationProbability | WeatherParam.CloudCover);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

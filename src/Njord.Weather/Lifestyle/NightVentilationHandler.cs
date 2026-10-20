@@ -1,5 +1,6 @@
 using Njord.Core.Domain;
 using Njord.Forecast;
+using Njord.Forecast.Weather;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Weather.Lifestyle;
@@ -12,7 +13,7 @@ public sealed class NightVentilationHandler : IDomainHandler
 
     public string ConfigKey => "NightVentilation";
 
-    public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather };
+    public DomainRequirements Requirements { get; } = new(Weather: WeatherParam.Temperature);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

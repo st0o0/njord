@@ -19,7 +19,9 @@ public sealed class ExerciseAdvisoryHandler : IDomainHandler
 
     public string ConfigKey => "ExerciseAdvisory";
 
-    public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality };
+    public DomainRequirements Requirements { get; } = new(
+        Weather: WeatherParam.Temperature | WeatherParam.Humidity,
+        AirQuality: AirQualityParam.Pm25 | AirQualityParam.Ozone);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {
@@ -69,7 +71,7 @@ public sealed class ExerciseAdvisoryHandler : IDomainHandler
     private static Hour? Components(WeatherPoint weather, AirQualityPoint air)
     {
         if (air is not { Pm25: { } airPm25, Ozone: { } airOzone }
-            || weather is not { Temperature: { } airTemperature, Humidity: { } relativeHumidity, UvIndex: { } uvIndex })
+            || weather is not { Temperature: { } airTemperature, Humidity: { } relativeHumidity })
         {
             return null;
         }
@@ -78,7 +80,7 @@ public sealed class ExerciseAdvisoryHandler : IDomainHandler
         var ozone = 1.0 - Scoring.Ramp(airOzone, 100.0, 180.0);
         var temperature = Scoring.Band(airTemperature, -5.0, 8.0, 22.0, 35.0);
         var humidity = 1.0 - Scoring.Ramp(relativeHumidity, 70.0, 100.0);
-        var uv = 1.0 - Scoring.Ramp(uvIndex, 5.0, 11.0);
+        var uv = weather.UvIndex is { } uvIndex ? 1.0 - Scoring.Ramp(uvIndex, 5.0, 11.0) : 1.0;
         var total = 100.0 * (Pm25Weight * pm25 + OzoneWeight * ozone + TemperatureWeight * temperature
             + HumidityWeight * humidity + UvWeight * uv);
         return new Hour(weather.ValidFrom, total, pm25, ozone, temperature, humidity, uv);

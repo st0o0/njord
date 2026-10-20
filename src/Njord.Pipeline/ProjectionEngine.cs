@@ -33,7 +33,7 @@ internal sealed class ProjectionEngine(IReadOnlyList<IDomainHandler> handlers, T
 
         foreach (var handler in handlers)
         {
-            if (handler.Triggers.Contains(received.Domain))
+            if (handler.Requirements.Requires(received.Domain))
             {
                 events.AddRange(handler.Handle(slot.Current, slot.Previous, time));
             }
