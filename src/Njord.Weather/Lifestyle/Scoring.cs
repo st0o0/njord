@@ -37,4 +37,16 @@ internal static class Scoring
 
         return (bestStart, bestLength);
     }
+
+    public static (int Score, int Start, int Length) BestWindow(IReadOnlyList<double> scores, double goodScore)
+    {
+        var (start, length) = LongestRun([.. scores.Select(score => score >= goodScore)]);
+        if (length == 0)
+        {
+            var best = scores.ToList().IndexOf(scores.Max());
+            return ((int)Math.Round(scores[best]), best, 0);
+        }
+
+        return ((int)Math.Round(scores.Skip(start).Take(length).Average()), start, length);
+    }
 }

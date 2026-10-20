@@ -26,4 +26,5 @@ public sealed record WeatherPoint(
     double? DirectRadiation = null,
     double? DiffuseRadiation = null,
     double? DirectNormalIrradiance = null,
-    double? SunshineDuration = null) : IHasValidTime;
+    double? SunshineDuration = null,
+    double? WindDirection = null) : IHasValidTime;

@@ -44,7 +44,8 @@ internal static class WeatherResponseMappings
                 DirectRadiation: OptAt(h.DirectRadiation, i),
                 DiffuseRadiation: OptAt(h.DiffuseRadiation, i),
                 DirectNormalIrradiance: OptAt(h.DirectNormalIrradiance, i),
-                SunshineDuration: OptAt(h.SunshineDuration, i)));
+                SunshineDuration: OptAt(h.SunshineDuration, i),
+                WindDirection: OptAt(h.WindDirection, i)));
         }
 
         var lastValued = FindLastValuedIndex(builder);

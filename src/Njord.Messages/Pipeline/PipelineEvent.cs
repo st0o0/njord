@@ -80,4 +80,45 @@ public abstract record PipelineEvent
         string Direction,
         double CurrentAvgStdDev,
         double PreviousAvgStdDev) : PipelineEvent;
+
+    public sealed record SolarYieldComputed(
+        Location Location,
+        double KwhPerKwp,
+        int PeakHour) : PipelineEvent;
+
+    public sealed record GardeningAdvised(
+        Location Location,
+        bool PlantingSafe,
+        bool WateringNeeded,
+        bool FrostRisk) : PipelineEvent;
+
+    public sealed record EnergyDemandComputed(
+        Location Location,
+        double HeatingDegreeHours,
+        double CoolingDegreeHours,
+        int PeakDemandHour) : PipelineEvent;
+
+    public sealed record OutdoorScoreComputed(
+        Location Location,
+        int Score,
+        DateTimeOffset BestStart,
+        int BestHours) : PipelineEvent;
+
+    public sealed record BBQScoreComputed(
+        Location Location,
+        int Score,
+        DateTimeOffset BestStart,
+        int BestHours) : PipelineEvent;
+
+    public sealed record FloodTimelineComputed(
+        Location Location,
+        DateTimeOffset PeakTime,
+        double PeakDischarge,
+        int DaysAboveWarning) : PipelineEvent;
+
+    public sealed record FrontApproaching(
+        Location Location,
+        TimeSpan EstimatedIn,
+        double PressureDrop,
+        double TempDrop) : PipelineEvent;
 }

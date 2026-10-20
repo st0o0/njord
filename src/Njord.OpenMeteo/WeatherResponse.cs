@@ -28,7 +28,8 @@ public sealed record WeatherHourlyData(
     [property: JsonPropertyName("direct_radiation")] double?[]? DirectRadiation = null,
     [property: JsonPropertyName("diffuse_radiation")] double?[]? DiffuseRadiation = null,
     [property: JsonPropertyName("direct_normal_irradiance")] double?[]? DirectNormalIrradiance = null,
-    [property: JsonPropertyName("sunshine_duration")] double?[]? SunshineDuration = null);
+    [property: JsonPropertyName("sunshine_duration")] double?[]? SunshineDuration = null,
+    [property: JsonPropertyName("wind_direction_10m")] double?[]? WindDirection = null);
 
 public sealed record WeatherResponse(
     [property: JsonPropertyName("latitude")] double Latitude,

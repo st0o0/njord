@@ -12,6 +12,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAlertRule<FloodRainInput>, FloodRainAlertRule>();
         services.AddSingleton<IDomainHandler, FloodRiskHandler>();
         services.AddSingleton<IDomainHandler, FloodRainHandler>();
+        services.AddSingleton<IDomainHandler, FloodTimelineHandler>();
         return services;
     }
 }
