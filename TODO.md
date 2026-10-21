@@ -88,7 +88,7 @@ options, registered as a single singleton; the ignored-models warning is logged 
   - Layout 1:1 as in FunkArr, including the `XxxStateTests` pairs.
   - Naming as in FunkArr.
   - Test data, the shared project and data-only specs on the FunkArr level.
-- Keep njord's stricter rules where FunkArr is weaker (to confirm in explore): `[Fact(Timeout = ...)]`,
-  `TestContext.Current.CancellationToken`, `FakeTimeProvider`.
-- Open: the AGENTS.md rule "each enum conversion has a spec pinning every member"; AGENTS.md test conventions and
-  `ArchitectureSpec` must follow the decisions.
+  - `Timeout` as in FunkArr: only async tests set it.
+- Adapt the AGENTS.md rule "each enum conversion has a spec pinning every member" to the FunkArr level.
+- Take over the FunkArr code and test conventions (FunkArr `AGENTS.md` and memories) where they fit njord;
+  AGENTS.md and `ArchitectureSpec` follow.
