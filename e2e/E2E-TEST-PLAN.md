@@ -113,7 +113,7 @@ After S3 completes, spawn three subagents in a single message.
 1. `weather.lucerne` has `temperature` attribute (numeric)
 2. `weather.lucerne` has `humidity` attribute (numeric, 0-100)
 3. `weather.lucerne` has `wind_speed` attribute (numeric, ≥ 0)
-4. `weather.lucerne` has `forecast` attribute (list, non-empty)
+4. `POST /api/services/weather/get_forecasts?return_response` with `{"entity_id":"weather.lucerne","type":"hourly"}` → `service_response["weather.lucerne"].forecast` is a non-empty list (daily is unsupported)
 5. `weather.lucerne` state is a valid HA weather condition string
 
 ---
@@ -137,11 +137,11 @@ After S3 completes, spawn three subagents in a single message.
 
 ## S7 — Alert Binary Sensors (Haiku #2)
 
-1. At least 14 alert binary_sensors exist matching `*_alert`
+1. 21 alert binary_sensors exist matching `*_alert`
 2. Each has `state` ∈ {"on", "off"}
-3. Each has `severity` attribute ∈ {"none", "yellow", "orange", "red"}
+3. `severity` attribute is present only on alerts in state "on", with a value ∈ {"yellow", "orange", "red"}
 4. `frost_alert` and `heat_alert` exist (core weather alerts)
-5. `pollen_alert` and `pm25_alert` exist (AQ alerts)
+5. `pollen_alert` and `pm2_5_alert` exist (AQ alerts)
 
 ---
 
@@ -149,28 +149,29 @@ After S3 completes, spawn three subagents in a single message.
 
 Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
-1. `GetDomainData` with location "Lucerne" and domain `DOMAIN_WEATHER` (domain is required) → response has `weather_data` non-empty
-2. `GetDomainData` with domain filter `DOMAIN_AIR_QUALITY` → response has `air_quality_data`
+1. `GetDomainData` with location "Lucerne" and domain `DOMAIN_WEATHER` (domain is required) → response has the oneof `weather` non-empty
+2. `GetDomainData` with domain filter `DOMAIN_AIR_QUALITY` → response has the oneof `airQuality`
 3. `StreamDomainData` → receives at least 1 update within 120s
 4. Domain data update contains `location` field matching "Lucerne"
-5. Weather data has `temperature`, `wind_speed`, `precipitation` fields
+5. Weather data has `temperature`, `wind_speed`, `precipitation` fields (`precipitation` may be omitted when 0)
+6. Note: Marine returns NotFound for inland locations by design
 
 ---
 
 ## S9 — gRPC: GetEnrichments + StreamEnrichments (Haiku #2)
 
-1. `GetEnrichments` with location "Lucerne" → has `alerts` list
-2. Alerts list has at least 1 entry with `type` and `severity`
+1. `GetEnrichments` with location "Lucerne" → has an `events[]` list
+2. `events[]` has at least 1 entry; the feature is the oneof case (e.g. `fog`) and the alert severity is at `<case>.alert.severity`
 3. `StreamEnrichments` → receives at least 1 event within 120s
-4. Event has `type_name` = "alerts" with alert data
+4. Event has a feature oneof case set (`type_name` no longer exists)
 
 ---
 
 ## S10 — gRPC: GetCatalog + GetStatus + TriggerPoll (Haiku #3)
 
-1. `GetCatalog` → has at least 1 location named "Lucerne"
+1. `GetCatalog` on `njord.v2.WeatherService` → has at least 1 location named "Lucerne"
 2. `GetStatus` → `budget` has `monthly_used` ≥ 0 and `monthly_limit` > 0
-3. `GetStatus` → `activeEnrichments` lists every enabled feature; poll state has 1 target with a phase
+3. `GetStatus` → `activeEnrichments` lists every enabled feature; poll state is reported per location (target phase and cycle)
 4. `TriggerPoll` with location "Lucerne" → `triggeredCount` ≥ 1
 5. After trigger: `GetStatus` shows incremented usage
 
@@ -178,7 +179,7 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 ## S11 — Server + Diagnostics Entities (Haiku #3)
 
-1. `sensor.server_monthly_usage` has numeric state
+1. `sensor.server_monthly_usage` has numeric state (a percentage)
 2. `sensor.server_version` state has a non-empty state (`0.0.0-dev` in local builds)
 3. `sensor.server_uptime` has numeric state (hours)
 4. `button.server_trigger_poll` exists
@@ -187,7 +188,7 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 ## S12 — Error Handling (Haiku #3)
 
-1. `GET /healthz` → 200 with healthy or degraded status
+1. `GET /healthz` → 200 with plain text `Healthy` or `Degraded`
 2. `GET /alive` → 200
 3. Stream binary sensors (`server_domain_data_stream`, `server_enrichment_stream`) are "on"
 
@@ -198,7 +199,7 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 1. Record initial `monthly_used` from `GetStatus`
 2. `TriggerPoll` location "Lucerne" → `triggeredCount` ≥ 1
 3. Wait 30s for poll round to complete
-4. Verify `monthly_used` increased (expect increment = resolved domain count)
+4. Verify `monthly_used` increased (expect increment = sum of call weights of the resolved domains, 11 for the e2e config)
 
 ---
 

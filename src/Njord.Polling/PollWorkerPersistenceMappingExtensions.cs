@@ -22,7 +22,9 @@ internal static class PollWorkerPersistenceMappingExtensions
                 kv.Value.LastChanged,
                 kv.Value.CandidateCycle,
                 kv.Value.NextPollAt,
-                kv.Value.ConsecutiveFailures))]);
+                kv.Value.ConsecutiveFailures))],
+        state.Target?.Location.Latitude,
+        state.Target?.Location.Longitude);
 
     public static PollWorkerState FromPersistence(this PersistedPollWorkerState dto, IReadOnlyList<DomainKind>? enabledDomains = null)
     {
@@ -54,7 +56,7 @@ internal static class PollWorkerPersistenceMappingExtensions
         }
 
         return new PollWorkerState(
-            dto is { Location: { } location } ? new PollTarget(new Location(location, 0, 0)) : null,
+            dto is { Location: { } location } ? new PollTarget(new Location(location, dto.Latitude ?? 0, dto.Longitude ?? 0)) : null,
             dto.Active,
             dto.DiscoveryInterval,
             domains);

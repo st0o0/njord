@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Polling;
@@ -9,6 +8,7 @@ public static class PollWorkerStateExtensions
 {
     public static PollWorkerState Apply(this PollWorkerState state, PollingStarted evt)
     {
+        var target = new PollTarget(new Location(evt.Location, evt.Latitude ?? 0, evt.Longitude ?? 0));
         if (state.Target is null)
         {
             var domains = state.Domains;
@@ -23,7 +23,7 @@ public static class PollWorkerStateExtensions
 
             return state with
             {
-                Target = new PollTarget(new Location(evt.Location, 0, 0)),
+                Target = target,
                 Active = true,
                 DiscoveryInterval = evt.DiscoveryInterval,
                 Domains = domains,
@@ -44,10 +44,10 @@ public static class PollWorkerStateExtensions
                 }
             }
 
-            return state with { Active = true, DiscoveryInterval = evt.DiscoveryInterval, Domains = domains };
+            return state with { Target = target, Active = true, DiscoveryInterval = evt.DiscoveryInterval, Domains = domains };
         }
 
-        return state with { Active = true };
+        return state with { Target = target, Active = true };
     }
 
     public static PollWorkerState Apply(this PollWorkerState state, PollingStopped _) =>

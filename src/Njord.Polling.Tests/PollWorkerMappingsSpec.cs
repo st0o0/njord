@@ -90,6 +90,75 @@ public sealed class PollWorkerMappingsSpec
     }
 
     [Fact]
+    public void A_started_state_keeps_the_coordinates_through_the_persistence_roundtrip()
+    {
+        var state = PollWorkerState.Empty.Apply(
+            new PollingStarted("lucerne", [(int)DomainKind.Weather], Discovery, T0, 47.05, 8.31));
+
+        var dto = state.GetPersistenceState();
+        var restored = dto.FromPersistence();
+
+        Assert.NotNull(restored.Target);
+        Assert.Multiple(
+            () => Assert.Equal(47.05, dto.Latitude),
+            () => Assert.Equal(8.31, dto.Longitude),
+            () => Assert.Equal(47.05, restored.Target.Location.Latitude),
+            () => Assert.Equal(8.31, restored.Target.Location.Longitude));
+    }
+
+    [Fact]
+    public void A_started_event_without_coordinates_falls_back_to_zero()
+    {
+        var state = Started();
+
+        Assert.NotNull(state.Target);
+        Assert.Multiple(
+            () => Assert.Equal(0, state.Target.Location.Latitude),
+            () => Assert.Equal(0, state.Target.Location.Longitude));
+    }
+
+    [Fact]
+    public void A_snapshot_without_coordinates_restores_the_zero_fallback()
+    {
+        var dto = new PersistedPollWorkerState("lucerne", true, Discovery, null);
+
+        var state = dto.FromPersistence();
+
+        Assert.NotNull(state.Target);
+        Assert.Multiple(
+            () => Assert.Equal(0, state.Target.Location.Latitude),
+            () => Assert.Equal(0, state.Target.Location.Longitude));
+    }
+
+    [Fact]
+    public void A_second_start_with_new_coordinates_replaces_the_target_and_keeps_the_domains()
+    {
+        var polled = Steady();
+        var domainBefore = polled.GetDomain(DomainKind.Weather);
+
+        var moved = polled.Apply(
+            new PollingStarted("lucerne", [(int)DomainKind.Weather], Discovery, T0.AddHours(7), 47.10, 8.40));
+
+        Assert.NotNull(moved.Target);
+        Assert.Multiple(
+            () => Assert.Equal(47.10, moved.Target.Location.Latitude),
+            () => Assert.Equal(8.40, moved.Target.Location.Longitude),
+            () => Assert.Equal(domainBefore, moved.GetDomain(DomainKind.Weather)));
+    }
+
+    [Fact]
+    public void A_second_start_with_new_coordinates_and_interval_replaces_the_target()
+    {
+        var moved = Started().Apply(
+            new PollingStarted("lucerne", [(int)DomainKind.Weather], TimeSpan.FromMinutes(30), T0, 47.10, 8.40));
+
+        Assert.NotNull(moved.Target);
+        Assert.Multiple(
+            () => Assert.Equal(47.10, moved.Target.Location.Latitude),
+            () => Assert.Equal(8.40, moved.Target.Location.Longitude));
+    }
+
+    [Fact]
     public void An_old_format_snapshot_with_a_numeric_phase_restores_a_steady_domain()
     {
         const string oldFormat = """

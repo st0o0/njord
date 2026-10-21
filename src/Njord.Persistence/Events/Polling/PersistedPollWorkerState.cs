@@ -4,7 +4,9 @@ public sealed record PersistedPollWorkerState(
     string? Location,
     bool Active,
     TimeSpan DiscoveryInterval,
-    IReadOnlyList<PersistedDomainState>? DomainStates);
+    IReadOnlyList<PersistedDomainState>? DomainStates,
+    double? Latitude = null,
+    double? Longitude = null);
 
 public sealed record PersistedDomainState(
     int Domain,

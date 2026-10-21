@@ -22,7 +22,7 @@ public abstract class PollWorkerSpecBase : NjordActorSpec
 {
     protected const string TargetId = "lucerne";
     protected static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
-    protected static readonly Location Lucerne = new("lucerne", 0, 0);
+    protected static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
     protected static readonly PollTarget Target = new(Lucerne);
 
     protected static readonly IReadOnlySet<DomainKind> EnabledDomains = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality };

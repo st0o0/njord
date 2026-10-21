@@ -8,7 +8,7 @@ public sealed class PollWorkerRoundtripSpec
 
     public static TheoryData<object> Events() =>
     [
-        new PollingStarted("lucerne", [(int)0, (int)1], TimeSpan.FromMinutes(20), Utc),
+        new PollingStarted("lucerne", [(int)0, (int)1], TimeSpan.FromMinutes(20), Utc, 47.05, 8.31),
         new PollingStopped(Utc),
         new DomainPolled(0, PersistedDomainPollOutcome.Changed, 42, Utc, null),
         new DomainPolled(1, PersistedDomainPollOutcome.Unchanged, null, Utc, null),
@@ -24,7 +24,8 @@ public sealed class PollWorkerRoundtripSpec
             {
                 new(0, 7, PersistedPollPhase.Steady, TimeSpan.FromHours(6), 2, Utc.AddHours(-6), TimeSpan.FromHours(6), Utc.AddHours(6)),
                 new(1, null),
-            });
+            },
+            47.05, 8.31);
 
         var recovered = PersistenceRoundtripHelper.Roundtrip(state);
 
@@ -57,7 +58,9 @@ public sealed class PollWorkerRoundtripSpec
                 () => Assert.Equal(original.Location, restored.Location),
                 () => Assert.Equal(original.Domains, restored.Domains),
                 () => Assert.Equal(original.DiscoveryInterval, restored.DiscoveryInterval),
-                () => Assert.Equal(original.Utc, restored.Utc));
+                () => Assert.Equal(original.Utc, restored.Utc),
+                () => Assert.Equal(original.Latitude, restored.Latitude),
+                () => Assert.Equal(original.Longitude, restored.Longitude));
         }
         else
         {

@@ -9,7 +9,8 @@ public sealed class WireFormatSpec
 
     private static readonly PersistedPollWorkerState State = new(
         "lucerne", true, TimeSpan.FromMinutes(20),
-        [new PersistedDomainState(0, 42, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 2, Utc, TimeSpan.FromHours(3), Utc.AddHours(3))]);
+        [new PersistedDomainState(0, 42, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 2, Utc, TimeSpan.FromHours(3), Utc.AddHours(3))],
+        47.05, 8.31);
 
     [Fact]
     public Task Poll_worker_state_shape() =>
@@ -26,6 +27,30 @@ public sealed class WireFormatSpec
         const string oldFormat = """{ "Domain": 1, "LastHash": 7 }""";
         var recovered = JsonConvert.DeserializeObject<PersistedDomainState>(oldFormat);
         Assert.Equal(new PersistedDomainState(1, 7), recovered);
+    }
+
+    [Fact]
+    public void Should_deserialize_a_started_event_written_before_coordinates()
+    {
+        const string oldFormat = """{ "Location": "lucerne", "Domains": [0], "DiscoveryInterval": "00:20:00", "Utc": "2026-07-15T10:00:00+00:00" }""";
+        var recovered = JsonConvert.DeserializeObject<PollingStarted>(oldFormat);
+        Assert.NotNull(recovered);
+        Assert.Multiple(
+            () => Assert.Equal("lucerne", recovered.Location),
+            () => Assert.Null(recovered.Latitude),
+            () => Assert.Null(recovered.Longitude));
+    }
+
+    [Fact]
+    public void Should_deserialize_a_worker_state_written_before_coordinates()
+    {
+        const string oldFormat = """{ "Location": "lucerne", "Active": true, "DiscoveryInterval": "00:20:00" }""";
+        var recovered = JsonConvert.DeserializeObject<PersistedPollWorkerState>(oldFormat);
+        Assert.NotNull(recovered);
+        Assert.Multiple(
+            () => Assert.Equal("lucerne", recovered.Location),
+            () => Assert.Null(recovered.Latitude),
+            () => Assert.Null(recovered.Longitude));
     }
 
     [Fact]

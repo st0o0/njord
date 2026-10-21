@@ -82,7 +82,11 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
     private void OnStartPolling(StartPolling cmd)
     {
-        if (_state is { Active: true, Target: not null } && _state.DiscoveryInterval == cmd.DiscoveryInterval)
+        var location = cmd.Target.Location;
+        if (_state is { Active: true, Target: { } current }
+            && _state.DiscoveryInterval == cmd.DiscoveryInterval
+            && current.Location.Latitude == location.Latitude
+            && current.Location.Longitude == location.Longitude)
         {
             Report(PollWorkerOutcome.Planned);
             return;
@@ -91,7 +95,8 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         var previous = _state.DiscoveryInterval;
         var wasStarted = _state.Target is not null;
         var evt = new PollingStarted(cmd.Target.Location.Name,
-            [.. _enabledDomains.Select(d => (int)d)], cmd.DiscoveryInterval, _timeProvider.GetUtcNow());
+            [.. _enabledDomains.Select(d => (int)d)], cmd.DiscoveryInterval, _timeProvider.GetUtcNow(),
+            location.Latitude, location.Longitude);
         Persist(evt, e =>
         {
             _state = _state.Apply(e);

@@ -14,5 +14,7 @@
       "NextPollAt": "2026-07-15T13:00:00+00:00",
       "ConsecutiveFailures": 0
     }
-  ]
+  ],
+  "Latitude": 47.05,
+  "Longitude": 8.31
 }
