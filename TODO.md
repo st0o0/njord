@@ -80,3 +80,15 @@ options, registered as a single singleton; the ignored-models warning is logged 
 ## 8. Rewrite all tests in the FunkArr style
 
 - Rewrite every test project in the same style and approach as the FunkArr tests (`D:\GIT\FunkArr`).
+- Order: after items 1–5, so the OpenMeteo tests are not rewritten twice.
+- Decided:
+  - Suffix `Tests` instead of `Spec` (classes and files).
+  - Replace `NjordActorSpec` and the spec base classes completely.
+  - Integration tests work with probes, as in FunkArr.
+  - Layout 1:1 as in FunkArr, including the `XxxStateTests` pairs.
+  - Naming as in FunkArr.
+  - Test data, the shared project and data-only specs on the FunkArr level.
+- Keep njord's stricter rules where FunkArr is weaker (to confirm in explore): `[Fact(Timeout = ...)]`,
+  `TestContext.Current.CancellationToken`, `FakeTimeProvider`.
+- Open: the AGENTS.md rule "each enum conversion has a spec pinning every member"; AGENTS.md test conventions and
+  `ArchitectureSpec` must follow the decisions.
