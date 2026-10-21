@@ -76,3 +76,7 @@ options, registered as a single singleton; the ignored-models warning is logged 
 
 - Needs a closer look: `Name` and `PollDepth` in `FeatureDescriptor`. `Name` is used for more than the config
   section, so this is not only a config question.
+
+## 8. Rewrite all tests in the FunkArr style
+
+- Rewrite every test project in the same style and approach as the FunkArr tests (`D:\GIT\FunkArr`).
