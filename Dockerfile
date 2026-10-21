@@ -15,10 +15,8 @@ COPY src/Njord.Core/Njord.Core.csproj Njord.Core/
 COPY src/Njord.OpenMeteo/Njord.OpenMeteo.csproj Njord.OpenMeteo/
 COPY src/Njord.Pipeline/Njord.Pipeline.csproj Njord.Pipeline/
 COPY src/Njord.Grpc/Njord.Grpc.csproj Njord.Grpc/
-COPY src/Njord.Weather/Njord.Weather.csproj Njord.Weather/
-COPY src/Njord.AirQuality/Njord.AirQuality.csproj Njord.AirQuality/
-COPY src/Njord.Flood/Njord.Flood.csproj Njord.Flood/
-COPY src/Njord.Marine/Njord.Marine.csproj Njord.Marine/
+COPY src/Njord.Polling/Njord.Polling.csproj Njord.Polling/
+COPY src/Njord.Features/Njord.Features.csproj Njord.Features/
 COPY src/Njord/Njord.csproj Njord/
 RUN dotnet restore Njord/Njord.csproj -a ${TARGETARCH}
 
@@ -30,10 +28,8 @@ COPY src/Njord.Core/ Njord.Core/
 COPY src/Njord.OpenMeteo/ Njord.OpenMeteo/
 COPY src/Njord.Pipeline/ Njord.Pipeline/
 COPY src/Njord.Grpc/ Njord.Grpc/
-COPY src/Njord.Weather/ Njord.Weather/
-COPY src/Njord.AirQuality/ Njord.AirQuality/
-COPY src/Njord.Flood/ Njord.Flood/
-COPY src/Njord.Marine/ Njord.Marine/
+COPY src/Njord.Polling/ Njord.Polling/
+COPY src/Njord.Features/ Njord.Features/
 COPY src/Njord/ Njord/
 RUN dotnet publish Njord/Njord.csproj -c Release -a ${TARGETARCH} -o /app /p:Version=${VERSION} /p:ContinuousIntegrationBuild=true
 
