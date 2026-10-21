@@ -46,8 +46,8 @@ src/
   Njord.OpenMeteo.Tests/ Njord.Budget.Tests/ Njord.Pipeline.Tests/ Njord.Polling.Tests/
   Njord.Features.Tests/ Njord.Grpc.Tests/
   Njord.IntegrationTests/       # whole host via NjordHost + TestServer
-  Njord.Architecture.Tests/     # ArchUnitNET rules (ArchitectureSpec)
-  Njord.Tests.Shared/           # fakes, builders, fixtures, NjordActorSpec (not a test project)
+  Njord.Architecture.Tests/     # ArchUnitNET rules (ArchitectureTests)
+  Njord.Tests.Shared/           # small shared fakes and builders (not a test project)
 protos/njord/v2/                # gRPC contracts: weather.proto, ops.proto, common.proto
 docs/                           # VitePress site incl. the Config Builder (docs/.vitepress/theme/builder)
 ```
@@ -92,7 +92,7 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
   `ForecastResult` and their feature-specific records); gRPC delivers each as an `EnrichmentEvent` whose `feature`
   oneof case identifies the feature (`weather.proto`).
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow`.
-- **Zone rules are tests** (`ArchitectureSpec`): Forecast/Messages/Persistence reference no other Njord
+- **Zone rules are tests** (`ArchitectureTests`): Forecast/Messages/Persistence reference no other Njord
   project (Messages only Forecast), no Akka in Messages/Persistence, domain projects independent, all classes sealed.
 
 ## Actor topology
@@ -174,7 +174,7 @@ dotnet run --project Njord.Core.Tests/Njord.Core.Tests.csproj
 dotnet run --project Njord.Core.Tests/Njord.Core.Tests.csproj -- -class "<FullyQualifiedName>"
 ```
 
-All projects sequentially (each is its own process; parallel runs slow the actor specs):
+All projects sequentially (each is its own process; parallel runs slow the actor tests):
 
 ```bash
 for p in Njord.*Tests; do
@@ -183,8 +183,7 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 981 tests (Forecast 58, Messages 21, Persistence 14, Core 86, OpenMeteo 180, Budget 18,
-Polling 138, Pipeline 52, Features 228, Grpc 144, Architecture 14, IntegrationTests 28). One test per `[Fact]` and per `[Theory]` data row.
+After any change run ALL test projects. Fix stale AGENTS.md/CLAUDE.md content as soon as you notice it.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),
 `appsettings.Development.json`, environment variables (`Njord__Persistence__DataPath`), `appsettings.Example.json`
@@ -209,37 +208,56 @@ Full-stack verification is the `e2e-test` skill (`.claude/skills/e2e-test/SKILL.
 - `dotnet format` is enforced by CI; run it after editing `.cs` files.
 - Enum to wire text or to another enum: extension method with an explicit `switch`, one arm per member,
   default throws `ArgumentOutOfRangeException` (`ToProto()`, `ToWireName()`). No casts between enums,
-  no `Enum.Parse`/`ToString().ToLower()`. Each conversion has a spec pinning every member.
+  no `Enum.Parse`/`ToString().ToLower()`. Hand-written wire mappings get one Theory per direction
+  (`<Name>MappingTests`); the exhaustive switch covers completeness at compile time.
 - Every static class with `this` methods ends in `Extensions` and lives in a file of the same name; state
   extensions live next to, not inside, the state record. This is a review convention, not an ArchUnit rule.
 - Mappings are extension methods in static classes named `<Domain><Target>MappingExtensions` (file name = class
-  name): no state, never in
-  actors; names `ToProto`, `ToDomain`, `ToMessage`, never `Map*`. Protobuf timestamps via `ToTimestamp()`.
+  name): no state, never in actors; names `ToProto`, `ToDomain`, `ToMessage`, never `Map*`.
+  Protobuf timestamps via `ToTimestamp()`.
+- No em dashes in code, docs or commit messages.
 
 ### Akka
 
 Rules apply to production code.
 
-- **No `ContinueWith`.** Use `PipeTo` with `success:` and `failure:`.
-- **No `Status.Failure`/`Status.Success`.** Use `XxxFailed(Exception Cause)` (plus request id when
-  correlated); the requester must handle it.
+- **No `ContinueWith`.** Use `PipeTo` with `success:` and `failure:`. The mappers are pure; log in the
+  result handler, not in the mapper.
   ```csharp
   gateway.Ask<FetchDomainResponse>(new FetchDomain(location, domain), timeout).PipeTo(Self,
       success: reply => new DomainFetchReplied(domain, reply),
       failure: ex => new DomainFetchReplied(domain, AskFailure(location, domain, timeout, ex)));
   ```
+- **No `Status.Failure`/`Status.Success`.** Use `XxxFailed(Exception Cause)` (plus request id when
+  correlated); the requester must handle it.
 - **No `EventStream`.** Use explicit actor references. TestKit probes may subscribe in tests.
 - **No `IActorRef` constructor parameters.** Resolve by marker: `Context.TryGetActor<IPollManager>(out var m)`.
-- **Naming:** domain-role names, sealed; `*State` is reserved for immutable state records.
+- **Messages:** commands `VerbNoun` with `VerbNounCompleted`/`VerbNounFailed` (and `Rejected` where the
+  domain has it) in one file; queries `QueryNoun` with `NounResult`/`NounFailed`; events past tense in
+  `Njord.Persistence`. `Failed` always carries `Exception Cause`.
+- **Naming:** `*Manager` for a coordinating actor (Cluster Singleton), `*Worker` for an actor per entity or per
+  request (sharded entity or child), other actors take a domain-role name (`BudgetTracker`, `OpenMeteoGateway`,
+  `ForecastPipeline`). All sealed. `*State` is reserved for immutable state records.
+- **State:** a stateful actor has `<Actor>.cs` (plumbing: routing, persistence lifecycle, timers) and
+  `<Actor>State.cs` (immutable record, never nested; `Empty` static; `Apply(event)` returns a new state;
+  `ProcessCommand` returns `(State, Event)` for persistent actors). Logic lives in state extensions.
+  State is never sent or snapshotted raw: callers get a message record, `SaveSnapshot` gets
+  `Persisted<Name>State`.
+- **Sharding:** one `ShardMessageExtractor` in `Njord.Polling` matching `IWith*Id` interfaces, never concrete
+  types. Passivation only through `ShardOptions.PassivateIdleEntityAfter`, never `SetReceiveTimeout` +
+  `Passivate`. (PollWorker opts out of passivation.)
 - **Logging:** `private readonly ILoggingAdapter _log = Context.GetLogger();` (inline, readonly, `_log`).
   `ActorCategoryLogger` writes the class's full type name as category; `akka.loglevel` follows the
   lowest `Serilog:MinimumLevel`.
 - **Persistence:** records in `Njord.Persistence` are positional, `DateTimeOffset`/`TimeSpan` (never ticks),
   past-tense events (`DomainPolled`), `Persisted<Name>State` snapshots, new members nullable or defaulted,
-  closed sets as `Persisted*` enums with explicit values. State <-> record mapping in
-  `<Owner>PersistenceMappingExtensions`, state -> contract in `<Owner>MessageMappingExtensions`. "Snapshot" is reserved for
-  persisted state. `Apply` takes the event record. Snapshot on `LastSequenceNr` interval; after
-  `SaveSnapshotSuccess`: `DeleteMessages(seqNr)` + `DeleteSnapshots(seqNr - 1)`.
+  closed sets as `Persisted*` enums with explicit values, no `Event`/`Dto` suffix, no custom serializer.
+  State <-> record mapping in `<Owner>PersistenceMappingExtensions`, state -> contract in
+  `<Owner>MessageMappingExtensions`. "Snapshot" is reserved for persisted state. `Apply` takes the event
+  record. Snapshot when `LastSequenceNr % SnapshotInterval == 0`, never after every event; after
+  `SaveSnapshotSuccess`: `DeleteMessages(seqNr)` + `DeleteSnapshots(seqNr - 1)`. `DeferAsync` only for
+  non-trivial side effects and never when the handler persists internally. Bounded-lifecycle entities
+  need no snapshots.
 - **Health checks ask the actors** (`PipelineHealthCheck` -> `PollManager`, `BudgetHealthCheck` ->
   `BudgetTracker`) with a 3 s timeout, degrade when the
   actor is missing or silent, and keep the rule in an `internal static Evaluate(...)`. The host adds
@@ -247,21 +265,30 @@ Rules apply to production code.
 
 ### Tests
 
-- `Spec` suffix, `sealed` classes, BDD-style names. Actor specs derive from `NjordActorSpec` (Akka.Hosting
-  TestKit, in-memory persistence); never create an `ActorSystem` by hand.
-- Async and actor tests carry `[Fact(Timeout = ...)]` and pass `TestContext.Current.CancellationToken`
-  (xUnit1069 is an error). TestKit waits dilate by `akka.test.timefactor = 3`, so the xUnit timeout must
-  exceed every wrapped wait: hosted specs use `TestTimeouts.Hosted`, bounded waits `AwaitAssertMax`,
-  undilated waits `RealTimeWaitMax`. Never reuse an actor name after `GracefulStop`.
-- Retry-backoff specs pass a short `BackoffPolicy` instead of waiting real seconds.
-- `FakeTimeProvider` or a fixed timestamp, never `DateTime.UtcNow`. No `Thread.Sleep`/arbitrary delay:
-  use `ExpectMsg`/`AwaitAssert`.
-- `Assert.NotNull` before nullable access (no `!.`, except `JsonNode` indexers); `Assert.Single`; count
-  before indexing; assert the exact value, not just existence; no vacuous assertion after a proven value.
-- `var ex = Assert.Throws<T>(...)` then assert on `ex` fields. `Assert.IsType<T>(obj, exactMatch: false)`
-  for interface conformance. `Assert.Multiple` for grouped assertions; `Assert.Equal` over `Assert.True(a == b)`.
+- Class suffix `Tests`, `public sealed`. Layout mirrors production 1:1: `Foo.cs` -> `FooTests.cs`,
+  `FooState.cs` -> `FooStateTests.cs`. Topic splits (`FooRetryTests`) only when one file gets large.
+  Names are `Snake_case_sentences` describing behavior.
+- Actor tests derive from `Akka.TestKit.Xunit.TestKit`. Collaborators are `CreateTestProbe()` probes
+  registered in `ActorRegistry.For(Sys).Register<IMarker>(probe)` (register every marker the actor
+  resolves); many probes go in a `TestProbes` record. Create the actor with
+  `Sys.ActorOf(Props.Create(() => new X(...)))`; never `resolver.Props<T>()`, never an `ActorSystem` by hand.
+  Never reuse an actor name after `GracefulStop`.
+- State records are tested as plain xUnit `<Name>StateTests` (3-5 facts: Apply, ProcessCommand,
+  snapshot round trip); actors test message routing and lifecycle only.
+- Waits: `ExpectMsg`/`probe.ExpectMsg`/`AwaitAssert`/`AwaitCondition`; `ExpectNoMsg(200 ms)` for absence.
+  No `Thread.Sleep`, no arbitrary delay. Retry-backoff tests pass a short `BackoffPolicy`.
+- `FakeTimeProvider` or a fixed timestamp, never `DateTime.UtcNow`.
+- NSubstitute only for plain interfaces (never actors, use probes): `Received(1)` with `Arg.Is`.
+- Assertions: `Assert.NotNull` before nullable access (no `!.`, except `JsonNode` indexers); `Assert.Single`;
+  count before indexing; assert the exact value; no vacuous assertion after a proven value;
+  `var ex = Assert.Throws<T>(...)` then assert on `ex`; `Assert.IsType<T>(obj, exactMatch: false)`;
+  `Assert.Multiple` for groups; `Assert.Equal` over `Assert.True(a == b)`. Pass
+  `TestContext.Current.CancellationToken` in async tests (xUnit1069 is an error).
 - `Theory` for small sweeps, separate named `[Fact]`s for large distinct fixtures. Endpoint tests send a
-  request and assert status/body. NSubstitute only when a plain interface needs faking (none yet).
+  request and assert status/body. No data-only, constructor, property or DI-wiring tests.
+- `Njord.IntegrationTests` use a fixture with probes, like FunkArr. `Njord.Tests.Shared` stays small
+  (options monitor, builders, fakes). Verify snapshots only for persistence records.
+- After any change run ALL test projects, not only the affected ones (snapshot tests catch breaks elsewhere).
 
 ### Metrics
 
