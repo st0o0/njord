@@ -71,3 +71,7 @@ options, registered as a single singleton; the ignored-models warning is logged 
 - To decide in explore: which values are operator input (locations, feature toggles, domain options) and which are
   derived (domains, params, models, call weights), where the derived values are computed once and how they are
   exposed (one resolved type at startup, validated together). Overlaps with item 3; explore them together.
+- Part of this: remove `Name` from `FeatureDescriptor` (the config section name should come from the feature's
+  `<Name>Config.SectionName`, not be duplicated in the descriptor).
+- Part of this: move `PollDepth` out of `FeatureDescriptor` into the `DomainRequirements`, so the ring depth is a
+  per-domain requirement like the params.
