@@ -1,4 +1,5 @@
 using Akka.Actor;
+using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Core.Polling;
@@ -17,7 +18,7 @@ public sealed class PollWorkerTriggerSpec : PollWorkerSpecBase
         var ct = TestContext.Current.CancellationToken;
         IReadOnlySet<DomainKind> domains = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.Flood };
         var worker = Sys.ActorOf(
-            Props.Create(() => new PollWorker(_time, FetchTimeouts.Default, domains, TargetId)),
+            Props.Create(() => new PollWorker(_time, FetchTimeouts.Default, Options.Create(new PollingOptions()), domains, TargetId)),
             $"worker-{Guid.NewGuid():N}");
 
         worker.Tell(new StartPolling(Target, Discovery));

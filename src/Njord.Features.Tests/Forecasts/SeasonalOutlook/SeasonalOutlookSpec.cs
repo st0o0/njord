@@ -63,6 +63,19 @@ public sealed class SeasonalOutlookSpec
     }
 
     [Fact]
+    public void The_outlook_is_emitted_without_weather_data()
+    {
+        var forecast = new LocationForecast(WeatherOnly(Day()).Location)
+        {
+            Seasonal = new DomainForecast<SeasonalPoint>(DomainKind.Seasonal, October, TimeResolution.Monthly, [Month(2026, 11, 1.0)]),
+        };
+
+        var outlook = Assert.IsType<SeasonalOutlookResult>(Assert.Single(Run(Feature(), October, forecast)));
+
+        Assert.Equal(new DateOnly(2026, 11, 1), Assert.Single(outlook.Months).Month);
+    }
+
+    [Fact]
     public void Nothing_is_reported_without_seasonal_data()
     {
         Assert.Empty(Run(Feature(), October, WeatherOnly(Day())));

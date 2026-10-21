@@ -7,7 +7,7 @@ using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Forecasts.SeasonalOutlook;
 
-public sealed class SeasonalOutlook(IOptions<SeasonalOutlookConfig> config) : FeatureRule<SeasonalWeatherInput>
+public sealed class SeasonalOutlook(IOptions<SeasonalOutlookConfig> config) : FeatureRule<SeasonalInput>
 {
     public const int HighConfidenceMaxLead = 1;
     public const int MediumConfidenceMaxLead = 2;
@@ -21,10 +21,10 @@ public sealed class SeasonalOutlook(IOptions<SeasonalOutlookConfig> config) : Fe
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override SeasonalWeatherInput? Project(LocationForecast forecast) =>
-        forecast is { Seasonal: { } s, Weather: { } w } ? new(s, w) : null;
+    protected override SeasonalInput? Project(LocationForecast forecast) =>
+        forecast.Seasonal is { } s ? new(s) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<SeasonalWeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<SeasonalInput> ctx)
     {
         var months = ctx.Current.Seasonal.Points
             .Select(point => (Point: point, Lead: (point.ValidFrom.Year - ctx.Now.Year) * 12 + point.ValidFrom.Month - ctx.Now.Month))

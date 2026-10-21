@@ -1,7 +1,9 @@
 using Akka.Actor;
 using Akka.Event;
 using Akka.Persistence;
+using Microsoft.Extensions.Options;
 using Njord.Core;
+using Njord.Core.Configuration;
 using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Messages.Forecast;
@@ -16,7 +18,6 @@ namespace Njord.Polling;
 public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 {
     private const int SnapshotInterval = 50;
-    private static readonly TimeSpan DefaultRetry = TimeSpan.FromMinutes(1);
 
     private sealed record PollDomain(DomainKind Domain);
     private sealed record DomainFetchReplied(DomainKind Domain, FetchDomainResponse Reply);
@@ -25,6 +26,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
     private readonly TimeProvider _timeProvider;
     private readonly FetchTimeouts _fetchTimeouts;
+    private readonly TimeSpan _pollInterval;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly DomainKind[] _enabledDomains;
     private PollWorkerState _state = PollWorkerState.Empty;
@@ -33,11 +35,13 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
     public override string PersistenceId { get; }
 
-    public PollWorker(TimeProvider timeProvider, FetchTimeouts fetchTimeouts, IReadOnlySet<DomainKind> requiredDomains, string entityId)
+    public PollWorker(TimeProvider timeProvider, FetchTimeouts fetchTimeouts, IOptions<PollingOptions> pollingOptions,
+        IReadOnlySet<DomainKind> requiredDomains, string entityId)
     {
         _enabledDomains = [.. requiredDomains.Order()];
         _timeProvider = timeProvider;
         _fetchTimeouts = fetchTimeouts;
+        _pollInterval = pollingOptions.Value.PollInterval;
         PersistenceId = $"poll-worker-{entityId}";
 
         Recover<PollingStarted>(evt => _state = _state.Apply(evt));
@@ -198,25 +202,25 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         });
     }
 
-    private DomainPolled ToDomainPolled(DomainKind domain, FetchDomainResponse? reply, DateTimeOffset now) => reply switch
+    private DomainPolled ToDomainPolled(DomainKind domain, FetchDomainResponse? reply, DateTimeOffset now)
     {
-        FetchDomainCompleted c when c.Hash != _state.GetDomainHash(domain) =>
-            new DomainPolled((int)domain, PersistedDomainPollOutcome.Changed, c.Hash, now, null),
-        FetchDomainCompleted =>
-            new DomainPolled((int)domain, PersistedDomainPollOutcome.Unchanged, null, now, null),
-        null =>
-            new DomainPolled((int)domain, PersistedDomainPollOutcome.Failed, null, now, DefaultRetry),
-        _ =>
-            new DomainPolled((int)domain, PersistedDomainPollOutcome.Failed, null, now, FailureDelay(reply)),
-    };
-
-    private static TimeSpan FailureDelay(FetchDomainResponse reply) => reply switch
-    {
-        FetchDomainFailed { Reason: PollFailureReason.RateLimited } => PollWorkerState.RateLimitMinDelay,
-        FetchDomainRejected { Reason: FetchRejectionReason.Budget } => PollWorkerState.RateLimitMinDelay,
-        FetchDomainRejected { Reason: FetchRejectionReason.PipelineUnavailable } => PollWorkerState.PipelineUnavailableRetry,
-        _ => DefaultRetry,
-    };
+        var failures = _state.GetDomain(domain).ConsecutiveFailures;
+        return reply switch
+        {
+            FetchDomainCompleted c when c.Hash != _state.GetDomainHash(domain) =>
+                new DomainPolled((int)domain, PersistedDomainPollOutcome.Changed, c.Hash, now, null),
+            FetchDomainCompleted =>
+                new DomainPolled((int)domain, PersistedDomainPollOutcome.Unchanged, null, now, null),
+            FetchDomainRejected { Reason: FetchRejectionReason.PipelineUnavailable } =>
+                new DomainPolled((int)domain, PersistedDomainPollOutcome.Failed, null, now, PollWorkerState.PipelineUnavailableRetry, failures),
+            FetchDomainFailed { Reason: PollFailureReason.RateLimited } or FetchDomainRejected { Reason: FetchRejectionReason.Budget } =>
+                new DomainPolled((int)domain, PersistedDomainPollOutcome.Failed, null, now,
+                    FailureBackoff.RateLimited(failures + 1, _pollInterval), failures + 1),
+            _ =>
+                new DomainPolled((int)domain, PersistedDomainPollOutcome.Failed, null, now,
+                    FailureBackoff.Delay(failures + 1, _pollInterval), failures + 1),
+        };
+    }
 
     private static PollWorkerOutcome ChooseOutcome(PersistedDomainPollOutcome outcome) => outcome switch
     {

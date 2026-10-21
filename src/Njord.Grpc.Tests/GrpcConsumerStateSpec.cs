@@ -1,4 +1,5 @@
 using Njord.Forecast;
+using Njord.Forecast.Seasonal;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -36,6 +37,20 @@ public sealed class GrpcConsumerStateSpec
             () => Assert.Equal(newer, state.GetDomainData(Lucerne, DomainKind.Weather)),
             () => Assert.Equal(flood, state.GetDomainData(Lucerne, DomainKind.Flood)));
     }
+
+    [Fact]
+    public void Seasonal_data_is_kept_as_the_latest_event()
+    {
+        var older = new PipelineEvent.SeasonalDataReceived(Lucerne, Seasonal(Anchor));
+        var newer = new PipelineEvent.SeasonalDataReceived(Lucerne, Seasonal(Anchor.AddDays(1)));
+
+        var state = GrpcConsumerState.Empty.Apply(older).Apply(newer);
+
+        Assert.Equal(newer, state.GetDomainData(Lucerne, DomainKind.Seasonal));
+    }
+
+    private static DomainForecast<SeasonalPoint> Seasonal(DateTimeOffset run) =>
+        new(DomainKind.Seasonal, run, TimeResolution.Monthly, [new SeasonalPoint(run, 1.0)]);
 
     [Fact]
     public void Domain_data_of_another_location_or_domain_is_not_available()

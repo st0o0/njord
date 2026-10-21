@@ -110,7 +110,7 @@
     "name": "Uv",
     "category": "Weather",
     "output": "Alert",
-    "description": "UV warning from the peak UV index",
+    "description": "UV warning from the peak UV index. Not delivered by the default ensemble model ecmwf_ifs025_ensemble_mean.",
     "enabledByDefault": true,
     "domains": [
       "Weather"
@@ -282,7 +282,7 @@
     "name": "Visibility",
     "category": "Weather",
     "output": "Alert",
-    "description": "Low visibility warning",
+    "description": "Low visibility warning. Not delivered by the default ensemble model ecmwf_ifs025_ensemble_mean.",
     "enabledByDefault": true,
     "domains": [
       "Weather"

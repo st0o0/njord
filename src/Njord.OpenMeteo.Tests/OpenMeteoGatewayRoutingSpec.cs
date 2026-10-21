@@ -194,6 +194,27 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task The_reply_carries_the_configured_coordinates_not_the_requested_ones()
+    {
+        var (completed, _) = await FetchAsync(DomainKind.Weather, TestContext.Current.CancellationToken);
+
+        Assert.Equal(new Location("lucerne", 47.05, 8.31), completed.Location);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_failure_reply_carries_the_configured_coordinates()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        _weather.Throws = true;
+
+        Gateway.Tell(new FetchDomain(new Location("lucerne", 0, 0), DomainKind.Weather));
+
+        var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        Assert.Equal(new Location("lucerne", 47.05, 8.31), failed.Location);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_multi_model_weather_fetch_offers_every_model_before_the_primary_forecast()
     {
         var ct = TestContext.Current.CancellationToken;

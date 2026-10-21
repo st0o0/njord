@@ -68,6 +68,7 @@ message DomainDataUpdate {
     FloodData flood = 12;
     MarineData marine = 14;
     SatelliteData satellite = 15;
+    SeasonalData seasonal = 16;
   }
 }
 
@@ -150,6 +151,18 @@ message SatelliteSample {
   optional double diffuse_radiation = 4;
   optional double dni = 5;
   optional double gti = 6;
+}
+
+// Monthly ensemble-mean anomalies (K, mm); a missing value is unset.
+message SeasonalData {
+  repeated SeasonalSample points = 1;
+}
+
+message SeasonalSample {
+  google.protobuf.Timestamp valid_at = 1;
+  optional double temperature_anomaly = 2;
+  optional double precipitation_anomaly = 3;
+  optional double precipitation_mean = 4;
 }
 
 message MarineData {

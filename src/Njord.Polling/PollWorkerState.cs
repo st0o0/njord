@@ -13,7 +13,8 @@ public sealed record DomainPollState(
     TimeSpan? CandidateCycle,
     TimeSpan? LearnedCycle,
     int MissCount,
-    DateTimeOffset? NextPollAt)
+    DateTimeOffset? NextPollAt,
+    int ConsecutiveFailures = 0)
 {
     public static DomainPollState Empty(DomainKind domain) =>
         new(domain, PollPhase.Discovery, null, null, null, null, 0, null);

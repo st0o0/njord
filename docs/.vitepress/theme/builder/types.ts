@@ -66,6 +66,8 @@ export function weatherVariableCount(features: Record<string, boolean>): number 
     f.weatherParams?.forEach(p => params.add(p))
     f.optionalWeatherParams?.forEach(p => params.add(p))
   }
+  // weather_code is always requested when the weather domain is required (base parameter)
+  if (params.size > 0) params.add('WeatherCode')
   return params.size
 }
 

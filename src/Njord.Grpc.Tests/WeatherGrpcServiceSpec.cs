@@ -4,6 +4,8 @@ using Grpc.Core;
 using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Forecast;
+using Njord.Forecast.Seasonal;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Messages.Alerts;
@@ -52,6 +54,25 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             () => Assert.Equal(Domain.Weather, response.Domain),
             () => Assert.Equal(Anchor, response.ModelRun.ToDateTimeOffset()),
             () => Assert.Equal(3, response.Weather.Points.Count));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetDomainData_returns_the_seasonal_months()
+    {
+        var forecast = new DomainForecast<SeasonalPoint>(
+            DomainKind.Seasonal, Anchor, TimeResolution.Monthly, [new SeasonalPoint(Anchor, 1.5, -12.0, 80.0)]);
+        var service = CreateService(domainEvent: new PipelineEvent.SeasonalDataReceived(DomainData.Lucerne, forecast));
+
+        var response = await service.GetDomainData(
+            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Seasonal },
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        var sample = Assert.Single(response.Seasonal.Points);
+        Assert.Multiple(
+            () => Assert.Equal(Domain.Seasonal, response.Domain),
+            () => Assert.Equal(1.5, sample.TemperatureAnomaly),
+            () => Assert.Equal(-12.0, sample.PrecipitationAnomaly),
+            () => Assert.Equal(80.0, sample.PrecipitationMean));
     }
 
     private static readonly EffectiveWeatherModels TwoModels = new(["ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"]);

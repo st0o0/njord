@@ -14,4 +14,5 @@ public sealed record PersistedDomainState(
     int MissCount = 0,
     DateTimeOffset? LastChanged = null,
     TimeSpan? CandidateCycle = null,
-    DateTimeOffset? NextPollAt = null);
+    DateTimeOffset? NextPollAt = null,
+    int ConsecutiveFailures = 0);

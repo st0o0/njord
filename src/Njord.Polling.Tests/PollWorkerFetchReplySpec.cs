@@ -4,6 +4,7 @@ using Akka.Hosting;
 using Akka.TestKit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
@@ -34,6 +35,7 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
         services.AddSingleton<TimeProvider>(_time);
         services.AddSingleton<IReadOnlySet<DomainKind>>(new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality });
         services.AddSingleton(ShortTimeouts);
+        services.AddSingleton(Options.Create(new PollingOptions()));
     }
 
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider) =>

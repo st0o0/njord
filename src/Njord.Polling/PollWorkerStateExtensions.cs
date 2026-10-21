@@ -66,6 +66,8 @@ public static class PollWorkerStateExtensions
             _ => throw new ArgumentOutOfRangeException(nameof(evt), $"Unknown outcome: {evt.Outcome}"),
         };
 
+        ds = ds with { ConsecutiveFailures = evt.ConsecutiveFailures };
+
         return state with { Domains = state.Domains.SetItem(domain, ds) };
     }
 

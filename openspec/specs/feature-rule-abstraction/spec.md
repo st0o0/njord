@@ -16,7 +16,7 @@ The system SHALL provide an abstract `FeatureRule<TInput>` base class that every
 - **THEN** `Project` SHALL return null and the feature SHALL not be evaluated
 
 ### Requirement: Typed input records for domain combinations
-The system SHALL provide shared readonly record struct input types for common domain combinations. At minimum: `WeatherInput`, `WeatherAqInput`, `WeatherSolarInput`, `FloodWeatherInput`, `FloodMarineWeatherInput`, `MarineWeatherInput`, `SeasonalWeatherInput`. A feature that needs a combination not covered SHALL define its own input record.
+The system SHALL provide shared readonly record struct input types for common domain combinations. At minimum: `WeatherInput`, `WeatherAqInput`, `WeatherSolarInput`, `FloodWeatherInput`, `FloodMarineWeatherInput`, `MarineWeatherInput`, `SeasonalInput`. A feature that needs a combination not covered SHALL define its own input record.
 
 #### Scenario: Single-domain feature uses single-domain input
 - **WHEN** a weather-only feature is defined

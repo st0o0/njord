@@ -88,4 +88,19 @@ public sealed class BudgetGuardSpec
             () => Assert.Null(BudgetGuard.Violation(Scope(), new WeatherOptions(), polling, resolved, new FloodOptions())),
             () => Assert.NotNull(BudgetGuard.Violation(Scope(), new WeatherOptions(), polling, resolved, new FloodOptions { IncludeEnsemble = true })));
     }
+
+    [Fact]
+    public void Should_weigh_the_base_weather_field_into_the_call_weight()
+    {
+        var tenVariables = WeatherParams.Temperature | WeatherParams.WindGusts | WeatherParams.Precipitation | WeatherParams.Humidity
+            | WeatherParams.Pressure | WeatherParams.CloudCover | WeatherParams.WindSpeed | WeatherParams.Snowfall
+            | WeatherParams.WindDirection | WeatherParams.ApparentTemperature;
+        var plain = new ResolvedRequirements(new DomainRequirements(Weather: tenVariables));
+        var withBase = new ResolvedRequirements(FeatureResolution.WithBaseParams(new DomainRequirements(Weather: tenVariables)));
+
+        // 10 variables weigh 1 call x 720 cycles = 720 (guard 800 of 1000); with weather_code 11 variables weigh 2 calls = 1440.
+        Assert.Multiple(
+            () => Assert.Null(BudgetGuard.Violation(Scope(), new WeatherOptions(), WithMonthlyBudget(1_000), plain)),
+            () => Assert.NotNull(BudgetGuard.Violation(Scope(), new WeatherOptions(), WithMonthlyBudget(1_000), withBase)));
+    }
 }

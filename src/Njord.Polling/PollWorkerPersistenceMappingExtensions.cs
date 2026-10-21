@@ -21,7 +21,8 @@ internal static class PollWorkerPersistenceMappingExtensions
                 kv.Value.MissCount,
                 kv.Value.LastChanged,
                 kv.Value.CandidateCycle,
-                kv.Value.NextPollAt))]);
+                kv.Value.NextPollAt,
+                kv.Value.ConsecutiveFailures))]);
 
     public static PollWorkerState FromPersistence(this PersistedPollWorkerState dto, IReadOnlyList<DomainKind>? enabledDomains = null)
     {
@@ -36,7 +37,8 @@ internal static class PollWorkerPersistenceMappingExtensions
                     d.CandidateCycle,
                     d.LearnedCycle,
                     d.MissCount,
-                    d.NextPollAt))
+                    d.NextPollAt,
+                    d.ConsecutiveFailures))
             : ImmutableDictionary<DomainKind, DomainPollState>.Empty;
 
         // Ensure enabled domains have entries

@@ -95,4 +95,31 @@ public sealed class FeatureResolutionSpec
     {
         Assert.Equal(default, FeatureResolution.RequiredParams([]));
     }
+
+    [Fact]
+    public void Should_add_the_weather_code_to_a_required_weather_domain()
+    {
+        var requirements = FeatureResolution.WithBaseParams(FeatureResolution.RequiredParams([Frost]));
+
+        Assert.Equal(WeatherParams.Temperature | WeatherParams.WindGusts | WeatherParams.WeatherCode, requirements.Weather);
+    }
+
+    [Fact]
+    public void Should_add_pm10_to_a_required_air_quality_domain()
+    {
+        var requirements = FeatureResolution.WithBaseParams(FeatureResolution.RequiredParams([Pm25]));
+
+        Assert.Equal(AirQualityParams.Pm25 | AirQualityParams.Pm10, requirements.AirQuality);
+    }
+
+    [Fact]
+    public void Should_not_add_a_domain_through_base_params()
+    {
+        var requirements = FeatureResolution.WithBaseParams(FeatureResolution.RequiredParams([Frost]));
+
+        Assert.Multiple(
+            () => Assert.Equal(AirQualityParams.None, requirements.AirQuality),
+            () => Assert.False(requirements.Requires(DomainKind.AirQuality)),
+            () => Assert.False(FeatureResolution.WithBaseParams(default).Requires(DomainKind.Weather)));
+    }
 }

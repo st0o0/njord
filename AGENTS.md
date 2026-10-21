@@ -150,6 +150,8 @@ SHARD REGIONS (Sharded Entity)
   `Njord:Satellite:PastHours`) for `SatelliteRadiation` (off by default, about 720 calls/month/location, counted per poll
   cycle by `BudgetGuard`). `SolarIrradianceBlend` takes satellite GTI up to the newest observation (ignored when
   older than 3 h) and ensemble GTI afterwards; `SolarYield` and `SatelliteRadiation` use it.
+- **Base parameters.** `FeatureResolution.WithBaseParams` always requests `weather_code` for a required Weather domain and `pm10` for a required AirQuality domain; `BudgetGuard` and the Config Builder count them.
+- **Failure backoff.** A failed fetch retries after 60 s, doubling per consecutive failure up to the poll interval (`FailureBackoff`); rate limit and budget rejections wait at least 5 min. The count is persisted in `DomainPolled.ConsecutiveFailures` and reset by a successful fetch.
 - Poll interval 60 min and discovery interval 20 min are config values.
 - Wire text for closed sets comes from explicit mappings, never `ToString()`.
 - Feels-like is `apparent_temperature` from the API, no own computation.
@@ -181,8 +183,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 950 tests (Forecast 58, Messages 21, Persistence 14, Core 83, OpenMeteo 178, Budget 18,
-Polling 118, Pipeline 51, Features 227, Grpc 140, Architecture 14, IntegrationTests 28). One test per `[Fact]` and per `[Theory]` data row.
+Current total: 981 tests (Forecast 58, Messages 21, Persistence 14, Core 86, OpenMeteo 180, Budget 18,
+Polling 138, Pipeline 52, Features 228, Grpc 144, Architecture 14, IntegrationTests 28). One test per `[Fact]` and per `[Theory]` data row.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),
 `appsettings.Development.json`, environment variables (`Njord__Persistence__DataPath`), `appsettings.Example.json`

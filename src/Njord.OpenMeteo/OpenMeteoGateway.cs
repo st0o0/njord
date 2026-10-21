@@ -62,7 +62,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
         Receive<FetchDomain>(OnFetchDomain);
         Receive<DomainFetchDone>(OnDomainFetchDone);
-        Receive<DomainFetchFailed>(msg => Reply(msg.RequestId, p => new FetchDomainFailed(p.Location, p.Domain, msg.Reason, msg.Detail)));
+        Receive<DomainFetchFailed>(msg => Reply(msg.RequestId, p => new FetchDomainFailed(p.Resolved, p.Domain, msg.Reason, msg.Detail)));
         Receive<DomainBranchOffered>(OnDomainBranchOffered);
 
         Receive<PipelineResolved>(OnPipelineResolved);
@@ -98,13 +98,13 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
         if (!_clients.TryGetValue(msg.Domain, out var client))
         {
-            Reply(id, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.PipelineUnavailable));
+            Reply(id, p => new FetchDomainRejected(p.Resolved, p.Domain, FetchRejectionReason.PipelineUnavailable));
             return;
         }
 
         if (!_gate.TryAcquire(client.CallWeight))
         {
-            Reply(id, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.Budget));
+            Reply(id, p => new FetchDomainRejected(p.Resolved, p.Domain, FetchRejectionReason.Budget));
             return;
         }
 
@@ -165,7 +165,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
         if (_forecastQueue is not { } branch)
         {
-            Reply(msg.RequestId, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.PipelineUnavailable));
+            Reply(msg.RequestId, p => new FetchDomainRejected(p.Resolved, p.Domain, FetchRejectionReason.PipelineUnavailable));
             return;
         }
 
@@ -200,8 +200,8 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
     private void OnDomainBranchOffered(DomainBranchOffered msg) =>
         Reply(msg.RequestId, p => msg.Result is QueueOfferResult.Enqueued
-            ? new FetchDomainCompleted(p.Location, p.Domain, msg.Hash)
-            : new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.PipelineUnavailable));
+            ? new FetchDomainCompleted(p.Resolved, p.Domain, msg.Hash)
+            : new FetchDomainRejected(p.Resolved, p.Domain, FetchRejectionReason.PipelineUnavailable));
 
     private void OnPipelineResolved(PipelineResolved msg)
     {

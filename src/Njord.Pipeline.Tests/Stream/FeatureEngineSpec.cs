@@ -169,6 +169,20 @@ public sealed class FeatureEngineSpec
     }
 
     [Fact]
+    public void A_forecast_without_the_weather_code_still_dispatches_a_rule_that_does_not_require_it()
+    {
+        var rule = new RecordingRule(Temperature);
+        var engine = Engine(rule);
+
+        var events = engine.Process(
+            DomainData.Received(DomainData.Lucerne, DomainData.Weather(Start, 4, (_, p) => p with { Temperature = 10.0, WeatherCode = null })));
+
+        Assert.Multiple(
+            () => Assert.Single(rule.Calls),
+            () => Assert.Equal(2, events.Count));
+    }
+
+    [Fact]
     public void Other_rules_still_run_when_one_is_skipped()
     {
         var skipped = new RecordingRule(new DomainRequirements(Weather: WeatherParams.ShortwaveRadiation));

@@ -3,6 +3,7 @@ using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
 using Njord.Forecast.Marine;
+using Njord.Forecast.Seasonal;
 using Njord.Forecast.Solar;
 using Njord.Forecast.Weather;
 using Njord.Grpc.V2;
@@ -18,6 +19,7 @@ internal static class DomainDataProtoMappingExtensions
         PipelineEvent.AirQualityDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { AirQuality = e.Forecast.ToAirQualityData() }),
         PipelineEvent.FloodDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Flood = e.Forecast.ToFloodData() }),
         PipelineEvent.MarineDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Marine = e.Forecast.ToMarineData() }),
+        PipelineEvent.SeasonalDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Seasonal = e.Forecast.ToSeasonalData() }),
         PipelineEvent.SatelliteDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Satellite = e.Forecast.ToSatelliteData() }),
         _ => null,
     };
@@ -31,6 +33,7 @@ internal static class DomainDataProtoMappingExtensions
         PipelineEvent.AirQualityDataReceived => DomainKind.AirQuality,
         PipelineEvent.FloodDataReceived => DomainKind.Flood,
         PipelineEvent.MarineDataReceived => DomainKind.Marine,
+        PipelineEvent.SeasonalDataReceived => DomainKind.Seasonal,
         PipelineEvent.SatelliteDataReceived => DomainKind.Satellite,
         _ => null,
     };
@@ -41,6 +44,7 @@ internal static class DomainDataProtoMappingExtensions
         PipelineEvent.AirQualityDataReceived e => e.Location,
         PipelineEvent.FloodDataReceived e => e.Location,
         PipelineEvent.MarineDataReceived e => e.Location,
+        PipelineEvent.SeasonalDataReceived e => e.Location,
         PipelineEvent.SatelliteDataReceived e => e.Location,
         _ => null,
     };
@@ -77,6 +81,13 @@ internal static class DomainDataProtoMappingExtensions
     private static SatelliteData ToSatelliteData(this DomainForecast<SatelliteRadiationPoint> forecast)
     {
         var data = new SatelliteData();
+        data.Points.AddRange(forecast.Points.Select(p => p.ToProto()));
+        return data;
+    }
+
+    private static SeasonalData ToSeasonalData(this DomainForecast<SeasonalPoint> forecast)
+    {
+        var data = new SeasonalData();
         data.Points.AddRange(forecast.Points.Select(p => p.ToProto()));
         return data;
     }
@@ -165,6 +176,15 @@ internal static class DomainDataProtoMappingExtensions
         if (p.DiffuseRadiation is { } diffuse) { sample.DiffuseRadiation = diffuse; }
         if (p.DNI is { } dni) { sample.Dni = dni; }
         if (p.GTI is { } gti) { sample.Gti = gti; }
+        return sample;
+    }
+
+    public static SeasonalSample ToProto(this SeasonalPoint p)
+    {
+        var sample = new SeasonalSample { ValidAt = p.ValidFrom.ToTimestamp() };
+        if (p.TemperatureAnomaly is { } temperature) { sample.TemperatureAnomaly = temperature; }
+        if (p.PrecipitationAnomaly is { } anomaly) { sample.PrecipitationAnomaly = anomaly; }
+        if (p.PrecipitationMean is { } mean) { sample.PrecipitationMean = mean; }
         return sample;
     }
 

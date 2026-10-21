@@ -70,6 +70,42 @@ public sealed class PollWorkerEventMappingSpec
     }
 
     [Fact]
+    public void A_failed_event_records_the_consecutive_failure_count()
+    {
+        var evt = Failed(T0, TimeSpan.FromMinutes(2)) with { ConsecutiveFailures = 2 };
+
+        Assert.Equal(2, Started().Apply(evt).GetDomain(DomainKind.Weather).ConsecutiveFailures);
+    }
+
+    [Fact]
+    public void A_changed_event_resets_the_consecutive_failure_count()
+    {
+        var state = Started().Apply(Failed(T0, TimeSpan.FromMinutes(2)) with { ConsecutiveFailures = 2 })
+            .Apply(Changed(42, T0.AddMinutes(2)));
+
+        Assert.Equal(0, state.GetDomain(DomainKind.Weather).ConsecutiveFailures);
+    }
+
+    [Fact]
+    public void The_consecutive_failure_count_survives_a_snapshot_round_trip()
+    {
+        var state = Started().Apply(Failed(T0, TimeSpan.FromMinutes(4)) with { ConsecutiveFailures = 3 });
+
+        var restored = state.GetPersistenceState().FromPersistence();
+
+        Assert.Equal(3, restored.GetDomain(DomainKind.Weather).ConsecutiveFailures);
+    }
+
+    [Fact]
+    public void A_persisted_domain_without_a_failure_count_recovers_as_zero()
+    {
+        var legacy = new PersistedPollWorkerState("lucerne", true, DiscoveryInterval,
+            [new PersistedDomainState((int)DomainKind.Weather, 7)]);
+
+        Assert.Equal(0, legacy.FromPersistence().GetDomain(DomainKind.Weather).ConsecutiveFailures);
+    }
+
+    [Fact]
     public void An_unknown_outcome_throws()
     {
         var evt = new DomainPolled((int)DomainKind.Weather, (PersistedDomainPollOutcome)99, null, T0, null);

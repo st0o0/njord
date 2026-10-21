@@ -17,4 +17,4 @@ public readonly record struct WeatherSolarInput(DomainForecast<WeatherPoint> Wea
 public readonly record struct FloodWeatherInput(DomainForecast<FloodPoint> Flood, DomainForecast<WeatherPoint> Weather);
 public readonly record struct FloodMarineWeatherInput(DomainForecast<FloodPoint> Flood, DomainForecast<MarinePoint> Marine, DomainForecast<WeatherPoint> Weather);
 public readonly record struct MarineWeatherInput(DomainForecast<MarinePoint> Marine, DomainForecast<WeatherPoint> Weather);
-public readonly record struct SeasonalWeatherInput(DomainForecast<SeasonalPoint> Seasonal, DomainForecast<WeatherPoint> Weather);
+public readonly record struct SeasonalInput(DomainForecast<SeasonalPoint> Seasonal);

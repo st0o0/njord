@@ -1,4 +1,4 @@
-﻿{
+{
   "Location": "lucerne",
   "Domains": [
     0,
@@ -15,19 +15,22 @@
   "Outcome": 0,
   "Hash": 42,
   "Utc": "2026-07-15T10:00:00+00:00",
-  "Delay": null
+  "Delay": null,
+  "ConsecutiveFailures": 0
 }
 {
   "Domain": 1,
   "Outcome": 1,
   "Hash": null,
   "Utc": "2026-07-15T10:00:00+00:00",
-  "Delay": null
+  "Delay": null,
+  "ConsecutiveFailures": 0
 }
 {
   "Domain": 2,
   "Outcome": 2,
   "Hash": null,
   "Utc": "2026-07-15T10:00:00+00:00",
-  "Delay": "00:01:00"
+  "Delay": "00:01:00",
+  "ConsecutiveFailures": 0
 }

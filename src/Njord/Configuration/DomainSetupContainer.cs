@@ -34,6 +34,6 @@ public sealed class DomainSetupContainer : IServiceSetupContainer
         });
 
         services.AddSingleton(static sp =>
-            new ResolvedRequirements(FeatureResolution.RequiredParams(sp.GetServices<IFeatureRule>())));
+            new ResolvedRequirements(FeatureResolution.WithBaseParams(FeatureResolution.RequiredParams(sp.GetServices<IFeatureRule>()))));
     }
 }
