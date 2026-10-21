@@ -1,7 +1,8 @@
 # E2E Test Plan — njord + ha-njord
 
 Agent-orchestrated end-to-end test against a real Docker stack.
-gRPC + REST. Real Open-Meteo API. 4 domains, 19 alert types, lifestyle features.
+gRPC + REST. Real Open-Meteo API. 6 domains (Weather, AirQuality, Flood, Marine, Seasonal, Satellite),
+21 alert types, lifestyle features, multi-model weather comparison.
 
 ## Section Index
 
@@ -9,7 +10,7 @@ gRPC + REST. Real Open-Meteo API. 4 domains, 19 alert types, lifestyle features.
 |---------|------|-------|-------|
 | S0 | Stack Setup | 4 | Opus |
 | S1 | HA Onboarding + Token | 6 | Opus |
-| S2 | Integration Setup | 4 | Opus |
+| S2 | Integration Setup | 3 | Opus |
 | S3 | Entity Registration | 5 | Opus |
 | S4 | Domain Data: Weather | 5 | Haiku #1 |
 | S5 | Domain Data: Air Quality | 4 | Haiku #1 |
@@ -23,7 +24,7 @@ gRPC + REST. Real Open-Meteo API. 4 domains, 19 alert types, lifestyle features.
 | S13 | Multi-Cycle: TriggerPoll × 2 | 4 | Opus |
 | S14 | Budget Tracking | 3 | Opus |
 | S15 | Teardown | 3 | Opus |
-| | **Total** | **~67** | |
+| | **Total** | **~66** | |
 
 ---
 
@@ -37,9 +38,11 @@ gRPC + REST. Real Open-Meteo API. 4 domains, 19 alert types, lifestyle features.
 ### Configuration
 
 - **Location:** Lucerne (explicit coordinates 47.0502 / 8.3093 in the compose file)
-- **Weather:** Ensemble Mean, ForecastDays=4
-- **Enrichments:** ALL enabled (36 feature toggles, `Njord__Features__*`)
-- **Resolved domains:** Weather, AirQuality, Flood, Marine (4 calls/cycle)
+- **Weather:** ForecastDays=4, models `ecmwf_ifs025_ensemble_mean` (primary) + `ecmwf_aifs025_ensemble_mean`
+  (`Weather:ModelComparison` enabled)
+- **Features:** ALL enabled (37 feature toggles, `Njord__Features__*`)
+- **Resolved domains:** Weather, AirQuality, Flood, Marine, Seasonal, Satellite (Marine fails for the inland
+  location and backs off up to the poll interval)
 
 ### Expected Entities
 
@@ -47,16 +50,15 @@ Derived from config: 1 location, all features enabled.
 
 | Platform | Count | Pattern | Notes |
 |----------|-------|---------|-------|
-| weather | 1 | `weather.lucerne` | HA weather entity |
+| weather | 2 | `weather.lucerne`, one per secondary model | HA weather entities (primary + comparison model) |
 | sensor (AQ) | 7 | `lucerne_pm2_5`, `lucerne_pm10`, `lucerne_ozone`, `lucerne_birch_pollen`, `lucerne_grass_pollen`, `lucerne_alder_pollen`, `lucerne_mugwort_pollen` | Air quality |
 | sensor (flood) | 1 | `lucerne_river_discharge` | River discharge m³/s |
 | sensor (server) | 4 | `server_monthly_usage`, `server_daily_usage`, `server_version`, `server_uptime` | Diagnostics |
-| sensor (target) | 1 | `server_lucerne_target` | Poll target timestamp |
-| binary_sensor (alerts) | 19 | `lucerne_{frost,heat,...,swimming_conditions}_alert` | on when severity > none |
+| binary_sensor (alerts) | 21 | `lucerne_{frost,heat,...}` alert binary sensors | on when severity > none |
 | binary_sensor (streams) | 2 | `server_domain_data_stream`, `server_enrichment_stream` | Connectivity |
 | event | 1 | `lucerne_weather_alert` | Alert event entity |
 | button | 1 | `server_trigger_poll` | Manual poll trigger |
-| **Total** | **~37** | | |
+| **Total** | **~36** | | Entity ids follow HA device + name naming; unique ids are the contract |
 
 ---
 
@@ -86,15 +88,14 @@ Try claude-in-chrome first, API fallback if extension unavailable.
 
 1. `POST /api/config/config_entries/flow` with `{"handler":"njord"}`
 2. `POST /api/config/config_entries/flow/<flow_id>` with `{"host":"njord","port":8081}`
-3. Complete enrichment selection step (all enabled)
-4. Record `entry_id` from response
+3. Record `entry_id` from response (no feature step: features are configured in njord)
 
 ---
 
 ## S3 — Entity Registration
 
 1. Poll `/api/states` until weather entity appears (5s interval, 120s timeout)
-2. Count entities matching `njord` platform: expect ~37
+2. Count entities matching `njord` platform: expect ~36
 3. Verify `weather.lucerne` exists with state ∈ HA condition list
 4. Verify at least 1 AQ sensor exists (pattern: `sensor.lucerne_pm*`)
 5. Verify at least 1 alert binary_sensor exists (pattern: `binary_sensor.lucerne_*_alert`)

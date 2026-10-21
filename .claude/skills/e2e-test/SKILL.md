@@ -1,12 +1,12 @@
 ---
 name: e2e-test
-description: Run the agent-orchestrated E2E test against a real Docker stack (njord + Home Assistant with ha-njord). Executes ~67 test steps across 16 sections with 3 parallel Haiku subagents. Covers gRPC API (8 RPCs), 4 domain data types, 19 alert types, entity validation, error handling, multi-cycle budget tracking, and teardown. Produces a PASS/FAIL results document.
+description: Run the agent-orchestrated E2E test against a real Docker stack (njord + Home Assistant with ha-njord). Executes ~66 test steps across 16 sections with 3 parallel Haiku subagents. Covers gRPC API (8 RPCs), 6 domain data types, 21 alert types, entity validation, error handling, multi-cycle budget tracking, and teardown. Produces a PASS/FAIL results document.
 ---
 
 # E2E Test — njord + ha-njord
 
 Run the full end-to-end test suite against the real Docker stack.
-~67 steps across 16 sections (S0–S15), 3 parallel Haiku subagents.
+~66 steps across 16 sections (S0–S15), 3 parallel Haiku subagents.
 
 ## Prerequisites
 
@@ -41,14 +41,13 @@ HA REST/websocket API (see E2E-TEST-PLAN.md S1 for both paths).
 Add njord integration via HA API:
 1. Start config flow with `{"handler":"njord"}`
 2. Complete with host=njord, port=8081
-3. Enable all enrichments in the enrichments step
-4. Record entry_id for teardown
+3. Record entry_id for teardown (no feature step: features are configured in njord)
 
 ### S3 — Entity Registration
 
 Poll `/api/states` until `weather.lucerne` appears (timeout 120s).
-Expect ~37 entities: 1 weather, 7 AQ sensors, 1 flood sensor, 19 alert binary_sensors,
-4 server sensors, 1 target, 2 stream sensors, 1 event, 1 button.
+Expect ~36 entities: 2 weather (primary + one per secondary model), 7 AQ sensors, 1 flood sensor,
+21 alert binary_sensors, 4 server sensors, 2 stream sensors, 1 event, 1 button.
 
 ### Parallel Block — Spawn 3 Haiku Subagents
 
@@ -84,10 +83,10 @@ Write results to `e2e/results/<timestamp>-e2e.md` with:
 
 - **No AdminService** — config is static, no mutation RPCs
 - **No SensorService** — no indoor sensor push
-- **No per-model entities** — one weather entity per location, not per model
+- **Model comparison** — one weather entity per location plus one per secondary model (ModelComparison)
 - **No consensus/derived/trends/indices** — replaced by alert + lifestyle enrichments
-- **4 domains** (Weather, AQ, Flood, Marine) instead of per-model forecast
-- **19 alert types** instead of 14
-- **Enrichment-driven config** — enrichment toggles derive polled domains
+- **6 domains** (Weather, AQ, Flood, Marine, Seasonal, Satellite)
+- **21 alert types** instead of 14
+- **Feature-driven config** — feature toggles derive polled domains
 - **Explicit coordinates** — every location carries latitude and longitude
-- **~67 steps** instead of ~148 (simpler, more focused)
+- **~66 steps** instead of ~148 (simpler, more focused)
