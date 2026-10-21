@@ -33,7 +33,14 @@ The monthly confidence SHALL be derived from the lead time in months between the
 - **THEN** Confidence SHALL be High, Medium or Low respectively
 
 ### Requirement: SeasonalOutlookHandler emits the outlook
-`SeasonalOutlookHandler` SHALL be an `IDomainHandler` with a `Feature` descriptor of kind `SeasonalOutlook` (Insight, default off) requiring only the Seasonal domain. On each seasonal update it SHALL emit one `SeasonalOutlookComputed` with a `MonthlyOutlook` per month after the current month, temperature anomaly rounded to one decimal and precipitation anomaly in percent of the normal month (`mean - anomaly`).
+The `SeasonalOutlook` feature (Forecast output, default off) SHALL require only the Seasonal domain and SHALL be
+computed from the seasonal forecast alone; it SHALL NOT need weather data. On each seasonal update it SHALL emit one
+outlook result with one month entry per month after the current month, temperature anomaly rounded to one decimal and
+precipitation anomaly in percent of the normal month (`mean - anomaly`).
+
+#### Scenario: Emits with seasonal data only
+- **WHEN** a location has received seasonal data but no weather data
+- **THEN** the outlook SHALL be emitted
 
 #### Scenario: Anomalies converted
 - **WHEN** the November point has a temperature anomaly of 1.74, a precipitation anomaly of 2.4 mm and a mean of 99.5 mm
@@ -49,7 +56,7 @@ The monthly confidence SHALL be derived from the lead time in months between the
 
 #### Scenario: Toggle default
 - **WHEN** no configuration is supplied
-- **THEN** the feature SHALL be off and `FeatureResolution.EnabledHandlers` SHALL exclude the handler
+- **THEN** the feature SHALL be off and excluded from the enabled features
 
 ### Requirement: Outlook is delivered as a lifestyle update
 `SeasonalOutlookComputed` SHALL flatten through `ToLifestyleUpdate()` into a `LifestyleUpdate` of kind `SeasonalOutlook` (wire name `seasonal_outlook`) with keys `month_<n>`, `month_<n>_temp_anomaly`, `month_<n>_precip_anomaly` and `month_<n>_confidence`, delivered over gRPC and MQTT through the existing lifestyle path.
@@ -57,4 +64,3 @@ The monthly confidence SHALL be derived from the lead time in months between the
 #### Scenario: Wire shape
 - **WHEN** an outlook with 2 months is mapped
 - **THEN** the update SHALL contain 8 entries, with `month_1` equal to the first month ("2026-11")
-
