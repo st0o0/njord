@@ -2,7 +2,7 @@ namespace Njord.Core.Configuration;
 
 public sealed class WeatherOptions : IConfigSection
 {
-    public const string SectionName = "Njord:Weather";
+    private const string SectionName = "Njord:Weather";
     public const string DefaultModel = "ecmwf_ifs025_ensemble_mean";
     static string IConfigSection.SectionName => SectionName;
 

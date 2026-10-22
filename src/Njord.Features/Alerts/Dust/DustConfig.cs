@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.Dust;
 
 public sealed class DustConfig : IConfigSection
 {
-    public const string SectionName = "Njord:Features:AirQuality:Dust";
+    private const string SectionName = "Njord:Features:AirQuality:Dust";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public double[]? Thresholds { get; set; }

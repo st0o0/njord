@@ -4,7 +4,7 @@ namespace Njord.Core.Configuration;
 
 public sealed class PollingOptions : IConfigSection
 {
-    public const string SectionName = "Njord:Polling";
+    private const string SectionName = "Njord:Polling";
     static string IConfigSection.SectionName => SectionName;
 
     public TimeSpan PollInterval { get; set; } = TimeSpan.FromHours(1);

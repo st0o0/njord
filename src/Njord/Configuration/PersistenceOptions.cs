@@ -3,7 +3,7 @@ namespace Njord.Configuration;
 
 public sealed class PersistenceOptions : IConfigSection
 {
-    public const string SectionName = "Njord:Persistence";
+    private const string SectionName = "Njord:Persistence";
     static string IConfigSection.SectionName => SectionName;
 
     public PersistenceProvider Provider { get; set; } = PersistenceProvider.Sqlite;

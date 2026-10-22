@@ -4,7 +4,7 @@ namespace Njord.OpenMeteo.Configuration;
 
 public sealed class SolarYieldOptions : IConfigSection
 {
-    public const string SectionName = "Njord:SolarYield";
+    private const string SectionName = "Njord:SolarYield";
     static string IConfigSection.SectionName => SectionName;
 
     public double PeakKw { get; set; } = 5.0;

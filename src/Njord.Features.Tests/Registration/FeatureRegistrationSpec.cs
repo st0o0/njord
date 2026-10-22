@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.Extensions.Options;
+using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Tests.Shared;
 
@@ -13,9 +14,9 @@ public sealed class FeatureRegistrationSpec
             .Select(static p => p.ParameterType)
             .Single(static t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IOptions<>))
             .GetGenericArguments()[0];
-        var field = configType.GetField("SectionName", BindingFlags.Public | BindingFlags.Static);
-        Assert.NotNull(field);
-        return Assert.IsType<string>(field.GetRawConstantValue());
+        var method = typeof(IConfigSection).GetMethod(nameof(IConfigSection.SectionOf), BindingFlags.Public | BindingFlags.Static);
+        Assert.NotNull(method);
+        return Assert.IsType<string>(method.MakeGenericMethod(configType).Invoke(null, null));
     }
 
     [Fact]

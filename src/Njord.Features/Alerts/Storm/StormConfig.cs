@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.Storm;
 
 public sealed class StormConfig : IConfigSection
 {
-    public const string SectionName = "Njord:Features:Weather:Storm";
+    private const string SectionName = "Njord:Features:Weather:Storm";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
     public double[]? GustThresholds { get; set; }

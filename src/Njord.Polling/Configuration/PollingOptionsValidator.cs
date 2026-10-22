@@ -42,7 +42,7 @@ public sealed class PollingOptionsValidator(IConfiguration configuration, Resolv
     // so a scope that fails its own validation is reported by NjordOptionsValidator instead of throwing here.
     private NjordOptions? ReadScope()
     {
-        var scope = configuration.GetSection(NjordOptions.SectionName).Get<NjordOptions>();
+        var scope = configuration.GetSection(IConfigSection.SectionOf<NjordOptions>()).Get<NjordOptions>();
         return scope is null || scope.Locations.Count == 0 ? null : scope;
     }
 
@@ -55,8 +55,8 @@ public sealed class PollingOptionsValidator(IConfiguration configuration, Resolv
     private const string ModelComparisonSection = "Njord:Features:Weather:ModelComparison";
 
     private FloodOptions ReadFlood() =>
-        configuration.GetSection(FloodOptions.SectionName).Get<FloodOptions>() ?? new FloodOptions();
+        configuration.GetSection(IConfigSection.SectionOf<FloodOptions>()).Get<FloodOptions>() ?? new FloodOptions();
 
     private WeatherOptions ReadWeather() =>
-        configuration.GetSection(WeatherOptions.SectionName).Get<WeatherOptions>() ?? new WeatherOptions();
+        configuration.GetSection(IConfigSection.SectionOf<WeatherOptions>()).Get<WeatherOptions>() ?? new WeatherOptions();
 }

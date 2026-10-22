@@ -4,7 +4,7 @@ namespace Njord.OpenMeteo.Configuration;
 
 public sealed class SeasonalOptions : IConfigSection
 {
-    public const string SectionName = "Njord:Seasonal";
+    private const string SectionName = "Njord:Seasonal";
     static string IConfigSection.SectionName => SectionName;
 
     // Months after the current month that are kept from the seasonal forecast.

@@ -4,7 +4,7 @@ namespace Njord.Features.Conditions.SolarYield;
 
 public sealed class SolarYieldConfig : IConfigSection
 {
-    public const string SectionName = "Njord:Features:Energy:SolarYield";
+    private const string SectionName = "Njord:Features:Energy:SolarYield";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
 }
