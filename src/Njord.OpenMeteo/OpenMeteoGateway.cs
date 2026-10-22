@@ -25,7 +25,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
     // Ids are unique across incarnations: a restarted gateway keeps its ActorRef, so late results of the
     // previous incarnation must never match anything of the current one.
-    private static long LastId;
+    private long _lastId;
 
     private sealed record PipelineResolved(IActorRef Pipeline);
     private sealed record AttachFailed(string Reason, Exception? Cause);
@@ -93,7 +93,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
             return;
         }
 
-        var id = NextId();
+        var id = _lastId++;
         _pending[id] = new PendingDomainRequest(Sender, msg.Location, msg.Domain, new Location(location.Name, location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault()));
 
         if (!_clients.TryGetValue(msg.Domain, out var client))
@@ -206,14 +206,14 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private void OnPipelineResolved(PipelineResolved msg)
     {
         Context.Watch(msg.Pipeline);
-        msg.Pipeline.Ask<RequestForecastSinkResponse>(new RequestForecastSink(NextId()), _timeouts.Admission).PipeTo(Self,
+        msg.Pipeline.Ask<RequestForecastSinkResponse>(new RequestForecastSink(_lastId++), _timeouts.Admission).PipeTo(Self,
             success: response => response,
             failure: ex => new AttachFailed("the pipeline did not answer the SinkRef request", ex));
     }
 
     private void OnSinkCompleted(RequestForecastSinkCompleted msg)
     {
-        var branchId = _branchId = NextId();
+        var branchId = _branchId = _lastId++;
         var (queue, done) = Source.Queue<DomainDataReceived>(ForecastBranchSize, OverflowStrategy.DropHead)
             .WatchTermination(Keep.Both)
             .To(msg.SinkRef.Sink)
@@ -232,6 +232,4 @@ public sealed class OpenMeteoGateway : ReceiveActor
             p.Requester.Tell(reply(p));
         }
     }
-
-    private static long NextId() => Interlocked.Increment(ref LastId);
 }
