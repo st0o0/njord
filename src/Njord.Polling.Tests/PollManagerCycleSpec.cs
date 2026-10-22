@@ -1,10 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.Metrics;
 using Akka.Actor;
-using Akka.DependencyInjection;
 using Akka.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
@@ -21,17 +18,16 @@ public sealed class PollManagerCycleSpec : NjordActorSpec
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
     private readonly string _location = $"cycle{Guid.NewGuid():N}";
     private readonly ConcurrentQueue<(string Instrument, double Value)> _measurements = new();
+    private readonly IOptions<NjordOptions> _njordOptions;
+    private readonly IOptions<PollingOptions> _pollingOptions =
+        Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = TimeSpan.FromHours(1)));
     private IActorRef _manager = null!;
 
-    protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
-    {
-        services.AddSingleton<TimeProvider>(_time);
-        services.AddSingleton(Options.Create(new NjordOptions
+    public PollManagerCycleSpec() =>
+        _njordOptions = Options.Create(new NjordOptions
         {
             Locations = [new LocationOptions { Name = _location, Latitude = 47.05, Longitude = 8.31 }],
-        }));
-        services.AddSingleton(Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = TimeSpan.FromHours(1))));
-    }
+        });
 
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider) =>
         builder.WithActors((system, registry) =>
@@ -39,7 +35,7 @@ public sealed class PollManagerCycleSpec : NjordActorSpec
             var region = CreateTestProbe("region");
             region.IgnoreMessages(_ => true);
             registry.Register<IPollRegion>(region.Ref);
-            _manager = system.ActorOf(DependencyResolver.For(system).Props<PollManager>(), "manager");
+            _manager = system.ActorOf(Props.Create(() => new PollManager(_njordOptions, _pollingOptions, _time)), "manager");
         });
 
     private MeterListener ListenToPollingMeter()

@@ -1,11 +1,8 @@
 using System.Collections.Immutable;
 using Akka.Actor;
 using Akka.Cluster.Sharding;
-using Akka.DependencyInjection;
 using Akka.Hosting;
 using Akka.TestKit;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
@@ -23,19 +20,17 @@ public abstract class PollManagerSpecBase : NjordActorSpec
     protected readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
     protected TestProbe _region = null!;
 
-    protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
+    private readonly IOptions<NjordOptions> _njordOptions = Options.Create(new NjordOptions
     {
-        services.AddSingleton<TimeProvider>(_time);
-        services.AddSingleton(Options.Create(new NjordOptions
-        {
-            Locations =
-            [
-                new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 },
-                new LocationOptions { Name = "zurich", Latitude = 47.37, Longitude = 8.54 },
-            ],
-        }));
-        services.AddSingleton(Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = Discovery)));
-    }
+        Locations =
+        [
+            new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 },
+            new LocationOptions { Name = "zurich", Latitude = 47.37, Longitude = 8.54 },
+        ],
+    });
+
+    private readonly IOptions<PollingOptions> _pollingOptions =
+        Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = Discovery));
 
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider) =>
         builder.WithActors((_, registry) =>
@@ -51,7 +46,7 @@ public abstract class PollManagerSpecBase : NjordActorSpec
     ];
 
     protected IActorRef CreateManager() =>
-        Sys.ActorOf(DependencyResolver.For(Sys).Props<PollManager>(), $"manager-{Guid.NewGuid():N}");
+        Sys.ActorOf(Props.Create(() => new PollManager(_njordOptions, _pollingOptions, _time)), $"manager-{Guid.NewGuid():N}");
 
     // The manager starts every target, then asks the region which entities run.
     protected async Task<IActorRef> StartedManagerAsync(CancellationToken ct, params string[] runningEntities)

@@ -1,9 +1,6 @@
 using Akka.Actor;
-using Akka.DependencyInjection;
 using Akka.Hosting;
 using Akka.TestKit;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
@@ -16,7 +13,7 @@ using Njord.Tests.Shared;
 
 namespace Njord.Polling.Tests;
 
-// The worker is created directly from the resolver; a probe plays the gateway (it answers through LastSender)
+// The worker is created with explicit constructor arguments; a probe plays the gateway (it answers through LastSender)
 // and another probe plays the poll manager.
 public abstract class PollWorkerSpecBase : NjordActorSpec
 {
@@ -31,14 +28,6 @@ public abstract class PollWorkerSpecBase : NjordActorSpec
     protected TestProbe _gateway = null!;
     protected TestProbe _manager = null!;
 
-    protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
-    {
-        services.AddSingleton<TimeProvider>(_time);
-        services.AddSingleton(FetchTimeouts.Default);
-        services.AddSingleton(Options.Create(new PollingOptions()));
-        services.AddSingleton(EnabledDomains);
-    }
-
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider) =>
         builder.WithActors((_, registry) =>
         {
@@ -48,12 +37,15 @@ public abstract class PollWorkerSpecBase : NjordActorSpec
             registry.Register<IPollManager>(_manager.Ref);
         });
 
+    private Props WorkerProps(string entityId) =>
+        Props.Create(() => new PollWorker(_time, FetchTimeouts.Default, Options.Create(new PollingOptions()), EnabledDomains, entityId));
+
     protected IActorRef CreateWorker(string entityId = TargetId) =>
-        Sys.ActorOf(DependencyResolver.For(Sys).Props<PollWorker>(entityId), $"worker-{Guid.NewGuid():N}");
+        Sys.ActorOf(WorkerProps(entityId), $"worker-{Guid.NewGuid():N}");
 
     // A child of the test actor: it plays the shard and receives the worker's Passivate request.
     protected IActorRef CreateShardedWorker(string entityId = TargetId) =>
-        ChildActorOf(DependencyResolver.For(Sys).Props<PollWorker>(entityId), $"worker-{Guid.NewGuid():N}");
+        ChildActorOf(WorkerProps(entityId), $"worker-{Guid.NewGuid():N}");
 
     protected async Task<IActorRef> StartedWorkerAsync(CancellationToken ct)
     {

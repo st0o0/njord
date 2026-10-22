@@ -1,9 +1,6 @@
 using Akka.Actor;
-using Akka.DependencyInjection;
 using Akka.Hosting;
 using Akka.TestKit;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
@@ -24,19 +21,13 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
     private static readonly FetchTimeouts ShortTimeouts =
         new(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(300));
 
+    private static readonly IReadOnlySet<DomainKind> EnabledDomains = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality };
+
     private static readonly PollTarget Target = new(new Location("lucerne", 0, 0));
 
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
     private TestProbe _manager = null!;
     private TestProbe _requests = null!;
-
-    protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
-    {
-        services.AddSingleton<TimeProvider>(_time);
-        services.AddSingleton<IReadOnlySet<DomainKind>>(new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality });
-        services.AddSingleton(ShortTimeouts);
-        services.AddSingleton(Options.Create(new PollingOptions()));
-    }
 
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider) =>
         builder.WithActors((_, registry) =>
@@ -47,7 +38,8 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
         });
 
     private void Start() =>
-        Sys.ActorOf(DependencyResolver.For(Sys).Props<PollWorker>(Target.Id), $"worker-{Guid.NewGuid():N}")
+        Sys.ActorOf(Props.Create(() => new PollWorker(_time, ShortTimeouts, Options.Create(new PollingOptions()), EnabledDomains, Target.Id)),
+                $"worker-{Guid.NewGuid():N}")
             .Tell(new StartPolling(Target, TimeSpan.FromHours(1)));
 
     private async Task<PollWorkerReport> ExpectFailedReportsAsync(CancellationToken ct)
