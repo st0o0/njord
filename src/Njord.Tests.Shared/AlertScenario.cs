@@ -31,7 +31,7 @@ public sealed class AlertScenario
         {
             var forecast = new LocationForecast(new Location(location, 0, 0), Weather(location));
             var result = rules
-                .SelectMany(rule => FeatureRunner.Run(rule, Now, forecast))
+                .Select(rule => FeatureRunner.Run(rule, Now, forecast))
                 .OfType<AlertFeatureResult>()
                 .OrderBy(alert => alert.GetType().Name, StringComparer.Ordinal)
                 .ToList();

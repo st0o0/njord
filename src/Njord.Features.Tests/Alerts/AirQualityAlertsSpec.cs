@@ -25,8 +25,7 @@ public sealed class AirQualityAlertsSpec
     [Fact]
     public void Pollen_at_the_first_level_is_yellow()
     {
-        var alert = Assert.IsType<PollenAlertResult>(Assert.Single(
-            Run(Pollen(), Now, With((_, p) => p with { BirchPollen = 20.0 }))));
+        var alert = Assert.IsType<PollenAlertResult>(Run(Pollen(), Now, With((_, p) => p with { BirchPollen = 20.0 })));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Yellow, alert.Severity),
@@ -36,7 +35,7 @@ public sealed class AirQualityAlertsSpec
     [Fact]
     public void Pollen_below_the_first_level_raises_nothing()
     {
-        Assert.Empty(Run(Pollen(), Now, With((_, p) => p with { BirchPollen = 19.9 })));
+        Assert.Null(Run(Pollen(), Now, With((_, p) => p with { BirchPollen = 19.9 })));
     }
 
     [Fact]
@@ -49,7 +48,7 @@ public sealed class AirQualityAlertsSpec
             _ => p,
         });
 
-        var alert = Assert.IsType<PollenAlertResult>(Assert.Single(Run(Pollen(), Now, forecast)));
+        var alert = Assert.IsType<PollenAlertResult>(Run(Pollen(), Now, forecast));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Red, alert.Severity),
@@ -60,8 +59,7 @@ public sealed class AirQualityAlertsSpec
     [Fact]
     public void Fine_particles_at_the_who_guideline_are_yellow()
     {
-        var alert = Assert.IsType<Pm25AlertResult>(Assert.Single(
-            Run(Pm25(), Now, With((_, p) => p with { Pm25 = 15.0 }))));
+        var alert = Assert.IsType<Pm25AlertResult>(Run(Pm25(), Now, With((_, p) => p with { Pm25 = 15.0 })));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Yellow, alert.Severity),
@@ -71,8 +69,7 @@ public sealed class AirQualityAlertsSpec
     [Fact]
     public void Fine_particles_at_25_are_orange()
     {
-        var alert = Assert.IsType<Pm25AlertResult>(Assert.Single(
-            Run(Pm25(), Now, With((_, p) => p with { Pm25 = 25.0 }))));
+        var alert = Assert.IsType<Pm25AlertResult>(Run(Pm25(), Now, With((_, p) => p with { Pm25 = 25.0 })));
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
@@ -80,8 +77,7 @@ public sealed class AirQualityAlertsSpec
     [Fact]
     public void The_pm25_peak_is_reported_with_its_hour()
     {
-        var alert = Assert.IsType<Pm25AlertResult>(Assert.Single(
-            Run(Pm25(), Now, With((h, p) => h == 5 ? p with { Pm25 = 31.04 } : p))));
+        var alert = Assert.IsType<Pm25AlertResult>(Run(Pm25(), Now, With((h, p) => h == 5 ? p with { Pm25 = 31.04 } : p)));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
@@ -101,11 +97,11 @@ public sealed class AirQualityAlertsSpec
 
         if (expected == AlertSeverity.None)
         {
-            Assert.Empty(events);
+            Assert.Null(events);
             return;
         }
 
-        var alert = Assert.IsType<DustAlertResult>(Assert.Single(events));
+        var alert = Assert.IsType<DustAlertResult>(events);
         Assert.Multiple(
             () => Assert.Equal(expected, alert.Severity),
             () => Assert.Equal(4, alert.HoursUntil));
@@ -117,15 +113,15 @@ public sealed class AirQualityAlertsSpec
         var forecast = With();
 
         Assert.Multiple(
-            () => Assert.Empty(Run(Pollen(), Now, forecast)),
-            () => Assert.Empty(Run(Pm25(), Now, forecast)),
-            () => Assert.Empty(Run(Dust(), Now, forecast)));
+            () => Assert.Null(Run(Pollen(), Now, forecast)),
+            () => Assert.Null(Run(Pm25(), Now, forecast)),
+            () => Assert.Null(Run(Dust(), Now, forecast)));
     }
 
     [Fact]
     public void Missing_air_quality_data_raises_nothing()
     {
-        Assert.Empty(Run(Pm25(), Now, new LocationForecast(Lucerne)));
+        Assert.Null(Run(Pm25(), Now, new LocationForecast(Lucerne)));
     }
 
     [Fact]

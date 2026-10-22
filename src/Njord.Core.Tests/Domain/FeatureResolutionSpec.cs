@@ -18,7 +18,7 @@ public sealed class FeatureResolutionSpec
 
         public bool Enabled { get; } = enabled;
 
-        public IReadOnlyList<PipelineEvent> Execute(RingBuffer<LocationForecast> ring, DateTimeOffset now) => [];
+        public PipelineEvent? Execute(RingBuffer<LocationForecast> ring, DateTimeOffset now) => null;
     }
 
     private static readonly StubRule Frost = new("Frost", FeatureCategory.Weather, true, new(Weather: WeatherParams.Temperature | WeatherParams.WindGusts));

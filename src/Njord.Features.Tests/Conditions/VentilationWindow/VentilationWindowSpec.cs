@@ -14,7 +14,7 @@ public sealed class VentilationWindowSpec
     [Fact]
     public void The_whole_day_is_advised_when_air_and_weather_stay_good()
     {
-        var advice = Assert.IsType<VentilationWindowResult>(Assert.Single(Run(Feature(), Now, Combined(Day(), CleanAir()))));
+        var advice = Assert.IsType<VentilationWindowResult>(Run(Feature(), Now, Combined(Day(), CleanAir())));
 
         Assert.Multiple(
             () => Assert.Equal(Now, advice.BestStart),
@@ -26,7 +26,7 @@ public sealed class VentilationWindowSpec
     {
         var air = CleanAir(shape: (hour, point) => hour is 3 or 4 ? point with { Pm25 = 40.0 } : point);
 
-        var advice = Assert.IsType<VentilationWindowResult>(Assert.Single(Run(Feature(), Now, Combined(Day(), air))));
+        var advice = Assert.IsType<VentilationWindowResult>(Run(Feature(), Now, Combined(Day(), air)));
 
         Assert.Multiple(
             () => Assert.Equal(Now.AddHours(5), advice.BestStart),
@@ -38,12 +38,12 @@ public sealed class VentilationWindowSpec
     {
         var air = CleanAir(shape: (_, point) => point with { Pm25 = 40.0 });
 
-        Assert.Empty(Run(Feature(), Now, Combined(Day(), air)));
+        Assert.Null(Run(Feature(), Now, Combined(Day(), air)));
     }
 
     [Fact]
     public void Nothing_is_reported_without_air_quality_data()
     {
-        Assert.Empty(Run(Feature(), Now, WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), Now, WeatherOnly(Day())));
     }
 }

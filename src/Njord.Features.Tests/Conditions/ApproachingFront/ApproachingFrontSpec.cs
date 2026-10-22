@@ -24,7 +24,7 @@ public sealed class ApproachingFrontSpec
     public void A_pressure_drop_with_a_wind_shift_is_reported()
     {
         var front = Assert.IsType<ApproachingFrontResult>(
-            Assert.Single(Run(Feature(), Now, WeatherOnly(Day()), Falling(315.0))));
+            Run(Feature(), Now, WeatherOnly(Day()), Falling(315.0)));
 
         Assert.Multiple(
             () => Assert.Equal(6.0, front.PressureDrop),
@@ -35,12 +35,12 @@ public sealed class ApproachingFrontSpec
     [Fact]
     public void A_pressure_drop_without_a_wind_shift_is_ignored()
     {
-        Assert.Empty(Run(Feature(), Now, WeatherOnly(Day()), Falling(190.0)));
+        Assert.Null(Run(Feature(), Now, WeatherOnly(Day()), Falling(190.0)));
     }
 
     [Fact]
     public void Nothing_is_reported_without_a_previous_cycle()
     {
-        Assert.Empty(Run(Feature(), Now, Falling(315.0)));
+        Assert.Null(Run(Feature(), Now, Falling(315.0)));
     }
 }

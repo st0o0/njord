@@ -24,7 +24,7 @@ public sealed class SurfConditionsSpec
             [new WeatherPoint(Now, WindDirection: 90.0)]);
         var current = new LocationForecast(Lucerne, Weather: weather, Marine: MarineForecast(Swell()));
 
-        var surf = Assert.IsType<SurfConditionsResult>(Assert.Single(Run(Feature(), Now, current)));
+        var surf = Assert.IsType<SurfConditionsResult>(Run(Feature(), Now, current));
 
         Assert.Multiple(
             () => Assert.Equal(Lucerne, surf.Location),
@@ -36,8 +36,8 @@ public sealed class SurfConditionsSpec
     public void Missing_marine_or_swell_data_yields_nothing()
     {
         Assert.Multiple(
-            () => Assert.Empty(Run(Feature(), Now, new LocationForecast(Lucerne))),
-            () => Assert.Empty(Run(Feature(), Now, new LocationForecast(Lucerne, Marine: MarineForecast(Point(0))))));
+            () => Assert.Null(Run(Feature(), Now, new LocationForecast(Lucerne))),
+            () => Assert.Null(Run(Feature(), Now, new LocationForecast(Lucerne, Marine: MarineForecast(Point(0))))));
     }
 
     [Fact]

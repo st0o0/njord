@@ -10,7 +10,7 @@ public abstract class FeatureRule<TInput> : IFeatureRule where TInput : struct
     protected abstract TInput? Project(LocationForecast forecast);
     protected abstract PipelineEvent? Evaluate(FeatureContext<TInput> ctx);
 
-    public IReadOnlyList<PipelineEvent> Execute(RingBuffer<LocationForecast> ring, DateTimeOffset now)
+    public PipelineEvent? Execute(RingBuffer<LocationForecast> ring, DateTimeOffset now)
     {
         var depth = Descriptor.PollDepth;
         var history = new List<TInput>(depth + 1);
@@ -26,10 +26,10 @@ public abstract class FeatureRule<TInput> : IFeatureRule where TInput : struct
 
         if (history.Count == 0)
         {
-            return [];
+            return null;
         }
 
         var ctx = new FeatureContext<TInput>(ring[0].Location, history[0], history, now);
-        return Evaluate(ctx) is { } result ? [result] : [];
+        return Evaluate(ctx);
     }
 }

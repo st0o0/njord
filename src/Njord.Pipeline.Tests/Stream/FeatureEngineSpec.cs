@@ -62,6 +62,29 @@ public sealed class FeatureEngineSpec
             () => Assert.IsType<ProbeResult>(events[1]));
     }
 
+    private sealed class SilentRule : FeatureRule<WeatherInput>
+    {
+        public override FeatureDescriptor Descriptor { get; } =
+            new(OutputKind.Alert, FeatureCategory.Weather, "Silent", true, Temperature);
+
+        public override bool Enabled => true;
+
+        protected override WeatherInput? Project(LocationForecast forecast) =>
+            forecast.Weather is { } w ? new(w) : null;
+
+        protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx) => null;
+    }
+
+    [Fact]
+    public void A_rule_that_returns_no_result_emits_no_event()
+    {
+        var engine = Engine(new SilentRule());
+
+        var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
+
+        Assert.IsType<PipelineEvent.WeatherDataReceived>(Assert.Single(events));
+    }
+
     [Fact]
     public void A_rule_without_poll_depth_sees_only_the_current_forecast()
     {

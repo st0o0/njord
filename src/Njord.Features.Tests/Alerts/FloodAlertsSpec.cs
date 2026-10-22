@@ -19,7 +19,7 @@ public sealed class FloodAlertsSpec
     private static LocationForecast Risky(params FloodPoint[] points) =>
         new(Lucerne, Rain(0.0), Flood: FloodForecast(points));
 
-    private static IReadOnlyList<PipelineEvent> RunRain(double hourlyRain, params FloodPoint[] points) =>
+    private static PipelineEvent? RunRain(double hourlyRain, params FloodPoint[] points) =>
         Run(RainAlert(), Now, new LocationForecast(Lucerne, Rain(hourlyRain), Flood: FloodForecast(points)));
 
     private static FloodPoint WithMembers(int exceeding, int total = 50) =>
@@ -31,7 +31,7 @@ public sealed class FloodAlertsSpec
     [Fact]
     public void Discharge_above_the_p75_percentile_is_orange()
     {
-        var alert = Assert.IsType<FloodRiskAlertResult>(Assert.Single(Run(Risk(), Now, Risky(Point(0, 160, median: 100, p75: 150)))));
+        var alert = Assert.IsType<FloodRiskAlertResult>(Run(Risk(), Now, Risky(Point(0, 160, median: 100, p75: 150))));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
@@ -42,19 +42,19 @@ public sealed class FloodAlertsSpec
     [Fact]
     public void Discharge_at_the_p75_percentile_raises_nothing()
     {
-        Assert.Empty(Run(Risk(), Now, Risky(Point(0, 150, median: 100, p75: 150))));
+        Assert.Null(Run(Risk(), Now, Risky(Point(0, 150, median: 100, p75: 150))));
     }
 
     [Fact]
     public void Discharge_within_twice_the_median_raises_nothing()
     {
-        Assert.Empty(Run(Risk(), Now, Risky(Point(0, 190, median: 100, p75: 300))));
+        Assert.Null(Run(Risk(), Now, Risky(Point(0, 190, median: 100, p75: 300))));
     }
 
     [Fact]
     public void Discharge_above_the_historical_maximum_is_red()
     {
-        var alert = Assert.IsType<FloodRiskAlertResult>(Assert.Single(Run(Risk(), Now, Risky(Point(2, 450, max: 400)))));
+        var alert = Assert.IsType<FloodRiskAlertResult>(Run(Risk(), Now, Risky(Point(2, 450, max: 400))));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Red, alert.Severity),
@@ -65,8 +65,7 @@ public sealed class FloodAlertsSpec
     [Fact]
     public void The_highest_severity_in_the_window_wins()
     {
-        var alert = Assert.IsType<FloodRiskAlertResult>(Assert.Single(
-            Run(Risk(), Now, Risky(Point(0, 160), Point(3, 500), Point(5, 170)))));
+        var alert = Assert.IsType<FloodRiskAlertResult>(Run(Risk(), Now, Risky(Point(0, 160), Point(3, 500), Point(5, 170))));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Red, alert.Severity),
@@ -76,13 +75,13 @@ public sealed class FloodAlertsSpec
     [Fact]
     public void Days_beyond_the_seven_day_window_are_ignored()
     {
-        Assert.Empty(Run(Risk(), Now, Risky(Point(10, 900))));
+        Assert.Null(Run(Risk(), Now, Risky(Point(10, 900))));
     }
 
     [Fact]
     public void Most_members_above_the_threshold_give_high_confidence()
     {
-        var alert = Assert.IsType<FloodRiskAlertResult>(Assert.Single(Run(Risk(), Now, Risky(WithMembers(45)))));
+        var alert = Assert.IsType<FloodRiskAlertResult>(Run(Risk(), Now, Risky(WithMembers(45))));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
@@ -93,7 +92,7 @@ public sealed class FloodAlertsSpec
     [Fact]
     public void A_single_outlier_member_gives_low_confidence()
     {
-        var alert = Assert.IsType<FloodRiskAlertResult>(Assert.Single(Run(Risk(), Now, Risky(WithMembers(1)))));
+        var alert = Assert.IsType<FloodRiskAlertResult>(Run(Risk(), Now, Risky(WithMembers(1))));
 
         Assert.Multiple(
             () => Assert.Equal(0.02, alert.Confidence),
@@ -103,7 +102,7 @@ public sealed class FloodAlertsSpec
     [Fact]
     public void Half_of_the_members_above_the_threshold_give_medium_confidence()
     {
-        var alert = Assert.IsType<FloodRiskAlertResult>(Assert.Single(Run(Risk(), Now, Risky(WithMembers(25)))));
+        var alert = Assert.IsType<FloodRiskAlertResult>(Run(Risk(), Now, Risky(WithMembers(25))));
 
         Assert.Multiple(
             () => Assert.Equal(0.5, alert.Confidence),
@@ -113,7 +112,7 @@ public sealed class FloodAlertsSpec
     [Fact]
     public void Without_members_the_alert_keeps_full_confidence()
     {
-        var alert = Assert.IsType<FloodRiskAlertResult>(Assert.Single(Run(Risk(), Now, Risky(Point(0, 160, median: 100, p75: 150)))));
+        var alert = Assert.IsType<FloodRiskAlertResult>(Run(Risk(), Now, Risky(Point(0, 160, median: 100, p75: 150))));
 
         Assert.Multiple(
             () => Assert.Equal(1.0, alert.Confidence),
@@ -123,13 +122,13 @@ public sealed class FloodAlertsSpec
     [Fact]
     public void Flood_risk_needs_weather_alongside_flood_data()
     {
-        Assert.Empty(Run(Risk(), Now, new LocationForecast(Lucerne, Flood: FloodForecast(Point(0, 160)))));
+        Assert.Null(Run(Risk(), Now, new LocationForecast(Lucerne, Flood: FloodForecast(Point(0, 160)))));
     }
 
     [Fact]
     public void Heavy_rain_with_rising_discharge_above_the_median_is_orange()
     {
-        var alert = Assert.IsType<FloodRainAlertResult>(Assert.Single(RunRain(1.5, Point(0, 110), Point(1, 130))));
+        var alert = Assert.IsType<FloodRainAlertResult>(RunRain(1.5, Point(0, 110), Point(1, 130)));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
@@ -140,7 +139,7 @@ public sealed class FloodAlertsSpec
     [Fact]
     public void Heavy_rain_with_rising_discharge_above_p75_is_red()
     {
-        var alert = Assert.IsType<FloodRainAlertResult>(Assert.Single(RunRain(1.5, Point(0, 110), Point(1, 170))));
+        var alert = Assert.IsType<FloodRainAlertResult>(RunRain(1.5, Point(0, 110), Point(1, 170)));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Red, alert.Severity),
@@ -150,7 +149,7 @@ public sealed class FloodAlertsSpec
     [Fact]
     public void Rain_exactly_at_30_mm_in_24_hours_counts_as_heavy()
     {
-        var alert = Assert.IsType<FloodRainAlertResult>(Assert.Single(RunRain(1.25, Point(0, 110), Point(1, 130))));
+        var alert = Assert.IsType<FloodRainAlertResult>(RunRain(1.25, Point(0, 110), Point(1, 130)));
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
@@ -158,19 +157,19 @@ public sealed class FloodAlertsSpec
     [Fact]
     public void Rain_below_30_mm_in_24_hours_raises_nothing()
     {
-        Assert.Empty(RunRain(1.2, Point(0, 110), Point(1, 170)));
+        Assert.Null(RunRain(1.2, Point(0, 110), Point(1, 170)));
     }
 
     [Fact]
     public void Falling_discharge_raises_nothing()
     {
-        Assert.Empty(RunRain(1.5, Point(0, 170), Point(1, 120)));
+        Assert.Null(RunRain(1.5, Point(0, 170), Point(1, 120)));
     }
 
     [Fact]
     public void Discharge_below_the_median_raises_nothing()
     {
-        Assert.Empty(RunRain(1.5, Point(0, 50), Point(1, 90)));
+        Assert.Null(RunRain(1.5, Point(0, 50), Point(1, 90)));
     }
 
     [Fact]

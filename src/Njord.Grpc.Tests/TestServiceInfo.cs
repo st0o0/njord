@@ -1,8 +1,6 @@
 using Njord.Configuration;
-using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
-using Njord.Core.Polling;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -27,7 +25,7 @@ public static class TestServiceInfo
 
         public bool Enabled { get; } = enabled;
 
-        public IReadOnlyList<PipelineEvent> Execute(RingBuffer<LocationForecast> ring, DateTimeOffset now) => [];
+        public PipelineEvent? Execute(RingBuffer<LocationForecast> ring, DateTimeOffset now) => null;
     }
 
     public sealed class Commute() : StubRule(FeatureCategory.Lifestyle, "Commute");

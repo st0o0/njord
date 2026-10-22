@@ -35,7 +35,7 @@ internal sealed class FeatureEngine
 
         if (received.ModelId is { } modelId)
         {
-            if (received.Data is DomainForecast<Njord.Forecast.Weather.WeatherPoint> modelWeather)
+            if (received.Data is DomainForecast<WeatherPoint> modelWeather)
             {
                 var latest = (ring.Count > 0 ? ring[0] : new LocationForecast(received.Location)).WithModel(modelId, modelWeather);
                 if (ring.Count > 0)
@@ -72,7 +72,10 @@ internal sealed class FeatureEngine
                 continue;
             }
 
-            events.AddRange(feature.Execute(ring, now));
+            if (feature.Execute(ring, now) is { } result)
+            {
+                events.Add(result);
+            }
         }
 
         return events;

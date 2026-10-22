@@ -26,7 +26,7 @@ public sealed class ModelComparisonSpec
     [Fact]
     public void Every_model_reports_its_daily_extremes_and_precipitation_total()
     {
-        var result = Assert.IsType<ModelComparisonResult>(Assert.Single(Run(Feature(), Now, With(("b", 12.04, 0.5), ("a", 8.0, 0.0)))));
+        var result = Assert.IsType<ModelComparisonResult>(Run(Feature(), Now, With(("b", 12.04, 0.5), ("a", 8.0, 0.0))));
 
         var day = result.Days[0];
         Assert.Equal(
@@ -40,12 +40,12 @@ public sealed class ModelComparisonSpec
     [Fact]
     public void Nothing_is_reported_with_a_single_model()
     {
-        Assert.Empty(Run(Feature(), Now, With(("a", 8.0, 0.0))));
+        Assert.Null(Run(Feature(), Now, With(("a", 8.0, 0.0))));
     }
 
     [Fact]
     public void Nothing_is_reported_without_model_data()
     {
-        Assert.Empty(Run(Feature(), Now, WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), Now, WeatherOnly(Day())));
     }
 }

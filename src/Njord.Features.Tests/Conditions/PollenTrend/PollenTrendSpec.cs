@@ -21,7 +21,7 @@ public sealed class PollenTrendSpec
         var current = With((_, p) => p with { BirchPollen = 30.0, GrassPollen = 10.0, Alder = 10.0 });
         var previous = With((_, p) => p with { BirchPollen = 10.0, GrassPollen = 10.0, Alder = 30.0 });
 
-        var trend = Assert.IsType<PollenTrendResult>(Assert.Single(Run(Feature(), Now, previous, current)));
+        var trend = Assert.IsType<PollenTrendResult>(Run(Feature(), Now, previous, current));
 
         Assert.Multiple(
             () => Assert.Equal(PollenTrendDirection.Rising, trend.Birch),
@@ -35,7 +35,7 @@ public sealed class PollenTrendSpec
         var current = With((hour, p) => p with { BirchPollen = 5.0, GrassPollen = hour == 7 ? 60.0 : 5.0 });
         var previous = With((_, p) => p with { BirchPollen = 5.0, GrassPollen = 5.0 });
 
-        var trend = Assert.IsType<PollenTrendResult>(Assert.Single(Run(Feature(), Now, previous, current)));
+        var trend = Assert.IsType<PollenTrendResult>(Run(Feature(), Now, previous, current));
 
         Assert.Multiple(
             () => Assert.Equal(PollenType.Grass, trend.PeakType),
@@ -45,13 +45,13 @@ public sealed class PollenTrendSpec
     [Fact]
     public void Nothing_is_reported_without_a_previous_cycle()
     {
-        Assert.Empty(Run(Feature(), Now, With((_, p) => p with { BirchPollen = 30.0 })));
+        Assert.Null(Run(Feature(), Now, With((_, p) => p with { BirchPollen = 30.0 })));
     }
 
     [Fact]
     public void Nothing_is_reported_when_no_pollen_is_present()
     {
-        Assert.Empty(Run(Feature(), Now, With((_, p) => p), With((_, p) => p)));
+        Assert.Null(Run(Feature(), Now, With((_, p) => p), With((_, p) => p)));
     }
 
     [Fact]

@@ -16,7 +16,7 @@ public sealed class NightVentilationSpec
     {
         var weather = Hourly(48, (hour, p) => hour == 26 ? p with { Temperature = 31.0 } : p);
 
-        var advice = Assert.IsType<NightVentilationResult>(Assert.Single(Run(Feature(), Now, WeatherOnly(weather))));
+        var advice = Assert.IsType<NightVentilationResult>(Run(Feature(), Now, WeatherOnly(weather)));
 
         Assert.Multiple(
             () => Assert.Equal(Now.AddHours(6), advice.OpenAt),
@@ -28,7 +28,7 @@ public sealed class NightVentilationSpec
     [Fact]
     public void Nothing_is_reported_when_tomorrow_stays_mild()
     {
-        Assert.Empty(Run(Feature(), Now, WeatherOnly(Hourly(48))));
+        Assert.Null(Run(Feature(), Now, WeatherOnly(Hourly(48))));
     }
 
     [Fact]
@@ -36,6 +36,6 @@ public sealed class NightVentilationSpec
     {
         var weather = Hourly(48, (hour, p) => p with { Temperature = hour == 26 ? 31.0 : 22.0 });
 
-        Assert.Empty(Run(Feature(), Now, WeatherOnly(weather)));
+        Assert.Null(Run(Feature(), Now, WeatherOnly(weather)));
     }
 }

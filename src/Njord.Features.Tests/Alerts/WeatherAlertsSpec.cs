@@ -31,10 +31,10 @@ public sealed class WeatherAlertsSpec
 
     private static AlertSeverity Severity(FeatureRule<WeatherInput> rule, DomainForecast<WeatherPoint> weather)
     {
-        var events = Run(rule, Now, WeatherOnly(weather));
-        return events.Count == 0
+        var result = Run(rule, Now, WeatherOnly(weather));
+        return result is null
             ? AlertSeverity.None
-            : Assert.IsAssignableFrom<AlertFeatureResult>(Assert.Single(events)).Severity;
+            : Assert.IsAssignableFrom<AlertFeatureResult>(result).Severity;
     }
 
     [Theory]
@@ -156,8 +156,8 @@ public sealed class WeatherAlertsSpec
     [Fact]
     public void A_cold_forecast_produces_an_orange_frost_alert_for_the_location()
     {
-        var frost = Assert.IsType<FrostAlertResult>(Assert.Single(
-            Run(new FrostAlert(Opts(new FrostConfig())), Now, WeatherOnly(Uniform(p => p with { Temperature = -6.0 })))));
+        var frost = Assert.IsType<FrostAlertResult>(
+            Run(new FrostAlert(Opts(new FrostConfig())), Now, WeatherOnly(Uniform(p => p with { Temperature = -6.0 }))));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Orange, frost.Severity),
@@ -167,7 +167,7 @@ public sealed class WeatherAlertsSpec
     [Fact]
     public void Missing_weather_produces_no_alert()
     {
-        Assert.Empty(Run(new FrostAlert(Opts(new FrostConfig())), Now, new LocationForecast(Lucerne)));
+        Assert.Null(Run(new FrostAlert(Opts(new FrostConfig())), Now, new LocationForecast(Lucerne)));
     }
 
     [Fact]
@@ -181,8 +181,8 @@ public sealed class WeatherAlertsSpec
         }));
 
         Assert.Multiple(
-            () => Assert.IsType<FrostAlertResult>(Assert.Single(Run(new FrostAlert(Opts(new FrostConfig())), Now, forecast))),
-            () => Assert.IsType<HeatAlertResult>(Assert.Single(Run(new HeatAlert(Opts(new HeatConfig())), Now, forecast))));
+            () => Assert.IsType<FrostAlertResult>(Run(new FrostAlert(Opts(new FrostConfig())), Now, forecast)),
+            () => Assert.IsType<HeatAlertResult>(Run(new HeatAlert(Opts(new HeatConfig())), Now, forecast)));
     }
 
     [Fact]

@@ -16,7 +16,7 @@ public sealed class LaundryScoreSpec
     {
         var weather = Uniform(p => p with { Temperature = 25.0, Humidity = 40.0, WindSpeed = 5.0, CloudCover = 0.0 });
 
-        var score = Assert.IsType<LaundryScoreResult>(Assert.Single(Run(Feature(), Now, WeatherOnly(weather))));
+        var score = Assert.IsType<LaundryScoreResult>(Run(Feature(), Now, WeatherOnly(weather)));
 
         Assert.Multiple(
             () => Assert.Equal(100, score.Score),
@@ -35,7 +35,7 @@ public sealed class LaundryScoreSpec
             CloudCover = 0.0,
         });
 
-        var score = Assert.IsType<LaundryScoreResult>(Assert.Single(Run(Feature(), Now, WeatherOnly(weather))));
+        var score = Assert.IsType<LaundryScoreResult>(Run(Feature(), Now, WeatherOnly(weather)));
 
         Assert.Multiple(
             () => Assert.Equal(Now.AddHours(6), score.BestStart),
@@ -47,7 +47,7 @@ public sealed class LaundryScoreSpec
     {
         var weather = Uniform(p => p with { Precipitation = 1.0 });
 
-        var score = Assert.IsType<LaundryScoreResult>(Assert.Single(Run(Feature(), Now, WeatherOnly(weather))));
+        var score = Assert.IsType<LaundryScoreResult>(Run(Feature(), Now, WeatherOnly(weather)));
 
         Assert.Multiple(
             () => Assert.Equal(0, score.Score),

@@ -30,7 +30,7 @@ public sealed class SolarYieldSpec
     [Fact]
     public void Tilted_irradiance_is_summed_and_scaled_by_efficiency()
     {
-        var yield = Assert.IsType<SolarYieldResult>(Assert.Single(Run(Feature(), Now, Sunny())));
+        var yield = Assert.IsType<SolarYieldResult>(Run(Feature(), Now, Sunny()));
 
         Assert.Multiple(
             () => Assert.Equal(Math.Round((23 * 100.0 + 800.0) / 1000.0 * SolarYield.SystemEfficiency, 2), yield.KwhPerKwp),
@@ -42,13 +42,13 @@ public sealed class SolarYieldSpec
     {
         var forecast = WeatherOnly(Day((_, point) => point with { DirectRadiation = 500.0, DiffuseRadiation = 50.0 }));
 
-        Assert.Empty(Run(Feature(), Now, forecast));
+        Assert.Null(Run(Feature(), Now, forecast));
     }
 
     [Fact]
     public void Satellite_irradiance_is_used_up_to_the_newest_observation_and_the_ensemble_afterwards()
     {
-        var yield = Assert.IsType<SolarYieldResult>(Assert.Single(Run(Feature(), Now, WithSatellite((1, 50.0), (0, 400.0)))));
+        var yield = Assert.IsType<SolarYieldResult>(Run(Feature(), Now, WithSatellite((1, 50.0), (0, 400.0))));
 
         Assert.Multiple(
             () => Assert.Equal(Math.Round((400.0 + 800.0 + 22 * 100.0) / 1000.0 * SolarYield.SystemEfficiency, 2), yield.KwhPerKwp),
@@ -58,7 +58,7 @@ public sealed class SolarYieldSpec
     [Fact]
     public void A_measured_peak_wins_the_peak_hour()
     {
-        var yield = Assert.IsType<SolarYieldResult>(Assert.Single(Run(Feature(), Now, WithSatellite((0, 1000.0)))));
+        var yield = Assert.IsType<SolarYieldResult>(Run(Feature(), Now, WithSatellite((0, 1000.0))));
 
         Assert.Equal(Now.Hour, yield.PeakHour);
     }
@@ -66,8 +66,8 @@ public sealed class SolarYieldSpec
     [Fact]
     public void Satellite_data_older_than_three_hours_is_ignored()
     {
-        var withStale = Assert.IsType<SolarYieldResult>(Assert.Single(Run(Feature(), Now, WithSatellite((4, 900.0)))));
-        var ensembleOnly = Assert.IsType<SolarYieldResult>(Assert.Single(Run(Feature(), Now, Sunny())));
+        var withStale = Assert.IsType<SolarYieldResult>(Run(Feature(), Now, WithSatellite((4, 900.0))));
+        var ensembleOnly = Assert.IsType<SolarYieldResult>(Run(Feature(), Now, Sunny()));
 
         Assert.Equal(ensembleOnly, withStale);
     }
@@ -81,6 +81,6 @@ public sealed class SolarYieldSpec
     [Fact]
     public void Nothing_is_reported_without_radiation_data()
     {
-        Assert.Empty(Run(Feature(), Now, WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), Now, WeatherOnly(Day())));
     }
 }

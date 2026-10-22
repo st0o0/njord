@@ -7,7 +7,6 @@ using Njord.Features.Alerts.TropicalNight;
 using Njord.Features.Alerts.Visibility;
 using Njord.Features.Alerts.WindChill;
 using Njord.Tests.Shared;
-using Xunit;
 
 namespace Njord.Features.Tests.Alerts;
 

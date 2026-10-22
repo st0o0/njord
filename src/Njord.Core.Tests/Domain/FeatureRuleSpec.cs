@@ -17,9 +17,9 @@ public sealed class FeatureRuleSpec
         var ring = new RingBuffer<LocationForecast>(1);
         ring.Push(new LocationForecast(TestLocation));
 
-        var events = rule.Execute(ring, DateTimeOffset.UtcNow);
+        var result = rule.Execute(ring, DateTimeOffset.UtcNow);
 
-        Assert.Empty(events);
+        Assert.Null(result);
     }
 
     [Fact]
@@ -29,9 +29,9 @@ public sealed class FeatureRuleSpec
         var ring = new RingBuffer<LocationForecast>(1);
         ring.Push(ForecastWithWeather());
 
-        var events = rule.Execute(ring, DateTimeOffset.UtcNow);
+        var result = rule.Execute(ring, DateTimeOffset.UtcNow);
 
-        Assert.Empty(events);
+        Assert.Null(result);
     }
 
     [Fact]
@@ -41,9 +41,9 @@ public sealed class FeatureRuleSpec
         var ring = new RingBuffer<LocationForecast>(1);
         ring.Push(ForecastWithWeather());
 
-        var events = rule.Execute(ring, DateTimeOffset.UtcNow);
+        var result = rule.Execute(ring, DateTimeOffset.UtcNow);
 
-        var result = Assert.Single(events);
+        Assert.NotNull(result);
         Assert.IsType<TestFeatureResult>(result);
     }
 

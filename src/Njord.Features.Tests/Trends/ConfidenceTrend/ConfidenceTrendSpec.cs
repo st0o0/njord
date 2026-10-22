@@ -22,7 +22,7 @@ public sealed class ConfidenceTrendSpec
     public void The_change_in_ensemble_spread_is_classified(double current, double previous, ConfidenceTrendDirection direction)
     {
         var trend = Assert.IsType<ConfidenceTrendResult>(
-            Assert.Single(Run(Feature(), Now, WithStdDev(previous), WithStdDev(current))));
+            Run(Feature(), Now, WithStdDev(previous), WithStdDev(current)));
 
         Assert.Multiple(
             () => Assert.Equal(direction, trend.Direction),
@@ -34,12 +34,12 @@ public sealed class ConfidenceTrendSpec
     [Fact]
     public void Nothing_is_reported_without_a_previous_cycle()
     {
-        Assert.Empty(Run(Feature(), Now, WithStdDev(1.0)));
+        Assert.Null(Run(Feature(), Now, WithStdDev(1.0)));
     }
 
     [Fact]
     public void Nothing_is_reported_without_ensemble_data()
     {
-        Assert.Empty(Run(Feature(), Now, WeatherOnly(Day()), WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), Now, WeatherOnly(Day()), WeatherOnly(Day())));
     }
 }

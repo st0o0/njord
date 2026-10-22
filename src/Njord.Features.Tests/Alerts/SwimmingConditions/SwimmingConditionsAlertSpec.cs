@@ -14,7 +14,7 @@ public sealed class SwimmingConditionsAlertSpec
 {
     private static SwimmingConditionsAlert Feature() => new(Options.Create(new SwimmingConditionsConfig { Enabled = true }));
 
-    private static IReadOnlyList<PipelineEvent> RunWith(params MarinePoint[] points) =>
+    private static PipelineEvent? RunWith(params MarinePoint[] points) =>
         Run(Feature(), Now, new LocationForecast(Lucerne, Rain(0.0), Marine: M.MarineForecast(points)));
 
     [Theory]
@@ -32,27 +32,27 @@ public sealed class SwimmingConditionsAlertSpec
 
         if (expected == AlertSeverity.None)
         {
-            Assert.Empty(events);
+            Assert.Null(events);
             return;
         }
 
-        Assert.Equal(expected, Assert.IsType<SwimmingConditionsAlertResult>(Assert.Single(events)).Severity);
+        Assert.Equal(expected, Assert.IsType<SwimmingConditionsAlertResult>(events).Severity);
     }
 
     [Fact]
     public void A_missing_water_temperature_is_judged_by_wave_height_alone()
     {
         Assert.Multiple(
-            () => Assert.Empty(RunWith(M.Point(0, 0.3, null))),
+            () => Assert.Null(RunWith(M.Point(0, 0.3, null))),
             () => Assert.Equal(
                 AlertSeverity.Yellow,
-                Assert.IsType<SwimmingConditionsAlertResult>(Assert.Single(RunWith(M.Point(0, 1.5, null)))).Severity));
+                Assert.IsType<SwimmingConditionsAlertResult>(RunWith(M.Point(0, 1.5, null))).Severity));
     }
 
     [Fact]
     public void The_worst_hour_is_reported_with_its_offset()
     {
-        var alert = Assert.IsType<SwimmingConditionsAlertResult>(Assert.Single(RunWith(M.Point(6, 2.6))));
+        var alert = Assert.IsType<SwimmingConditionsAlertResult>(RunWith(M.Point(6, 2.6)));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Red, alert.Severity),
@@ -64,13 +64,13 @@ public sealed class SwimmingConditionsAlertSpec
     [Fact]
     public void Hours_beyond_the_24_hour_window_are_ignored()
     {
-        Assert.Empty(RunWith(M.Point(30, 2.6)));
+        Assert.Null(RunWith(M.Point(30, 2.6)));
     }
 
     [Fact]
     public void Marine_data_without_weather_raises_nothing()
     {
-        Assert.Empty(Run(Feature(), Now, new LocationForecast(Lucerne, Marine: M.MarineForecast(M.Point(0, 2.6)))));
+        Assert.Null(Run(Feature(), Now, new LocationForecast(Lucerne, Marine: M.MarineForecast(M.Point(0, 2.6)))));
     }
 
     [Fact]

@@ -14,7 +14,7 @@ public sealed class ExerciseAdvisorySpec
     [Fact]
     public void Clean_air_and_mild_weather_are_rated_safe()
     {
-        var advice = Assert.IsType<ExerciseAdvisoryResult>(Assert.Single(Run(Feature(), Now, Combined(Day(), CleanAir()))));
+        var advice = Assert.IsType<ExerciseAdvisoryResult>(Run(Feature(), Now, Combined(Day(), CleanAir())));
 
         Assert.Multiple(
             () => Assert.Equal(ExerciseLevel.Safe, advice.Level),
@@ -27,7 +27,7 @@ public sealed class ExerciseAdvisorySpec
     {
         var air = CleanAir(shape: (_, point) => point with { Pm25 = 80.0, Ozone = 200.0 });
 
-        var advice = Assert.IsType<ExerciseAdvisoryResult>(Assert.Single(Run(Feature(), Now, Combined(Day(), air))));
+        var advice = Assert.IsType<ExerciseAdvisoryResult>(Run(Feature(), Now, Combined(Day(), air)));
 
         Assert.Multiple(
             () => Assert.Equal(ExerciseLevel.Avoid, advice.Level),
@@ -39,7 +39,7 @@ public sealed class ExerciseAdvisorySpec
     {
         var air = CleanAir(shape: (hour, point) => hour == 4 ? point : point with { Pm25 = 30.0 });
 
-        var advice = Assert.IsType<ExerciseAdvisoryResult>(Assert.Single(Run(Feature(), Now, Combined(Day(), air))));
+        var advice = Assert.IsType<ExerciseAdvisoryResult>(Run(Feature(), Now, Combined(Day(), air)));
 
         Assert.Equal(Now.AddHours(4), advice.BestWindow);
     }
@@ -47,7 +47,7 @@ public sealed class ExerciseAdvisorySpec
     [Fact]
     public void Nothing_is_reported_without_air_quality_data()
     {
-        Assert.Empty(Run(Feature(), Now, WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), Now, WeatherOnly(Day())));
     }
 
     [Fact]

@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using Njord.Core.Domain;
 using Njord.Features.Conditions.SatelliteRadiation;
 using Njord.Forecast;
 using Njord.Forecast.Solar;
@@ -23,7 +22,7 @@ public sealed class SatelliteRadiationSpec
     {
         var forecast = WeatherOnly(Day()) with { Satellite = Observed((2, 300, 250), (1, 450, 380), (0, 500, 410)) };
 
-        var computed = Assert.IsType<SatelliteRadiationResult>(Assert.Single(Run(Feature(), Now, forecast)));
+        var computed = Assert.IsType<SatelliteRadiationResult>(Run(Feature(), Now, forecast));
 
         Assert.Multiple(
             () => Assert.Equal(Now, computed.ObservedAt),
@@ -38,7 +37,7 @@ public sealed class SatelliteRadiationSpec
             with
         { Satellite = Observed((0, 600, null)) };
 
-        var computed = Assert.IsType<SatelliteRadiationResult>(Assert.Single(Run(Feature(), Now, forecast)));
+        var computed = Assert.IsType<SatelliteRadiationResult>(Run(Feature(), Now, forecast));
 
         Assert.Equal(Math.Round((600.0 + 23 * 100.0) / 1000.0, 2), computed.BlendedKwhPerSquareMeter);
     }
@@ -48,7 +47,7 @@ public sealed class SatelliteRadiationSpec
     {
         var forecast = WeatherOnly(Day()) with { Satellite = Observed((4, 300, 250)) };
 
-        Assert.Empty(Run(Feature(), Now, forecast));
+        Assert.Null(Run(Feature(), Now, forecast));
     }
 
     [Fact]
@@ -56,13 +55,13 @@ public sealed class SatelliteRadiationSpec
     {
         var forecast = WeatherOnly(Day()) with { Satellite = Observed((0, null, 250)) };
 
-        Assert.Empty(Run(Feature(), Now, forecast));
+        Assert.Null(Run(Feature(), Now, forecast));
     }
 
     [Fact]
     public void Nothing_is_reported_without_satellite_data()
     {
-        Assert.Empty(Run(Feature(), Now, WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), Now, WeatherOnly(Day())));
     }
 
     [Fact]

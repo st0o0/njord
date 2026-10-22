@@ -16,7 +16,7 @@ public sealed class OutdoorScoreSpec
     {
         var weather = Uniform(point => point with { Temperature = 22.0, WindSpeed = 2.0, CloudCover = 10.0 });
 
-        var score = Assert.IsType<OutdoorScoreResult>(Assert.Single(Run(Feature(), Now, Combined(weather, CleanAir()))));
+        var score = Assert.IsType<OutdoorScoreResult>(Run(Feature(), Now, Combined(weather, CleanAir())));
 
         Assert.Multiple(
             () => Assert.True(score.Score >= 85, $"score was {score.Score}"),
@@ -30,7 +30,7 @@ public sealed class OutdoorScoreSpec
         var weather = Uniform(point => point with { Temperature = 22.0, WindSpeed = 2.0, CloudCover = 10.0 });
         var air = CleanAir(shape: (hour, point) => hour < 6 ? point with { Pm25 = 80.0 } : point);
 
-        var score = Assert.IsType<OutdoorScoreResult>(Assert.Single(Run(Feature(), Now, Combined(weather, air))));
+        var score = Assert.IsType<OutdoorScoreResult>(Run(Feature(), Now, Combined(weather, air)));
 
         Assert.Equal(Now.AddHours(6), score.BestStart);
     }
@@ -38,6 +38,6 @@ public sealed class OutdoorScoreSpec
     [Fact]
     public void Missing_air_quality_data_yields_nothing()
     {
-        Assert.Empty(Run(Feature(), Now, WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), Now, WeatherOnly(Day())));
     }
 }

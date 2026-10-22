@@ -16,7 +16,7 @@ public sealed class GardeningSpec
     {
         var forecast = WeatherOnly(Day((hour, point) => hour == 5 ? point with { Temperature = -1.0 } : point));
 
-        var advice = Assert.IsType<GardeningResult>(Assert.Single(Run(Feature(), Now, forecast)));
+        var advice = Assert.IsType<GardeningResult>(Run(Feature(), Now, forecast));
 
         Assert.Multiple(
             () => Assert.True(advice.FrostRisk),
@@ -27,7 +27,7 @@ public sealed class GardeningSpec
     [Fact]
     public void A_mild_dry_day_calls_for_planting_and_watering()
     {
-        var advice = Assert.IsType<GardeningResult>(Assert.Single(Run(Feature(), Now, WeatherOnly(Day()))));
+        var advice = Assert.IsType<GardeningResult>(Run(Feature(), Now, WeatherOnly(Day())));
 
         Assert.Multiple(
             () => Assert.False(advice.FrostRisk),
@@ -41,7 +41,7 @@ public sealed class GardeningSpec
     {
         var forecast = WeatherOnly(Day((hour, point) => hour == 2 ? point with { Precipitation = 5.0 } : point));
 
-        var advice = Assert.IsType<GardeningResult>(Assert.Single(Run(Feature(), Now, forecast)));
+        var advice = Assert.IsType<GardeningResult>(Run(Feature(), Now, forecast));
 
         Assert.False(advice.WateringNeeded);
     }
