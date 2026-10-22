@@ -1,4 +1,3 @@
-using Google.Protobuf.WellKnownTypes;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Grpc.Mapping;

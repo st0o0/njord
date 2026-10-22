@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Njord.Forecast.Weather;
 using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo.Tests;

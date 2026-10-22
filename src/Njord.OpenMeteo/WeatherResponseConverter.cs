@@ -23,7 +23,7 @@ internal sealed class WeatherResponseConverter : JsonConverter<WeatherResponse>
             .OrderByDescending(n => n.Length),
     ];
 
-    public override WeatherResponse? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override WeatherResponse Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         using var document = JsonDocument.ParseValue(ref reader);
         var root = document.RootElement;

@@ -16,7 +16,6 @@ public sealed class WeatherClient : IDomainClient
     private const int MaxForecastDays = 35;
 
     private readonly HttpClient _httpClient;
-    private readonly WeatherOptions _options;
     private readonly SolarYieldOptions _solar;
     private readonly IReadOnlyList<string> _variables;
     private readonly int _forecastDays;
@@ -25,11 +24,10 @@ public sealed class WeatherClient : IDomainClient
     public WeatherClient(HttpClient httpClient, IOptions<WeatherOptions> options, IOptions<SolarYieldOptions> solar, ResolvedRequirements requirements, EffectiveWeatherModels models)
     {
         _httpClient = httpClient;
-        _options = options.Value;
         _models = models;
         _solar = solar.Value;
         _variables = requirements.Value.AllWeather.ToApiNames();
-        _forecastDays = Math.Min(_options.ForecastDays, MaxForecastDays);
+        _forecastDays = Math.Min(options.Value.ForecastDays, MaxForecastDays);
         CallWeight = Core.Polling.CallWeight.Of(_variables.Count, _forecastDays) * _models.Count;
     }
 
@@ -70,7 +68,7 @@ public sealed class WeatherClient : IDomainClient
 
         return new FetchSuccess(primary)
         {
-            Models = forecasts.ToImmutableDictionary(kv => kv.Key, kv => (IDomainForecast)kv.Value),
+            Models = forecasts.ToImmutableDictionary(kv => kv.Key, IDomainForecast (kv) => kv.Value),
         };
     }
 }

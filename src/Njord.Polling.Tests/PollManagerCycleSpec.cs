@@ -9,7 +9,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
-using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;

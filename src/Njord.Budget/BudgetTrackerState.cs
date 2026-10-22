@@ -1,6 +1,3 @@
-using Njord.Messages.Budget;
-using Njord.Persistence.Events.Budget;
-
 namespace Njord.Budget;
 
 public sealed record BudgetTrackerState(

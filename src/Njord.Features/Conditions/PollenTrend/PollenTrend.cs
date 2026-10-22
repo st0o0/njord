@@ -51,7 +51,7 @@ public sealed class PollenTrend(IOptions<PollenTrendConfig> config) : FeatureRul
             var currentValues = currentPoints
                 .Select(p => (p.ValidFrom, Value: read(p)))
                 .Where(v => v.Value.HasValue)
-                .Select(v => (v.ValidFrom, Value: v.Value!.Value))
+                .Select(v => (v.ValidFrom, v.Value!.Value))
                 .ToList();
             if (currentValues.Count == 0)
             {

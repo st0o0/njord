@@ -20,7 +20,7 @@ public sealed class ModelComparison(IOptions<ModelComparisonConfig> config) : Fe
     public override bool Enabled => config.Value.Enabled;
 
     protected override ModelComparisonInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w } && forecast.Models.Count >= 2 ? new(w, forecast.Models) : null;
+        forecast is { Weather: { } w, Models.Count: >= 2 } ? new(w, forecast.Models) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ModelComparisonInput> ctx)
     {

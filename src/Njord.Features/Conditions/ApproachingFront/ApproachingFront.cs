@@ -35,7 +35,7 @@ public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : 
         var windows = hours
             .Select(start => (Start: start, End: hours.FirstOrDefault(p => p.ValidFrom == start.ValidFrom.AddHours(WindowHours))))
             .Where(pair => pair.End is not null)
-            .Select(pair => (pair.Start, End: pair.End!, Drop: (pair.Start.Pressure - pair.End!.Pressure) ?? 0.0))
+            .Select(pair => (pair.Start, End: pair.End!, Drop: pair.Start.Pressure - pair.End!.Pressure ?? 0.0))
             .Where(window => window.Drop > PressureDropThreshold && WindShifted(window.Start, window.End))
             .ToList();
         if (windows.Count == 0)
@@ -48,7 +48,7 @@ public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : 
         return new ApproachingFrontResult(ctx.Location,
             (estimatedIn < TimeSpan.Zero ? TimeSpan.Zero : estimatedIn).TotalHours,
             Math.Round(best.Drop, 1),
-            Math.Round((best.Start.Temperature - best.End.Temperature) ?? 0.0, 1));
+            Math.Round(best.Start.Temperature - best.End.Temperature ?? 0.0, 1));
     }
 
     private static bool WindShifted(WeatherPoint start, WeatherPoint end)

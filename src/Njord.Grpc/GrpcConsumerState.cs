@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using Njord.Forecast;
-using Njord.Grpc.Mapping;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Grpc;

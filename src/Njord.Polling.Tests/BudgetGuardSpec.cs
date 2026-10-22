@@ -80,7 +80,7 @@ public sealed class BudgetGuardSpec
     public void Should_weigh_the_flood_ensemble_into_the_projection()
     {
         var resolved = new ResolvedRequirements(new DomainRequirements(
-            Weather: WeatherParams.Temperature, Flood: Njord.Forecast.Flood.FloodParams.Discharge));
+            Weather: WeatherParams.Temperature, Flood: Forecast.Flood.FloodParams.Discharge));
         var polling = WithMonthlyBudget(2_000);
 
         // plain: (1 + 1) x 720 = 1440 <= 1600; ensemble: (1 + 5) x 720 = 4320.

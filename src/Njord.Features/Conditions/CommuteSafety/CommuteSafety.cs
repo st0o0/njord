@@ -40,10 +40,25 @@ public sealed class CommuteSafety(IOptions<CommuteSafetyConfig> config) : Featur
         var wind = hours.Any(p => p.WindSpeed > StrongWind);
 
         var risks = new List<CommuteHazard>();
-        if (ice) risks.Add(CommuteHazard.Ice);
-        if (fog) risks.Add(CommuteHazard.Fog);
-        if (rain) risks.Add(CommuteHazard.HeavyRain);
-        if (wind) risks.Add(CommuteHazard.StrongWind);
+        if (ice)
+        {
+            risks.Add(CommuteHazard.Ice);
+        }
+
+        if (fog)
+        {
+            risks.Add(CommuteHazard.Fog);
+        }
+
+        if (rain)
+        {
+            risks.Add(CommuteHazard.HeavyRain);
+        }
+
+        if (wind)
+        {
+            risks.Add(CommuteHazard.StrongWind);
+        }
 
         var level = risks.Count switch
         {

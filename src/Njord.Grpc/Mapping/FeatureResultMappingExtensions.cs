@@ -235,7 +235,7 @@ internal static class FeatureResultMappingExtensions
         return proto;
     }
 
-    public static V2.ModelComparisonDay ToProto(this Njord.Messages.Pipeline.ModelComparisonDay day)
+    public static V2.ModelComparisonDay ToProto(this ModelComparisonDay day)
     {
         var proto = new V2.ModelComparisonDay { Year = day.Date.Year, Month = day.Date.Month, Day = day.Date.Day };
         proto.Models.AddRange(day.Models.Select(m => m.ToProto()));

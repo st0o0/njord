@@ -1,6 +1,5 @@
 using System.Net;
 using Microsoft.Extensions.Options;
-using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Seasonal;

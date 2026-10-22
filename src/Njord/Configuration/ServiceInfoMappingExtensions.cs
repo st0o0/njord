@@ -2,7 +2,6 @@ using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Messages.Config;
-using Njord.Messages.Pipeline;
 
 namespace Njord.Configuration;
 

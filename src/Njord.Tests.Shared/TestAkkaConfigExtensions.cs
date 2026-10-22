@@ -1,4 +1,3 @@
-using Akka.Actor;
 using Akka.Hosting;
 using Akka.Persistence.Hosting;
 

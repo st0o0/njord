@@ -8,7 +8,6 @@ using Njord.Forecast;
 using Njord.Forecast.Seasonal;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
-using Njord.Messages.Alerts;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
