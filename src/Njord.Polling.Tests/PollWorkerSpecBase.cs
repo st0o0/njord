@@ -51,6 +51,10 @@ public abstract class PollWorkerSpecBase : NjordActorSpec
     protected IActorRef CreateWorker(string entityId = TargetId) =>
         Sys.ActorOf(DependencyResolver.For(Sys).Props<PollWorker>(entityId), $"worker-{Guid.NewGuid():N}");
 
+    // A child of the test actor: it plays the shard and receives the worker's Passivate request.
+    protected IActorRef CreateShardedWorker(string entityId = TargetId) =>
+        ChildActorOf(DependencyResolver.For(Sys).Props<PollWorker>(entityId), $"worker-{Guid.NewGuid():N}");
+
     protected async Task<IActorRef> StartedWorkerAsync(CancellationToken ct)
     {
         var worker = CreateWorker();

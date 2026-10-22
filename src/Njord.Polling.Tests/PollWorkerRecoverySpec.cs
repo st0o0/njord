@@ -1,4 +1,5 @@
 using Akka.Actor;
+using Akka.Cluster.Sharding;
 using Akka.Persistence;
 using Njord.Forecast;
 using Njord.Messages.Pipeline;
@@ -100,11 +101,15 @@ public sealed class PollWorkerRecoverySpec : PollWorkerSpecBase
     public async Task A_stopped_worker_stops_polling_and_keeps_its_journal()
     {
         var ct = TestContext.Current.CancellationToken;
-        var worker = await StartedWorkerAsync(ct);
+        var worker = CreateShardedWorker();
+        worker.Tell(new StartPolling(Target, Discovery));
+        await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         await AnswerAllAsync(Completed(42), ct);
 
         await WatchAsync(worker);
         worker.Tell(new StopPolling(TargetId));
+        var passivate = await ExpectMsgAsync<Passivate>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        worker.Tell(passivate.StopMessage);
         await ExpectTerminatedAsync(worker, cancellationToken: ct);
 
         // Recovered as stopped: no report, no poll, even when its next poll is due.

@@ -1,4 +1,5 @@
 using Akka.Actor;
+using Akka.Cluster.Sharding;
 using Akka.Event;
 using Akka.Persistence;
 using Microsoft.Extensions.Options;
@@ -127,13 +128,13 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             _state = _state.Apply(e);
             _log.Info("Polling stopped for {Location}", _state.Target);
             MaybeSnapshot();
-            Context.Stop(Self);
+            Context.Parent.Tell(new Passivate(PoisonPill.Instance));
         });
     }
 
     private void PollAll(string reason)
     {
-        if (_state is not { Active: true, Target: { } target })
+        if (_state is not { Active: true, Target: not null })
         {
             _log.Debug("Ignoring {Reason} poll - polling is not started", reason);
             return;
@@ -284,7 +285,10 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
     private void MaybeSnapshot()
     {
-        if (LastSequenceNr % SnapshotInterval == 0) SaveSnapshot(_state.GetPersistenceState());
+        if (LastSequenceNr % SnapshotInterval == 0)
+        {
+            SaveSnapshot(_state.GetPersistenceState());
+        }
     }
 
     private void LogDomainOutcome(DomainKind domain, FetchDomainResponse reply)
