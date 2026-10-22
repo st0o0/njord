@@ -21,7 +21,7 @@ public static class FeatureServices
         var services = new ServiceCollection();
         var configuration = AppSettingsDefaults.Configuration();
         services.AddSingleton<IConfiguration>(configuration);
-        services.AddFeatures(configuration);
+        services.AddFeatures();
         configure?.Invoke(services);
         return services.BuildServiceProvider();
     }

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
@@ -44,7 +43,7 @@ namespace Njord.Features;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddFeatures(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddFeatures(this IServiceCollection services)
     {
         // Alerts
         services.AddNjordOptions<DustConfig, DustConfigValidator>();

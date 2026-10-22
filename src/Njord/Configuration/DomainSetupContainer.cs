@@ -11,7 +11,7 @@ public sealed class DomainSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddFeatures(configuration);
+        services.AddFeatures();
 
         services.AddSingleton<IReadOnlySet<DomainKind>>(static sp =>
             FeatureResolution.RequiredDomains(sp.GetServices<IFeatureRule>()));
@@ -20,7 +20,7 @@ public sealed class DomainSetupContainer : IServiceSetupContainer
         {
             var weather = sp.GetRequiredService<IOptions<WeatherOptions>>().Value;
             var comparison = sp.GetServices<IFeatureRule>().Any(static rule =>
-                rule.Enabled && rule.Descriptor.Name == EffectiveWeatherModels.ComparisonFeatureName);
+                rule is { Enabled: true, Descriptor.Name: EffectiveWeatherModels.ComparisonFeatureName });
             var models = EffectiveWeatherModels.Resolve(weather, comparison);
             var ignored = models.Ignored(weather);
             if (ignored.Count > 0)
