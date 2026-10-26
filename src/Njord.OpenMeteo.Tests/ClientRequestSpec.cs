@@ -1,3 +1,4 @@
+using Njord.OpenMeteo.Http;
 namespace Njord.OpenMeteo.Tests;
 
 public sealed class ClientRequestSpec

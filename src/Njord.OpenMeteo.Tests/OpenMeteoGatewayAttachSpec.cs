@@ -8,6 +8,7 @@ using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Messages.Forecast;
+using Njord.OpenMeteo.Gateway;
 using Njord.Tests.Shared;
 
 namespace Njord.OpenMeteo.Tests;

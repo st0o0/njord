@@ -1,6 +1,7 @@
 using Akka.TestKit;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Messages.Budget;
+using Njord.OpenMeteo.Budget;
 using Njord.Tests.Shared;
 
 namespace Njord.OpenMeteo.Tests;

@@ -5,6 +5,7 @@ using Njord.Forecast;
 using Njord.Forecast.Seasonal;
 using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Mapping;
+using Njord.OpenMeteo.Seasonal;
 using Njord.Tests.Shared;
 
 namespace Njord.OpenMeteo.Tests;

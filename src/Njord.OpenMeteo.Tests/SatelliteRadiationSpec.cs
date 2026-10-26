@@ -5,6 +5,7 @@ using Njord.Forecast;
 using Njord.Forecast.Solar;
 using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Mapping;
+using Njord.OpenMeteo.Satellite;
 using Njord.Tests.Shared;
 
 namespace Njord.OpenMeteo.Tests;

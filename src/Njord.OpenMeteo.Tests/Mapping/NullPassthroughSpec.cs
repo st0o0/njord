@@ -1,4 +1,8 @@
+using Njord.OpenMeteo.AirQuality;
+using Njord.OpenMeteo.Flood;
 using Njord.OpenMeteo.Mapping;
+using Njord.OpenMeteo.Marine;
+using Njord.OpenMeteo.Weather;
 
 namespace Njord.OpenMeteo.Tests.Mapping;
 

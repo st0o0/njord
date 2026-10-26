@@ -1,7 +1,9 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Mapping;
+using Njord.OpenMeteo.Weather;
 
 namespace Njord.OpenMeteo.Tests;
 

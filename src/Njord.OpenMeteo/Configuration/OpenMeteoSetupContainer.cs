@@ -10,6 +10,15 @@ using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Forecast;
+using Njord.OpenMeteo.AirQuality;
+using Njord.OpenMeteo.Budget;
+using Njord.OpenMeteo.Flood;
+using Njord.OpenMeteo.Gateway;
+using Njord.OpenMeteo.Http;
+using Njord.OpenMeteo.Marine;
+using Njord.OpenMeteo.Satellite;
+using Njord.OpenMeteo.Seasonal;
+using Njord.OpenMeteo.Weather;
 using Servus.Akka;
 using Servus.Application.Startup;
 

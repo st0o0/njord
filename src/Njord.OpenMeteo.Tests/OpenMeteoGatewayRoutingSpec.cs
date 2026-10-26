@@ -14,6 +14,7 @@ using Njord.Forecast.Seasonal;
 using Njord.Forecast.Solar;
 using Njord.Forecast.Weather;
 using Njord.Messages.Forecast;
+using Njord.OpenMeteo.Gateway;
 using Njord.Tests.Shared;
 
 namespace Njord.OpenMeteo.Tests;

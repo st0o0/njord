@@ -11,6 +11,8 @@ using Njord.Grpc;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.OpenMeteo;
+using Njord.OpenMeteo.Budget;
+using Njord.OpenMeteo.Gateway;
 using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;

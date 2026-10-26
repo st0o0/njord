@@ -42,13 +42,13 @@
 
 ## 5. Project restructuring
 
-- [ ] 5.1 Create domain folders under `src/Njord.OpenMeteo/`: `Weather/`, `AirQuality/`, `Flood/`, `Marine/`, `Seasonal/`, `Satellite/`. Move per-domain files (client, API variable enum, response DTO, response mapping extensions, and `WeatherResponseConverter` for Weather) into their domain folder. Update namespaces to `Njord.OpenMeteo.<Domain>`.
+- [x] 5.1 Create domain folders under `src/Njord.OpenMeteo/`: `Weather/`, `AirQuality/`, `Flood/`, `Marine/`, `Seasonal/`, `Satellite/`. Move per-domain files (client, API variable enum, response DTO, response mapping extensions, and `WeatherResponseConverter` for Weather) into their domain folder. Update namespaces to `Njord.OpenMeteo.<Domain>`.
 
-- [ ] 5.2 Create shared folders: `Gateway/` (move `OpenMeteoGateway.cs`), `Budget/` (move `GatewayBudgetGate.cs`, `IGatewayBudgetGate.cs`, `IBudgetProvider.cs`, `OptionsBudgetProvider.cs`, `BudgetRate.cs`), `Http/` (move `ClientRequest.cs`, `HttpMetricsHandler.cs`, `OpenMeteoJsonContext.cs`). Keep `Configuration/` as-is. Keep `Mapping/` for shared utilities (`DomainKindMappingExtensions.cs`, `ForecastTrimmingExtensions.cs`, `SeriesAccess.cs`). Keep `Telemetry.cs` and `AssemblyMarker.cs` at the project root.
+- [x] 5.2 Create shared folders: `Gateway/` (move `OpenMeteoGateway.cs`), `Budget/` (move `GatewayBudgetGate.cs`, `IGatewayBudgetGate.cs`, `IBudgetProvider.cs`, `OptionsBudgetProvider.cs`, `BudgetRate.cs`), `Http/` (move `ClientRequest.cs`, `HttpMetricsHandler.cs`, `OpenMeteoJsonContext.cs`). Keep `Configuration/` as-is. Keep `Mapping/` for shared utilities (`DomainKindMappingExtensions.cs`, `ForecastTrimmingExtensions.cs`, `SeriesAccess.cs`). Keep `Telemetry.cs` and `AssemblyMarker.cs` at the project root.
 
-- [ ] 5.3 Update all `using` directives across `src/Njord.OpenMeteo/`, `src/Njord.OpenMeteo.Tests/`, and any other projects referencing moved types. Run `dotnet format` to fix ordering. Ensure no domain-specific files remain at the project root.
+- [x] 5.3 Update all `using` directives across `src/Njord.OpenMeteo/`, `src/Njord.OpenMeteo.Tests/`, and any other projects referencing moved types. Run `dotnet format` to fix ordering. Ensure no domain-specific files remain at the project root.
 
-- [ ] 5.4 Verify phase 5: build and run all test suites. Commit.
+- [x] 5.4 Verify phase 5: build and run all test suites. Commit.
 
 ## 6. Documentation update
 
