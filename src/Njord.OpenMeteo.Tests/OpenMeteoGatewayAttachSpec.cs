@@ -24,6 +24,10 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
     private readonly FakeSatelliteRadiationClient _satellite = new();
     private readonly SwitchableBudgetProvider _budget = new();
     private Akka.TestKit.TestProbe _apiCalls = null!;
+    // Plays the poll shard region: the gateway sends every reply here.
+    private Akka.TestKit.TestProbe _region = null!;
+
+    private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
 
     protected override bool UseTestPersistence => false;
 
@@ -31,19 +35,17 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         builder.WithActors((system, registry) =>
         {
             _apiCalls = CreateTestProbe();
+            _region = CreateTestProbe();
+            registry.Register<IPollRegion>(_region.Ref);
             registry.Register<IBudgetTracker>(system.ActorOf(Props.Create(() => new ForwardingActor(_apiCalls.Ref)), "budget"));
         });
 
     private IActorRef StartGateway()
     {
-        var options = Options.Create(AppSettingsDefaults.Options<NjordOptions>(o =>
-        {
-            o.Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }];
-        }));
         IReadOnlyDictionary<DomainKind, IDomainClient> clients = new IDomainClient[] { _weather, _airQuality, _flood, _marine, _seasonal, _satellite }
             .ToDictionary(c => c.Domain);
         return Sys.ActorOf(
-            Props.Create(() => new OpenMeteoGateway(clients, _time, options, _budget, FetchTimeouts.Default)),
+            Props.Create(() => new OpenMeteoGateway(clients, _time, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }
 
@@ -57,7 +59,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         return (pipeline, attached, forecasts);
     }
 
-    private static FetchDomain Fetch() => new(new Location("lucerne", 0, 0), DomainKind.Weather);
+    private static FetchDomain Fetch() => new(Lucerne, DomainKind.Weather);
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_request_before_the_pipeline_input_is_attached_is_rejected_as_pipeline_unavailable()
@@ -69,7 +71,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
 
         gateway.Tell(Fetch());
 
-        var rejected = await ExpectMsgAsync<FetchDomainRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var rejected = await _region.ExpectMsgAsync<FetchDomainRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Equal(FetchRejectionReason.PipelineUnavailable, rejected.Reason);
     }
 
@@ -82,7 +84,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         await attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
         gateway.Tell(Fetch());
-        await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await _region.ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
         await attached.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
     }
@@ -101,7 +103,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
 
         gateway.Tell(Fetch());
 
-        await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await _region.ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         var received = await secondForecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Equal("lucerne", received.Location.Name);
     }
@@ -119,7 +121,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
 
         gateway.Tell(Fetch());
 
-        var rejected = await ExpectMsgAsync<FetchDomainRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var rejected = await _region.ExpectMsgAsync<FetchDomainRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Multiple(
             () => Assert.Equal(FetchRejectionReason.Budget, rejected.Reason),
             () => Assert.Equal(0, _weather.Calls));

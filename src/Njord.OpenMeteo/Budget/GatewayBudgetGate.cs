@@ -10,8 +10,7 @@ internal sealed class GatewayBudgetGate : IGatewayBudgetGate
     private readonly IBudgetProvider _provider;
     private readonly IActorRef _trackerActor;
     private readonly TimeProvider _timeProvider;
-    // The gateway calls TryAcquire from concurrent stream stages; refill, check and decrement must be atomic.
-    private readonly object _sync = new();
+    // Used from the gateway's single-threaded fetch stage (MapAsync(1)); no synchronization needed.
     private double _tokens;
     private double _tokensPerSecond;
     private int _maxBurst;
@@ -31,18 +30,15 @@ internal sealed class GatewayBudgetGate : IGatewayBudgetGate
 
     public bool TryAcquire(int weight)
     {
-        lock (_sync)
+        RefreshIfDue();
+        Refill();
+
+        if (_tokens < weight)
         {
-            RefreshIfDue();
-            Refill();
-
-            if (_tokens < weight)
-            {
-                return false;
-            }
-
-            _tokens -= weight;
+            return false;
         }
+
+        _tokens -= weight;
 
         _trackerActor.Tell(new RecordApiCall(weight));
         return true;
@@ -50,19 +46,16 @@ internal sealed class GatewayBudgetGate : IGatewayBudgetGate
 
     public TimeSpan EstimateDelay(int weight)
     {
-        lock (_sync)
+        var deficit = weight - _tokens;
+        if (deficit <= 0)
         {
-            var deficit = weight - _tokens;
-            if (deficit <= 0)
-            {
-                return TimeSpan.Zero;
-            }
-
-            var delay = TimeSpan.FromSeconds(deficit / _tokensPerSecond);
-            return delay < TimeSpan.FromMilliseconds(10)
-                ? TimeSpan.FromMilliseconds(10)
-                : delay;
+            return TimeSpan.Zero;
         }
+
+        var delay = TimeSpan.FromSeconds(deficit / _tokensPerSecond);
+        return delay < TimeSpan.FromMilliseconds(10)
+            ? TimeSpan.FromMilliseconds(10)
+            : delay;
     }
 
     private void ApplyRate(BudgetRate rate)

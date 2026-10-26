@@ -57,6 +57,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         Command<TriggerLocationPoll>(_ => PollAll("trigger"));
         Command<PollDomain>(msg => PollSingle(msg.Domain, "timer"));
         Command<DomainFetchReplied>(OnDomainFetchReplied);
+        Command<FetchDomainResponse>(reply => OnDomainFetchReplied(new DomainFetchReplied(reply.Domain, reply)));
         Command<SaveSnapshotSuccess>(success =>
         {
             _log.Debug("Snapshot saved at sequence {SequenceNr}, cleaning journal", success.Metadata.SequenceNr);
@@ -168,12 +169,12 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             return;
         }
 
+        // The gateway answers through the poll shard region (routed to this entity by location name), not to the sender.
         _inFlight.Add(domain);
         var location = target.Location;
-        var timeout = _fetchTimeouts.Reply;
-        gateway.Ask<FetchDomainResponse>(new FetchDomain(location, domain), timeout).PipeTo(Self,
-            success: reply => new DomainFetchReplied(domain, reply),
-            failure: ex => new DomainFetchReplied(domain, AskFailure(location, domain, timeout, ex)));
+        gateway.Tell(new FetchDomain(location, domain));
+        Timers.StartSingleTimer(ReplyTimerKey(domain),
+            new DomainFetchReplied(domain, ReplyTimeout(location, domain, _fetchTimeouts.Reply)), _fetchTimeouts.Reply);
     }
 
     private void OnDomainFetchReplied(DomainFetchReplied msg)
@@ -183,6 +184,8 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             _log.Debug("Ignoring a reply for a domain not in flight: {Domain}", msg.Domain);
             return;
         }
+
+        Timers.Cancel(ReplyTimerKey(msg.Domain));
 
         LogDomainOutcome(msg.Domain, msg.Reply);
         OnDomainFetchResult(msg.Domain, msg.Reply);
@@ -341,8 +344,8 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
     private static string TimerKey(DomainKind domain) => $"poll-{domain}";
 
-    private static FetchDomainFailed AskFailure(Location location, DomainKind domain, TimeSpan timeout, Exception ex) =>
-        new(location, domain, PollFailureReason.Transport, ex is AskTimeoutException
-            ? $"Gateway did not answer within {timeout}"
-            : $"Gateway request failed ({ex.GetType().Name}: {ex.Message})");
+    private static string ReplyTimerKey(DomainKind domain) => $"reply-{domain}";
+
+    private static FetchDomainFailed ReplyTimeout(Location location, DomainKind domain, TimeSpan timeout) =>
+        new(location, domain, PollFailureReason.Transport, $"Gateway did not answer within {timeout}");
 }
