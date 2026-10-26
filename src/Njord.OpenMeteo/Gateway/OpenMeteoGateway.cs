@@ -28,6 +28,8 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
     private sealed record Offered(FetchDomain Request, IQueueOfferResult Result);
 
+    private static readonly FetchDomainResponse StreamEnded =
+        new FetchDomainRejected(new Location("__ended__", 0, 0), default, FetchRejectionReason.PipelineUnavailable);
 
     private sealed record GatedRequest(FetchDomain Request, IDomainClient? Client, FetchRejectionReason? Rejection);
 
@@ -170,7 +172,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
                     };
                     return reply;
                 })
-                .To(Sink.ForEach<FetchDomainResponse>(reply => pollRegion.Tell(reply))), Keep.Left)
+                .To(Sink.ActorRef<FetchDomainResponse>(pollRegion, StreamEnded))), Keep.Left)
             .Where(attempt => attempt.Result is FetchSuccess)
             // Per-model data first so the primary forecast is evaluated with all models merged in.
             .SelectMany(attempt =>
