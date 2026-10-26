@@ -35,23 +35,21 @@ Infrastructure is in place: `[JsonStringEnumMemberName]` on all six `*ApiVariabl
 - Endpoint paths in clients (could become constants on `OpenMeteoEndpoints`)
 - Overlaps with item 2: killing the converter removes most of the remaining literals.
 
-## 6. Design a clean options / config system
+## ~~6. Design a clean options / config system~~ DONE
 
-- Rethink the whole options and configuration model from scratch, so every consumer gets what it needs
-  directly from one well-defined source.
-- Goal: no derived helper types or factory registrations. `FeatureRequirementsOptions` is the one
-  derived type now; decide if that shape is final or needs refinement.
-- To decide in explore: which values are operator input (locations, feature toggles, domain options)
-  and which are derived (domains, params, models, call weights), where the derived values are computed
-  once and how they are exposed.
+Addressed by the `FeatureRequirementsOptions` via `OptionsBuilder` redesign (commit `bb373bd2`).
+`EffectiveWeatherModels`, `ServiceInfo`, `ResolvedRequirements` and the raw singletons are gone;
+one configured options type replaces them. Remaining polish (not blocking):
+- `BudgetGuard` reads raw `IConfiguration` instead of DI-resolved options
+- Budget call-weight math duplicated between `BudgetGuard` and the clients
+- Feature registration boilerplate in `AddFeatures` (~130 near-identical lines)
 
-## 7. Look at `FeatureDescriptor`
+## ~~7. Look at `FeatureDescriptor`~~ CLOSED (no action needed)
 
-- `Name` is used for more than the config section: `FeatureResolution` matches it against
-  `ComparisonFeatureName`, `OpsGrpcService` builds `Category:Name` strings.
-- `PollDepth` sizes the ring in `FeatureEngine`/`FeatureRunner`. Currently only 3 features use it
-  (ConfidenceTrend, PollenTrend, ApproachingFront at depth 1).
-- Decide if `Name` should stay a string or become something typed.
+Explored 2026-10-26. `Name` is used in 2 production places (FeatureResolution const match,
+OpsGrpcService wire string) and is test-enforced to match config sections. Typing it would break
+config keys and gRPC wire strings for no real gain. `PollDepth` is clean (3 features at depth 1,
+ring sizing in FeatureEngine works).
 
 ## 8. Rewrite all tests in the FunkArr style
 

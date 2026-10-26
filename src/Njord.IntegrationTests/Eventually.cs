@@ -1,4 +1,3 @@
-using Njord.Tests.Shared;
 
 namespace Njord.IntegrationTests;
 
@@ -11,7 +10,7 @@ internal static class Eventually
     public static async Task AssertAsync(Func<Task> assertion, CancellationToken cancellationToken, TimeSpan? within = null)
     {
         using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        bound.CancelAfter(within ?? TestTimeouts.RealTimeWaitMax);
+        bound.CancelAfter(within ?? TimeSpan.FromSeconds(15));
         using var timer = new PeriodicTimer(Interval);
         Exception? last = null;
         try
@@ -34,7 +33,7 @@ internal static class Eventually
         {
         }
 
-        throw new TimeoutException($"Condition not met within {within ?? TestTimeouts.RealTimeWaitMax}.", last);
+        throw new TimeoutException($"Condition not met within {within ?? TimeSpan.FromSeconds(15)}.", last);
     }
 
     public static async Task<T> ValueAsync<T>(Func<Task<T?>> probe, CancellationToken cancellationToken, TimeSpan? within = null)

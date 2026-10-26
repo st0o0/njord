@@ -3,7 +3,6 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
 using Njord.Core.Domain;
-using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;
 
@@ -17,7 +16,7 @@ public static class PipelineProducer
     {
         var requestId = Interlocked.Increment(ref NextRequestId);
         var response = await pipeline.Ask<RequestForecastSinkResponse>(
-            new RequestForecastSink(requestId), TestTimeouts.RealTimeWaitMax, ct);
+            new RequestForecastSink(requestId), TimeSpan.FromSeconds(10), ct);
         var completed = response as RequestForecastSinkCompleted
             ?? throw new InvalidOperationException($"Pipeline answered {response} instead of a SinkRef");
         if (completed.RequestId != requestId)
@@ -33,7 +32,7 @@ public static class PipelineProducer
     public static async Task<IActorRef> AttachConsumerAsync(IActorRef pipeline, ActorSystem system, IActorRef probe, CancellationToken ct)
     {
         var output = await pipeline.Ask<RequestPipelineOutputResponse>(
-            new RequestPipelineOutput(Interlocked.Increment(ref NextRequestId)), TestTimeouts.RealTimeWaitMax, ct);
+            new RequestPipelineOutput(Interlocked.Increment(ref NextRequestId)), TimeSpan.FromSeconds(10), ct);
         var completed = output as RequestPipelineOutputCompleted
             ?? throw new InvalidOperationException($"Pipeline answered {output} instead of a SourceRef");
         completed.SourceRef.Source
