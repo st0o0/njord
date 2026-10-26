@@ -26,13 +26,17 @@ src/
                         #   (actor plumbing used by one library lives there: ShardMessageExtractor in Polling,
                         #   StreamSupervision in Pipeline, GrpcStreamMessages in Grpc)
     Domain/             #   IFeatureRule, FeatureRule<TInput>, FeatureDescriptor, FeatureCategory, FeatureContext,
-                        #   FeatureInputs (typed inputs), FeatureResolution, DomainRequirements, LocationForecast,
-                        #   RingBuffer, ForecastQueries, DomainDataReceived
+                        #   FeatureInputs (typed inputs), FeatureResolution, FetchPlan, DomainRequirements,
+                        #   LocationForecast, RingBuffer, ForecastQueries, DomainDataReceived
     Configuration/      #   IConfigSection, NjordOptions (with FindLocation), LocationOptions, WeatherOptions, FloodOptions,
                         #   PollingOptions, Health/HealthOptions, AddNjordOptions (+ validators)
     Polling/            #   CallWeight, RequestBudget (free-tier constants, DailyLimit), FetchTimeouts
-  Njord.OpenMeteo/      # (-> Core) OpenMeteoGateway, GatewayBudgetGate, 6 thick clients implementing `IDomainClient` (Weather, AirQuality, Flood, Marine, Seasonal, SatelliteRadiation), `ClientRequest` (URLs),
-                        #   response DTOs, Mapping/, Configuration/ (AirQuality/Marine/Seasonal/Satellite/SolarYield options)
+  Njord.OpenMeteo/      # (-> Core) folders per domain: Weather/, AirQuality/, Flood/, Marine/, Seasonal/, Satellite/
+                        #   (client, API variable enum, response DTO, mapping extensions per domain),
+                        #   Gateway/ (OpenMeteoGateway, stream-based dispatch), Budget/ (GatewayBudgetGate),
+                        #   Http/ (ClientRequest, OpenMeteoEndpoints, OpenMeteoJsonContext),
+                        #   Mapping/ (shared: DomainKindMappingExtensions, ForecastTrimmingExtensions, SeriesAccess),
+                        #   Configuration/ (AirQuality/Marine/Seasonal/Satellite/SolarYield options)
   Njord.Budget/         # BudgetTracker (persistent), usage accounting, health check
   Njord.Polling/        # PollManager, PollWorker (+ state, mappings), polling Telemetry, Configuration/ (BudgetGuard, PollingOptionsValidator)
   Njord.Pipeline/       # Stream/ (ForecastPipeline, FeatureEngine), Health/ (PipelineHealthCheck), Telemetry
@@ -207,9 +211,11 @@ Full-stack verification is the `e2e-test` skill (`.claude/skills/e2e-test/SKILL.
 - No XML docs. Never `async void`, `.Result`, `.Wait()`. Always pass `CancellationToken` through.
 - `dotnet format` is enforced by CI; run it after editing `.cs` files.
 - Enum to wire text or to another enum: extension method with an explicit `switch`, one arm per member,
-  default throws `ArgumentOutOfRangeException` (`ToProto()`, `ToWireName()`). No casts between enums,
-  no `Enum.Parse`/`ToString().ToLower()`. Hand-written wire mappings get one Theory per direction
-  (`<Name>MappingTests`); the exhaustive switch covers completeness at compile time.
+  default throws `ArgumentOutOfRangeException` (`ToProto()`, `ToDomain()`, `ToApiVariable()`). No casts
+  between enums, no `Enum.Parse`/`ToString().ToLower()`. Hand-written wire mappings get one Theory per
+  direction (`<Name>MappingTests`); the exhaustive switch covers completeness at compile time.
+  API variable string names use `[JsonStringEnumMemberName]` on per-domain API enums in `Njord.OpenMeteo`
+  with a cached `FrozenDictionary` lookup (`ApiVariableNames`), outside the switch convention.
 - Every static class with `this` methods ends in `Extensions` and lives in a file of the same name; state
   extensions live next to, not inside, the state record. This is a review convention, not an ArchUnit rule.
 - Mappings are extension methods in static classes named `<Domain><Target>MappingExtensions` (file name = class

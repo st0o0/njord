@@ -52,7 +52,7 @@
 
 ## 6. Documentation update
 
-- [ ] 6.1 Update `AGENTS.md` to clarify the enum mapping convention: "explicit switch for enum-to-enum mappings (ToProto, ToDomain, ToApiVariable); API variable string names use `[JsonStringEnumMemberName]` with a cached `FrozenDictionary`, outside the switch convention." Update the `Njord.OpenMeteo` section in the solution structure to reflect the new folder layout.
+- [x] 6.1 Update `AGENTS.md` to clarify the enum mapping convention: "explicit switch for enum-to-enum mappings (ToProto, ToDomain, ToApiVariable); API variable string names use `[JsonStringEnumMemberName]` with a cached `FrozenDictionary`, outside the switch convention." Update the `Njord.OpenMeteo` section in the solution structure to reflect the new folder layout.
 
 ## Validation
 
