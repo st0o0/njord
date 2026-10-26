@@ -26,16 +26,15 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private const int RequestQueueSize = 64;
     private const int MaxConcurrent = 3;
 
-    // Ids are unique across incarnations: a restarted gateway keeps its ActorRef but gets a fresh instance, so
-    // late results of the previous incarnation must never match anything of the current one.
-    private static long LastId;
-    private static long NextId() => Interlocked.Increment(ref LastId);
+    // Generations are unique across incarnations: a restarted gateway keeps its ActorRef but gets a fresh instance,
+    // so stream signals of the previous incarnation must never match the current one.
+    private static long LastGeneration;
 
     private sealed record PipelineResolved(IActorRef Pipeline);
     private sealed record AttachFailed(string Reason, Exception? Cause);
     private sealed record BranchEnded(long BranchId, Exception? Cause) : IDeadLetterSuppression;
     private sealed record DomainBranchOffered(long RequestId, int Hash, IQueueOfferResult Result);
-    private sealed record OfferOutcome(long RequestId, IQueueOfferResult? Result);
+    private sealed record OfferOutcome(long RequestId, IQueueOfferResult? Result, Exception? Error);
     private sealed record StreamFailed(long Generation, Exception Cause);
 
     private sealed record StreamCompleted(long Generation);
@@ -62,8 +61,12 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private ISourceQueueWithComplete<StreamRequest>? _requestQueue;
     private ISourceQueueWithComplete<DomainDataReceived>? _forecastQueue;
     private readonly IMaterializer _materializer = Context.Materializer();
+    private readonly CancellationTokenSource _stopped = new();
+    private readonly long _generation = Interlocked.Increment(ref LastGeneration);
+    private long _lastId;
     private long _branchId;
-    private readonly long _generation = NextId();
+
+    private long NextId() => ++_lastId;
 
     public OpenMeteoGateway(
         IReadOnlyDictionary<DomainKind, IDomainClient> clients,
@@ -112,6 +115,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
     protected override void PostStop()
     {
+        _stopped.Cancel();
         _requestQueue?.Complete();
         _forecastQueue?.Complete();
     }
@@ -132,7 +136,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
             }
 
             var result = await client.FetchAsync(request.Location.Latitude.GetValueOrDefault(), request.Location.Longitude.GetValueOrDefault(),
-                _timeProvider.GetUtcNow(), CancellationToken.None);
+                _timeProvider.GetUtcNow(), _stopped.Token);
             return new FetchOutcome(request.RequestId, result, null, null, _timeProvider.GetElapsedTime(start));
         }
         catch (Exception ex)
@@ -155,12 +159,17 @@ public sealed class OpenMeteoGateway : ReceiveActor
         var resolved = new Location(location.Name, location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault());
         _pending[id] = new PendingDomainRequest(Sender, msg.Domain, resolved);
         _requestQueue!.OfferAsync(new StreamRequest(id, msg.Domain, location)).PipeTo(Self,
-            success: result => new OfferOutcome(id, result),
-            failure: _ => new OfferOutcome(id, null));
+            success: result => new OfferOutcome(id, result, null),
+            failure: ex => new OfferOutcome(id, null, ex));
     }
 
     private void OnOfferOutcome(OfferOutcome msg)
     {
+        if (msg.Error is { } error)
+        {
+            _log.Warning(error, "Offering fetch request {RequestId} to the request queue failed", msg.RequestId);
+        }
+
         if (msg.Result is not QueueOfferResult.Enqueued)
         {
             Reply(msg.RequestId, p => new FetchDomainRejected(p.Resolved, p.Domain,
@@ -175,17 +184,17 @@ public sealed class OpenMeteoGateway : ReceiveActor
             return;
         }
 
+        var domainTag = pending.Domain.ToTelemetryTag();
+        var location = new KeyValuePair<string, object?>("location", pending.Resolved.Name);
+        var domain = new KeyValuePair<string, object?>("domain", domainTag);
+        var outcome = msg.Rejected is not null ? "rejected" : msg.Result is FetchSuccess ? "success" : "failure";
+        Telemetry.FetchTotal.Add(1, location, domain, new KeyValuePair<string, object?>("outcome", outcome));
+
         if (msg.Rejected is { } rejection)
         {
             Reply(msg.RequestId, p => new FetchDomainRejected(p.Resolved, p.Domain, rejection));
             return;
         }
-
-        var domainTag = pending.Domain.ToTelemetryTag();
-        var location = new KeyValuePair<string, object?>("location", pending.Resolved.Name);
-        var domain = new KeyValuePair<string, object?>("domain", domainTag);
-        var success = msg.Result is FetchSuccess;
-        Telemetry.FetchTotal.Add(1, location, domain, new KeyValuePair<string, object?>("outcome", success ? "success" : "failure"));
 
         if (msg.Error is { } error)
         {
