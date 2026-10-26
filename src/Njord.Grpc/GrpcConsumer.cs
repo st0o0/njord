@@ -33,7 +33,7 @@ public sealed class GrpcConsumer : ReceiveActor
         Receive<QueryLatestAnalysis>(HandleQueryLatestAnalysis);
         Receive<RequestGrpcStream>(HandleStreamRequest);
         Receive<PipelineEvent>(OnPipelineEvent);
-        Receive<StreamCompleted>(_ => { });
+        Receive<StreamCompleted>(_ => _log.Warning("Pipeline SourceRef stream completed — gRPC consumer will not receive new events until restarted"));
         Receive<PipelineResolved>(OnPipelineResolved);
         Receive<PipelineResolveFailed>(msg => _log.Warning(msg.Cause, "Failed to resolve pipeline — gRPC consumer has no data"));
         Receive<RequestPipelineOutputCompleted>(OnSourceRef);
