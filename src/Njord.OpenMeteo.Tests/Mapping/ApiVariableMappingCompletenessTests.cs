@@ -1,0 +1,105 @@
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Flood;
+using Njord.Forecast.Marine;
+using Njord.Forecast.Seasonal;
+using Njord.Forecast.Solar;
+using Njord.Forecast.Weather;
+using Njord.OpenMeteo.Mapping;
+
+namespace Njord.OpenMeteo.Tests.Mapping;
+
+public sealed class ApiVariableMappingCompletenessTests
+{
+    [Fact]
+    public void Should_map_every_weather_flag_to_a_distinct_named_api_variable()
+    {
+        var flags = Enum.GetValues<WeatherParams>().Where(f => f != WeatherParams.None).ToList();
+
+        var variables = flags.Select(f => f.ToApiVariable()).ToList();
+
+        Assert.Multiple(
+            () => Assert.Equal(flags.Count, variables.Distinct().Count()),
+            () => Assert.Equal(Enum.GetValues<WeatherApiVariable>().Length, variables.Count),
+            () => Assert.Equal(variables.Count, ApiVariableNames.For<WeatherApiVariable>().Count),
+            () => Assert.All(variables, v => Assert.False(string.IsNullOrEmpty(v.ToApiName()))));
+    }
+
+    [Fact]
+    public void Should_map_every_air_quality_flag_to_a_distinct_named_api_variable()
+    {
+        var flags = Enum.GetValues<AirQualityParams>().Where(f => f != AirQualityParams.None).ToList();
+
+        var variables = flags.Select(f => f.ToApiVariable()).ToList();
+
+        Assert.Multiple(
+            () => Assert.Equal(flags.Count, variables.Distinct().Count()),
+            () => Assert.Equal(Enum.GetValues<AirQualityApiVariable>().Length, variables.Count),
+            () => Assert.Equal(variables.Count, ApiVariableNames.For<AirQualityApiVariable>().Count),
+            () => Assert.All(variables, v => Assert.False(string.IsNullOrEmpty(v.ToApiName()))));
+    }
+
+    [Fact]
+    public void Should_map_every_flood_flag_to_a_distinct_named_api_variable()
+    {
+        var flags = Enum.GetValues<FloodParams>().Where(f => f != FloodParams.None && f != FloodParams.Ensemble).ToList();
+
+        var variables = flags.Select(f => f.ToApiVariable()).ToList();
+
+        Assert.Multiple(
+            () => Assert.Equal(flags.Count, variables.Distinct().Count()),
+            () => Assert.Equal(Enum.GetValues<FloodApiVariable>().Length, variables.Count),
+            () => Assert.Equal(variables.Count, ApiVariableNames.For<FloodApiVariable>().Count),
+            () => Assert.All(variables, v => Assert.False(string.IsNullOrEmpty(v.ToApiName()))));
+    }
+
+    [Fact]
+    public void Should_map_every_marine_flag_to_a_distinct_named_api_variable()
+    {
+        var flags = Enum.GetValues<MarineParams>().Where(f => f != MarineParams.None).ToList();
+
+        var variables = flags.Select(f => f.ToApiVariable()).ToList();
+
+        Assert.Multiple(
+            () => Assert.Equal(flags.Count, variables.Distinct().Count()),
+            () => Assert.Equal(Enum.GetValues<MarineApiVariable>().Length, variables.Count),
+            () => Assert.Equal(variables.Count, ApiVariableNames.For<MarineApiVariable>().Count),
+            () => Assert.All(variables, v => Assert.False(string.IsNullOrEmpty(v.ToApiName()))));
+    }
+
+    [Fact]
+    public void Should_map_every_seasonal_flag_to_a_distinct_named_api_variable()
+    {
+        var flags = Enum.GetValues<SeasonalParams>().Where(f => f != SeasonalParams.None).ToList();
+
+        var variables = flags.Select(f => f.ToApiVariable()).ToList();
+
+        Assert.Multiple(
+            () => Assert.Equal(flags.Count, variables.Distinct().Count()),
+            () => Assert.Equal(Enum.GetValues<SeasonalApiVariable>().Length, variables.Count),
+            () => Assert.Equal(variables.Count, ApiVariableNames.For<SeasonalApiVariable>().Count),
+            () => Assert.All(variables, v => Assert.False(string.IsNullOrEmpty(v.ToApiName()))));
+    }
+
+    [Fact]
+    public void Should_map_every_satellite_flag_to_a_distinct_named_api_variable()
+    {
+        var flags = Enum.GetValues<SatelliteParams>().Where(f => f != SatelliteParams.None).ToList();
+
+        var variables = flags.Select(f => f.ToApiVariable()).ToList();
+
+        Assert.Multiple(
+            () => Assert.Equal(flags.Count, variables.Distinct().Count()),
+            () => Assert.Equal(Enum.GetValues<SatelliteApiVariable>().Length, variables.Count),
+            () => Assert.Equal(variables.Count, ApiVariableNames.For<SatelliteApiVariable>().Count),
+            () => Assert.All(variables, v => Assert.False(string.IsNullOrEmpty(v.ToApiName()))));
+    }
+
+    [Fact]
+    public void Should_chain_flag_to_variable_to_api_name()
+    {
+        Assert.Multiple(
+            () => Assert.Equal(WeatherApiVariable.WindDirection, WeatherParams.WindDirection.ToApiVariable()),
+            () => Assert.Equal("wind_direction_10m", WeatherApiVariable.WindDirection.ToApiName()),
+            () => Assert.Equal(["pm2_5", "ozone"], (AirQualityParams.Pm25 | AirQualityParams.Ozone).ToApiNames()));
+    }
+}

@@ -12,15 +12,15 @@
 
 ## 2. API variable enums and param mapping
 
-- [ ] 2.1 Create per-domain API variable enums in `src/Njord.OpenMeteo/`: `WeatherApiVariable.cs`, `AirQualityApiVariable.cs`, `FloodApiVariable.cs`, `MarineApiVariable.cs`, `SeasonalApiVariable.cs`, `SatelliteApiVariable.cs`. Each member carries `[JsonStringEnumMemberName("api_name")]`. Create a shared `ApiVariableNameCache.cs` (or per-enum static class) that builds a `FrozenDictionary<TEnum, string>` from the attributes once, exposing `ToApiName()` extension methods.
+- [x] 2.1 Create per-domain API variable enums in `src/Njord.OpenMeteo/`: `WeatherApiVariable.cs`, `AirQualityApiVariable.cs`, `FloodApiVariable.cs`, `MarineApiVariable.cs`, `SeasonalApiVariable.cs`, `SatelliteApiVariable.cs`. Each member carries `[JsonStringEnumMemberName("api_name")]`. Create a shared `ApiVariableNameCache.cs` (or per-enum static class) that builds a `FrozenDictionary<TEnum, string>` from the attributes once, exposing `ToApiName()` extension methods.
 
-- [ ] 2.2 Create per-domain mapping extensions (`WeatherApiVariableMappingExtensions.cs`, etc.) with explicit switch `ToApiVariable(this WeatherParam p)` mapping each domain flags member to the corresponding API variable enum member (default throws `ArgumentOutOfRangeException`). Add `ToApiVariables(this WeatherParam flags)` that iterates set flags and maps each. Add `ToApiNames()` that chains through `ToApiName()`.
+- [x] 2.2 Create per-domain mapping extensions (`WeatherApiVariableMappingExtensions.cs`, etc.) with explicit switch `ToApiVariable(this WeatherParam p)` mapping each domain flags member to the corresponding API variable enum member (default throws `ArgumentOutOfRangeException`). Add `ToApiVariables(this WeatherParam flags)` that iterates set flags and maps each. Add `ToApiNames()` that chains through `ToApiName()`.
 
-- [ ] 2.3 Update the six client files to use the new two-step mapping: `FetchPlan.Requirements.Weather.ToApiVariables().Select(v => v.ToApiName())` instead of `ResolvedRequirements.All<Weather>.ToApiNames()`. Remove the six `src/Njord.OpenMeteo/Mapping/*ParamsMappingExtensions.cs` files (`WeatherParamsMappingExtensions`, `AirQualityParamsMappingExtensions`, `FloodParamsMappingExtensions`, `MarineParamsMappingExtensions`, `SeasonalParamsMappingExtensions`, `SatelliteParamsMappingExtensions`).
+- [x] 2.3 Update the six client files to use the new two-step mapping: `FetchPlan.Requirements.Weather.ToApiVariables().Select(v => v.ToApiName())` instead of `ResolvedRequirements.All<Weather>.ToApiNames()`. Remove the six `src/Njord.OpenMeteo/Mapping/*ParamsMappingExtensions.cs` files (`WeatherParamsMappingExtensions`, `AirQualityParamsMappingExtensions`, `FloodParamsMappingExtensions`, `MarineParamsMappingExtensions`, `SeasonalParamsMappingExtensions`, `SatelliteParamsMappingExtensions`).
 
-- [ ] 2.4 Create completeness tests in `src/Njord.OpenMeteo.Tests/`: one `[Theory]` per domain asserting every domain flags member has a corresponding API variable enum member and an entry in the frozen dictionary. Update `src/Njord.OpenMeteo.Tests/Mapping/ParamsMappingsSpec.cs` to test the new two-step mapping instead of the old switch-to-string mapping.
+- [x] 2.4 Create completeness tests in `src/Njord.OpenMeteo.Tests/`: one `[Theory]` per domain asserting every domain flags member has a corresponding API variable enum member and an entry in the frozen dictionary. Update `src/Njord.OpenMeteo.Tests/Mapping/ParamsMappingsSpec.cs` to test the new two-step mapping instead of the old switch-to-string mapping.
 
-- [ ] 2.5 Verify phase 2: build and run all test suites. Commit.
+- [x] 2.5 Verify phase 2: build and run all test suites. Commit.
 
 ## 3. Converter fix and client query constants
 
