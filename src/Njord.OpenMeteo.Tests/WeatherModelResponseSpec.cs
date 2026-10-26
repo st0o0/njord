@@ -2,7 +2,6 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Njord.OpenMeteo.Http;
-using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Weather;
 
 namespace Njord.OpenMeteo.Tests;
@@ -43,9 +42,9 @@ public sealed class WeatherModelResponseSpec
     [Fact]
     public void Member_series_are_ignored()
     {
-        var response = Parse(OpenMeteoFixtures.WeatherThreeModels);
+        var forecasts = Parse(OpenMeteoFixtures.WeatherThreeModels).ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
 
-        Assert.DoesNotContain(response.Models.Keys, k => k.StartsWith("member", StringComparison.Ordinal));
+        Assert.DoesNotContain(forecasts.Keys, k => k.StartsWith("member", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -65,7 +64,17 @@ public sealed class WeatherModelResponseSpec
     }
 
     [Fact]
-    public void Every_hourly_property_name_is_listed_in_the_converter_names()
+    public void Unknown_keys_are_silently_dropped()
+    {
+        var forecasts = Parse("""{"latitude":47.0,"longitude":8.0,"hourly":{"time":[1000],"temperature_2m":[20.5],"unknown_variable":[99.0]}}""")
+            .ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
+
+        var forecast = Assert.Single(forecasts);
+        Assert.Equal(20.5, forecast.Value.Points[0].Temperature);
+    }
+
+    [Fact]
+    public void Every_hourly_property_name_is_in_the_api_variable_names_cache()
     {
         var names = typeof(WeatherHourlyData).GetConstructors()[0].GetParameters()
             .Select(p => typeof(WeatherHourlyData).GetProperty(p.Name!)?.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
@@ -74,8 +83,10 @@ public sealed class WeatherModelResponseSpec
             .Where(n => n != "time")
             .ToList();
 
+        var apiNames = ApiVariableNames.For<WeatherApiVariable>().Values.ToHashSet();
+
         Assert.NotEmpty(names);
-        Assert.All(names, n => Assert.True(WeatherResponseConverter.ApiNames.Contains(n), n));
-        Assert.Equal(names.Count, WeatherResponseConverter.ApiNames.Count);
+        Assert.All(names, n => Assert.True(apiNames.Contains(n), n));
+        Assert.Equal(names.Count, apiNames.Count);
     }
 }

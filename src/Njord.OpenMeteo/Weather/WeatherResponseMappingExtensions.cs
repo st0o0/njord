@@ -1,6 +1,10 @@
+using System.Collections.Frozen;
 using System.Collections.Immutable;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
+using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Mapping;
 using static Njord.OpenMeteo.Mapping.SeriesAccess;
 
@@ -8,32 +12,115 @@ namespace Njord.OpenMeteo.Weather;
 
 internal static class WeatherResponseMappingExtensions
 {
-    // One trimmed forecast per model. Several models arrive suffixed; a single model arrives plain and is keyed by
-    // the requested id. A model whose values are all null is omitted.
+    private const string TimeKey = "time";
+    private const string MemberPrefix = "member";
+
+    private static readonly FrozenSet<string> KnownNames =
+        ApiVariableNames.For<WeatherApiVariable>().Values.ToFrozenSet();
+
+    private static readonly string[] BaseNames = [.. KnownNames.OrderByDescending(n => n.Length)];
+
     public static ImmutableDictionary<string, DomainForecast<WeatherPoint>> ToModelForecasts(
         this WeatherResponse response, DateTimeOffset modelRun, string singleModelId)
     {
-        var hourly = response.Models.IsEmpty
-            ? response.Hourly is { } plain
-                ? ImmutableDictionary<string, WeatherHourlyData>.Empty.Add(singleModelId, plain)
-                : ImmutableDictionary<string, WeatherHourlyData>.Empty
-            : response.Models;
+        if (response.Hourly is not { } hourly || hourly.Count == 0)
+        {
+            return ImmutableDictionary<string, DomainForecast<WeatherPoint>>.Empty;
+        }
+
+        var modelData = SplitByModel(hourly);
+
+        if (modelData.IsEmpty)
+        {
+            return ImmutableDictionary<string, DomainForecast<WeatherPoint>>.Empty;
+        }
+
+        var time = hourly.TryGetValue(TimeKey, out var t) ? JsonNode.Parse(t.GetRawText()) : new JsonArray();
 
         var forecasts = ImmutableDictionary.CreateBuilder<string, DomainForecast<WeatherPoint>>();
-        foreach (var (model, data) in hourly)
+        foreach (var (model, series) in modelData)
         {
-            if (data.ToForecast(modelRun)?.TrimTrailing((WeatherPoint p, WeatherParams f) => p.HasFields(f)) is { } forecast)
+            series[TimeKey] = time?.DeepClone();
+            var data = series.Deserialize(OpenMeteoJsonContext.Default.WeatherHourlyData);
+            if (data?.ToForecast(modelRun)?.TrimTrailing((WeatherPoint p, WeatherParams f) => p.HasFields(f)) is { } forecast)
             {
-                forecasts[model] = forecast;
+                var key = model.Length == 0 ? singleModelId : model;
+                forecasts[key] = forecast;
             }
         }
 
         return forecasts.ToImmutable();
     }
 
-    public static DomainForecast<WeatherPoint>? ToDomainForecast(
-        this WeatherResponse response, DateTimeOffset modelRun) =>
-        response.Hourly?.ToForecast(modelRun);
+    private static ImmutableDictionary<string, JsonObject> SplitByModel(Dictionary<string, JsonElement> hourly)
+    {
+        var plain = new JsonObject();
+        var perModel = new Dictionary<string, JsonObject>();
+        var modelOrder = new List<string>();
+
+        foreach (var (key, value) in hourly)
+        {
+            if (key == TimeKey)
+            {
+                continue;
+            }
+
+            if (!TrySplit(key, out var baseName, out var model))
+            {
+                continue;
+            }
+
+            if (model is null)
+            {
+                plain[baseName] = JsonNode.Parse(value.GetRawText());
+                continue;
+            }
+
+            if (!perModel.TryGetValue(model, out var group))
+            {
+                perModel[model] = group = [];
+                modelOrder.Add(model);
+            }
+
+            group[baseName] = JsonNode.Parse(value.GetRawText());
+        }
+
+        if (perModel.Count > 0)
+        {
+            return modelOrder.ToImmutableDictionary(m => m, m => perModel[m]);
+        }
+
+        return plain.Count > 0
+            ? ImmutableDictionary<string, JsonObject>.Empty.Add(string.Empty, plain)
+            : ImmutableDictionary<string, JsonObject>.Empty;
+    }
+
+    private static bool TrySplit(string key, out string baseName, out string? model)
+    {
+        foreach (var name in BaseNames)
+        {
+            if (key == name)
+            {
+                (baseName, model) = (name, null);
+                return true;
+            }
+
+            if (key.Length > name.Length + 1 && key.StartsWith(name, StringComparison.Ordinal) && key[name.Length] == '_')
+            {
+                var suffix = key[(name.Length + 1)..];
+                if (suffix.StartsWith(MemberPrefix, StringComparison.Ordinal))
+                {
+                    break;
+                }
+
+                (baseName, model) = (name, suffix);
+                return true;
+            }
+        }
+
+        (baseName, model) = (string.Empty, null);
+        return false;
+    }
 
     private static DomainForecast<WeatherPoint>? ToForecast(this WeatherHourlyData h, DateTimeOffset modelRun)
     {

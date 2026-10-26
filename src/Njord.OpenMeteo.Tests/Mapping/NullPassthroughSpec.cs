@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Flood;
+using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Marine;
 using Njord.OpenMeteo.Weather;
@@ -10,17 +12,21 @@ public sealed class NullPassthroughSpec
 {
     private static readonly DateTimeOffset Run = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
     private const long Hour0 = 1_783_771_200;
+    private const string Model = "ecmwf_ifs025_ensemble_mean";
+
+    private static WeatherResponse ParseWeather(string json) =>
+        JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.WeatherResponse)!;
 
     [Fact]
     public void Should_leave_weather_fields_null_when_the_response_lacks_the_variable()
     {
-        var response = new WeatherResponse(47.0, 8.0,
-            new WeatherHourlyData(Time: [Hour0], Temperature: [0.0]));
+        var response = ParseWeather("""
+            {"latitude":47.0,"longitude":8.0,"hourly":{"time":[1783771200],"temperature_2m":[0.0]}}
+            """);
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecasts = response.ToModelForecasts(Run, Model);
 
-        Assert.NotNull(forecast);
-        var point = Assert.Single(forecast.Points);
+        var point = Assert.Single(Assert.Single(forecasts).Value.Points);
         Assert.Multiple(
             () => Assert.Equal(0.0, point.Temperature),
             () => Assert.Null(point.WindSpeed),
@@ -32,12 +38,14 @@ public sealed class NullPassthroughSpec
     [Fact]
     public void Should_keep_a_zero_temperature_weather_point_instead_of_trimming_it()
     {
-        var response = new WeatherResponse(47.0, 8.0,
-            new WeatherHourlyData(Time: [Hour0, Hour0 + 3600], Temperature: [0.0, 0.0], WindSpeed: [0.0, null]));
+        var response = ParseWeather("""
+            {"latitude":47.0,"longitude":8.0,"hourly":{"time":[1783771200,1783774800],
+            "temperature_2m":[0.0,0.0],"wind_speed_10m":[0.0,null]}}
+            """);
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecasts = response.ToModelForecasts(Run, Model);
+        var forecast = Assert.Single(forecasts).Value;
 
-        Assert.NotNull(forecast);
         Assert.Equal(2, forecast.Points.Length);
     }
 

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Marine;
@@ -15,29 +16,25 @@ public sealed class OpenMeteoResponseMappingsSpec
 {
     private static readonly DateTimeOffset Run = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
     private const long Hour0 = 1_783_771_200;
+    private const string Model = "ecmwf_ifs025_ensemble_mean";
+
+    private static WeatherResponse ParseWeather(string json) =>
+        JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.WeatherResponse)!;
 
     [Fact]
     public void A_weather_response_maps_to_hourly_weather_points()
     {
-        var response = new WeatherResponse(47.0, 8.0,
-            new WeatherHourlyData(
-                Time: [Hour0, Hour0 + 3600],
-                Temperature: [20.5, 21.0],
-                ApparentTemperature: [18.0, 19.0],
-                WindSpeed: [3.0, 4.0],
-                Precipitation: [0.0, 0.0],
-                PrecipitationProbability: [10.0, 20.0],
-                CloudCover: [50.0, 60.0],
-                Pressure: [1013.0, 1012.0],
-                WeatherCode: [3, 61],
-                Humidity: [65.0, 70.0],
-                DewPoint: [12.0, 13.0],
-                UvIndex: [3.0, 2.0],
-                WindGusts: [8.0, null]));
+        var response = ParseWeather("""
+            {"latitude":47.0,"longitude":8.0,"hourly":{"time":[1783771200,1783774800],
+            "temperature_2m":[20.5,21.0],"apparent_temperature":[18.0,19.0],"wind_speed_10m":[3.0,4.0],
+            "precipitation":[0.0,0.0],"precipitation_probability":[10.0,20.0],"cloud_cover":[50.0,60.0],
+            "pressure_msl":[1013.0,1012.0],"weather_code":[3,61],"relative_humidity_2m":[65.0,70.0],
+            "dew_point_2m":[12.0,13.0],"uv_index":[3.0,2.0],"wind_gusts_10m":[8.0,null]}}
+            """);
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecasts = response.ToModelForecasts(Run, Model);
+        var forecast = Assert.Single(forecasts).Value;
 
-        Assert.NotNull(forecast);
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Weather, forecast.Domain),
             () => Assert.Equal(TimeResolution.Hourly, forecast.Resolution),
@@ -53,15 +50,14 @@ public sealed class OpenMeteoResponseMappingsSpec
     [Fact]
     public void A_weather_response_trims_trailing_hours_without_any_value()
     {
-        var response = new WeatherResponse(47.0, 8.0,
-            new WeatherHourlyData(
-                Time: [Hour0, Hour0 + 3600, Hour0 + 7200],
-                Temperature: [20.5, 21.0, null],
-                WindGusts: [8.0, null, null]));
+        var response = ParseWeather("""
+            {"latitude":47.0,"longitude":8.0,"hourly":{"time":[1783771200,1783774800,1783778400],
+            "temperature_2m":[20.5,21.0,null],"wind_gusts_10m":[8.0,null,null]}}
+            """);
 
-        var forecast = response.ToDomainForecast(Run)?.TrimTrailing((WeatherPoint p, WeatherParams f) => p.HasFields(f));
+        var forecasts = response.ToModelForecasts(Run, Model);
+        var forecast = Assert.Single(forecasts).Value;
 
-        Assert.NotNull(forecast);
         Assert.Equal(
             [DateTimeOffset.FromUnixTimeSeconds(Hour0), DateTimeOffset.FromUnixTimeSeconds(Hour0 + 3600)],
             forecast.Points.Select(p => p.ValidFrom));
@@ -70,39 +66,40 @@ public sealed class OpenMeteoResponseMappingsSpec
     [Fact]
     public void A_weather_time_axis_longer_than_its_data_arrays_trims_the_hours_without_data()
     {
-        var response = new WeatherResponse(47.0, 8.0,
-            new WeatherHourlyData(
-                Time: [Hour0, Hour0 + 3600, Hour0 + 7200, Hour0 + 10_800],
-                Temperature: [20.5, 21.0]));
+        var response = ParseWeather("""
+            {"latitude":47.0,"longitude":8.0,"hourly":{"time":[1783771200,1783774800,1783778400,1783782000],
+            "temperature_2m":[20.5,21.0]}}
+            """);
 
-        var forecast = response.ToDomainForecast(Run)?.TrimTrailing((WeatherPoint p, WeatherParams f) => p.HasFields(f));
+        var forecasts = response.ToModelForecasts(Run, Model);
+        var forecast = Assert.Single(forecasts).Value;
 
-        Assert.NotNull(forecast);
         Assert.Equal([20.5, 21.0], forecast.Points.Select(p => p.Temperature));
     }
 
     [Fact]
-    public void Mapping_alone_keeps_trailing_hours_without_any_value()
+    public void A_trailing_hour_with_only_null_values_is_trimmed()
     {
-        var response = new WeatherResponse(47.0, 8.0,
-            new WeatherHourlyData(Time: [Hour0, Hour0 + 3600], Temperature: [20.5, null]));
+        var response = ParseWeather("""
+            {"latitude":47.0,"longitude":8.0,"hourly":{"time":[1783771200,1783774800],"temperature_2m":[20.5,null]}}
+            """);
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecasts = response.ToModelForecasts(Run, Model);
+        var forecast = Assert.Single(forecasts).Value;
 
-        Assert.NotNull(forecast);
-        Assert.Equal(2, forecast.Points.Length);
+        Assert.Single(forecast.Points);
     }
 
     [Fact]
     public void Raw_day_flag_and_weather_code_are_passed_through_unconverted()
     {
-        var response = new WeatherResponse(47.0, 8.0,
-            new WeatherHourlyData(Time: [Hour0], WeatherCode: [61.0], IsDay: [1.0]));
+        var response = ParseWeather("""
+            {"latitude":47.0,"longitude":8.0,"hourly":{"time":[1783771200],"weather_code":[61.0],"is_day":[1.0]}}
+            """);
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecasts = response.ToModelForecasts(Run, Model);
+        var point = Assert.Single(Assert.Single(forecasts).Value.Points);
 
-        Assert.NotNull(forecast);
-        var point = Assert.Single(forecast.Points);
         Assert.Multiple(
             () => Assert.Equal(61.0, point.WeatherCode),
             () => Assert.Equal(1.0, point.IsDay));
@@ -111,7 +108,7 @@ public sealed class OpenMeteoResponseMappingsSpec
     [Fact]
     public void A_weather_response_without_hourly_data_maps_to_nothing()
     {
-        Assert.Null(new WeatherResponse(0, 0, null).ToDomainForecast(Run));
+        Assert.Empty(ParseWeather("""{"latitude":0,"longitude":0}""").ToModelForecasts(Run, Model));
     }
 
     [Fact]
@@ -147,7 +144,7 @@ public sealed class OpenMeteoResponseMappingsSpec
             "ammonia":[1.5,null],"olive_pollen":[4.0,null],"us_aqi":[42.0,null],
             "uv_index":[5.5,null],"uv_index_clear_sky":[6.5,null]}}
             """;
-        var response = System.Text.Json.JsonSerializer.Deserialize<AirQualityResponse>(json);
+        var response = JsonSerializer.Deserialize<AirQualityResponse>(json);
         Assert.NotNull(response);
 
         var forecast = response.ToDomainForecast(Run)?.TrimTrailing((AirQualityPoint p, AirQualityParams f) => p.HasFields(f));
@@ -293,7 +290,7 @@ public sealed class OpenMeteoResponseMappingsSpec
             {"latitude":47.0,"longitude":8.0,"daily":{"time":[86400,172800],"river_discharge":[120.0,130.0],
             "river_discharge_member01":[100.0,null],"river_discharge_member02":[110.0,150.0],"other":[1,2]}}
             """;
-        var response = System.Text.Json.JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.FloodResponse);
+        var response = JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.FloodResponse);
 
         var forecast = response!.ToDomainForecast(Run);
 

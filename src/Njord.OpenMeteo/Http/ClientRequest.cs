@@ -21,6 +21,14 @@ internal static class ClientRequest
     public const string UnixTime = "unixtime";
     public const string Utc = "UTC";
     public const string Iso8601 = "iso8601";
+    public const string ForecastDays = "forecast_days";
+    public const string ForecastHours = "forecast_hours";
+    public const string PastHours = "past_hours";
+    public const string Tilt = "tilt";
+    public const string Azimuth = "azimuth";
+    public const string WindSpeedUnit = "wind_speed_unit";
+    public const string MetersPerSecond = "ms";
+    public const string Ensemble = "ensemble";
 
     public static string Uri(string endpoint, double latitude, double longitude, params (string Key, string Value)[] query) =>
         QueryHelpers.AddQueryString(endpoint,
@@ -33,6 +41,9 @@ internal static class ClientRequest
         ]);
 
     public static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
+
+    // Open-Meteo azimuth: 0 = south; config uses compass degrees (180 = south).
+    public static int ToApiAzimuth(int configAzimuth) => configAzimuth - 180;
 
     public static string List(IEnumerable<string> values) => string.Join(',', values);
 

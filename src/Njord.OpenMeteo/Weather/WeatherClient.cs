@@ -14,7 +14,6 @@ namespace Njord.OpenMeteo.Weather;
 
 public sealed class WeatherClient : IDomainClient
 {
-    private const string GlobalTiltedIrradiance = "global_tilted_irradiance";
     private const int MaxForecastDays = 35;
 
     private readonly HttpClient _httpClient;
@@ -52,16 +51,15 @@ public sealed class WeatherClient : IDomainClient
         {
             (ClientRequest.Hourly, ClientRequest.List(_variables)),
             (ClientRequest.Models, ClientRequest.List(_modelIds)),
-            ("wind_speed_unit", "ms"),
+            (ClientRequest.WindSpeedUnit, ClientRequest.MetersPerSecond),
         };
-        if (_variables.Contains(GlobalTiltedIrradiance))
+        if (_variables.Contains(WeatherApiVariable.GlobalTiltedIrradiance.ToApiName()))
         {
-            // Open-Meteo azimuth: 0 = south; SolarYieldOptions uses compass degrees (180 = south).
-            query.Add(("tilt", ClientRequest.Number(_solar.Tilt)));
-            query.Add(("azimuth", ClientRequest.Number(_solar.Azimuth - 180)));
+            query.Add((ClientRequest.Tilt, ClientRequest.Number(_solar.Tilt)));
+            query.Add((ClientRequest.Azimuth, ClientRequest.Number(ClientRequest.ToApiAzimuth(_solar.Azimuth))));
         }
 
-        query.Add(("forecast_days", ClientRequest.Number(_forecastDays)));
+        query.Add((ClientRequest.ForecastDays, ClientRequest.Number(_forecastDays)));
         var uri = ClientRequest.Uri(OpenMeteoEndpoints.WeatherPath, latitude, longitude, [.. query]);
         return ClientRequest.ExecuteResultAsync(
             () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.WeatherResponse, cancellationToken),

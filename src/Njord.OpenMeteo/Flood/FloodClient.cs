@@ -30,11 +30,11 @@ public sealed class FloodClient : IDomainClient
         var query = new List<(string, string)>
         {
             (ClientRequest.Daily, ClientRequest.List(_variables)),
-            ("forecast_days", ClientRequest.Number(_options.ForecastDays)),
+            (ClientRequest.ForecastDays, ClientRequest.Number(_options.ForecastDays)),
         };
         if (_options.IncludeEnsemble)
         {
-            query.Add(("ensemble", "true"));
+            query.Add((ClientRequest.Ensemble, "true"));
         }
 
         var uri = ClientRequest.Uri(OpenMeteoEndpoints.FloodPath, latitude, longitude, [.. query]);
