@@ -13,11 +13,11 @@ public sealed class FloodClient : IDomainClient
     private readonly FloodOptions _options;
     private readonly IReadOnlyList<string> _variables;
 
-    public FloodClient(HttpClient httpClient, IOptions<FloodOptions> options, ResolvedRequirements requirements)
+    public FloodClient(HttpClient httpClient, IOptions<FloodOptions> options, FetchPlan plan)
     {
         _httpClient = httpClient;
         _options = options.Value;
-        _variables = requirements.Value.AllFlood.ToApiNames();
+        _variables = plan.Requirements.AllFlood.ToApiNames();
     }
 
     public DomainKind Domain => DomainKind.Flood;

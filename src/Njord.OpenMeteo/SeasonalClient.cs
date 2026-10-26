@@ -13,11 +13,11 @@ public sealed class SeasonalClient : IDomainClient
     private readonly SeasonalOptions _options;
     private readonly IReadOnlyList<string> _variables;
 
-    public SeasonalClient(HttpClient httpClient, IOptions<SeasonalOptions> options, ResolvedRequirements requirements)
+    public SeasonalClient(HttpClient httpClient, IOptions<SeasonalOptions> options, FetchPlan plan)
     {
         _httpClient = httpClient;
         _options = options.Value;
-        _variables = requirements.Value.AllSeasonal.ToApiNames();
+        _variables = plan.Requirements.AllSeasonal.ToApiNames();
     }
 
     public DomainKind Domain => DomainKind.Seasonal;

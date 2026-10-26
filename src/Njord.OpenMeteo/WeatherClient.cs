@@ -21,12 +21,12 @@ public sealed class WeatherClient : IDomainClient
     private readonly int _forecastDays;
     private readonly EffectiveWeatherModels _models;
 
-    public WeatherClient(HttpClient httpClient, IOptions<WeatherOptions> options, IOptions<SolarYieldOptions> solar, ResolvedRequirements requirements, EffectiveWeatherModels models)
+    public WeatherClient(HttpClient httpClient, IOptions<WeatherOptions> options, IOptions<SolarYieldOptions> solar, FetchPlan plan)
     {
         _httpClient = httpClient;
-        _models = models;
+        _models = plan.Models;
         _solar = solar.Value;
-        _variables = requirements.Value.AllWeather.ToApiNames();
+        _variables = plan.Requirements.AllWeather.ToApiNames();
         _forecastDays = Math.Min(options.Value.ForecastDays, MaxForecastDays);
         CallWeight = Core.Polling.CallWeight.Of(_variables.Count, _forecastDays) * _models.Count;
     }

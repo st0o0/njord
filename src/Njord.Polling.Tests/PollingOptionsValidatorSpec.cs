@@ -12,10 +12,13 @@ namespace Njord.Polling.Tests;
 public sealed class PollingOptionsValidatorSpec
 {
     private static PollingOptionsValidator ValidatorFor(params (string Key, string Value)[] scope) =>
+        ValidatorWith(null, scope);
+
+    private static PollingOptionsValidator ValidatorWith(EffectiveWeatherModels? models, params (string Key, string Value)[] scope) =>
         new(new ConfigurationBuilder()
             .AddInMemoryCollection(scope.ToDictionary(s => s.Key, s => (string?)s.Value))
             .Build(),
-            new ResolvedRequirements(new DomainRequirements(Weather: WeatherParams.Temperature, AirQuality: AirQualityParams.Pm25)));
+            TestFetchPlan.For(new DomainRequirements(Weather: WeatherParams.Temperature, AirQuality: AirQualityParams.Pm25), models));
 
     [Theory]
     [InlineData("00:00:00")]
@@ -64,19 +67,16 @@ public sealed class PollingOptionsValidatorSpec
     }
 
     [Fact]
-    public void Should_count_every_weather_model_while_model_comparison_is_enabled()
+    public void Should_count_every_weather_model_of_the_fetch_plan()
     {
         var options = new PollingOptions { BudgetOverride = new RequestBudget(2_500, 600) };
         (string, string)[] scope =
         [
             ("Njord:Locations:0:Name", "Lucerne"),
-            ("Njord:Weather:Models:0", "ecmwf_ifs025_ensemble_mean"),
-            ("Njord:Weather:Models:1", "ecmwf_aifs025_ensemble_mean"),
-            ("Njord:Weather:Models:2", "ukmo_global_ensemble_mean_20km"),
         ];
 
-        var withoutComparison = ValidatorFor(scope).Validate(null, options);
-        var withComparison = ValidatorFor([.. scope, ("Njord:Features:Weather:ModelComparison:Enabled", "true")]).Validate(null, options);
+        var withoutComparison = ValidatorWith(null, scope).Validate(null, options);
+        var withComparison = ValidatorWith(new EffectiveWeatherModels(["a", "b", "c"]), scope).Validate(null, options);
 
         Assert.Multiple(
             () => Assert.True(withoutComparison.Succeeded),

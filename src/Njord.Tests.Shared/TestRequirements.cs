@@ -10,8 +10,6 @@ namespace Njord.Tests.Shared;
 
 public static class TestRequirements
 {
-    public static ResolvedRequirements Resolved => new(All);
-
     public static DomainRequirements All { get; } = new(
         Enum.GetValues<WeatherParams>().Aggregate(WeatherParams.None, (a, b) => a | b),
         Enum.GetValues<AirQualityParams>().Aggregate(AirQualityParams.None, (a, b) => a | b),

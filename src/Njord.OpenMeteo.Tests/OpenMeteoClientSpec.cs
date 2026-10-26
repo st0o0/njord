@@ -20,12 +20,13 @@ public sealed class OpenMeteoClientSpec
 {
     private static readonly DateTimeOffset Now = new(2026, 7, 11, 0, 0, 0, TimeSpan.Zero);
 
-    private static ResolvedRequirements Needs(
+    private static FetchPlan Needs(
         WeatherParams weather = WeatherParams.None,
         AirQualityParams air = AirQualityParams.None,
         FloodParams flood = FloodParams.None,
-        MarineParams marine = MarineParams.None) =>
-        new(new DomainRequirements(Weather: weather, AirQuality: air, Flood: flood, Marine: marine));
+        MarineParams marine = MarineParams.None,
+        EffectiveWeatherModels? models = null) =>
+        TestFetchPlan.For(new DomainRequirements(Weather: weather, AirQuality: air, Flood: flood, Marine: marine), models);
 
     private static WeatherClient Weather(
         HttpClient http,
@@ -33,7 +34,7 @@ public sealed class OpenMeteoClientSpec
         SolarYieldOptions? solar = null,
         WeatherOptions? options = null,
         EffectiveWeatherModels? models = null) =>
-        new(http, Options.Create(options ?? new WeatherOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: flags), models ?? EffectiveWeatherModels.Default);
+        new(http, Options.Create(options ?? new WeatherOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: flags, models: models));
 
     private static FloodClient Flood(HttpClient http, FloodOptions? options = null) =>
         new(http, Options.Create(options ?? new FloodOptions()), Needs(flood: FloodParams.Discharge));
@@ -173,7 +174,7 @@ public sealed class OpenMeteoClientSpec
     public void The_weather_call_weight_follows_the_resolved_variables_and_days()
     {
         var client = new WeatherClient(
-            new HttpClient(), Options.Create(new WeatherOptions { ForecastDays = 4 }), Options.Create(new SolarYieldOptions()), TestRequirements.Resolved, EffectiveWeatherModels.Default);
+            new HttpClient(), Options.Create(new WeatherOptions { ForecastDays = 4 }), Options.Create(new SolarYieldOptions()), TestFetchPlan.All);
 
         var variables = TestRequirements.All.Weather.ToApiNames();
 

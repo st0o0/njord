@@ -5,7 +5,7 @@ using Njord.Core.Domain;
 
 namespace Njord.Polling.Configuration;
 
-public sealed class PollingOptionsValidator(IConfiguration configuration, ResolvedRequirements requirements) : IValidateOptions<PollingOptions>
+public sealed class PollingOptionsValidator(IConfiguration configuration, FetchPlan plan) : IValidateOptions<PollingOptions>
 {
     public ValidateOptionsResult Validate(string? name, PollingOptions options)
     {
@@ -28,7 +28,7 @@ public sealed class PollingOptionsValidator(IConfiguration configuration, Resolv
 
         if (failures.Count == 0
             && ReadScope() is { } scope
-            && BudgetGuard.Violation(scope, ReadWeather(), options, requirements, ReadFlood(), ReadWeatherModelCount()) is { } violation)
+            && BudgetGuard.Violation(scope, options, plan, ReadFlood()) is { } violation)
         {
             failures.Add(violation);
         }
@@ -46,17 +46,6 @@ public sealed class PollingOptionsValidator(IConfiguration configuration, Resolv
         return scope is null || scope.Locations.Count == 0 ? null : scope;
     }
 
-    // Several models are only requested while the ModelComparison feature is enabled.
-    private int ReadWeatherModelCount() =>
-        configuration.GetValue<bool>($"{ModelComparisonSection}:Enabled")
-            ? ReadWeather().EffectiveModels.Length
-            : 1;
-
-    private const string ModelComparisonSection = "Njord:Features:Weather:ModelComparison";
-
     private FloodOptions ReadFlood() =>
         configuration.GetSection(IConfigSection.SectionOf<FloodOptions>()).Get<FloodOptions>() ?? new FloodOptions();
-
-    private WeatherOptions ReadWeather() =>
-        configuration.GetSection(IConfigSection.SectionOf<WeatherOptions>()).Get<WeatherOptions>() ?? new WeatherOptions();
 }

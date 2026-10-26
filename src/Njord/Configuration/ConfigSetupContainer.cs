@@ -15,6 +15,6 @@ public sealed class ConfigSetupContainer : IServiceSetupContainer
         services.AddSingleton(static sp => sp.GetRequiredService<IOptions<NjordOptions>>().Value.ToServiceInfo(
             sp.GetRequiredService<IOptions<PollingOptions>>().Value,
             sp.GetServices<IFeatureRule>(),
-            sp.GetRequiredService<EffectiveWeatherModels>()));
+            sp.GetRequiredService<FetchPlan>().Models));
     }
 }

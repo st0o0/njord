@@ -5,6 +5,7 @@ using Njord.Forecast;
 using Njord.Forecast.Seasonal;
 using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Mapping;
+using Njord.Tests.Shared;
 
 namespace Njord.OpenMeteo.Tests;
 
@@ -17,7 +18,7 @@ public sealed class SeasonalSpec
         """{"latitude":47.0,"longitude":8.0,"monthly":{"time":[1790812800,1793491200,1796083200,1798761600,1801440000,1803859200],"temperature_2m_anomaly":[1.7,1.0,1.9,1.4,1.8,1.2],"precipitation_anomaly":[2.4,-20.0,3.5,9.1,23.5,14.3],"precipitation_mean":[99.5,80.0,100.0,98.7,100.0,106.5]}}""";
 
     private static SeasonalClient ClientFor(HttpClient http, SeasonalParams flags) =>
-        new(http, Options.Create(new SeasonalOptions()), new ResolvedRequirements(new DomainRequirements(Seasonal: flags)));
+        new(http, Options.Create(new SeasonalOptions()), TestFetchPlan.For(new DomainRequirements(Seasonal: flags)));
 
     private const SeasonalParams All = SeasonalParams.TemperatureAnomaly | SeasonalParams.PrecipitationAnomaly | SeasonalParams.PrecipitationMean;
 

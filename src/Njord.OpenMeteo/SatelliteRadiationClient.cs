@@ -15,12 +15,12 @@ public sealed class SatelliteRadiationClient : IDomainClient
     private readonly SolarYieldOptions _solar;
     private readonly IReadOnlyList<string> _variables;
 
-    public SatelliteRadiationClient(HttpClient httpClient, IOptions<SatelliteOptions> options, IOptions<SolarYieldOptions> solar, ResolvedRequirements requirements)
+    public SatelliteRadiationClient(HttpClient httpClient, IOptions<SatelliteOptions> options, IOptions<SolarYieldOptions> solar, FetchPlan plan)
     {
         _httpClient = httpClient;
         _options = options.Value;
         _solar = solar.Value;
-        _variables = requirements.Value.AllSatellite.ToApiNames();
+        _variables = plan.Requirements.AllSatellite.ToApiNames();
     }
 
     public DomainKind Domain => DomainKind.Satellite;

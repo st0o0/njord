@@ -16,10 +16,10 @@ public sealed class AirQualityClient : IDomainClient
     private readonly IReadOnlyList<string> _variables;
     private readonly int _forecastDays;
 
-    public AirQualityClient(HttpClient httpClient, IOptions<AirQualityOptions> options, ResolvedRequirements requirements)
+    public AirQualityClient(HttpClient httpClient, IOptions<AirQualityOptions> options, FetchPlan plan)
     {
         _httpClient = httpClient;
-        _variables = requirements.Value.AllAirQuality.ApplyRegionFilter(options.Value.Region).ToApiNames();
+        _variables = plan.Requirements.AllAirQuality.ApplyRegionFilter(options.Value.Region).ToApiNames();
         _forecastDays = Math.Min(options.Value.ForecastDays, MaxForecastDays);
     }
 
