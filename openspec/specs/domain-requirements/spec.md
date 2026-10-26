@@ -4,7 +4,8 @@
 TBD - created by archiving change restructure-forecast-and-clients. Update Purpose after archive.
 ## Requirements
 ### Requirement: Handlers declare required parameters
-Every handler SHALL declare, through its feature descriptor, exactly the API parameters it requires per domain, and separately the parameters it can use when present.
+Every handler SHALL declare, through its feature descriptor, exactly the API parameters it
+requires per domain, and separately the parameters it can use when present.
 
 #### Scenario: Handler requirement per domain
 - **WHEN** a handler needs temperature and wind speed from Weather
@@ -22,17 +23,19 @@ Requirements SHALL support a union operator that combines the parameters of each
 - **THEN** the union SHALL contain both weather parameters and the flood parameter
 
 ### Requirement: Requirements report required domains
-A requirement SHALL report whether it needs a given domain, true exactly when that domain has at least one parameter set.
+A requirement SHALL report whether it needs a given domain, true exactly when that domain has
+at least one parameter set.
 
 #### Scenario: Domain without parameters
 - **WHEN** a requirement contains only Weather parameters
 - **THEN** it SHALL report Weather as required and AirQuality, Flood and Marine as not required
 
 ### Requirement: Base parameters for already-required domains
-The parameters fetched for a domain SHALL be the union of the enabled features' requirements plus that domain's base
-parameters: `weather_code` for Weather and `pm10` for AirQuality. Base parameters SHALL be added only to domains that
-an enabled feature already requires, SHALL NOT make a domain required, and SHALL NOT gate rule dispatch. The budget
-projection SHALL count the fetched parameters including the base parameters.
+The parameters fetched for a domain SHALL be the union of the enabled features' requirements
+plus that domain's base parameters: `weather_code` for Weather and `pm10` for AirQuality.
+Base parameters SHALL be added only to domains that an enabled feature already requires,
+SHALL NOT make a domain required, and SHALL NOT gate rule dispatch. The budget projection
+SHALL count the fetched parameters including the base parameters.
 
 #### Scenario: Weather code is fetched
 - **WHEN** only the Frost feature is enabled
