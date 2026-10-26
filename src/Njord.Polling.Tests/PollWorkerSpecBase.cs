@@ -38,7 +38,7 @@ public abstract class PollWorkerSpecBase : NjordActorSpec
         });
 
     private Props WorkerProps(string entityId) =>
-        Props.Create(() => new PollWorker(_time, FetchTimeouts.Default, Options.Create(new PollingOptions()), EnabledDomains, entityId));
+        Props.Create(() => new PollWorker(_time, Options.Create(new PollingOptions()), EnabledDomains, entityId));
 
     protected IActorRef CreateWorker(string entityId = TargetId) =>
         Sys.ActorOf(WorkerProps(entityId), $"worker-{Guid.NewGuid():N}");

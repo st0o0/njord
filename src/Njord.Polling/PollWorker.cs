@@ -19,14 +19,15 @@ namespace Njord.Polling;
 public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 {
     private const int SnapshotInterval = 50;
+    private static readonly TimeSpan DefaultReplyTimeout = TimeSpan.FromSeconds(90);
 
     private sealed record PollDomain(DomainKind Domain);
-    private sealed record DomainFetchReplied(DomainKind Domain, FetchDomainResponse Reply);
+    private sealed record FetchReplyTimeout(DomainKind Domain);
 
     private readonly HashSet<DomainKind> _inFlight = [];
 
     private readonly TimeProvider _timeProvider;
-    private readonly FetchTimeouts _fetchTimeouts;
+    private readonly TimeSpan _replyTimeout;
     private readonly TimeSpan _pollInterval;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly DomainKind[] _enabledDomains;
@@ -36,12 +37,12 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
     public override string PersistenceId { get; }
 
-    public PollWorker(TimeProvider timeProvider, FetchTimeouts fetchTimeouts, IOptions<PollingOptions> pollingOptions,
-        IReadOnlySet<DomainKind> requiredDomains, string entityId)
+    public PollWorker(TimeProvider timeProvider, IOptions<PollingOptions> pollingOptions,
+        IReadOnlySet<DomainKind> requiredDomains, string entityId, TimeSpan? replyTimeout = null)
     {
         _enabledDomains = [.. requiredDomains.Order()];
         _timeProvider = timeProvider;
-        _fetchTimeouts = fetchTimeouts;
+        _replyTimeout = replyTimeout ?? DefaultReplyTimeout;
         _pollInterval = pollingOptions.Value.PollInterval;
         PersistenceId = $"poll-worker-{entityId}";
 
@@ -56,7 +57,8 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         Command<StopPolling>(_ => OnStopPolling());
         Command<TriggerLocationPoll>(_ => PollAll("trigger"));
         Command<PollDomain>(msg => PollSingle(msg.Domain, "timer"));
-        Command<DomainFetchReplied>(OnDomainFetchReplied);
+        Command<FetchDomainResponse>(OnFetchDomainResponse);
+        Command<FetchReplyTimeout>(OnFetchReplyTimeout);
         Command<SaveSnapshotSuccess>(success =>
         {
             _log.Debug("Snapshot saved at sequence {SequenceNr}, cleaning journal", success.Metadata.SequenceNr);
@@ -169,23 +171,34 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         }
 
         _inFlight.Add(domain);
-        var location = target.Location;
-        var timeout = _fetchTimeouts.Reply;
-        gateway.Ask<FetchDomainResponse>(new FetchDomain(location, domain), timeout).PipeTo(Self,
-            success: reply => new DomainFetchReplied(domain, reply),
-            failure: ex => new DomainFetchReplied(domain, AskFailure(location, domain, timeout, ex)));
+        gateway.Tell(new FetchDomain(target.Location, domain));
+        Timers.StartSingleTimer(ReplyTimerKey(domain), new FetchReplyTimeout(domain), _replyTimeout);
     }
 
-    private void OnDomainFetchReplied(DomainFetchReplied msg)
+    private void OnFetchDomainResponse(FetchDomainResponse reply)
     {
-        if (!_inFlight.Remove(msg.Domain))
+        if (!_inFlight.Remove(reply.Domain))
         {
-            _log.Debug("Ignoring a reply for a domain not in flight: {Domain}", msg.Domain);
+            _log.Debug("Ignoring a reply for a domain not in flight: {Domain}", reply.Domain);
             return;
         }
 
-        LogDomainOutcome(msg.Domain, msg.Reply);
-        OnDomainFetchResult(msg.Domain, msg.Reply);
+        Timers.Cancel(ReplyTimerKey(reply.Domain));
+        LogDomainOutcome(reply.Domain, reply);
+        OnDomainFetchResult(reply.Domain, reply);
+    }
+
+    private void OnFetchReplyTimeout(FetchReplyTimeout msg)
+    {
+        if (!_inFlight.Remove(msg.Domain) || _state.Target is not { } target)
+        {
+            return;
+        }
+
+        var failed = new FetchDomainFailed(target.Location, msg.Domain, PollFailureReason.Transport,
+            $"Gateway did not answer within {_replyTimeout}");
+        LogDomainOutcome(msg.Domain, failed);
+        OnDomainFetchResult(msg.Domain, failed);
     }
 
     private void OnDomainFetchResult(DomainKind domain, FetchDomainResponse? reply)
@@ -341,8 +354,5 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
     private static string TimerKey(DomainKind domain) => $"poll-{domain}";
 
-    private static FetchDomainFailed AskFailure(Location location, DomainKind domain, TimeSpan timeout, Exception ex) =>
-        new(location, domain, PollFailureReason.Transport, ex is AskTimeoutException
-            ? $"Gateway did not answer within {timeout}"
-            : $"Gateway request failed ({ex.GetType().Name}: {ex.Message})");
+    private static string ReplyTimerKey(DomainKind domain) => $"fetch-reply-{domain}";
 }

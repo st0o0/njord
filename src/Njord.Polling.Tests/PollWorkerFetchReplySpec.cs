@@ -13,13 +13,11 @@ using Njord.Tests.Shared;
 
 namespace Njord.Polling.Tests;
 
-// Every request ends: a gateway that does not answer, a stopped gateway and a missing gateway all end in a
+// Every request ends: a gateway that does not answer within the reply timer, a stopped gateway and a missing gateway all end in a
 // Transport failure with the transient backoff, never in silence and never in a retry loop.
 public sealed class PollWorkerFetchReplySpec : NjordActorSpec
 {
-    // Short enough that the Ask times out within the test; the defaults are covered by FetchTimeoutsSpec.
-    private static readonly FetchTimeouts ShortTimeouts =
-        new(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(300));
+    private static readonly TimeSpan ShortReplyTimeout = TimeSpan.FromMilliseconds(300);
 
     private static readonly IReadOnlySet<DomainKind> EnabledDomains = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality };
 
@@ -38,7 +36,7 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
         });
 
     private void Start() =>
-        Sys.ActorOf(Props.Create(() => new PollWorker(_time, ShortTimeouts, Options.Create(new PollingOptions()), EnabledDomains, Target.Id)),
+        Sys.ActorOf(Props.Create(() => new PollWorker(_time, Options.Create(new PollingOptions()), EnabledDomains, Target.Id, ShortReplyTimeout)),
                 $"worker-{Guid.NewGuid():N}")
             .Tell(new StartPolling(Target, TimeSpan.FromHours(1)));
 

@@ -29,7 +29,7 @@ public sealed class PollWorkerGatewayConnectionSpec : PollingConnectionTestKit
 
         var target = new PollTarget(new Location(options.Locations[0].Name, 0, 0));
         var worker = Sys.ActorOf(
-            Props.Create(() => new PollWorker(time, FetchTimeouts.Default, Options.Create(new PollingOptions()), new HashSet<DomainKind> { DomainKind.Weather }, target.Id)),
+            Props.Create(() => new PollWorker(time, Options.Create(new PollingOptions()), new HashSet<DomainKind> { DomainKind.Weather }, target.Id)),
             "real-worker");
         worker.Tell(new StartPolling(target, TimeSpan.FromMinutes(20)));
 

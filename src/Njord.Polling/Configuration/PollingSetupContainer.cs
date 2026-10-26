@@ -15,7 +15,6 @@ public sealed class PollingSetupContainer : IServiceSetupContainer
     {
         services.AddNjordOptions<PollingOptions, PollingOptionsValidator>();
 
-        services.TryAddSingleton(FetchTimeouts.Default);
 
         services.AddSingleton<IActorRegistration>(new PollingActorRegistration());
     }

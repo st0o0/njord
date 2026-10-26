@@ -32,7 +32,6 @@ public sealed class PollingClusterSpec : NjordActorSpec
     {
         services.AddSingleton<TimeProvider>(_time);
         services.AddSingleton<IReadOnlySet<DomainKind>>(new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality });
-        services.AddSingleton(FetchTimeouts.Default);
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations =

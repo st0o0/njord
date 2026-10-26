@@ -1,4 +1,5 @@
 using Njord.Forecast;
+using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Polling.Tests;
@@ -16,6 +17,17 @@ public sealed class ShardMessageExtractorSpec
             () => Assert.Equal("Lucerne", _extractor.EntityId(new StartPolling(target, TimeSpan.FromMinutes(20)))),
             () => Assert.Equal("Lucerne", _extractor.EntityId(new StopPolling("Lucerne"))),
             () => Assert.Equal("Lucerne", _extractor.EntityId(new TriggerLocationPoll("Lucerne"))));
+    }
+
+    [Fact]
+    public void Should_route_gateway_replies_by_the_location_name()
+    {
+        var location = new Location("Lucerne", 0, 0);
+
+        Assert.Multiple(
+            () => Assert.Equal("Lucerne", _extractor.EntityId(new FetchDomainCompleted(location, DomainKind.Weather, 1))),
+            () => Assert.Equal("Lucerne", _extractor.EntityId(new FetchDomainFailed(location, DomainKind.Weather, PollFailureReason.Transport, null))),
+            () => Assert.Equal("Lucerne", _extractor.EntityId(new FetchDomainRejected(location, DomainKind.Weather, FetchRejectionReason.Budget))));
     }
 
     [Fact]
