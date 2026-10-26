@@ -5,7 +5,10 @@ using Akka.Hosting;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Njord.Core;
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
@@ -18,7 +21,8 @@ namespace Njord.Grpc;
 public sealed class OpsGrpcService(
     ActorRegistry actorRegistry,
     TimeProvider timeProvider,
-    ServiceInfo serviceInfo,
+    IOptions<PollingOptions> polling,
+    IEnumerable<IFeatureRule> features,
     ILogger<OpsGrpcService> logger) : OpsService.OpsServiceBase
 {
     private static readonly string Version =
@@ -32,8 +36,8 @@ public sealed class OpsGrpcService(
         var uptime = timeProvider.GetUtcNow() - ProcessStart;
 
         // Without an answer from the tracker the status reports zero usage against the configured budget.
-        var budget = new BudgetStatusResult(0, 0, serviceInfo.MonthlyBudgetLimit,
-            serviceInfo.DailyBudgetLimit);
+        var budget = new BudgetStatusResult(0, 0, polling.Value.EffectiveBudget.RequestsPerMonth,
+            polling.Value.EffectiveBudget.DailyLimit);
         var budgetPartial = false;
         try
         {
@@ -73,7 +77,10 @@ public sealed class OpsGrpcService(
             status.ModelsPartial = true;
         }
 
-        status.ActiveEnrichments.AddRange(serviceInfo.ActiveEnrichments);
+        status.ActiveEnrichments.AddRange(features
+            .Where(static rule => rule.Enabled)
+            .Select(static rule => $"{rule.Descriptor.Category}:{rule.Descriptor.Name}")
+            .Order(StringComparer.Ordinal));
         return status;
     }
 

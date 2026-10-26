@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
@@ -20,16 +21,25 @@ public sealed class WeatherClient : IDomainClient
     private readonly SolarYieldOptions _solar;
     private readonly IReadOnlyList<string> _variables;
     private readonly int _forecastDays;
-    private readonly EffectiveWeatherModels _models;
+    private readonly ImmutableArray<string> _modelIds;
+    private readonly string _primaryModel;
 
-    public WeatherClient(HttpClient httpClient, IOptions<WeatherOptions> options, IOptions<SolarYieldOptions> solar, FetchPlan plan)
+    public WeatherClient(HttpClient httpClient, IOptions<WeatherOptions> options, IOptions<SolarYieldOptions> solar, IOptions<FeatureRequirementsOptions> requirements, ILogger<WeatherClient> logger)
     {
         _httpClient = httpClient;
-        _models = plan.Models;
+        var resolved = requirements.Value;
+        _modelIds = resolved.WeatherModels;
+        _primaryModel = resolved.PrimaryWeatherModel;
+        var ignored = options.Value.EffectiveModels.Except(_modelIds).ToArray();
+        if (ignored.Length > 0)
+        {
+            logger.LogWarning("Weather models ignored because no enabled feature uses them: {Models}", string.Join(", ", ignored));
+        }
+
         _solar = solar.Value;
-        _variables = plan.Requirements.AllWeather.ToApiNames();
+        _variables = resolved.Requirements.AllWeather.ToApiNames();
         _forecastDays = Math.Min(options.Value.ForecastDays, MaxForecastDays);
-        CallWeight = Core.Polling.CallWeight.Of(_variables.Count, _forecastDays) * _models.Count;
+        CallWeight = Core.Polling.CallWeight.Of(_variables.Count, _forecastDays) * _modelIds.Length;
     }
 
     public DomainKind Domain => DomainKind.Weather;
@@ -41,7 +51,7 @@ public sealed class WeatherClient : IDomainClient
         var query = new List<(string, string)>
         {
             (ClientRequest.Hourly, ClientRequest.List(_variables)),
-            (ClientRequest.Models, ClientRequest.List(_models.Ids)),
+            (ClientRequest.Models, ClientRequest.List(_modelIds)),
             ("wind_speed_unit", "ms"),
         };
         if (_variables.Contains(GlobalTiltedIrradiance))
@@ -55,14 +65,14 @@ public sealed class WeatherClient : IDomainClient
         var uri = ClientRequest.Uri(OpenMeteoEndpoints.WeatherPath, latitude, longitude, [.. query]);
         return ClientRequest.ExecuteResultAsync(
             () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.WeatherResponse, cancellationToken),
-            response => ToSuccess(response.ToModelForecasts(now, _models.Primary)),
+            response => ToSuccess(response.ToModelForecasts(now, _primaryModel)),
             cancellationToken);
     }
 
     private FetchResult ToSuccess(ImmutableDictionary<string, DomainForecast<WeatherPoint>> forecasts)
     {
         // The primary model leads; when it returned nothing the first remaining model does not stand in for it.
-        if (!forecasts.TryGetValue(_models.Primary, out var primary))
+        if (!forecasts.TryGetValue(_primaryModel, out var primary))
         {
             return new FetchEmpty();
         }

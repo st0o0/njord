@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
@@ -14,11 +16,15 @@ public sealed class PollingOptionsValidatorSpec
     private static PollingOptionsValidator ValidatorFor(params (string Key, string Value)[] scope) =>
         ValidatorWith(null, scope);
 
-    private static PollingOptionsValidator ValidatorWith(EffectiveWeatherModels? models, params (string Key, string Value)[] scope) =>
+    private static PollingOptionsValidator ValidatorWith(ImmutableArray<string>? models, params (string Key, string Value)[] scope) =>
         new(new ConfigurationBuilder()
             .AddInMemoryCollection(scope.ToDictionary(s => s.Key, s => (string?)s.Value))
             .Build(),
-            TestFetchPlan.For(new DomainRequirements(Weather: WeatherParams.Temperature, AirQuality: AirQualityParams.Pm25), models));
+            Options.Create(new FeatureRequirementsOptions
+            {
+                Requirements = new DomainRequirements(Weather: WeatherParams.Temperature, AirQuality: AirQualityParams.Pm25),
+                WeatherModels = models ?? ["ecmwf_ifs025_ensemble_mean"],
+            }));
 
     [Theory]
     [InlineData("00:00:00")]
@@ -76,7 +82,7 @@ public sealed class PollingOptionsValidatorSpec
         ];
 
         var withoutComparison = ValidatorWith(null, scope).Validate(null, options);
-        var withComparison = ValidatorWith(new EffectiveWeatherModels(["a", "b", "c"]), scope).Validate(null, options);
+        var withComparison = ValidatorWith(ImmutableArray.Create("a", "b", "c"), scope).Validate(null, options);
 
         Assert.Multiple(
             () => Assert.True(withoutComparison.Succeeded),

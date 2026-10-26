@@ -1,3 +1,4 @@
+using Akka;
 using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
@@ -28,8 +29,24 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
     private sealed record Offered(FetchDomain Request, IQueueOfferResult Result);
 
-    private static readonly FetchDomainResponse StreamEnded =
-        new FetchDomainRejected(new Location("__ended__", 0, 0), default, FetchRejectionReason.PipelineUnavailable);
+    private static Sink<FetchAttempt, NotUsed> ReplySink(IActorRef pollRegion) =>
+        Flow.Create<FetchAttempt>()
+            .Select(attempt =>
+            {
+                var (location, domain) = (attempt.Request.Location, attempt.Request.Domain);
+                FetchDomainResponse reply = attempt switch
+                {
+                    { Rejection: { } rejection } => new FetchDomainRejected(location, domain, rejection),
+                    { Error: { } ex } => new FetchDomainFailed(location, domain, PollFailureReason.Transport,
+                        $"Fetch threw {ex.GetType().Name}: {ex.Message}"),
+                    { Result: FetchSuccess ok } => new FetchDomainCompleted(location, domain, ok.Forecast.GetHashCode()),
+                    { Result: FetchError error } => new FetchDomainFailed(location, domain, error.Reason, error.Message),
+                    _ => new FetchDomainFailed(location, domain, PollFailureReason.MalformedPayload,
+                        $"The {domain.ToTelemetryTag()} endpoint returned no usable data"),
+                };
+                return reply;
+            })
+            .To(Sink.ForEach<FetchDomainResponse>(reply => pollRegion.Tell(reply)));
 
     private sealed record GatedRequest(FetchDomain Request, IDomainClient? Client, FetchRejectionReason? Rejection);
 
@@ -156,23 +173,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
                 }
             })
             // Replies go to the poll region with a plain Tell: Sink.ActorRef would also send its completion or failure marker there, which the shard extractor cannot route.
-            .AlsoToMaterialized(Flow.Create<FetchAttempt>()
-                .Select(attempt =>
-                {
-                    var (location, domain) = (attempt.Request.Location, attempt.Request.Domain);
-                    FetchDomainResponse reply = attempt switch
-                    {
-                        { Rejection: { } rejection } => new FetchDomainRejected(location, domain, rejection),
-                        { Error: { } ex } => new FetchDomainFailed(location, domain, PollFailureReason.Transport,
-                            $"Fetch threw {ex.GetType().Name}: {ex.Message}"),
-                        { Result: FetchSuccess ok } => new FetchDomainCompleted(location, domain, ok.Forecast.GetHashCode()),
-                        { Result: FetchError error } => new FetchDomainFailed(location, domain, error.Reason, error.Message),
-                        _ => new FetchDomainFailed(location, domain, PollFailureReason.MalformedPayload,
-                            $"The {domain.ToTelemetryTag()} endpoint returned no usable data"),
-                    };
-                    return reply;
-                })
-                .To(Sink.ActorRef<FetchDomainResponse>(pollRegion, StreamEnded))), Keep.Left)
+            .AlsoToMaterialized(ReplySink(pollRegion), Keep.Left)
             .Where(attempt => attempt.Result is FetchSuccess)
             // Per-model data first so the primary forecast is evaluated with all models merged in.
             .SelectMany(attempt =>

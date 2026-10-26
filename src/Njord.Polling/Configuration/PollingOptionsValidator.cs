@@ -5,7 +5,7 @@ using Njord.Core.Domain;
 
 namespace Njord.Polling.Configuration;
 
-public sealed class PollingOptionsValidator(IConfiguration configuration, FetchPlan plan) : IValidateOptions<PollingOptions>
+public sealed class PollingOptionsValidator(IConfiguration configuration, IOptions<FeatureRequirementsOptions> requirements) : IValidateOptions<PollingOptions>
 {
     public ValidateOptionsResult Validate(string? name, PollingOptions options)
     {
@@ -28,7 +28,7 @@ public sealed class PollingOptionsValidator(IConfiguration configuration, FetchP
 
         if (failures.Count == 0
             && ReadScope() is { } scope
-            && BudgetGuard.Violation(scope, options, plan, ReadFlood()) is { } violation)
+            && BudgetGuard.Violation(scope, options, requirements.Value, ReadWeather(), ReadFlood()) is { } violation)
         {
             failures.Add(violation);
         }
@@ -45,6 +45,9 @@ public sealed class PollingOptionsValidator(IConfiguration configuration, FetchP
         var scope = configuration.GetSection(IConfigSection.SectionOf<NjordOptions>()).Get<NjordOptions>();
         return scope is null || scope.Locations.Count == 0 ? null : scope;
     }
+
+    private WeatherOptions ReadWeather() =>
+        configuration.GetSection(IConfigSection.SectionOf<WeatherOptions>()).Get<WeatherOptions>() ?? new WeatherOptions();
 
     private FloodOptions ReadFlood() =>
         configuration.GetSection(IConfigSection.SectionOf<FloodOptions>()).Get<FloodOptions>() ?? new FloodOptions();

@@ -20,7 +20,7 @@ public sealed class SatelliteRadiationSpec
 
     private static SatelliteRadiationClient ClientFor(HttpClient http, SatelliteParams flags, SolarYieldOptions? solar = null) =>
         new(http, Options.Create(new SatelliteOptions()), Options.Create(solar ?? new SolarYieldOptions()),
-            TestFetchPlan.For(new DomainRequirements(Satellite: flags)));
+            Options.Create(new FeatureRequirementsOptions { Requirements = new DomainRequirements(Satellite: flags) }));
 
     [Fact(Timeout = 5000)]
     public async Task The_client_requests_the_hourly_variables_with_the_panel_orientation()

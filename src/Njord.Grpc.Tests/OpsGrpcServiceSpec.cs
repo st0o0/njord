@@ -2,6 +2,7 @@ using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Njord.Core;
+using Njord.Core.Configuration;
 using Njord.Forecast;
 using Njord.Grpc.V2;
 using Njord.Messages.Budget;
@@ -24,7 +25,8 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetStatus_combines_budget_and_model_poll_states()
     {
-        var service = new OpsGrpcService(ActorRegistry, TimeProvider.System, TestServiceInfo.Create(),
+        var service = new OpsGrpcService(ActorRegistry, TimeProvider.System, TestServiceInfo.Opts(AppSettingsDefaults.Options<PollingOptions>()),
+            [new TestServiceInfo.FloodRisk(), new TestServiceInfo.FloodRain(enabled: false), new TestServiceInfo.Bbq(), new TestServiceInfo.FrostAlert()],
             NullLogger<OpsGrpcService>.Instance);
 
         var status = await service.GetStatus(new GetStatusRequest(),
@@ -34,6 +36,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Multiple(
             () => Assert.False(status.BudgetPartial),
             () => Assert.False(status.ModelsPartial),
+            () => Assert.Equal(["Flood:FloodRisk", "Lifestyle:Bbq", "Weather:Frost"], status.ActiveEnrichments),
             () => Assert.Equal(40, status.Budget.MonthlyUsed),
             () => Assert.Equal("Lucerne", model.Location),
             () => Assert.Equal(V2.PollPhase.Steady, model.Phase));

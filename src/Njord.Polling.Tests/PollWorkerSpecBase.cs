@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Messages.Forecast;
@@ -22,7 +23,10 @@ public abstract class PollWorkerSpecBase : NjordActorSpec
     protected static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
     protected static readonly PollTarget Target = new(Lucerne);
 
-    protected static readonly IReadOnlySet<DomainKind> EnabledDomains = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality };
+    protected static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Weather, DomainKind.AirQuality];
+
+    protected static IOptions<FeatureRequirementsOptions> RequirementsFor(IReadOnlyList<DomainKind> domains) =>
+        Options.Create(new FeatureRequirementsOptions { Domains = domains });
 
     protected readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
     protected TestProbe _gateway = null!;
@@ -38,7 +42,7 @@ public abstract class PollWorkerSpecBase : NjordActorSpec
         });
 
     private Props WorkerProps(string entityId) =>
-        Props.Create(() => new PollWorker(_time, Options.Create(new PollingOptions()), EnabledDomains, entityId));
+        Props.Create(() => new PollWorker(_time, Options.Create(new PollingOptions()), RequirementsFor(EnabledDomains), entityId));
 
     protected IActorRef CreateWorker(string entityId = TargetId) =>
         Sys.ActorOf(WorkerProps(entityId), $"worker-{Guid.NewGuid():N}");

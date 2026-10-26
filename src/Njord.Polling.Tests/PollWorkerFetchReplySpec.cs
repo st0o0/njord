@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Messages.Forecast;
@@ -19,7 +20,10 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
 {
     private static readonly TimeSpan ShortReplyTimeout = TimeSpan.FromMilliseconds(300);
 
-    private static readonly IReadOnlySet<DomainKind> EnabledDomains = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality };
+    private static readonly IOptions<FeatureRequirementsOptions> Requirements = Options.Create(new FeatureRequirementsOptions
+    {
+        Domains = [DomainKind.Weather, DomainKind.AirQuality],
+    });
 
     private static readonly PollTarget Target = new(new Location("lucerne", 0, 0));
 
@@ -36,7 +40,7 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
         });
 
     private void Start() =>
-        Sys.ActorOf(Props.Create(() => new PollWorker(_time, Options.Create(new PollingOptions()), EnabledDomains, Target.Id, ShortReplyTimeout)),
+        Sys.ActorOf(Props.Create(() => new PollWorker(_time, Options.Create(new PollingOptions()), Requirements, Target.Id, ShortReplyTimeout)),
                 $"worker-{Guid.NewGuid():N}")
             .Tell(new StartPolling(Target, TimeSpan.FromHours(1)));
 

@@ -1,5 +1,7 @@
+using System.Numerics;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Core.Polling;
 using Njord.Forecast;
 
 namespace Njord.Polling.Configuration;
@@ -15,14 +17,17 @@ internal static class BudgetGuard
     private static readonly TimeSpan Month = TimeSpan.FromDays(30);
 
     internal static string? Violation(
-        NjordOptions scope, PollingOptions polling, FetchPlan plan, FloodOptions? flood = null)
+        NjordOptions scope, PollingOptions polling, FeatureRequirementsOptions featureRequirements, WeatherOptions weather,
+        FloodOptions? flood = null)
     {
-        var requirements = plan.Requirements;
+        var requirements = featureRequirements.Requirements;
         var locationCount = scope.Locations.Count;
 
         var weatherRequired = requirements.Requires(DomainKind.Weather);
         var otherDomains = new[] { DomainKind.AirQuality, DomainKind.Flood, DomainKind.Marine, DomainKind.Satellite }.Count(requirements.Requires);
-        var apiCallWeight = plan.WeatherCallWeight;
+        var apiCallWeight = weatherRequired
+            ? CallWeight.Of(BitOperations.PopCount((ulong)requirements.AllWeather), weather.ForecastDays) * featureRequirements.WeatherModels.Length
+            : 0;
 
         var domainCallsPerCycle = locationCount * ((weatherRequired ? 1 : 0) + otherDomains);
         var floodExtraWeight = requirements.Requires(DomainKind.Flood) && flood is { IncludeEnsemble: true } ? FloodEnsembleWeight - 1 : 0;

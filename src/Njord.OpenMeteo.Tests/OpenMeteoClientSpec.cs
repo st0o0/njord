@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
@@ -24,21 +25,25 @@ public sealed class OpenMeteoClientSpec
 {
     private static readonly DateTimeOffset Now = new(2026, 7, 11, 0, 0, 0, TimeSpan.Zero);
 
-    private static FetchPlan Needs(
+    private static IOptions<FeatureRequirementsOptions> Needs(
         WeatherParams weather = WeatherParams.None,
         AirQualityParams air = AirQualityParams.None,
         FloodParams flood = FloodParams.None,
         MarineParams marine = MarineParams.None,
-        EffectiveWeatherModels? models = null) =>
-        TestFetchPlan.For(new DomainRequirements(Weather: weather, AirQuality: air, Flood: flood, Marine: marine), models);
+        string[]? models = null) =>
+        Options.Create(new FeatureRequirementsOptions
+        {
+            Requirements = new DomainRequirements(Weather: weather, AirQuality: air, Flood: flood, Marine: marine),
+            WeatherModels = [.. models ?? [WeatherOptions.DefaultModel]],
+        });
 
     private static WeatherClient Weather(
         HttpClient http,
         WeatherParams flags = WeatherParams.Temperature | WeatherParams.EnsembleStdDev,
         SolarYieldOptions? solar = null,
         WeatherOptions? options = null,
-        EffectiveWeatherModels? models = null) =>
-        new(http, Options.Create(options ?? new WeatherOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: flags, models: models));
+        string[]? models = null) =>
+        new(http, Options.Create(options ?? new WeatherOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: flags, models: models), NullLogger<WeatherClient>.Instance);
 
     private static FloodClient Flood(HttpClient http, FloodOptions? options = null) =>
         new(http, Options.Create(options ?? new FloodOptions()), Needs(flood: FloodParams.Discharge));
@@ -73,7 +78,7 @@ public sealed class OpenMeteoClientSpec
     [Fact(Timeout = 5000)]
     public async Task The_weather_uri_lists_all_effective_models_comma_separated_in_order()
     {
-        var models = new EffectiveWeatherModels(["ecmwf_aifs025_ensemble_mean", "ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"]);
+        string[] models = ["ecmwf_aifs025_ensemble_mean", "ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"];
 
         var uri = await Capture("ensemble-api", http => Weather(http, WeatherParams.Temperature, models: models), TestContext.Current.CancellationToken);
 
@@ -83,7 +88,7 @@ public sealed class OpenMeteoClientSpec
     [Fact(Timeout = 5000)]
     public async Task A_multi_model_weather_fetch_returns_the_primary_forecast_and_every_model()
     {
-        var models = new EffectiveWeatherModels(["ecmwf_aifs025_ensemble_mean", "ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"]);
+        string[] models = ["ecmwf_aifs025_ensemble_mean", "ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"];
         var http = StubOpenMeteoHandler.ClientFor("ensemble-api", HttpStatusCode.OK, OpenMeteoFixtures.WeatherThreeModels);
 
         var result = await Weather(http, models: models).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
@@ -98,7 +103,7 @@ public sealed class OpenMeteoClientSpec
     [Fact]
     public void The_weather_call_weight_is_multiplied_by_the_model_count()
     {
-        var models = new EffectiveWeatherModels(["ecmwf_ifs025_ensemble_mean", "ecmwf_aifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"]);
+        string[] models = ["ecmwf_ifs025_ensemble_mean", "ecmwf_aifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"];
         var single = Weather(new HttpClient());
         var triple = Weather(new HttpClient(), models: models);
 
@@ -178,7 +183,7 @@ public sealed class OpenMeteoClientSpec
     public void The_weather_call_weight_follows_the_resolved_variables_and_days()
     {
         var client = new WeatherClient(
-            new HttpClient(), Options.Create(new WeatherOptions { ForecastDays = 4 }), Options.Create(new SolarYieldOptions()), TestFetchPlan.All);
+            new HttpClient(), Options.Create(new WeatherOptions { ForecastDays = 4 }), Options.Create(new SolarYieldOptions()), Options.Create(new FeatureRequirementsOptions { Requirements = TestRequirements.All, WeatherModels = [WeatherOptions.DefaultModel] }), NullLogger<WeatherClient>.Instance);
 
         var variables = TestRequirements.All.Weather.ToApiNames();
 

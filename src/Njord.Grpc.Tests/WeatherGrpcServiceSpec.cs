@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Akka.Actor;
 using Akka.Hosting;
 using Grpc.Core;
@@ -74,7 +75,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             () => Assert.Equal(80.0, sample.PrecipitationMean));
     }
 
-    private static readonly EffectiveWeatherModels TwoModels = new(["ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"]);
+    private static readonly ImmutableArray<string> TwoModels = ["ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"];
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetDomainData_returns_the_requested_secondary_model_labelled_with_its_id()
@@ -205,11 +206,12 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(new GetEnrichmentsResponse { Location = "Lucerne" }, response);
     }
 
-    private WeatherGrpcService CreateService(PipelineEvent? domainEvent = null, LatestAnalysisResult? analysis = null, EffectiveWeatherModels? models = null)
+    private WeatherGrpcService CreateService(PipelineEvent? domainEvent = null, LatestAnalysisResult? analysis = null, ImmutableArray<string>? models = null)
     {
         ActorRegistry.Register<IGrpcConsumer>(
             Sys.ActorOf(Props.Create(() => new FakeConsumer(domainEvent, analysis))), overwrite: true);
-        return new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Create(Options, models: models), TimeProvider.System);
+        return new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Opts(Options),
+            TestServiceInfo.Opts(new FeatureRequirementsOptions { WeatherModels = models ?? [WeatherOptions.DefaultModel] }), TimeProvider.System);
     }
 
     private sealed class FakeConsumer : ReceiveActor

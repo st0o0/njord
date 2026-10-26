@@ -2,7 +2,10 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Grpc.Core;
+using Microsoft.Extensions.Options;
 using Njord.Core;
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
@@ -17,18 +20,20 @@ namespace Njord.Grpc;
 public sealed class WeatherGrpcService(
     ActorRegistry actorRegistry,
     ActorSystem actorSystem,
-    ServiceInfo serviceInfo,
+    IOptions<NjordOptions> scope,
+    IOptions<FeatureRequirementsOptions> requirements,
     TimeProvider timeProvider) : WeatherService.WeatherServiceBase
 {
+    private readonly CatalogResult _catalog = scope.Value.ToCatalog(requirements.Value);
+
     public override async Task<GetCatalogResponse> GetCatalog(GetCatalogRequest request, ServerCallContext context)
     {
-        var catalog = serviceInfo.Catalog;
-        return catalog.ToProto();
+        return _catalog.ToProto();
     }
 
     public override async Task<DomainDataUpdate> GetDomainData(GetDomainDataRequest request, ServerCallContext context)
     {
-        var location = FindLocation(serviceInfo.Catalog, request.Location);
+        var location = FindLocation(_catalog, request.Location);
         if (request.Domain == Domain.Unspecified)
         {
             throw new RpcException(new GrpcStatus(StatusCode.InvalidArgument, "Domain must be specified"));
@@ -50,7 +55,7 @@ public sealed class WeatherGrpcService(
 
     public override async Task<GetEnrichmentsResponse> GetEnrichments(GetEnrichmentsRequest request, ServerCallContext context)
     {
-        var location = FindLocation(serviceInfo.Catalog, request.Location);
+        var location = FindLocation(_catalog, request.Location);
 
         var result = await actorRegistry.AskAsync<IGrpcConsumer, LatestAnalysisResponse>(
             new QueryLatestAnalysis(location.Location), context);
@@ -82,7 +87,7 @@ public sealed class WeatherGrpcService(
             .SelectAsync(1, async e =>
             {
                 var update = e.ToDomainDataUpdate() is { } mapped
-                    ? WithPrimaryModel(mapped, serviceInfo.Catalog.Locations.FirstOrDefault()?.Models.FirstOrDefault() ?? string.Empty)
+                    ? WithPrimaryModel(mapped, _catalog.Locations.FirstOrDefault()?.Models.FirstOrDefault() ?? string.Empty)
                     : null;
                 if (update is not null)
                 {
@@ -151,7 +156,7 @@ public sealed class WeatherGrpcService(
 
     // An empty location streams every location; a non-empty one must be configured.
     private Location? ResolveStreamLocation(string location) =>
-        string.IsNullOrEmpty(location) ? null : FindLocation(serviceInfo.Catalog, location).Location;
+        string.IsNullOrEmpty(location) ? null : FindLocation(_catalog, location).Location;
 
     private async Task<ISourceRef<PipelineEvent>> RequestGrpcStreamAsync(ServerCallContext context)
     {

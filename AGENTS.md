@@ -26,7 +26,7 @@ src/
                         #   libraries (actor plumbing used by one library lives there: ShardMessageExtractor in
                         #   Polling, GrpcStreamMessages in Grpc)
     Domain/             #   IFeatureRule, FeatureRule<TInput>, FeatureDescriptor, FeatureCategory, FeatureContext,
-                        #   FeatureInputs (typed inputs), FeatureResolution, FetchPlan, DomainRequirements,
+                        #   FeatureInputs (typed inputs), FeatureResolution, FeatureRequirementsOptions, DomainRequirements,
                         #   LocationForecast, RingBuffer, ForecastQueries, DomainDataReceived
     Configuration/      #   IConfigSection, NjordOptions (with FindLocation), LocationOptions, WeatherOptions, FloodOptions,
                         #   PollingOptions, Health/HealthOptions, AddNjordOptions (+ validators)
@@ -125,12 +125,12 @@ SHARD REGIONS (Sharded Entity)
 - **Ensemble default.** The weather request goes to `v1/ensemble`; `Njord:Weather:Models` (default
   `ecmwf_ifs025_ensemble_mean`, first = primary; ids from `WeatherModelCatalog`) selects the ensemble-mean models,
   there are no horizon or parameter settings. Models beyond the first only take effect with the
-  `Weather:ModelComparison` feature (`EffectiveWeatherModels`); rules run on the primary model only and
+  `Weather:ModelComparison` feature (`FeatureRequirementsOptions.WeatherModels` / `PrimaryWeatherModel`); rules run on the primary model only and
   the weather call weight is multiplied by the effective model count. The requested variables follow the enabled features: the `Requirements` of all
-  enabled features are OR-ed (`FeatureResolution.RequiredParams`) and mapped to API names by
+  enabled features are OR-ed (`FeatureResolution.Configure` fills `FeatureRequirementsOptions`, consumers take `IOptions<FeatureRequirementsOptions>`) and mapped to API names by
   `ParamMappings.ToApiNames()`; the clients only build the URL. `FeatureEngine` skips a rule whose
   required fields are missing from the stream (`LocationForecast.HasFields`). `BudgetGuard` uses the same
-  resolved requirements: Weather costs `ceil(variables / 10) * ceil(forecastDays / 14) * modelCount` calls per cycle,
+  resolved requirements and models (call weight computed inline): Weather costs `ceil(variables / 10) * ceil(forecastDays / 14) * modelCount` calls per cycle,
   every other required domain 1.
 - **Per-domain forecast days.** `Njord:AirQuality` (5, max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92,
   max 210) next to `Njord:Weather`.

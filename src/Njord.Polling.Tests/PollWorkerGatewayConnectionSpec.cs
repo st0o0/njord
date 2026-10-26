@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Messages.Forecast;
@@ -28,8 +29,9 @@ public sealed class PollWorkerGatewayConnectionSpec : PollingConnectionTestKit
         ActorRegistry.Register<IForecastGateway>(fakeGateway, overwrite: true);
 
         var target = new PollTarget(new Location(options.Locations[0].Name, 0, 0));
+        var requirements = Options.Create(new FeatureRequirementsOptions { Domains = [DomainKind.Weather] });
         var worker = Sys.ActorOf(
-            Props.Create(() => new PollWorker(time, Options.Create(new PollingOptions()), new HashSet<DomainKind> { DomainKind.Weather }, target.Id)),
+            Props.Create(() => new PollWorker(time, Options.Create(new PollingOptions()), requirements, target.Id)),
             "real-worker");
         worker.Tell(new StartPolling(target, TimeSpan.FromMinutes(20)));
 

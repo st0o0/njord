@@ -16,9 +16,9 @@ public sealed class PollWorkerTriggerSpec : PollWorkerSpecBase
     public async Task A_poll_asks_only_the_configured_domains()
     {
         var ct = TestContext.Current.CancellationToken;
-        IReadOnlySet<DomainKind> domains = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.Flood };
+        IReadOnlyList<DomainKind> domains = [DomainKind.Weather, DomainKind.Flood];
         var worker = Sys.ActorOf(
-            Props.Create(() => new PollWorker(_time, Options.Create(new PollingOptions()), domains, TargetId)),
+            Props.Create(() => new PollWorker(_time, Options.Create(new PollingOptions()), RequirementsFor(domains), TargetId)),
             $"worker-{Guid.NewGuid():N}");
 
         worker.Tell(new StartPolling(Target, Discovery));

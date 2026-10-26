@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Messages.Forecast;
@@ -31,7 +32,7 @@ public sealed class PollingClusterSpec : NjordActorSpec
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<TimeProvider>(_time);
-        services.AddSingleton<IReadOnlySet<DomainKind>>(new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality });
+        services.AddSingleton(Options.Create(new FeatureRequirementsOptions { Domains = [DomainKind.Weather, DomainKind.AirQuality] }));
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations =

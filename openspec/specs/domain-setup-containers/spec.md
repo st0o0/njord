@@ -20,29 +20,32 @@ The system SHALL define an `IActorRegistration` interface with a method that acc
 - **THEN** they SHALL be invoked in the order they were registered in DI (matching the container chain order in Program.cs)
 
 ### Requirement: CoreSetupContainer registers shared services
-The host's `CoreSetupContainer` SHALL register `TimeProvider.System`, the Prometheus meter
-adapter limited to the meters declared by the feature libraries' `Telemetry` classes, and
-`FetchPlan` as a singleton built from the enabled feature rules and the relevant options.
-Options, the config writer and the `ConfigManager` registration SHALL be done by
-`ConfigSetupContainer`; the health options and the host-level health checks by
-`HealthSetupContainer` (each feature registers its own check).
+The host's `CoreSetupContainer` SHALL register `TimeProvider.System` and the Prometheus meter
+adapter limited to the meters declared by the feature libraries' `Telemetry` classes.
+`CoreSetupContainer` SHALL NOT register `FetchPlan`; the resolved feature requirements are
+registered by `DomainSetupContainer` as `FeatureRequirementsOptions` through the OptionsBuilder
+pattern. Options and the `ConfigManager` registration SHALL be done by `ConfigSetupContainer`;
+the health options and the host-level health checks by `HealthSetupContainer`.
 
 #### Scenario: TimeProvider is registered exactly once
 - **WHEN** the host's services are built
 - **THEN** exactly one `TimeProvider` registration exists, `TimeProvider.System`, added by `CoreSetupContainer`
 
-#### Scenario: FetchPlan is registered as a singleton
+#### Scenario: FeatureRequirementsOptions is registered by DomainSetupContainer
 - **WHEN** the host's services are built
-- **THEN** exactly one `FetchPlan` is registered, computed from enabled features and options
+- **THEN** exactly one `FeatureRequirementsOptions` is registered via `AddOptions<FeatureRequirementsOptions>().Configure<>().ValidateOnStart()`, by `DomainSetupContainer`
 
-#### Scenario: No separate derived registrations
+#### Scenario: No FetchPlan or forwarding registrations
 - **WHEN** the host's services are built
-- **THEN** no `IReadOnlySet<DomainKind>`, `EffectiveWeatherModels` or `ResolvedRequirements`
-  singleton registrations SHALL exist
+- **THEN** no `FetchPlan`, `EffectiveWeatherModels`, `IReadOnlySet<DomainKind>`, or `ServiceInfo` singleton registrations SHALL exist
 
 #### Scenario: Options are bound and validated
 - **WHEN** the host's services are built
-- **THEN** `NjordOptions`, `PersistenceOptions` and `StorageOptions` are bound with `ValidateOnStart` enabled, by `ConfigSetupContainer`
+- **THEN** `NjordOptions` and `PersistenceOptions` are bound with `ValidateOnStart` enabled, by `ConfigSetupContainer`
+
+#### Scenario: ConfigSetupContainer has no ServiceInfo lambda
+- **WHEN** the host's services are built
+- **THEN** `ConfigSetupContainer` SHALL register only options classes, not factory lambdas for derived types
 
 #### Scenario: Meter allow-list follows the telemetry classes
 - **WHEN** a feature library declares a new `Telemetry` meter name
@@ -75,21 +78,19 @@ connect callback, HTTP fetch timeout (30 seconds) and standard resilience handle
 them into an `IReadOnlyDictionary<DomainKind, IDomainClient>`, and register an
 `IActorRegistration` that creates `OpenMeteoGateway` as a cluster singleton under
 `IForecastGateway`, wrapped in a backoff-on-failure supervisor (3 s to 30 s, unlimited
-retries). Clients SHALL receive their API variable lists from `FetchPlan` instead of
-`ResolvedRequirements`.
+retries). Clients SHALL receive their API variable lists from `IOptions<FeatureRequirementsOptions>`.
+
+#### Scenario: Clients depend on FeatureRequirementsOptions
+- **WHEN** a domain client is constructed
+- **THEN** it SHALL receive `IOptions<FeatureRequirementsOptions>` and extract its domain's requirements from it
 
 #### Scenario: OpenMeteo clients are resolvable
 - **WHEN** `OpenMeteoSetupContainer.SetupServices` is called
 - **THEN** all six `IDomainClient` implementations are resolvable from the service provider
-  with IPv4-forced socket handling
 
 #### Scenario: Gateway is a supervised singleton
 - **WHEN** the actor system starts
 - **THEN** `OpenMeteoGateway` runs as a singleton resolvable through `IForecastGateway`
-
-#### Scenario: Clients depend on FetchPlan
-- **WHEN** a domain client is constructed
-- **THEN** it SHALL receive `FetchPlan` and extract its domain's requirements from it
 
 ### Requirement: BudgetSetupContainer registers the budget tracker
 `BudgetSetupContainer` (src/Njord.Budget/Configuration) SHALL register an `IActorRegistration` that creates `BudgetTracker` as a cluster singleton under `IBudgetTracker`, wrapped in a backoff-on-failure supervisor (3 s to 30 s, unlimited retries).
