@@ -29,8 +29,8 @@ public sealed class AirQualityClient : IDomainClient
 
     public Task<FetchResult> FetchAsync(double latitude, double longitude, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        var uri = ClientRequest.Uri("v1/air-quality", latitude, longitude,
-            ("hourly", ClientRequest.List(_variables)), ("forecast_days", ClientRequest.Number(_forecastDays)));
+        var uri = ClientRequest.Uri(OpenMeteoEndpoints.AirQualityPath, latitude, longitude,
+            (ClientRequest.Hourly, ClientRequest.List(_variables)), ("forecast_days", ClientRequest.Number(_forecastDays)));
         return ClientRequest.ExecuteAsync(
             () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.AirQualityResponse, cancellationToken),
             response => response.ToDomainForecast(now)?.TrimTrailing((AirQualityPoint p, AirQualityParams f) => p.HasFields(f)),

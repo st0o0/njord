@@ -1,4 +1,6 @@
+using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo.Tests;
@@ -58,5 +60,20 @@ public sealed class WeatherModelResponseSpec
         var forecasts = Parse("""{"latitude":47.0,"longitude":8.0}""").ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
 
         Assert.Empty(forecasts);
+    }
+
+    [Fact]
+    public void Every_hourly_property_name_is_listed_in_the_converter_names()
+    {
+        var names = typeof(WeatherHourlyData).GetConstructors()[0].GetParameters()
+            .Select(p => typeof(WeatherHourlyData).GetProperty(p.Name!)?.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
+                ?? p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name)
+            .OfType<string>()
+            .Where(n => n != "time")
+            .ToList();
+
+        Assert.NotEmpty(names);
+        Assert.All(names, n => Assert.True(WeatherResponseConverter.ApiNames.Contains(n), n));
+        Assert.Equal(names.Count, WeatherResponseConverter.ApiNames.Count);
     }
 }

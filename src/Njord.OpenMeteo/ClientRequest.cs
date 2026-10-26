@@ -10,14 +10,26 @@ namespace Njord.OpenMeteo;
 
 internal static class ClientRequest
 {
+    public const string Hourly = "hourly";
+    public const string Daily = "daily";
+    public const string Monthly = "monthly";
+    public const string Models = "models";
+    public const string Latitude = "latitude";
+    public const string Longitude = "longitude";
+    public const string TimeFormat = "timeformat";
+    public const string TimeZone = "timezone";
+    public const string UnixTime = "unixtime";
+    public const string Utc = "UTC";
+    public const string Iso8601 = "iso8601";
+
     public static string Uri(string endpoint, double latitude, double longitude, params (string Key, string Value)[] query) =>
         QueryHelpers.AddQueryString(endpoint,
         [
-            new("latitude", latitude.ToString(CultureInfo.InvariantCulture)),
-            new("longitude", longitude.ToString(CultureInfo.InvariantCulture)),
+            new(Latitude, latitude.ToString(CultureInfo.InvariantCulture)),
+            new(Longitude, longitude.ToString(CultureInfo.InvariantCulture)),
             .. query.Select(q => new KeyValuePair<string, string?>(q.Key, q.Value)),
-            new("timeformat", "unixtime"),
-            new("timezone", "UTC"),
+            new(TimeFormat, UnixTime),
+            new(TimeZone, Utc),
         ]);
 
     public static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);

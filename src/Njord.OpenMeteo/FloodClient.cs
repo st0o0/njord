@@ -28,7 +28,7 @@ public sealed class FloodClient : IDomainClient
     {
         var query = new List<(string, string)>
         {
-            ("daily", ClientRequest.List(_variables)),
+            (ClientRequest.Daily, ClientRequest.List(_variables)),
             ("forecast_days", ClientRequest.Number(_options.ForecastDays)),
         };
         if (_options.IncludeEnsemble)
@@ -36,7 +36,7 @@ public sealed class FloodClient : IDomainClient
             query.Add(("ensemble", "true"));
         }
 
-        var uri = ClientRequest.Uri("v1/flood", latitude, longitude, [.. query]);
+        var uri = ClientRequest.Uri(OpenMeteoEndpoints.FloodPath, latitude, longitude, [.. query]);
         return ClientRequest.ExecuteAsync(
             () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.FloodResponse, cancellationToken),
             response => response.ToDomainForecast(now),

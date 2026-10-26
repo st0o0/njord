@@ -26,7 +26,7 @@ public sealed class SeasonalClient : IDomainClient
 
     public Task<FetchResult> FetchAsync(double latitude, double longitude, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        var uri = ClientRequest.Uri("v1/seasonal", latitude, longitude, ("monthly", ClientRequest.List(_variables)));
+        var uri = ClientRequest.Uri(OpenMeteoEndpoints.SeasonalPath, latitude, longitude, (ClientRequest.Monthly, ClientRequest.List(_variables)));
         return ClientRequest.ExecuteAsync(
             () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.SeasonalResponse, cancellationToken),
             response => response.ToDomainForecast(now, _options.ForecastMonths),

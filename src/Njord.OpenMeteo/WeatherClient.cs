@@ -39,8 +39,8 @@ public sealed class WeatherClient : IDomainClient
     {
         var query = new List<(string, string)>
         {
-            ("hourly", ClientRequest.List(_variables)),
-            ("models", ClientRequest.List(_models.Ids)),
+            (ClientRequest.Hourly, ClientRequest.List(_variables)),
+            (ClientRequest.Models, ClientRequest.List(_models.Ids)),
             ("wind_speed_unit", "ms"),
         };
         if (_variables.Contains(GlobalTiltedIrradiance))
@@ -51,7 +51,7 @@ public sealed class WeatherClient : IDomainClient
         }
 
         query.Add(("forecast_days", ClientRequest.Number(_forecastDays)));
-        var uri = ClientRequest.Uri("v1/ensemble", latitude, longitude, [.. query]);
+        var uri = ClientRequest.Uri(OpenMeteoEndpoints.WeatherPath, latitude, longitude, [.. query]);
         return ClientRequest.ExecuteResultAsync(
             () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.WeatherResponse, cancellationToken),
             response => ToSuccess(response.ToModelForecasts(now, _models.Primary)),

@@ -27,8 +27,8 @@ public sealed class MarineClient : IDomainClient
 
     public Task<FetchResult> FetchAsync(double latitude, double longitude, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        var uri = ClientRequest.Uri("v1/marine", latitude, longitude,
-            ("hourly", ClientRequest.List(_variables)), ("forecast_days", ClientRequest.Number(_options.ForecastDays)));
+        var uri = ClientRequest.Uri(OpenMeteoEndpoints.MarinePath, latitude, longitude,
+            (ClientRequest.Hourly, ClientRequest.List(_variables)), ("forecast_days", ClientRequest.Number(_options.ForecastDays)));
         return ClientRequest.ExecuteAsync(
             () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.MarineResponse, cancellationToken),
             response => response.ToDomainForecast(now)?.TrimTrailing((MarinePoint p, MarineParams f) => p.HasFields(f)),

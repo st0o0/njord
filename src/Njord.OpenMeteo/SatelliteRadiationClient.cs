@@ -30,8 +30,8 @@ public sealed class SatelliteRadiationClient : IDomainClient
     public Task<FetchResult> FetchAsync(double latitude, double longitude, DateTimeOffset now, CancellationToken cancellationToken)
     {
         // Open-Meteo azimuth: 0 = south; SolarYieldOptions uses compass degrees (180 = south).
-        var uri = ClientRequest.Uri("v1/archive", latitude, longitude,
-            ("hourly", ClientRequest.List(_variables)),
+        var uri = ClientRequest.Uri(OpenMeteoEndpoints.SatellitePath, latitude, longitude,
+            (ClientRequest.Hourly, ClientRequest.List(_variables)),
             ("tilt", ClientRequest.Number(_solar.Tilt)),
             ("azimuth", ClientRequest.Number(_solar.Azimuth - 180)),
             ("past_hours", ClientRequest.Number(_options.PastHours)),

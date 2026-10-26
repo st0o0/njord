@@ -30,12 +30,12 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
         services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
         services.TryAddSingleton(FetchTimeouts.Default);
 
-        AddDomainClient<WeatherClient>(services, "https://ensemble-api.open-meteo.com/");
-        AddDomainClient<AirQualityClient>(services, "https://air-quality-api.open-meteo.com/");
-        AddDomainClient<FloodClient>(services, "https://flood-api.open-meteo.com/");
-        AddDomainClient<MarineClient>(services, "https://marine-api.open-meteo.com/");
-        AddDomainClient<SeasonalClient>(services, "https://seasonal-api.open-meteo.com/");
-        AddDomainClient<SatelliteRadiationClient>(services, "https://satellite-api.open-meteo.com/");
+        AddDomainClient<WeatherClient>(services, OpenMeteoEndpoints.WeatherHost);
+        AddDomainClient<AirQualityClient>(services, OpenMeteoEndpoints.AirQualityHost);
+        AddDomainClient<FloodClient>(services, OpenMeteoEndpoints.FloodHost);
+        AddDomainClient<MarineClient>(services, OpenMeteoEndpoints.MarineHost);
+        AddDomainClient<SeasonalClient>(services, OpenMeteoEndpoints.SeasonalHost);
+        AddDomainClient<SatelliteRadiationClient>(services, OpenMeteoEndpoints.SatelliteHost);
 
         services.AddSingleton<IReadOnlyDictionary<DomainKind, IDomainClient>>(provider =>
             provider.GetServices<IDomainClient>().ToDictionary(c => c.Domain));

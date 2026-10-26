@@ -1,5 +1,5 @@
+using System.Collections.Frozen;
 using System.Collections.Immutable;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -13,23 +13,26 @@ internal sealed class WeatherResponseConverter : JsonConverter<WeatherResponse>
     private const string TimeKey = "time";
     private const string MemberPrefix = "member";
 
-    private static readonly string[] BaseNames =
-    [
-        .. typeof(WeatherHourlyData).GetConstructors()[0].GetParameters()
-            .Select(p => p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
-                ?? typeof(WeatherHourlyData).GetProperty(p.Name!)?.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name)
-            .OfType<string>()
-            .Where(n => n != TimeKey)
-            .OrderByDescending(n => n.Length),
-    ];
+    internal static readonly FrozenSet<string> ApiNames = new[]
+    {
+        "temperature_2m", "apparent_temperature", "wind_speed_10m", "precipitation", "precipitation_probability",
+        "cloud_cover", "pressure_msl", "weather_code", "relative_humidity_2m", "dew_point_2m", "uv_index",
+        "temperature_2m_spread", "wind_gusts_10m", "visibility", "cape", "rain", "snowfall",
+        "soil_temperature_0_to_10cm", "freezing_level_height", "is_day", "shortwave_radiation", "direct_radiation",
+        "diffuse_radiation", "direct_normal_irradiance", "sunshine_duration", "wind_direction_10m",
+        "global_tilted_irradiance", "snow_depth", "wet_bulb_temperature_2m", "snowfall_height",
+        "precipitation_spread", "wind_speed_10m_spread",
+    }.ToFrozenSet();
+
+    private static readonly string[] BaseNames = [.. ApiNames.OrderByDescending(n => n.Length)];
 
     public override WeatherResponse Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         using var document = JsonDocument.ParseValue(ref reader);
         var root = document.RootElement;
-        var latitude = root.TryGetProperty("latitude", out var lat) ? lat.GetDouble() : 0;
-        var longitude = root.TryGetProperty("longitude", out var lon) ? lon.GetDouble() : 0;
-        if (!root.TryGetProperty("hourly", out var hourly) || hourly.ValueKind != JsonValueKind.Object)
+        var latitude = root.TryGetProperty(ClientRequest.Latitude, out var lat) ? lat.GetDouble() : 0;
+        var longitude = root.TryGetProperty(ClientRequest.Longitude, out var lon) ? lon.GetDouble() : 0;
+        if (!root.TryGetProperty(ClientRequest.Hourly, out var hourly) || hourly.ValueKind != JsonValueKind.Object)
         {
             return new WeatherResponse(latitude, longitude, null);
         }

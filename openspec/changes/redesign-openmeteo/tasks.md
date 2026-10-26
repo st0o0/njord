@@ -24,11 +24,11 @@
 
 ## 3. Converter fix and client query constants
 
-- [ ] 3.1 In `src/Njord.OpenMeteo/WeatherResponseConverter.cs`, replace the reflected `BaseNames` static field (which reads `[JsonPropertyName]` via reflection) with a hand-written `FrozenSet<string>` constant listing the ~30 API variable base names. Add a test in `src/Njord.OpenMeteo.Tests/WeatherModelResponseSpec.cs` asserting every `[JsonPropertyName]` on `WeatherHourlyData` constructor parameters appears in the `FrozenSet`.
+- [x] 3.1 In `src/Njord.OpenMeteo/WeatherResponseConverter.cs`, replace the reflected `BaseNames` static field (which reads `[JsonPropertyName]` via reflection) with a hand-written `FrozenSet<string>` constant listing the ~30 API variable base names. Add a test in `src/Njord.OpenMeteo.Tests/WeatherModelResponseSpec.cs` asserting every `[JsonPropertyName]` on `WeatherHourlyData` constructor parameters appears in the `FrozenSet`.
 
-- [ ] 3.2 Extract named constants in `src/Njord.OpenMeteo/ClientRequest.cs` for query keys (`hourly`, `daily`, `monthly`, `models`, `timeformat`, `timezone`, `latitude`, `longitude`) and fixed values (`unixtime`, `UTC`). Extract endpoint path constants (one per domain). Update all six clients and `ClientRequest` to use the constants instead of inline string literals.
+- [x] 3.2 Extract named constants in `src/Njord.OpenMeteo/ClientRequest.cs` for query keys (`hourly`, `daily`, `monthly`, `models`, `timeformat`, `timezone`, `latitude`, `longitude`) and fixed values (`unixtime`, `UTC`). Extract endpoint path constants (one per domain). Update all six clients and `ClientRequest` to use the constants instead of inline string literals.
 
-- [ ] 3.3 Verify phase 3: build and run all test suites. Commit.
+- [x] 3.3 Verify phase 3: build and run all test suites. Commit.
 
 ## 4. Gateway rewrite (stream-based dispatch)
 
