@@ -10,7 +10,6 @@ internal sealed class GatewayBudgetGate : IGatewayBudgetGate
     private readonly IBudgetProvider _provider;
     private readonly IActorRef _trackerActor;
     private readonly TimeProvider _timeProvider;
-    // Used from the gateway's single-threaded fetch stage (MapAsync(1)); no synchronization needed.
     private double _tokens;
     private double _tokensPerSecond;
     private int _maxBurst;
@@ -39,7 +38,6 @@ internal sealed class GatewayBudgetGate : IGatewayBudgetGate
         }
 
         _tokens -= weight;
-
         _trackerActor.Tell(new RecordApiCall(weight));
         return true;
     }

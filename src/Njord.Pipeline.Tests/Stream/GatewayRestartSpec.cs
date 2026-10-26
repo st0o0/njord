@@ -1,5 +1,4 @@
 using Akka.Actor;
-using Akka.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
@@ -35,18 +34,16 @@ public sealed class GatewayRestartSpec : NjordActorSpec
 
     protected override bool UseTestPersistence => false;
 
-    // Plays the poll shard region: the gateway sends every reply here.
-    private Akka.TestKit.TestProbe _region = null!;
-
-    protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider) =>
-        builder.WithActors((_, _) => _region = CreateTestProbe());
+    private static NjordOptions Options => new()
+    {
+        Locations = [new LocationOptions { Name = Location, Latitude = 47.05, Longitude = 8.31 }],
+    };
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_gateway_restart_keeps_the_consumer_stream_open()
     {
         var ct = TestContext.Current.CancellationToken;
         ActorRegistry.Register<IBudgetTracker>(Sys.ActorOf(Props.Create(() => new SilentActor()), "budget"), overwrite: true);
-        ActorRegistry.Register<IPollRegion>(_region.Ref, overwrite: true);
         var pipeline = StartPipeline();
         ActorRegistry.Register<IForecastPipeline>(pipeline, overwrite: true);
         var consumer = CreateTestProbe();
@@ -59,8 +56,8 @@ public sealed class GatewayRestartSpec : NjordActorSpec
         // The budget read fault fails the gateway's private stream; the gateway fails and is restarted.
         _budget.ThrowOnNextRead = true;
         _time.Advance(TimeSpan.FromSeconds(6));
-        // The fault is thrown in the fetch stage; it fails the stream and the restart drops the request without a reply.
-        gateway.Tell(new FetchDomain(new Location(Location, 47.05, 8.31), DomainKind.Weather));
+        // The fault is thrown inside the request handler, so the restart drops the request without a reply.
+        gateway.Tell(new FetchDomain(new Location(Location, 0, 0), DomainKind.Weather), CreateTestProbe());
 
         await FetchUntilCompletedAsync(gateway, ct);
 
@@ -76,7 +73,6 @@ public sealed class GatewayRestartSpec : NjordActorSpec
     {
         var ct = TestContext.Current.CancellationToken;
         ActorRegistry.Register<IBudgetTracker>(Sys.ActorOf(Props.Create(() => new SilentActor()), "budget"), overwrite: true);
-        ActorRegistry.Register<IPollRegion>(_region.Ref, overwrite: true);
         var outputRequests = 0;
         var pipeline = StartPipeline();
         var proxy = Sys.ActorOf(Props.Create(() => new CountingProxy(pipeline, () => Interlocked.Increment(ref outputRequests))),
@@ -90,20 +86,19 @@ public sealed class GatewayRestartSpec : NjordActorSpec
 
         _budget.ThrowOnNextRead = true;
         _time.Advance(TimeSpan.FromSeconds(6));
-        // The fault is thrown in the fetch stage; it fails the stream and the restart drops the request without a reply.
-        gateway.Tell(new FetchDomain(new Location(Location, 47.05, 8.31), DomainKind.Weather));
+        // The fault is thrown inside the request handler, so the restart drops the request without a reply.
+        gateway.Tell(new FetchDomain(new Location(Location, 0, 0), DomainKind.Weather), CreateTestProbe());
         await FetchUntilCompletedAsync(gateway, ct);
 
         Assert.Equal(1, Volatile.Read(ref outputRequests));
     }
 
     // Until the restarted gateway has re-attached it rejects with PipelineUnavailable; it is asked again then.
-    // Replies go to the poll region, a probe here.
     private async Task FetchUntilCompletedAsync(IActorRef gateway, CancellationToken ct) =>
         await AwaitAssertAsync(async () =>
         {
-            gateway.Tell(new FetchDomain(new Location(Location, 47.05, 8.31), DomainKind.Weather));
-            var reply = await _region.ExpectMsgAsync<FetchDomainResponse>(TimeSpan.FromSeconds(1), cancellationToken: ct);
+            var reply = await gateway.Ask<FetchDomainResponse>(new FetchDomain(new Location(Location, 0, 0), DomainKind.Weather),
+                TestTimeouts.RealTimeWaitMax, ct);
             Assert.IsType<FetchDomainCompleted>(reply);
         }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(200), cancellationToken: ct);
 
@@ -118,8 +113,9 @@ public sealed class GatewayRestartSpec : NjordActorSpec
             [DomainKind.Seasonal] = _seasonal,
             [DomainKind.Satellite] = _satellite,
         };
+        var options = Wrap(Options);
         return Sys.ActorOf(
-            Props.Create(() => new OpenMeteoGateway(clients, _time, _budget, FetchTimeouts.Default)),
+            Props.Create(() => new OpenMeteoGateway(clients, _time, options, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }
 
@@ -128,6 +124,9 @@ public sealed class GatewayRestartSpec : NjordActorSpec
         var rules = FeatureServices.AllFeatureRules();
         return Sys.ActorOf(Props.Create(() => new ForecastPipeline(_time, rules)), $"pipeline-{Guid.NewGuid():N}");
     }
+
+    private static IOptions<T> Wrap<T>(T value)
+        where T : class => Microsoft.Extensions.Options.Options.Create(value);
 
     private sealed class FaultyOnceBudgetProvider : IBudgetProvider
     {

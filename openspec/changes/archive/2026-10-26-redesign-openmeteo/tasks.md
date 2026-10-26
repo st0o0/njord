@@ -32,13 +32,13 @@
 
 ## 4. Gateway rewrite (stream-based dispatch)
 
-- [x] 4.1 Rewrite `src/Njord.OpenMeteo/OpenMeteoGateway.cs` to use stream-based dispatch: `Source.Queue<(FetchDomain, IActorRef)>` materialized in `PreStart`, `MapAsync(1, ...)` for budget gate (`TryAcquire`, rejected requests reply inline with `FetchDomainRejected`), `SelectAsyncUnordered(maxConcurrent, ...)` for client fetch, internal branch offering `DomainDataReceived` to the pipeline queue on `FetchSuccess`, and `Sink.ActorRef(Self)` delivering results for reply routing. The actor body handles lifecycle (PreStart materializes the stream + resolves pipeline SinkRef), queue offering on `FetchDomain`, and reply routing from stream results. Target ~100 LOC.
+- [ ] 4.1 Rewrite `src/Njord.OpenMeteo/OpenMeteoGateway.cs` to use stream-based dispatch: `Source.Queue<(FetchDomain, IActorRef)>` materialized in `PreStart`, `MapAsync(1, ...)` for budget gate (`TryAcquire`, rejected requests reply inline with `FetchDomainRejected`), `SelectAsyncUnordered(maxConcurrent, ...)` for client fetch, internal branch offering `DomainDataReceived` to the pipeline queue on `FetchSuccess`, and `Sink.ActorRef(Self)` delivering results for reply routing. The actor body handles lifecycle (PreStart materializes the stream + resolves pipeline SinkRef), queue offering on `FetchDomain`, and reply routing from stream results. Target ~100 LOC.
 
-- [x] 4.2 Update gateway tests: rewrite `src/Njord.OpenMeteo.Tests/OpenMeteoGatewayRoutingSpec.cs` for stream-based dispatch (budget rejection in stream, bounded concurrency, correct sender routing). Rewrite `src/Njord.OpenMeteo.Tests/OpenMeteoGatewayAttachSpec.cs` for the new pipeline attachment flow. Ensure `src/Njord.OpenMeteo.Tests/GatewayBudgetGateSpec.cs` still passes (budget gate itself unchanged).
+- [ ] 4.2 Update gateway tests: rewrite `src/Njord.OpenMeteo.Tests/OpenMeteoGatewayRoutingSpec.cs` for stream-based dispatch (budget rejection in stream, bounded concurrency, correct sender routing). Rewrite `src/Njord.OpenMeteo.Tests/OpenMeteoGatewayAttachSpec.cs` for the new pipeline attachment flow. Ensure `src/Njord.OpenMeteo.Tests/GatewayBudgetGateSpec.cs` still passes (budget gate itself unchanged).
 
-- [x] 4.3 Remove the PipeTo-based fetch logic and inline telemetry from the old gateway. Ensure the `FetchDomain`/`FetchDomainCompleted`/`FetchDomainFailed`/`FetchDomainRejected` contract is preserved. Pending request tracking uses monotonic ids as before.
+- [ ] 4.3 Remove the PipeTo-based fetch logic and inline telemetry from the old gateway. Ensure the `FetchDomain`/`FetchDomainCompleted`/`FetchDomainFailed`/`FetchDomainRejected` contract is preserved. Pending request tracking uses monotonic ids as before.
 
-- [x] 4.4 Verify phase 4: build and run all test suites, including `src/Njord.Pipeline.Tests/` and `src/Njord.IntegrationTests/`. Commit.
+- [ ] 4.4 Verify phase 4: build and run all test suites, including `src/Njord.Pipeline.Tests/` and `src/Njord.IntegrationTests/`. Commit.
 
 ## 5. Project restructuring
 
