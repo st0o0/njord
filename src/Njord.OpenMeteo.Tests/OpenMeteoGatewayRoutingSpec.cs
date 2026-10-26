@@ -1,9 +1,7 @@
 using Akka.Actor;
 using Akka.Hosting;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
-using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Forecast;
@@ -30,6 +28,9 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
     private readonly FakeSatelliteRadiationClient _satellite = new();
     private Akka.TestKit.TestProbe _attached = null!;
     private Akka.TestKit.TestProbe _forecasts = null!;
+    private Akka.TestKit.TestProbe _region = null!;
+
+    private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
 
     protected override bool UseTestPersistence => false;
 
@@ -39,28 +40,29 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
         {
             _attached = CreateTestProbe();
             _forecasts = CreateTestProbe();
+            _region = CreateTestProbe();
+            registry.Register<IPollRegion>(_region.Ref);
             registry.Register<IBudgetTracker>(system.ActorOf(Props.Create(() => new ForwardingActor(CreateTestProbe().Ref)), "budget"));
             registry.Register<IForecastPipeline>(system.ActorOf(
                 Props.Create(() => new FakeForecastPipeline(_attached.Ref, _forecasts.Ref, true)), "pipeline"));
-            var options = Options.Create(AppSettingsDefaults.Options<NjordOptions>(o =>
-            {
-                o.Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }];
-            }));
-            IReadOnlyDictionary<DomainKind, IDomainClient> clients = new IDomainClient[] { _weather, _airQuality, _flood, _marine, _seasonal, _satellite }
-                .ToDictionary(c => c.Domain);
             registry.Register<IForecastGateway>(system.ActorOf(
-                Props.Create(() => new OpenMeteoGateway(clients, _time, options, new SwitchableBudgetProvider(), FetchTimeouts.Default)),
+                Props.Create(() => new OpenMeteoGateway(Clients(), _time, new SwitchableBudgetProvider(), FetchTimeouts.Default)),
                 "gateway"));
         });
     }
+
+    private IReadOnlyDictionary<DomainKind, IDomainClient> Clients(params DomainKind[] without) =>
+        new IDomainClient[] { _weather, _airQuality, _flood, _marine, _seasonal, _satellite }
+            .Where(c => !without.Contains(c.Domain))
+            .ToDictionary(c => c.Domain);
 
     private IActorRef Gateway => GetActor<IForecastGateway>();
 
     private async Task<(FetchDomainCompleted Completed, DomainDataReceived Received)> FetchAsync(DomainKind domain, CancellationToken ct)
     {
         await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        Gateway.Tell(new FetchDomain(new Location("lucerne", 0, 0), domain));
-        var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        Gateway.Tell(new FetchDomain(Lucerne, domain));
+        var completed = await _region.ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         var received = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         return (completed, received);
     }
@@ -155,9 +157,9 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
         await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         _flood.Fails = true;
 
-        Gateway.Tell(new FetchDomain(new Location("lucerne", 0, 0), DomainKind.Flood));
+        Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Flood));
 
-        var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var failed = await _region.ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Flood, failed.Domain),
             () => Assert.Equal(PollFailureReason.MalformedPayload, failed.Reason));
@@ -171,9 +173,9 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
         await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         _weather.Throws = true;
 
-        Gateway.Tell(new FetchDomain(new Location("lucerne", 0, 0), DomainKind.Weather));
+        Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Weather));
 
-        var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var failed = await _region.ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Weather, failed.Domain),
             () => Assert.Equal(PollFailureReason.Transport, failed.Reason));
@@ -181,38 +183,66 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task An_unknown_location_fails_without_a_fetch()
+    public async Task A_domain_without_a_client_is_rejected_without_a_fetch()
     {
         var ct = TestContext.Current.CancellationToken;
         await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var gateway = Sys.ActorOf(
+            Props.Create(() => new OpenMeteoGateway(Clients(DomainKind.Flood), _time, new SwitchableBudgetProvider(), FetchTimeouts.Default)),
+            "gateway-without-flood");
+        await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-        Gateway.Tell(new FetchDomain(new Location("atlantis", 0, 0), DomainKind.Weather));
+        gateway.Tell(new FetchDomain(Lucerne, DomainKind.Flood));
 
-        var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var rejected = await _region.ExpectMsgAsync<FetchDomainRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Multiple(
-            () => Assert.Equal(PollFailureReason.ModelUnavailable, failed.Reason),
-            () => Assert.Equal(0, _weather.Calls));
+            () => Assert.Equal(FetchRejectionReason.PipelineUnavailable, rejected.Reason),
+            () => Assert.Equal(DomainKind.Flood, rejected.Domain),
+            () => Assert.Equal(0, _flood.Calls));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task The_reply_carries_the_configured_coordinates_not_the_requested_ones()
+    public async Task The_reply_carries_the_requested_location()
     {
         var (completed, _) = await FetchAsync(DomainKind.Weather, TestContext.Current.CancellationToken);
 
-        Assert.Equal(new Location("lucerne", 47.05, 8.31), completed.Location);
+        Assert.Equal(Lucerne, completed.Location);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_failure_reply_carries_the_configured_coordinates()
+    public async Task A_failure_reply_carries_the_requested_location()
     {
         var ct = TestContext.Current.CancellationToken;
         await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         _weather.Throws = true;
 
-        Gateway.Tell(new FetchDomain(new Location("lucerne", 0, 0), DomainKind.Weather));
+        Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Weather));
 
-        var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        Assert.Equal(new Location("lucerne", 47.05, 8.31), failed.Location);
+        var failed = await _region.ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        Assert.Equal(Lucerne, failed.Location);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_full_request_queue_rejects_the_overflow_as_queue_full()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        _weather.Hold();
+
+        try
+        {
+            for (var i = 0; i < 100; i++)
+            {
+                Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Weather));
+            }
+
+            var rejected = await _region.ExpectMsgAsync<FetchDomainRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+            Assert.Equal(FetchRejectionReason.QueueFull, rejected.Reason);
+        }
+        finally
+        {
+            _weather.Release();
+        }
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -222,8 +252,8 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
         _weather.ModelIds = ["ukmo", "ecmwf"];
         await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-        Gateway.Tell(new FetchDomain(new Location("lucerne", 0, 0), DomainKind.Weather));
-        var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Weather));
+        var completed = await _region.ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         var first = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         var second = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         var primary = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);

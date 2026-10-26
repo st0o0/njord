@@ -3,7 +3,7 @@ using Akka.Event;
 using StreamDecider = Akka.Streams.Supervision.Decider;
 using StreamDirective = Akka.Streams.Supervision.Directive;
 
-namespace Njord.Pipeline;
+namespace Njord.Core.Actors;
 
 public static class StreamSupervision
 {

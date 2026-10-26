@@ -1,12 +1,9 @@
-using System.Collections.Immutable;
 using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Actors;
-using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Forecast;
@@ -17,220 +14,177 @@ using Servus.Akka;
 
 namespace Njord.OpenMeteo.Gateway;
 
-// Request/response gateway: every FetchDomain ends with exactly one Completed, Failed or Rejected reply.
-// The pipeline hubs outlive this actor, so it attaches once in PreStart; a failed or lost attach crashes the
-// actor and supervision restarts it.
+// Request/response gateway: every FetchDomain ends with exactly one Completed, Failed or Rejected reply, routed
+// through the poll shard region to the owning PollWorker. The pipeline hubs outlive this actor, so it attaches once
+// in PreStart; a failed or lost attach crashes the actor and supervision restarts it.
 public sealed class OpenMeteoGateway : ReceiveActor
 {
-    private const int ForecastBranchSize = 16;
+    private const int MaxConcurrentFetches = 3;
+    private const int QueueSize = 64;
+    private const int ForecastBufferSize = 16;
 
-    // Ids are unique across incarnations: a restarted gateway keeps its ActorRef, so late results of the
-    // previous incarnation must never match anything of the current one.
-    private long _lastId;
+    // A restarted gateway keeps its ActorRef, so a late handshake answer of the previous incarnation must not match.
+    private static long AttachCounter;
 
-    private sealed record PipelineResolved(IActorRef Pipeline);
-    private sealed record AttachFailed(string Reason, Exception? Cause);
-    private sealed record BranchEnded(long BranchId, Exception? Cause) : IDeadLetterSuppression;
-    private sealed record DomainFetchDone(long RequestId, DomainKind Domain, IDomainForecast Result, ImmutableDictionary<string, IDomainForecast> Models);
-    private sealed record DomainFetchFailed(long RequestId, PollFailureReason Reason, string? Detail);
-    private sealed record DomainBranchOffered(long RequestId, int Hash, IQueueOfferResult Result);
+    private sealed record Offered(FetchDomain Request, IQueueOfferResult Result);
 
-    private sealed record PendingDomainRequest(IActorRef Requester, Location Location, DomainKind Domain, Location Resolved);
+
+    private sealed record GatedRequest(FetchDomain Request, IDomainClient? Client, FetchRejectionReason? Rejection);
+
+    private sealed record FetchAttempt(FetchDomain Request, FetchResult? Result, FetchRejectionReason? Rejection, Exception? Error);
 
     private readonly IReadOnlyDictionary<DomainKind, IDomainClient> _clients;
     private readonly TimeProvider _timeProvider;
-    private readonly NjordOptions _options;
     private readonly FetchTimeouts _timeouts;
     private readonly IGatewayBudgetGate _gate;
-    private readonly Dictionary<long, PendingDomainRequest> _pending = new();
+    private readonly IActorRef _pollRegion;
+    private readonly CancellationTokenSource _stopped = new();
+    private readonly long _attachId = Interlocked.Increment(ref AttachCounter);
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
-    private ISourceQueueWithComplete<DomainDataReceived>? _forecastQueue;
-    private long _branchId;
+    private ISourceQueueWithComplete<FetchDomain>? _requestQueue;
 
     public OpenMeteoGateway(
         IReadOnlyDictionary<DomainKind, IDomainClient> clients,
         TimeProvider timeProvider,
-        IOptions<NjordOptions> options,
         IBudgetProvider budgetProvider,
         FetchTimeouts timeouts)
     {
         _clients = clients;
         _timeProvider = timeProvider;
-        _options = options.Value;
         _timeouts = timeouts;
+        _pollRegion = Context.GetActor<IPollRegion>();
         _gate = new GatewayBudgetGate(budgetProvider, Context.GetActor<IBudgetTracker>(), timeProvider);
 
         Receive<FetchDomain>(OnFetchDomain);
-        Receive<DomainFetchDone>(OnDomainFetchDone);
-        Receive<DomainFetchFailed>(msg => Reply(msg.RequestId, p => new FetchDomainFailed(p.Resolved, p.Domain, msg.Reason, msg.Detail)));
-        Receive<DomainBranchOffered>(OnDomainBranchOffered);
-
-        Receive<PipelineResolved>(OnPipelineResolved);
-        Receive<RequestForecastSinkCompleted>(OnSinkCompleted);
-        Receive<RequestForecastSinkFailed>(msg => throw new InvalidOperationException("The pipeline could not create a SinkRef", msg.Cause));
-        Receive<AttachFailed>(msg => throw new InvalidOperationException($"Not attached to the pipeline input: {msg.Reason}", msg.Cause));
-        Receive<BranchEnded>(msg => msg.BranchId == _branchId,
-            msg => throw new InvalidOperationException("The forecast branch to the pipeline ended", msg.Cause));
+        Receive<Offered>(OnOffered);
+        Receive<RequestForecastSinkCompleted>(msg => msg.RequestId == _attachId, OnSinkCompleted);
+        Receive<RequestForecastSinkFailed>(msg => msg.RequestId == _attachId,
+            msg => throw new InvalidOperationException("The pipeline could not create a SinkRef", msg.Cause));
         Receive<Terminated>(_ => throw new InvalidOperationException("The pipeline terminated"));
     }
 
     protected override void PreStart()
     {
-        Context.GetActorAsync<IForecastPipeline>().PipeTo(Self,
-            success: pipeline => new PipelineResolved(pipeline),
-            failure: ex => new AttachFailed("the pipeline could not be resolved", ex));
+        var pipeline = Context.GetActor<IForecastPipeline>();
+        Context.Watch(pipeline);
+        pipeline.Ask<RequestForecastSinkResponse>(new RequestForecastSink(_attachId), _timeouts.Admission).PipeTo(Self,
+            success: response => response,
+            failure: ex => new RequestForecastSinkFailed(_attachId, ex));
     }
 
-    protected override void PostStop() => _forecastQueue?.Complete();
+    protected override void PostStop() => _stopped.Cancel();
 
     private void OnFetchDomain(FetchDomain msg)
     {
-        var location = _options.FindLocation(msg.Location.Name);
-        if (location is null)
+        if (_requestQueue is not { } queue)
         {
-            Sender.Tell(new FetchDomainFailed(msg.Location, msg.Domain,
-                PollFailureReason.ModelUnavailable, $"Location '{msg.Location}' not found in config"));
+            _pollRegion.Tell(new FetchDomainRejected(msg.Location, msg.Domain, FetchRejectionReason.PipelineUnavailable));
             return;
         }
 
-        var id = _lastId++;
-        _pending[id] = new PendingDomainRequest(Sender, msg.Location, msg.Domain, new Location(location.Name, location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault()));
-
-        if (!_clients.TryGetValue(msg.Domain, out var client))
-        {
-            Reply(id, p => new FetchDomainRejected(p.Resolved, p.Domain, FetchRejectionReason.PipelineUnavailable));
-            return;
-        }
-
-        if (!_gate.TryAcquire(client.CallWeight))
-        {
-            Reply(id, p => new FetchDomainRejected(p.Resolved, p.Domain, FetchRejectionReason.Budget));
-            return;
-        }
-
-        FetchAsync(id, client, location).PipeTo(Self,
-            success: result => result,
-            failure: ex =>
-            {
-                _log.Warning(ex, "Domain fetch for {Location}/{Domain} threw {Type}", msg.Location, msg.Domain, ex.GetType().Name);
-                return new DomainFetchFailed(id, PollFailureReason.Transport, $"Fetch threw {ex.GetType().Name}: {ex.Message}");
-            });
+        queue.OfferAsync(msg).PipeTo(Self,
+            success: result => new Offered(msg, result),
+            failure: ex => new Offered(msg, new QueueOfferResult.Failure(ex)));
     }
 
-    private async Task<object> FetchAsync(long id, IDomainClient client, LocationOptions location)
+    private void OnOffered(Offered msg)
     {
-        var domain = client.Domain;
-        var domainTag = domain.ToTelemetryTag();
-        var tags = new[]
-        {
-            new KeyValuePair<string, object?>("location", location.Name),
-            new KeyValuePair<string, object?>("domain", domainTag),
-        };
-
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        FetchResult result;
-        try
-        {
-            result = await client.FetchAsync(location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault(),
-                _timeProvider.GetUtcNow(), CancellationToken.None);
-        }
-        catch
-        {
-            Telemetry.FetchTotal.Add(1, tags[0], tags[1], new KeyValuePair<string, object?>("outcome", "failure"));
-            throw;
-        }
-
-        sw.Stop();
-        var success = result is FetchSuccess;
-        Telemetry.FetchTotal.Add(1, tags[0], tags[1], new KeyValuePair<string, object?>("outcome", success ? "success" : "failure"));
-        if (success)
-        {
-            Telemetry.FetchDuration.Record(sw.Elapsed.TotalSeconds, tags[0], tags[1]);
-        }
-
-        return result switch
-        {
-            FetchSuccess ok => new DomainFetchDone(id, domain, ok.Forecast, ok.Models),
-            FetchError error => new DomainFetchFailed(id, error.Reason, error.Message),
-            _ => new DomainFetchFailed(id, PollFailureReason.MalformedPayload, $"The {domainTag} endpoint returned no usable data"),
-        };
-    }
-
-    private void OnDomainFetchDone(DomainFetchDone msg)
-    {
-        if (!_pending.TryGetValue(msg.RequestId, out var pending))
+        if (msg.Result is QueueOfferResult.Enqueued)
         {
             return;
         }
 
-        if (_forecastQueue is not { } branch)
-        {
-            Reply(msg.RequestId, p => new FetchDomainRejected(p.Resolved, p.Domain, FetchRejectionReason.PipelineUnavailable));
-            return;
-        }
-
-        var hash = msg.Result.GetHashCode();
-        // Per-model data first so the primary forecast is evaluated with all models merged in.
-        var offers = msg.Models
-            .Select(model => new DomainDataReceived(pending.Resolved, msg.Domain, model.Value, model.Key))
-            .Append(new DomainDataReceived(pending.Resolved, msg.Domain, msg.Result))
-            .ToList();
-
-        OfferAllAsync(branch, offers).PipeTo(Self,
-            success: result => new DomainBranchOffered(msg.RequestId, hash, result),
-            failure: ex => new DomainBranchOffered(msg.RequestId, hash, new QueueOfferResult.Failure(ex)));
-    }
-
-    private static async Task<IQueueOfferResult> OfferAllAsync(
-        ISourceQueueWithComplete<DomainDataReceived> branch,
-        IReadOnlyList<DomainDataReceived> offers)
-    {
-        IQueueOfferResult last = QueueOfferResult.Enqueued.Instance;
-        foreach (var offer in offers)
-        {
-            last = await branch.OfferAsync(offer);
-            if (last is not QueueOfferResult.Enqueued)
-            {
-                return last;
-            }
-        }
-
-        return last;
-    }
-
-    private void OnDomainBranchOffered(DomainBranchOffered msg) =>
-        Reply(msg.RequestId, p => msg.Result is QueueOfferResult.Enqueued
-            ? new FetchDomainCompleted(p.Resolved, p.Domain, msg.Hash)
-            : new FetchDomainRejected(p.Resolved, p.Domain, FetchRejectionReason.PipelineUnavailable));
-
-    private void OnPipelineResolved(PipelineResolved msg)
-    {
-        Context.Watch(msg.Pipeline);
-        msg.Pipeline.Ask<RequestForecastSinkResponse>(new RequestForecastSink(_lastId++), _timeouts.Admission).PipeTo(Self,
-            success: response => response,
-            failure: ex => new AttachFailed("the pipeline did not answer the SinkRef request", ex));
+        var reason = msg.Result is QueueOfferResult.Dropped
+            ? FetchRejectionReason.QueueFull
+            : FetchRejectionReason.PipelineUnavailable;
+        _pollRegion.Tell(new FetchDomainRejected(msg.Request.Location, msg.Request.Domain, reason));
     }
 
     private void OnSinkCompleted(RequestForecastSinkCompleted msg)
     {
-        var branchId = _branchId = _lastId++;
-        var (queue, done) = Source.Queue<DomainDataReceived>(ForecastBranchSize, OverflowStrategy.DropHead)
-            .WatchTermination(Keep.Both)
+        var clients = _clients;
+        var gate = _gate;
+        var timeProvider = _timeProvider;
+        var stopped = _stopped.Token;
+        var pollRegion = _pollRegion;
+
+        _requestQueue = Source.Queue<FetchDomain>(QueueSize, OverflowStrategy.DropNew)
+            .Select(request =>
+            {
+                if (!clients.TryGetValue(request.Domain, out var client))
+                {
+                    return new GatedRequest(request, null, FetchRejectionReason.PipelineUnavailable);
+                }
+
+                return gate.TryAcquire(client.CallWeight)
+                    ? new GatedRequest(request, client, null)
+                    : new GatedRequest(request, null, FetchRejectionReason.Budget);
+            })
+            .SelectAsyncUnordered(MaxConcurrentFetches, async gated =>
+            {
+                if (gated.Rejection is { } rejection)
+                {
+                    return new FetchAttempt(gated.Request, null, rejection, null);
+                }
+
+                var location = gated.Request.Location;
+                var domainTag = gated.Request.Domain.ToTelemetryTag();
+                var locationTag = new KeyValuePair<string, object?>("location", location.Name);
+                var domainKey = new KeyValuePair<string, object?>("domain", domainTag);
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                try
+                {
+                    var result = await gated.Client!.FetchAsync(location.Latitude, location.Longitude,
+                        timeProvider.GetUtcNow(), stopped);
+                    var success = result is FetchSuccess;
+                    Telemetry.FetchTotal.Add(1, locationTag, domainKey,
+                        new KeyValuePair<string, object?>("outcome", success ? "success" : "failure"));
+                    if (success)
+                    {
+                        Telemetry.FetchDuration.Record(sw.Elapsed.TotalSeconds, locationTag, domainKey);
+                    }
+
+                    return new FetchAttempt(gated.Request, result, null, null);
+                }
+                catch (Exception ex)
+                {
+                    Telemetry.FetchTotal.Add(1, locationTag, domainKey, new KeyValuePair<string, object?>("outcome", "failure"));
+                    return new FetchAttempt(gated.Request, null, null, ex);
+                }
+            })
+            // Replies go to the poll region with a plain Tell: Sink.ActorRef would also send its completion or failure marker there, which the shard extractor cannot route.
+            .AlsoToMaterialized(Flow.Create<FetchAttempt>()
+                .Select(attempt =>
+                {
+                    var (location, domain) = (attempt.Request.Location, attempt.Request.Domain);
+                    FetchDomainResponse reply = attempt switch
+                    {
+                        { Rejection: { } rejection } => new FetchDomainRejected(location, domain, rejection),
+                        { Error: { } ex } => new FetchDomainFailed(location, domain, PollFailureReason.Transport,
+                            $"Fetch threw {ex.GetType().Name}: {ex.Message}"),
+                        { Result: FetchSuccess ok } => new FetchDomainCompleted(location, domain, ok.Forecast.GetHashCode()),
+                        { Result: FetchError error } => new FetchDomainFailed(location, domain, error.Reason, error.Message),
+                        _ => new FetchDomainFailed(location, domain, PollFailureReason.MalformedPayload,
+                            $"The {domain.ToTelemetryTag()} endpoint returned no usable data"),
+                    };
+                    return reply;
+                })
+                .To(Sink.ForEach<FetchDomainResponse>(reply => pollRegion.Tell(reply))), Keep.Left)
+            .Where(attempt => attempt.Result is FetchSuccess)
+            // Per-model data first so the primary forecast is evaluated with all models merged in.
+            .SelectMany(attempt =>
+            {
+                var ok = (FetchSuccess)attempt.Result!;
+                var (location, domain) = (attempt.Request.Location, attempt.Request.Domain);
+                return ok.Models
+                    .Select(model => new DomainDataReceived(location, domain, model.Value, model.Key))
+                    .Append(new DomainDataReceived(location, domain, ok.Forecast));
+            })
+            .Buffer(ForecastBufferSize, OverflowStrategy.DropHead)
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
             .To(msg.SinkRef.Sink)
             .Run(Context.Materializer());
-        done.PipeTo(Self,
-            success: () => new BranchEnded(branchId, null),
-            failure: ex => new BranchEnded(branchId, ex));
-        _forecastQueue = queue;
         _log.Info("Attached to the pipeline input");
-    }
-
-    private void Reply(long requestId, Func<PendingDomainRequest, FetchDomainResponse> reply)
-    {
-        if (_pending.Remove(requestId, out var p))
-        {
-            p.Requester.Tell(reply(p));
-        }
     }
 }

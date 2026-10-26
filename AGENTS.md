@@ -22,9 +22,9 @@ src/
   Njord.Persistence/    # Extend-only records, no Njord refs: Events/Budget, Events/Polling
   Njord.Core/           # (-> Forecast, Messages, Persistence)
     ActorKeys.cs        #   marker interfaces for every resolvable actor
-    Actors/             #   IActorRegistration, Forecast/Pipeline stream handshakes shared across libraries
-                        #   (actor plumbing used by one library lives there: ShardMessageExtractor in Polling,
-                        #   StreamSupervision in Pipeline, GrpcStreamMessages in Grpc)
+    Actors/             #   IActorRegistration, StreamSupervision, Forecast/Pipeline stream handshakes shared across
+                        #   libraries (actor plumbing used by one library lives there: ShardMessageExtractor in
+                        #   Polling, GrpcStreamMessages in Grpc)
     Domain/             #   IFeatureRule, FeatureRule<TInput>, FeatureDescriptor, FeatureCategory, FeatureContext,
                         #   FeatureInputs (typed inputs), FeatureResolution, FetchPlan, DomainRequirements,
                         #   LocationForecast, RingBuffer, ForecastQueries, DomainDataReceived
@@ -82,8 +82,11 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
   domains; each domain learns its own update cycle (Discovery -> learned cycle with miss tolerance).
 - **Streams for data flow, actors for lifecycle; the stable side owns the hubs.** Domain data and
   pipeline events travel as Akka.Streams (StreamRefs); requests, outcomes and scheduling as messages.
-- **Gateway is request/response.** `FetchDomain` gets exactly one `FetchDomainCompleted` (hash only),
-  `FetchDomainFailed` or `FetchDomainRejected`; data goes to the pipeline through a SinkRef branch.
+- **Gateway is stream-only.** PollWorker sends `FetchDomain` via Tell; the gateway's stream checks
+  the budget gate (synchronous `Select`), fetches concurrently (`SelectAsyncUnordered`), routes replies
+  (`FetchDomainCompleted`/`Failed`/`Rejected`) to the poll-worker shard region via `AlsoTo`, and feeds
+  successes straight to the pipeline SinkRef (the stream's main sink). PollWorker owns a reply-timeout
+  timer. `FetchDomainResponse` implements `IWithLocationId` for shard routing.
 - **Pipeline owns both hubs** (`MergeHub` in, `BroadcastHub` out). All analysis state lives in the
   `FeatureEngine` closure, so a gateway restart loses nothing.
 - **Never `Zip` domain sub-streams.** Domains arrive independently; rules see the current

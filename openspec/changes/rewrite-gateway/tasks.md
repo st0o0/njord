@@ -16,25 +16,25 @@
 
 ## 4. Gateway rewrite
 
-- [ ] 4.1 Rewrite `src/Njord.OpenMeteo/Gateway/OpenMeteoGateway.cs`. Constructor resolves `IPollRegion` and `IBudgetTracker` synchronously via `Context.GetActor<T>()`. PreStart resolves `IForecastPipeline` synchronously, watches it, asks for SinkRef. `OnSinkCompleted` materializes the stream as one inline expression: `Source.Queue<FetchDomain>(64, DropNew)` → `.Select(gate check lambda)` → `.SelectAsyncUnordered(3, fetch lambda with CTS token)` → `.AlsoTo(Flow.Select(toReply).To(Sink.ActorRef<FetchDomainResponse>(region, streamEndMarker)))` → `.Where(success)` → `.SelectMany(toDomainDataReceived)` → `.Buffer(16, DropHead)` → `.WithAttributes(StreamSupervision.LoggingDecider)` → `.To(sinkRef.Sink)` → `.Run(materializer)`. Remove: `_pending`, `PendingDomainRequest`, `DomainFetchDone`, `DomainFetchFailed`, `DomainBranchOffered`, `PipelineResolved`, `AttachFailed`, `ResolveAsync`, `_forecastQueue`, `BranchEnded`, `NjordOptions` constructor param. Keep: `Offered` handler for queue-full rejection (rejects to `_pollRegion`), `RequestForecastSinkFailed`/`Terminated` handlers that throw. PostStop cancels `_stopped` CTS only, no `_requestQueue.Complete()`. Remove `IOptions<NjordOptions>` from `src/Njord.OpenMeteo/Configuration/OpenMeteoSetupContainer.cs` gateway registration.
+- [x] 4.1 Rewrite `src/Njord.OpenMeteo/Gateway/OpenMeteoGateway.cs`. Constructor resolves `IPollRegion` and `IBudgetTracker` synchronously via `Context.GetActor<T>()`. PreStart resolves `IForecastPipeline` synchronously, watches it, asks for SinkRef. `OnSinkCompleted` materializes the stream as one inline expression: `Source.Queue<FetchDomain>(64, DropNew)` → `.Select(gate check lambda)` → `.SelectAsyncUnordered(3, fetch lambda with CTS token)` → `.AlsoTo(Flow.Select(toReply).To(Sink.ActorRef<FetchDomainResponse>(region, streamEndMarker)))` → `.Where(success)` → `.SelectMany(toDomainDataReceived)` → `.Buffer(16, DropHead)` → `.WithAttributes(StreamSupervision.LoggingDecider)` → `.To(sinkRef.Sink)` → `.Run(materializer)`. Remove: `_pending`, `PendingDomainRequest`, `DomainFetchDone`, `DomainFetchFailed`, `DomainBranchOffered`, `PipelineResolved`, `AttachFailed`, `ResolveAsync`, `_forecastQueue`, `BranchEnded`, `NjordOptions` constructor param. Keep: `Offered` handler for queue-full rejection (rejects to `_pollRegion`), `RequestForecastSinkFailed`/`Terminated` handlers that throw. PostStop cancels `_stopped` CTS only, no `_requestQueue.Complete()`. Remove `IOptions<NjordOptions>` from `src/Njord.OpenMeteo/Configuration/OpenMeteoSetupContainer.cs` gateway registration.
 
-- [ ] 4.2 Remove the `lock` from `src/Njord.OpenMeteo/Budget/GatewayBudgetGate.cs` (the synchronous `Select` stage serializes access; no concurrent callers).
+- [x] 4.2 Remove the `lock` from `src/Njord.OpenMeteo/Budget/GatewayBudgetGate.cs` (the synchronous `Select` stage serializes access; no concurrent callers).
 
 ## 5. Gateway tests
 
-- [ ] 5.1 Rewrite `src/Njord.OpenMeteo.Tests/OpenMeteoGatewayRoutingSpec.cs`: register `IPollRegion` probe and `IForecastPipeline` (via `src/Njord.OpenMeteo.Tests/GatewayTestActors.cs`). Send `FetchDomain` to gateway via Tell. Expect reply on the `IPollRegion` probe (not on `Self`). Test: success reply with hash, failure reply, budget rejection, unknown domain rejection, queue-full rejection before SinkRef handshake. Update `src/Njord.OpenMeteo.Tests/GatewayTestActors.cs` as needed.
+- [x] 5.1 Rewrite `src/Njord.OpenMeteo.Tests/OpenMeteoGatewayRoutingSpec.cs`: register `IPollRegion` probe and `IForecastPipeline` (via `src/Njord.OpenMeteo.Tests/GatewayTestActors.cs`). Send `FetchDomain` to gateway via Tell. Expect reply on the `IPollRegion` probe (not on `Self`). Test: success reply with hash, failure reply, budget rejection, unknown domain rejection, queue-full rejection before SinkRef handshake. Update `src/Njord.OpenMeteo.Tests/GatewayTestActors.cs` as needed.
 
-- [ ] 5.2 Rewrite `src/Njord.OpenMeteo.Tests/OpenMeteoGatewayAttachSpec.cs`: test that when the pipeline actor terminates, the gateway crashes (supervision restarts), re-resolves the pipeline, re-attaches, and the next fetch succeeds. Uses Tell-based contract.
+- [x] 5.2 Rewrite `src/Njord.OpenMeteo.Tests/OpenMeteoGatewayAttachSpec.cs`: test that when the pipeline actor terminates, the gateway crashes (supervision restarts), re-resolves the pipeline, re-attaches, and the next fetch succeeds. Uses Tell-based contract.
 
-- [ ] 5.3 Update `src/Njord.Pipeline.Tests/Stream/GatewayRestartSpec.cs`: replace Ask-based `FetchUntilCompletedAsync` with Tell-based approach. Register `IPollRegion` probe, expect reply there instead of via Ask return.
+- [x] 5.3 Update `src/Njord.Pipeline.Tests/Stream/GatewayRestartSpec.cs`: replace Ask-based `FetchUntilCompletedAsync` with Tell-based approach. Register `IPollRegion` probe, expect reply there instead of via Ask return.
 
-- [ ] 5.4 Verify `src/Njord.OpenMeteo.Tests/GatewayBudgetGateSpec.cs` still passes unchanged (gate API is unchanged, only the lock is removed).
+- [x] 5.4 Verify `src/Njord.OpenMeteo.Tests/GatewayBudgetGateSpec.cs` still passes unchanged (gate API is unchanged, only the lock is removed).
 
 ## 6. Verify and document
 
-- [ ] 6.1 Build, format and run all test suites (see Validation). Commit.
+- [x] 6.1 Build, format and run all test suites (see Validation). Commit.
 
-- [ ] 6.2 Update `AGENTS.md` gateway contract description: replies route via the poll-worker shard region (not to the original sender), PollWorker uses Tell with a reply-timeout timer, pipeline SinkRef is the stream's main sink.
+- [x] 6.2 Update `AGENTS.md` gateway contract description: replies route via the poll-worker shard region (not to the original sender), PollWorker uses Tell with a reply-timeout timer, pipeline SinkRef is the stream's main sink.
 
 ## Validation
 
