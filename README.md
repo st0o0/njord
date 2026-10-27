@@ -13,7 +13,7 @@
   <a href="https://github.com/st0o0/njord/pkgs/container/njord"><img src="https://img.shields.io/badge/ghcr.io-st0o0%2Fnjord-2496ED?style=flat-square&logo=docker&logoColor=white" alt="GHCR" /></a>
   <a href="https://github.com/st0o0/njord/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License" /></a>
   <img src="https://img.shields.io/badge/.NET-10-512bd4?style=flat-square" alt=".NET 10" />
-  <a href="https://st0o0.github.io/njord/"><img src="https://img.shields.io/badge/docs-st0o0.github.io%2Fnjord-2563eb?style=flat-square" alt="Docs" /></a>
+  <a href="https://njord.st0o0.net/"><img src="https://img.shields.io/badge/docs-njord.st0o0.net-2563eb?style=flat-square" alt="Docs" /></a>
 </p>
 
 ---
@@ -76,14 +76,14 @@ See the **[ha-njord](https://github.com/st0o0/ha-njord)** repository for install
 
 ## Documentation
 
-Full documentation is available at **[st0o0.github.io/njord](https://st0o0.github.io/njord/)**:
+Full documentation is available at **[njord.st0o0.net](https://njord.st0o0.net/)**:
 
-- [Getting Started](https://st0o0.github.io/njord/getting-started): installation and setup
-- [Configuration](https://st0o0.github.io/njord/configuration/): all available options
-- [Model Catalog](https://st0o0.github.io/njord/models): choosing the right weather models
-- [Home Assistant](https://st0o0.github.io/njord/home-assistant/): entities, options, diagnostics
-- [Architecture](https://st0o0.github.io/njord/architecture): system design and data flow
-- [Config Builder](https://st0o0.github.io/njord/builder): interactive configuration generator
+- [Getting Started](https://njord.st0o0.net/getting-started): installation and setup
+- [Configuration](https://njord.st0o0.net/configuration/): all available options
+- [Model Catalog](https://njord.st0o0.net/models): choosing the right weather models
+- [Home Assistant](https://njord.st0o0.net/home-assistant/): entities, options, diagnostics
+- [Architecture](https://njord.st0o0.net/architecture): system design and data flow
+- [Config Builder](https://njord.st0o0.net/builder): interactive configuration generator
 
 ## Repository Structure
 
