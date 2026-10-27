@@ -95,7 +95,11 @@ public sealed class GrpcConsumer : ReceiveActor
 
     private void HandleStreamRequest(RequestGrpcStream msg)
     {
-        _clientHubSource
+        var snapshot = _state.DomainData.Values
+            .Concat<PipelineEvent>(_state.Results.Values);
+
+        Source.From(snapshot)
+            .Concat(_clientHubSource)
             .Buffer(StreamClientBufferSize, OverflowStrategy.DropHead)
             .RunWith(StreamRefs.SourceRef<PipelineEvent>(), _mat)
             .PipeTo(Sender, Self,
