@@ -11,6 +11,7 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
     logo: '/logo.svg',
     nav: [
       { text: 'Guide', link: '/getting-started' },
+      { text: 'Features', link: '/features/' },
       { text: 'Home Assistant', link: '/home-assistant/' },
       { text: 'Config', link: '/configuration/' },
       { text: 'Reference', link: '/models' },
@@ -23,6 +24,19 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
         items: [
           { text: 'Getting Started', link: '/getting-started' },
           { text: 'Architecture', link: '/architecture' },
+        ],
+      },
+      {
+        text: 'Features',
+        items: [
+          { text: 'Overview', link: '/features/' },
+          { text: 'Weather Alerts', link: '/features/weather-alerts' },
+          { text: 'Air Quality', link: '/features/air-quality' },
+          { text: 'Lifestyle', link: '/features/lifestyle' },
+          { text: 'Energy', link: '/features/energy' },
+          { text: 'Flood', link: '/features/flood' },
+          { text: 'Marine', link: '/features/marine' },
+          { text: 'Insights & Forecasts', link: '/features/insights' },
         ],
       },
       {

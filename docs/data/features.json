@@ -4,935 +4,341 @@
     "name": "Frost",
     "category": "Weather",
     "output": "Alert",
-    "description": "Frost warning from the forecast low",
+    "description": "Warns when temperatures are expected to drop below freezing",
+    "longDescription": "Monitors the hourly temperature forecast and fires when sub-zero temperatures are predicted within the next 24 hours. Severity levels indicate how deep the frost will be: yellow for light frost (0 to -5°C), orange for moderate (-5 to -15°C), red for severe (below -15°C). Use it to protect plants, pipes, or plan de-icing.",
+    "entities": ["binary_sensor.{location}_frost_alert"],
+    "automationExample": "Notify when frost is expected so you can cover outdoor plants",
     "enabledByDefault": true,
-    "domains": [
-      "Weather",
-      "Ensemble"
-    ],
-    "weatherParams": [
-      "Temperature"
-    ],
-    "ensembleParams": [
-      "TemperatureSpread"
-    ],
-    "options": [
-      {
-        "name": "Thresholds",
-        "type": "numberArray",
-        "default": [
-          0,
-          -5,
-          -15
-        ]
-      }
-    ]
+    "domains": ["Weather", "Ensemble"],
+    "weatherParams": ["Temperature"],
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [0, -5, -15] }]
   },
   {
     "key": "Weather:Heat",
     "name": "Heat",
     "category": "Weather",
     "output": "Alert",
-    "description": "Heat warning from air and apparent temperature",
+    "description": "Warns when dangerously high temperatures are forecast",
+    "longDescription": "Tracks both actual and feels-like temperature to detect upcoming heat waves. Triggers at three severity levels: yellow (30°C), orange (35°C), and red (40°C). Helps you plan cooling, hydration, and outdoor activity avoidance during extreme heat.",
+    "entities": ["binary_sensor.{location}_heat_alert"],
+    "automationExample": "Close blinds and turn on AC when a heat alert is active",
     "enabledByDefault": true,
-    "domains": [
-      "Weather",
-      "Ensemble"
-    ],
-    "weatherParams": [
-      "Temperature",
-      "ApparentTemperature"
-    ],
-    "ensembleParams": [
-      "TemperatureSpread"
-    ],
-    "options": [
-      {
-        "name": "Thresholds",
-        "type": "numberArray",
-        "default": [
-          30,
-          35,
-          40
-        ]
-      }
-    ]
+    "domains": ["Weather", "Ensemble"],
+    "weatherParams": ["Temperature", "ApparentTemperature"],
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [30, 35, 40] }]
   },
   {
     "key": "Weather:Storm",
     "name": "Storm",
     "category": "Weather",
     "output": "Alert",
-    "description": "Storm warning from wind gusts",
+    "description": "Warns when dangerous wind gusts are expected",
+    "longDescription": "Monitors forecast wind gusts and triggers when speeds exceed safe thresholds. Yellow at gale force (17 m/s), orange at storm force (25 m/s), red at hurricane force (33 m/s). Use it to secure outdoor furniture, close awnings, or avoid travel.",
+    "entities": ["binary_sensor.{location}_storm_alert"],
+    "automationExample": "Send a push notification when storm-force gusts are expected",
     "enabledByDefault": true,
-    "domains": [
-      "Weather",
-      "Ensemble"
-    ],
-    "weatherParams": [
-      "WindGusts"
-    ],
-    "ensembleParams": [
-      "TemperatureSpread"
-    ],
-    "options": [
-      {
-        "name": "GustThresholds",
-        "type": "numberArray",
-        "default": [
-          17,
-          25,
-          33
-        ]
-      }
-    ]
+    "domains": ["Weather", "Ensemble"],
+    "weatherParams": ["WindGusts"],
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [{ "name": "GustThresholds", "type": "numberArray", "default": [17, 25, 33] }]
   },
   {
     "key": "Weather:HeavyRain",
     "name": "HeavyRain",
     "category": "Weather",
     "output": "Alert",
-    "description": "Heavy rain warning from hourly precipitation",
+    "description": "Warns when heavy or prolonged rainfall is forecast",
+    "longDescription": "Detects both intense hourly downpours and sustained daily rainfall that can cause flooding or water damage. Default thresholds are 10 mm/hour and 25 mm/day. Useful for protecting basements, planning drainage, or avoiding outdoor activities.",
+    "entities": ["binary_sensor.{location}_heavy_rain_alert"],
+    "automationExample": "Close roof windows automatically when heavy rain is expected",
     "enabledByDefault": true,
-    "domains": [
-      "Weather",
-      "Ensemble"
-    ],
-    "weatherParams": [
-      "Precipitation"
-    ],
-    "ensembleParams": [
-      "TemperatureSpread"
-    ],
-    "options": [
-      {
-        "name": "HourlyThreshold",
-        "type": "number",
-        "default": 10
-      },
-      {
-        "name": "DailyThreshold",
-        "type": "number",
-        "default": 25
-      }
-    ]
+    "domains": ["Weather", "Ensemble"],
+    "weatherParams": ["Precipitation"],
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [{ "name": "HourlyThreshold", "type": "number", "default": 10 }, { "name": "DailyThreshold", "type": "number", "default": 25 }]
   },
   {
     "key": "Weather:Uv",
     "name": "Uv",
     "category": "Weather",
     "output": "Alert",
-    "description": "UV warning from the peak UV index",
+    "description": "Warns when the UV index reaches levels that can cause skin damage",
+    "longDescription": "Monitors the peak UV index throughout the day and triggers when sun exposure becomes harmful. Based on the WHO UV index scale: moderate (3-5), high (6-7), very high (8-10), extreme (11+). Reminds you to apply sunscreen, wear a hat, or stay in the shade.",
+    "entities": ["binary_sensor.{location}_uv_alert"],
+    "automationExample": "Remind the family to apply sunscreen before going outside",
     "enabledByDefault": true,
-    "domains": [
-      "Weather"
-    ],
-    "optionalWeatherParams": [
-      "UvIndex"
-    ]
+    "domains": ["Weather"],
+    "optionalWeatherParams": ["UvIndex"]
   },
   {
     "key": "Weather:Fog",
     "name": "Fog",
     "category": "Weather",
     "output": "Alert",
-    "description": "Fog warning from dew point spread, wind and humidity",
+    "description": "Warns when fog conditions are likely to develop",
+    "longDescription": "Detects fog risk by analyzing the gap between temperature and dew point, combined with low wind speed and high humidity. Persistent fog lasting several hours is flagged at higher severity. Useful for planning your commute or knowing when visibility will be reduced.",
+    "entities": ["binary_sensor.{location}_fog_alert"],
+    "automationExample": "Turn on driveway lights earlier when fog is expected in the morning",
     "enabledByDefault": true,
-    "domains": [
-      "Weather"
-    ],
-    "weatherParams": [
-      "Temperature",
-      "WindSpeed",
-      "Humidity",
-      "DewPoint"
-    ],
-    "options": [
-      {
-        "name": "PersistentHours",
-        "type": "number",
-        "default": 4
-      }
-    ]
+    "domains": ["Weather"],
+    "weatherParams": ["Temperature", "WindSpeed", "Humidity", "DewPoint"],
+    "options": [{ "name": "PersistentHours", "type": "number", "default": 4 }]
   },
   {
     "key": "Weather:Snow",
     "name": "Snow",
     "category": "Weather",
     "output": "Alert",
-    "description": "Snow warning from snowfall and freezing level",
+    "description": "Warns when significant snowfall is expected",
+    "longDescription": "Monitors forecast snowfall amounts and freezing level height. Triggers when accumulation is predicted, with severity based on expected snow depth. Helps you prepare for winter driving, clear driveways, or enjoy a snow day.",
+    "entities": ["binary_sensor.{location}_snow_alert"],
+    "automationExample": "Set an early alarm when snow is expected overnight",
     "enabledByDefault": true,
-    "domains": [
-      "Weather",
-      "Ensemble"
-    ],
-    "weatherParams": [
-      "Snowfall",
-      "FreezingLevelHeight"
-    ],
-    "ensembleParams": [
-      "TemperatureSpread"
-    ]
+    "domains": ["Weather", "Ensemble"],
+    "weatherParams": ["Snowfall", "FreezingLevelHeight"],
+    "ensembleParams": ["TemperatureSpread"]
   },
   {
     "key": "Weather:PressureDrop",
     "name": "PressureDrop",
     "category": "Weather",
     "output": "Alert",
-    "description": "Warning for a rapid surface pressure drop",
+    "description": "Warns when atmospheric pressure is dropping rapidly, signaling incoming bad weather",
+    "longDescription": "Detects rapid drops in sea-level pressure over a rolling window. A fast drop often precedes storms, strong winds, or heavy rain. Yellow at 5 hPa drop, red at 10 hPa. Also relevant for people sensitive to pressure changes (headaches, joint pain).",
+    "entities": ["binary_sensor.{location}_pressure_drop_alert"],
+    "automationExample": "Notify when a pressure drop suggests a weather front is approaching",
     "enabledByDefault": true,
-    "domains": [
-      "Weather"
-    ],
-    "weatherParams": [
-      "Pressure"
-    ],
-    "options": [
-      {
-        "name": "Threshold",
-        "type": "number",
-        "default": 5
-      },
-      {
-        "name": "SevereThreshold",
-        "type": "number",
-        "default": 10
-      }
-    ]
+    "domains": ["Weather"],
+    "weatherParams": ["Pressure"],
+    "options": [{ "name": "Threshold", "type": "number", "default": 5 }, { "name": "SevereThreshold", "type": "number", "default": 10 }]
   },
   {
     "key": "Weather:Thunderstorm",
     "name": "Thunderstorm",
     "category": "Weather",
     "output": "Alert",
-    "description": "Thunderstorm warning from CAPE, precipitation and gusts",
+    "description": "Warns when thunderstorm conditions are building",
+    "longDescription": "Combines CAPE (atmospheric energy), precipitation intensity, wind gusts, convective inhibition, and lifted index to predict thunderstorm risk. Higher severity when multiple indicators align. Useful for outdoor safety, protecting electronics, or securing livestock.",
+    "entities": ["binary_sensor.{location}_thunderstorm_alert"],
+    "automationExample": "Disconnect sensitive electronics when a thunderstorm is approaching",
     "enabledByDefault": true,
-    "domains": [
-      "Weather",
-      "Ensemble"
-    ],
-    "weatherParams": [
-      "Precipitation",
-      "WindGusts",
-      "Cape"
-    ],
-    "ensembleParams": [
-      "TemperatureSpread"
-    ],
-    "options": [
-      {
-        "name": "CapeThreshold",
-        "type": "number",
-        "default": 1000
-      },
-      {
-        "name": "PrecipThreshold",
-        "type": "number",
-        "default": 5
-      },
-      {
-        "name": "GustThreshold",
-        "type": "number",
-        "default": 15
-      }
-    ]
+    "domains": ["Weather", "Ensemble"],
+    "weatherParams": ["Precipitation", "WindGusts", "Cape"],
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [{ "name": "CapeThreshold", "type": "number", "default": 1000 }, { "name": "PrecipThreshold", "type": "number", "default": 5 }, { "name": "GustThreshold", "type": "number", "default": 15 }]
   },
   {
     "key": "Weather:Ice",
     "name": "Ice",
     "category": "Weather",
     "output": "Alert",
-    "description": "Black ice warning from freezing temperatures with rain",
+    "description": "Warns when black ice or freezing rain conditions are likely",
+    "longDescription": "Detects the dangerous combination of near-freezing temperatures with rain or wet surfaces. Black ice forms invisibly and is one of the most common causes of winter accidents. The alert considers air temperature, precipitation type, and ground temperature.",
+    "entities": ["binary_sensor.{location}_ice_alert"],
+    "automationExample": "Warn household members about icy conditions before leaving home",
     "enabledByDefault": true,
-    "domains": [
-      "Weather",
-      "Ensemble"
-    ],
-    "weatherParams": [
-      "Temperature",
-      "Precipitation"
-    ],
-    "ensembleParams": [
-      "TemperatureSpread"
-    ],
-    "optionalWeatherParams": [
-      "Rain",
-      "SoilTemperature"
-    ],
-    "options": [
-      {
-        "name": "Threshold",
-        "type": "number",
-        "default": 2
-      }
-    ]
+    "domains": ["Weather", "Ensemble"],
+    "weatherParams": ["Temperature", "Precipitation"],
+    "ensembleParams": ["TemperatureSpread"],
+    "optionalWeatherParams": ["Rain", "SoilTemperature"],
+    "options": [{ "name": "Threshold", "type": "number", "default": 2 }]
   },
   {
     "key": "Weather:WindChill",
     "name": "WindChill",
     "category": "Weather",
     "output": "Alert",
-    "description": "Wind chill warning from apparent temperature",
+    "description": "Warns when wind chill makes it feel dangerously cold",
+    "longDescription": "Tracks the feels-like temperature that accounts for wind cooling exposed skin. Triggers when wind chill drops to dangerous levels: yellow at -10°C, orange at -20°C, red at -30°C. Exposed skin can suffer frostbite in minutes at severe levels.",
+    "entities": ["binary_sensor.{location}_wind_chill_alert"],
+    "automationExample": "Suggest warm clothing when wind chill is extreme",
     "enabledByDefault": true,
-    "domains": [
-      "Weather",
-      "Ensemble"
-    ],
-    "weatherParams": [
-      "ApparentTemperature"
-    ],
-    "ensembleParams": [
-      "TemperatureSpread"
-    ],
-    "options": [
-      {
-        "name": "Thresholds",
-        "type": "numberArray",
-        "default": [
-          -10,
-          -20,
-          -30
-        ]
-      }
-    ]
+    "domains": ["Weather", "Ensemble"],
+    "weatherParams": ["ApparentTemperature"],
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [-10, -20, -30] }]
   },
   {
     "key": "Weather:Visibility",
     "name": "Visibility",
     "category": "Weather",
     "output": "Alert",
-    "description": "Low visibility warning",
+    "description": "Warns when visibility drops to unsafe levels",
+    "longDescription": "Monitors forecast visibility distance and triggers at three levels: reduced (below 1000 m), poor (below 200 m), and near-zero (below 50 m). Affects driving safety, aviation, and outdoor activities.",
+    "entities": ["binary_sensor.{location}_visibility_alert"],
+    "automationExample": "Suggest leaving earlier for work when visibility is reduced",
     "enabledByDefault": true,
-    "domains": [
-      "Weather"
-    ],
-    "weatherParams": [
-      "Visibility"
-    ],
-    "options": [
-      {
-        "name": "Thresholds",
-        "type": "numberArray",
-        "default": [
-          1000,
-          200,
-          50
-        ]
-      }
-    ]
+    "domains": ["Weather"],
+    "weatherParams": ["Visibility"],
+    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [1000, 200, 50] }]
   },
   {
     "key": "Weather:TropicalNight",
     "name": "TropicalNight",
     "category": "Weather",
     "output": "Alert",
-    "description": "Tropical night warning from the night time low",
+    "description": "Warns when nighttime temperatures stay above 20°C, making sleep difficult",
+    "longDescription": "Detects tropical nights where the temperature does not drop below 20°C between sunset and sunrise. Extended tropical nights are a health concern, especially for the elderly. Severity increases at 23°C and 25°C minimums.",
+    "entities": ["binary_sensor.{location}_tropical_night_alert"],
+    "automationExample": "Turn on bedroom fan when a tropical night is forecast",
     "enabledByDefault": true,
-    "domains": [
-      "Weather",
-      "Ensemble"
-    ],
-    "weatherParams": [
-      "Temperature",
-      "IsDay"
-    ],
-    "ensembleParams": [
-      "TemperatureSpread"
-    ],
-    "options": [
-      {
-        "name": "Thresholds",
-        "type": "numberArray",
-        "default": [
-          20,
-          23,
-          25
-        ]
-      }
-    ]
+    "domains": ["Weather", "Ensemble"],
+    "weatherParams": ["Temperature", "IsDay"],
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [20, 23, 25] }]
   },
   {
     "key": "Weather:Humidity",
     "name": "Humidity",
     "category": "Weather",
     "output": "Alert",
-    "description": "Muggy air warning from the daytime dew point",
+    "description": "Warns when the air feels uncomfortably muggy",
+    "longDescription": "Uses the daytime dew point as a reliable mugginess indicator (more stable than relative humidity). Triggers at three comfort levels: slightly uncomfortable (16°C dew point), oppressive (21°C), and miserable (24°C).",
+    "entities": ["binary_sensor.{location}_humidity_alert"],
+    "automationExample": "Start dehumidifier when muggy conditions are forecast",
     "enabledByDefault": true,
-    "domains": [
-      "Weather"
-    ],
-    "weatherParams": [
-      "DewPoint",
-      "IsDay"
-    ],
-    "options": [
-      {
-        "name": "Thresholds",
-        "type": "numberArray",
-        "default": [
-          16,
-          21,
-          24
-        ]
-      }
-    ]
-  },
-  {
-    "key": "AirQuality:Pollen",
-    "name": "Pollen",
-    "category": "AirQuality",
-    "output": "Alert",
-    "description": "Pollen warning from the highest pollen concentration",
-    "enabledByDefault": true,
-    "domains": [
-      "AirQuality"
-    ],
-    "airQualityParams": [
-      "BirchPollen",
-      "GrassPollen",
-      "Alder",
-      "Mugwort"
-    ]
-  },
-  {
-    "key": "AirQuality:Pm25",
-    "name": "Pm25",
-    "category": "AirQuality",
-    "output": "Alert",
-    "description": "Fine particulate warning against the WHO guideline",
-    "enabledByDefault": true,
-    "domains": [
-      "AirQuality"
-    ],
-    "airQualityParams": [
-      "Pm25"
-    ]
-  },
-  {
-    "key": "AirQuality:Dust",
-    "name": "Dust",
-    "category": "AirQuality",
-    "output": "Alert",
-    "description": "Saharan dust concentration warning",
-    "enabledByDefault": false,
-    "domains": [
-      "AirQuality"
-    ],
-    "airQualityParams": [
-      "Dust"
-    ],
-    "options": [
-      {
-        "name": "Thresholds",
-        "type": "numberArray",
-        "default": [
-          50,
-          150,
-          500
-        ]
-      }
-    ]
-  },
-  {
-    "key": "AirQuality:PollenTrend",
-    "name": "PollenTrend",
-    "category": "AirQuality",
-    "output": "Condition",
-    "description": "Trend of the pollen load",
-    "enabledByDefault": false,
-    "domains": [
-      "AirQuality"
-    ],
-    "airQualityParams": [
-      "BirchPollen",
-      "GrassPollen",
-      "Alder",
-      "Mugwort"
-    ]
-  },
-  {
-    "key": "Lifestyle:Commute",
-    "name": "Commute",
-    "category": "Lifestyle",
-    "output": "Condition",
-    "description": "Commute safety rating from rain, wind and ice risk",
-    "enabledByDefault": true,
-    "domains": [
-      "Weather"
-    ],
-    "weatherParams": [
-      "Temperature",
-      "WindSpeed",
-      "Precipitation",
-      "Humidity",
-      "DewPoint"
-    ]
-  },
-  {
-    "key": "Lifestyle:Exercise",
-    "name": "Exercise",
-    "category": "Lifestyle",
-    "output": "Condition",
-    "description": "Exercise advisory from heat, humidity and air quality",
-    "enabledByDefault": false,
-    "domains": [
-      "Weather",
-      "AirQuality"
-    ],
-    "weatherParams": [
-      "Temperature",
-      "Humidity"
-    ],
-    "optionalWeatherParams": [
-      "UvIndex"
-    ],
-    "airQualityParams": [
-      "Pm25",
-      "Ozone"
-    ]
-  },
-  {
-    "key": "Lifestyle:Laundry",
-    "name": "Laundry",
-    "category": "Lifestyle",
-    "output": "Score",
-    "description": "Laundry drying score",
-    "enabledByDefault": false,
-    "domains": [
-      "Weather"
-    ],
-    "weatherParams": [
-      "Temperature",
-      "WindSpeed",
-      "Precipitation",
-      "PrecipitationProbability",
-      "CloudCover",
-      "Humidity"
-    ],
-    "optionalWeatherParams": [
-      "SunshineDuration"
-    ]
-  },
-  {
-    "key": "Lifestyle:Outdoor",
-    "name": "Outdoor",
-    "category": "Lifestyle",
-    "output": "Score",
-    "description": "Overall outdoor activity score",
-    "enabledByDefault": false,
-    "domains": [
-      "Weather",
-      "AirQuality"
-    ],
-    "weatherParams": [
-      "Temperature",
-      "WindSpeed",
-      "Precipitation",
-      "PrecipitationProbability",
-      "CloudCover"
-    ],
-    "optionalWeatherParams": [
-      "UvIndex"
-    ],
-    "airQualityParams": [
-      "Pm25",
-      "BirchPollen",
-      "GrassPollen",
-      "Alder",
-      "Mugwort"
-    ]
-  },
-  {
-    "key": "Lifestyle:Bbq",
-    "name": "Bbq",
-    "category": "Lifestyle",
-    "output": "Score",
-    "description": "Barbecue suitability score",
-    "enabledByDefault": false,
-    "domains": [
-      "Weather"
-    ],
-    "weatherParams": [
-      "Temperature",
-      "WindSpeed",
-      "Precipitation",
-      "PrecipitationProbability",
-      "CloudCover"
-    ]
-  },
-  {
-    "key": "Lifestyle:NightVentilation",
-    "name": "NightVentilation",
-    "category": "Lifestyle",
-    "output": "Condition",
-    "description": "Night cooling ventilation advice",
-    "enabledByDefault": false,
-    "domains": [
-      "Weather"
-    ],
-    "weatherParams": [
-      "Temperature"
-    ]
-  },
-  {
-    "key": "Lifestyle:Ventilation",
-    "name": "Ventilation",
-    "category": "Lifestyle",
-    "output": "Condition",
-    "description": "Best window for airing rooms",
-    "enabledByDefault": false,
-    "domains": [
-      "Weather",
-      "AirQuality"
-    ],
-    "weatherParams": [
-      "Temperature",
-      "Precipitation"
-    ],
-    "airQualityParams": [
-      "Pm25",
-      "BirchPollen",
-      "GrassPollen",
-      "Alder",
-      "Mugwort"
-    ]
-  },
-  {
-    "key": "Lifestyle:Gardening",
-    "name": "Gardening",
-    "category": "Lifestyle",
-    "output": "Condition",
-    "description": "Gardening advisory from temperature, wind and rain",
-    "enabledByDefault": false,
-    "domains": [
-      "Weather"
-    ],
-    "weatherParams": [
-      "Temperature",
-      "WindSpeed",
-      "Precipitation"
-    ]
-  },
-  {
-    "key": "Insight:ConfidenceTrend",
-    "name": "ConfidenceTrend",
-    "category": "Insight",
-    "output": "Trend",
-    "description": "Trend of the ensemble forecast confidence",
-    "enabledByDefault": false,
-    "domains": [
-      "Ensemble"
-    ],
-    "ensembleParams": [
-      "TemperatureSpread"
-    ]
-  },
-  {
-    "key": "Insight:FrontApproaching",
-    "name": "FrontApproaching",
-    "category": "Insight",
-    "output": "Condition",
-    "description": "Early warning when a pressure front approaches",
-    "enabledByDefault": false,
-    "domains": [
-      "Weather"
-    ],
-    "weatherParams": [
-      "Temperature",
-      "Pressure",
-      "WindDirection"
-    ]
-  },
-  {
-    "key": "Weather:ModelComparison",
-    "name": "ModelComparison",
-    "category": "Weather",
-    "output": "Forecast",
-    "description": "Daily temperature and precipitation of every configured ensemble model side by side",
-    "enabledByDefault": false,
-    "domains": [
-      "Ensemble"
-    ],
-    "ensembleParams": [
-      "Models"
-    ]
-  },
-  {
-    "key": "Insight:SeasonalOutlook",
-    "name": "SeasonalOutlook",
-    "category": "Insight",
-    "output": "Forecast",
-    "description": "Monthly temperature and precipitation outlook for the next three months",
-    "enabledByDefault": false,
-    "domains": [
-      "Seasonal"
-    ]
-  },
-  {
-    "key": "Energy:SolarYield",
-    "name": "SolarYield",
-    "category": "Energy",
-    "output": "Condition",
-    "description": "Expected solar yield from tilted irradiance",
-    "enabledByDefault": false,
-    "domains": [
-      "Weather"
-    ],
-    "weatherParams": [
-      "GlobalTiltedIrradiance"
-    ]
-  },
-  {
-    "key": "Energy:SatelliteRadiation",
-    "name": "SatelliteRadiation",
-    "category": "Energy",
-    "output": "Condition",
-    "description": "Satellite-observed solar irradiance blended with the ensemble forecast",
-    "enabledByDefault": false,
-    "domains": [
-      "Satellite"
-    ]
-  },
-  {
-    "key": "Flood:FloodRisk",
-    "name": "FloodRisk",
-    "category": "Flood",
-    "output": "Alert",
-    "description": "River discharge flood risk warning",
-    "enabledByDefault": false,
-    "domains": [
-      "Flood"
-    ]
-  },
-  {
-    "key": "Flood:FloodRain",
-    "name": "FloodRain",
-    "category": "Flood",
-    "output": "Alert",
-    "description": "Flood warning combining heavy rain and rising discharge",
-    "enabledByDefault": false,
-    "domains": [
-      "Weather",
-      "Flood"
-    ],
-    "weatherParams": [
-      "Precipitation"
-    ]
-  },
-  {
-    "key": "Flood:FloodTimeline",
-    "name": "FloodTimeline",
-    "category": "Flood",
-    "output": "Condition",
-    "description": "Discharge timeline for the coming days",
-    "enabledByDefault": false,
-    "domains": [
-      "Flood"
-    ]
-  },
-  {
-    "key": "Marine:Swimming",
-    "name": "Swimming",
-    "category": "Marine",
-    "output": "Alert",
-    "description": "Swimming conditions from wave height and water temperature",
-    "enabledByDefault": false,
-    "domains": [
-      "Marine"
-    ]
-  },
-  {
-    "key": "Marine:Surf",
-    "name": "Surf",
-    "category": "Marine",
-    "output": "Condition",
-    "description": "Surf conditions from swell height and period",
-    "enabledByDefault": false,
-    "domains": [
-      "Weather",
-      "Marine"
-    ],
-    "optionalWeatherParams": [
-      "WindDirection"
-    ]
+    "domains": ["Weather"],
+    "weatherParams": ["DewPoint", "IsDay"],
+    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [16, 21, 24] }]
   },
   {
     "key": "Weather:RainProbability",
     "name": "RainProbability",
     "category": "Weather",
     "output": "Alert",
-    "description": "Rain probability alert from forecast precipitation probability",
+    "description": "Warns when rain is highly likely in the coming hours",
+    "longDescription": "Monitors precipitation probability over a configurable window (default 6 hours). Triggers at three levels: moderate (>50%), high (>70%), and very high (>90%). Perfect for deciding whether to carry an umbrella or postpone outdoor plans.",
+    "entities": ["binary_sensor.{location}_rain_probability_alert"],
+    "automationExample": "Send a morning reminder to take an umbrella when rain is likely",
     "enabledByDefault": true,
-    "domains": [
-      "Weather",
-      "Ensemble"
-    ],
-    "weatherParams": [
-      "PrecipitationProbability"
-    ],
-    "ensembleParams": [
-      "TemperatureSpread"
-    ],
-    "options": [
-      {
-        "name": "WindowHours",
-        "type": "number",
-        "default": 6
-      },
-      {
-        "name": "Thresholds",
-        "type": "numberArray",
-        "default": [50, 70, 90]
-      }
-    ]
+    "domains": ["Weather", "Ensemble"],
+    "weatherParams": ["PrecipitationProbability"],
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [{ "name": "WindowHours", "type": "number", "default": 6 }, { "name": "Thresholds", "type": "numberArray", "default": [50, 70, 90] }]
   },
   {
     "key": "Weather:WetBulbDanger",
     "name": "WetBulbDanger",
     "category": "Weather",
     "output": "Alert",
-    "description": "Wet-bulb temperature danger alert for heat stroke risk",
+    "description": "Warns when the combination of heat and humidity becomes life-threatening",
+    "longDescription": "Tracks wet-bulb temperature, which measures how well your body can cool itself through sweating. Above 26°C the body struggles, above 28°C outdoor work is dangerous, above 32°C even healthy adults risk heat stroke. More medically relevant than temperature alone.",
+    "entities": ["binary_sensor.{location}_wet_bulb_danger_alert"],
+    "automationExample": "Cancel outdoor exercise plans when wet-bulb danger is active",
     "enabledByDefault": false,
-    "domains": [
-      "Weather",
-      "Ensemble"
-    ],
-    "weatherParams": [
-      "WetBulbTemperature"
-    ],
-    "ensembleParams": [
-      "TemperatureSpread"
-    ],
-    "options": [
-      {
-        "name": "Thresholds",
-        "type": "numberArray",
-        "default": [26, 28, 32]
-      }
-    ]
-  },
-  {
-    "key": "Lifestyle:ClearSkyUv",
-    "name": "ClearSkyUv",
-    "category": "Lifestyle",
-    "output": "Alert",
-    "description": "Clear-sky UV alert for UV danger under intermittent clouds",
-    "enabledByDefault": false,
-    "domains": [
-      "Weather"
-    ],
-    "weatherParams": [
-      "UvIndexClearSky",
-      "IsDay"
-    ],
-    "options": [
-      {
-        "name": "Thresholds",
-        "type": "numberArray",
-        "default": [6, 8, 10]
-      }
-    ]
-  },
-  {
-    "key": "Weather:SnowDepthWatch",
-    "name": "SnowDepthWatch",
-    "category": "Weather",
-    "output": "Condition",
-    "description": "Snow depth condition reporting accumulation status",
-    "enabledByDefault": false,
-    "domains": [
-      "Weather"
-    ],
-    "weatherParams": [
-      "SnowDepth"
-    ],
-    "options": [
-      {
-        "name": "LightThreshold",
-        "type": "number",
-        "default": 2
-      },
-      {
-        "name": "ModerateThreshold",
-        "type": "number",
-        "default": 10
-      },
-      {
-        "name": "HeavyThreshold",
-        "type": "number",
-        "default": 25
-      },
-      {
-        "name": "ExtremeThreshold",
-        "type": "number",
-        "default": 50
-      }
-    ]
+    "domains": ["Weather", "Ensemble"],
+    "weatherParams": ["WetBulbTemperature"],
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [26, 28, 32] }]
   },
   {
     "key": "Weather:Shower",
     "name": "Shower",
     "category": "Weather",
     "output": "Alert",
-    "description": "Convective shower warning",
+    "description": "Warns when sudden, intense rain showers are expected",
+    "longDescription": "Detects convective (shower-type) precipitation separately from steady frontal rain. Showers develop quickly and can dump large amounts of water in minutes. Especially useful in summer when convective showers pop up with little warning.",
+    "entities": ["binary_sensor.{location}_shower_alert"],
+    "automationExample": "Retract awning when intense showers are forecast",
     "enabledByDefault": false,
     "domains": ["Weather", "Ensemble"],
     "weatherParams": ["Showers"],
     "ensembleParams": ["TemperatureSpread"],
-    "options": [
-      { "name": "WindowHours", "type": "number", "default": 6 },
-      { "name": "Thresholds", "type": "numberArray", "default": [3, 5, 10] }
-    ]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 6 }, { "name": "Thresholds", "type": "numberArray", "default": [3, 5, 10] }]
+  },
+  {
+    "key": "Weather:SnowDepthWatch",
+    "name": "SnowDepthWatch",
+    "category": "Weather",
+    "output": "Condition",
+    "description": "Reports the current snow depth on the ground",
+    "longDescription": "Monitors how much snow has accumulated. Reports four levels: light (>2 cm), moderate (>10 cm), heavy (>25 cm), and extreme (>50 cm). Unlike the Snow alert which predicts new snowfall, this shows what is already on the ground.",
+    "entities": ["sensor.{location}_snow_depth_watch"],
+    "automationExample": "Turn on path heating when snow depth exceeds 10 cm",
+    "enabledByDefault": false,
+    "domains": ["Weather"],
+    "weatherParams": ["SnowDepth"],
+    "options": [{ "name": "LightThreshold", "type": "number", "default": 2 }, { "name": "ModerateThreshold", "type": "number", "default": 10 }, { "name": "HeavyThreshold", "type": "number", "default": 25 }, { "name": "ExtremeThreshold", "type": "number", "default": 50 }]
+  },
+  {
+    "key": "AirQuality:Pollen",
+    "name": "Pollen",
+    "category": "AirQuality",
+    "output": "Alert",
+    "description": "Warns when pollen concentrations are high enough to trigger allergy symptoms",
+    "longDescription": "Monitors birch, grass, alder, and mugwort pollen levels and alerts when any type exceeds comfortable thresholds. Essential for hay fever sufferers to plan medication, close windows, or avoid outdoor time during peak pollen.",
+    "entities": ["binary_sensor.{location}_pollen_alert"],
+    "automationExample": "Close windows and start air purifier when pollen is high",
+    "enabledByDefault": true,
+    "domains": ["AirQuality"],
+    "airQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
+  },
+  {
+    "key": "AirQuality:Pm25",
+    "name": "Pm25",
+    "category": "AirQuality",
+    "output": "Alert",
+    "description": "Warns when fine particulate matter exceeds safe levels for breathing",
+    "longDescription": "Monitors PM2.5 concentration against the WHO guideline of 15 ug/m3. Fine particles penetrate deep into the lungs and bloodstream. Important for anyone with asthma, heart conditions, or children and elderly in the household.",
+    "entities": ["binary_sensor.{location}_pm2_5_alert"],
+    "automationExample": "Switch ventilation to recirculation mode when PM2.5 is high",
+    "enabledByDefault": true,
+    "domains": ["AirQuality"],
+    "airQualityParams": ["Pm25"]
+  },
+  {
+    "key": "AirQuality:Dust",
+    "name": "Dust",
+    "category": "AirQuality",
+    "output": "Alert",
+    "description": "Warns when Saharan dust or desert dust concentrations are elevated",
+    "longDescription": "Detects elevated dust particle concentrations that can travel thousands of kilometers from desert regions. Triggers at three levels: noticeable (50 ug/m3), unhealthy (150 ug/m3), and hazardous (500 ug/m3). Dust events reduce air quality and visibility.",
+    "entities": ["binary_sensor.{location}_dust_alert"],
+    "automationExample": "Close windows and notify when a dust event reaches your area",
+    "enabledByDefault": false,
+    "domains": ["AirQuality"],
+    "airQualityParams": ["Dust"],
+    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [50, 150, 500] }]
+  },
+  {
+    "key": "AirQuality:PollenTrend",
+    "name": "PollenTrend",
+    "category": "AirQuality",
+    "output": "Condition",
+    "description": "Shows whether pollen levels are rising, stable, or falling over recent days",
+    "longDescription": "Analyzes pollen concentration trends across multiple poll cycles to detect whether the pollen season is ramping up, peaking, or winding down. Helps allergy sufferers anticipate the coming days.",
+    "entities": ["sensor.{location}_pollen_trend"],
+    "automationExample": "Adjust daily antihistamine reminder based on pollen trend direction",
+    "enabledByDefault": false,
+    "domains": ["AirQuality"],
+    "airQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
   },
   {
     "key": "AirQuality:SmogRisk",
     "name": "SmogRisk",
     "category": "AirQuality",
     "output": "Alert",
-    "description": "Smog risk from low boundary layer and high PM2.5",
+    "description": "Warns when atmospheric conditions trap pollution near the ground",
+    "longDescription": "Combines boundary layer height (how high air mixes) with PM2.5 levels. When the mixing layer is shallow (<500 m) and particulate levels are elevated, pollution concentrates at ground level. Common in winter inversions and calm weather.",
+    "entities": ["binary_sensor.{location}_smog_risk_alert"],
+    "automationExample": "Delay morning jog when smog risk is active",
     "enabledByDefault": false,
     "domains": ["Weather", "AirQuality"],
     "weatherParams": ["BoundaryLayerHeight"],
     "airQualityParams": ["Pm25"],
-    "options": [
-      { "name": "BoundaryLayerThresholdM", "type": "number", "default": 500 },
-      { "name": "Pm25ThresholdUgm3", "type": "number", "default": 25.0 }
-    ]
-  },
-  {
-    "key": "Lifestyle:SoilMoisture",
-    "name": "SoilMoisture",
-    "category": "Lifestyle",
-    "output": "Condition",
-    "description": "Soil moisture status for gardening",
-    "enabledByDefault": false,
-    "domains": ["Weather"],
-    "weatherParams": ["SoilMoisture0To1cm"],
-    "options": [
-      { "name": "DryThreshold", "type": "number", "default": 0.15 },
-      { "name": "WetThreshold", "type": "number", "default": 0.35 }
-    ]
-  },
-  {
-    "key": "Lifestyle:Evapotranspiration",
-    "name": "Evapotranspiration",
-    "category": "Lifestyle",
-    "output": "Condition",
-    "description": "Daily evapotranspiration for irrigation guidance",
-    "enabledByDefault": false,
-    "domains": ["Weather"],
-    "weatherParams": ["Evapotranspiration"],
-    "options": [
-      { "name": "LowMm", "type": "number", "default": 2.0 },
-      { "name": "HighMm", "type": "number", "default": 5.0 }
-    ]
+    "options": [{ "name": "BoundaryLayerThresholdM", "type": "number", "default": 500 }, { "name": "Pm25ThresholdUgm3", "type": "number", "default": 25.0 }]
   },
   {
     "key": "AirQuality:RagweedPollen",
     "name": "RagweedPollen",
     "category": "AirQuality",
     "output": "Condition",
-    "description": "Ragweed pollen sensor",
+    "description": "Tracks ragweed pollen concentration for late-summer allergy monitoring",
+    "longDescription": "Monitors ragweed (Ambrosia) pollen levels, which peak in late summer and autumn. Ragweed is one of the most potent allergens and is spreading across Europe. Provides a dedicated sensor alongside the general pollen alert.",
+    "entities": ["sensor.{location}_ragweed_pollen"],
+    "automationExample": "Increase air filtration during ragweed season",
     "enabledByDefault": false,
     "domains": ["AirQuality"],
     "airQualityParams": ["RagweedPollen"],
@@ -943,98 +349,391 @@
     "name": "GranularAqi",
     "category": "AirQuality",
     "output": "Condition",
-    "description": "Per-pollutant European AQI sub-indices",
+    "description": "Shows the European Air Quality Index broken down by individual pollutant",
+    "longDescription": "Provides five separate AQI sensors, one for each major pollutant: PM2.5, PM10, nitrogen dioxide, ozone, and sulphur dioxide. Helps you understand exactly which pollutant is driving poor air quality in your area.",
+    "entities": ["sensor.{location}_european_aqi_pm2_5", "sensor.{location}_european_aqi_pm10", "sensor.{location}_european_aqi_nitrogen_dioxide", "sensor.{location}_european_aqi_ozone", "sensor.{location}_european_aqi_sulphur_dioxide"],
+    "automationExample": "Track which pollutant causes the most bad-air-quality days in your area",
     "enabledByDefault": false,
     "domains": ["AirQuality"],
     "airQualityParams": ["EuropeanAqiPm25", "EuropeanAqiPm10", "EuropeanAqiNitrogenDioxide", "EuropeanAqiOzone", "EuropeanAqiSulphurDioxide"],
     "options": []
   },
   {
-    "key": "Marine:OceanCurrents",
-    "name": "OceanCurrents",
-    "category": "Marine",
-    "output": "Condition",
-    "description": "Ocean current velocity and direction",
+    "key": "AirQuality:PollenBlast",
+    "name": "PollenBlast",
+    "category": "AirQuality",
+    "output": "Alert",
+    "description": "Warns when a sudden pollen explosion is likely after a rain-to-dry weather change",
+    "longDescription": "Detects the dangerous combination of warm, dry, windy weather following a rain period, which causes plants to release large amounts of pollen at once. Uses trend history to identify the transition. The resulting pollen spike can catch allergy sufferers off guard.",
+    "entities": ["binary_sensor.{location}_pollen_blast_alert"],
+    "automationExample": "Pre-medicate when a pollen blast is predicted after rain clears",
     "enabledByDefault": false,
-    "domains": ["Marine"],
-    "marineParams": ["OceanCurrentVelocity", "OceanCurrentDirection"],
-    "options": [
-      { "name": "StrongCurrentThresholdKmh", "type": "number", "default": 3.0 }
-    ]
+    "domains": ["Weather", "AirQuality"],
+    "weatherParams": ["Temperature", "WindSpeed", "Precipitation"],
+    "airQualityParams": ["GrassPollen", "BirchPollen"],
+    "options": [{ "name": "TemperatureThreshold", "type": "number", "default": 15.0 }, { "name": "WindSpeedThreshold", "type": "number", "default": 1.4 }, { "name": "PollenDelta", "type": "number", "default": 10.0 }]
+  },
+  {
+    "key": "Lifestyle:Commute",
+    "name": "Commute",
+    "category": "Lifestyle",
+    "output": "Condition",
+    "description": "Rates how safe and comfortable your commute will be based on current weather",
+    "longDescription": "Evaluates commute conditions by combining rain intensity, wind speed, temperature, and ice risk into a single safety rating. Helps you decide whether to drive, bike, or take public transport.",
+    "entities": ["sensor.{location}_commute_safety"],
+    "automationExample": "Display commute safety on a dashboard screen by the front door",
+    "enabledByDefault": true,
+    "domains": ["Weather"],
+    "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "Humidity", "DewPoint"]
+  },
+  {
+    "key": "Lifestyle:Exercise",
+    "name": "Exercise",
+    "category": "Lifestyle",
+    "output": "Condition",
+    "description": "Advises whether outdoor exercise is safe based on heat, humidity, UV, and air quality",
+    "longDescription": "Combines weather stress (heat + humidity) with air quality (PM2.5, ozone) and UV exposure to give an exercise advisory. Helps runners, cyclists, and outdoor fitness enthusiasts plan their training safely.",
+    "entities": ["sensor.{location}_exercise"],
+    "automationExample": "Suggest indoor workout when outdoor exercise conditions are poor",
+    "enabledByDefault": false,
+    "domains": ["Weather", "AirQuality"],
+    "weatherParams": ["Temperature", "Humidity"],
+    "optionalWeatherParams": ["UvIndex"],
+    "airQualityParams": ["Pm25", "Ozone"]
+  },
+  {
+    "key": "Lifestyle:Laundry",
+    "name": "Laundry",
+    "category": "Lifestyle",
+    "output": "Score",
+    "description": "Scores how well your laundry will dry outdoors today",
+    "longDescription": "Calculates a drying score from temperature, wind, sunshine, rain probability, and humidity. A high score means fast drying with low rain risk. Considers the full day ahead.",
+    "entities": ["sensor.{location}_laundry"],
+    "automationExample": "Notify in the morning when it is a great day to hang laundry outside",
+    "enabledByDefault": false,
+    "domains": ["Weather"],
+    "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "PrecipitationProbability", "CloudCover", "Humidity"],
+    "optionalWeatherParams": ["SunshineDuration"]
+  },
+  {
+    "key": "Lifestyle:Outdoor",
+    "name": "Outdoor",
+    "category": "Lifestyle",
+    "output": "Score",
+    "description": "Scores how enjoyable outdoor activities will be today",
+    "longDescription": "Combines weather comfort (temperature, wind, rain chance, clouds) with air quality (PM2.5, pollen) and UV exposure into an overall outdoor score. A high score means pleasant conditions for walking, picnics, or playground visits.",
+    "entities": ["sensor.{location}_outdoor"],
+    "automationExample": "Suggest outdoor plans on days with a high outdoor score",
+    "enabledByDefault": false,
+    "domains": ["Weather", "AirQuality"],
+    "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "PrecipitationProbability", "CloudCover"],
+    "optionalWeatherParams": ["UvIndex"],
+    "airQualityParams": ["Pm25", "BirchPollen", "GrassPollen", "Alder", "Mugwort"]
+  },
+  {
+    "key": "Lifestyle:Bbq",
+    "name": "Bbq",
+    "category": "Lifestyle",
+    "output": "Score",
+    "description": "Scores how suitable the weather is for a barbecue",
+    "longDescription": "Evaluates barbecue conditions based on temperature, wind, rain probability, and cloud cover. A high score means fire up the grill with confidence.",
+    "entities": ["sensor.{location}_bbq"],
+    "automationExample": "Suggest a BBQ evening when the score is high and the weekend is approaching",
+    "enabledByDefault": false,
+    "domains": ["Weather"],
+    "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "PrecipitationProbability", "CloudCover"]
+  },
+  {
+    "key": "Lifestyle:NightVentilation",
+    "name": "NightVentilation",
+    "category": "Lifestyle",
+    "output": "Condition",
+    "description": "Tells you when to open windows at night to cool your home naturally",
+    "longDescription": "Identifies nights where outdoor temperatures drop low enough to effectively cool your home without AC. Especially useful during summer heat waves when energy-efficient cooling matters most.",
+    "entities": ["binary_sensor.{location}_night_ventilation"],
+    "automationExample": "Remind to open windows at bedtime when night ventilation is effective",
+    "enabledByDefault": false,
+    "domains": ["Weather"],
+    "weatherParams": ["Temperature"]
+  },
+  {
+    "key": "Lifestyle:Ventilation",
+    "name": "Ventilation",
+    "category": "Lifestyle",
+    "output": "Condition",
+    "description": "Finds the best time window during the day to air out your rooms",
+    "longDescription": "Analyzes temperature, rain forecast, PM2.5, and pollen levels to find the optimal window for opening windows. Avoids times with high pollution, active pollen, or rain.",
+    "entities": ["binary_sensor.{location}_ventilation_window"],
+    "automationExample": "Open smart windows automatically during the recommended ventilation slot",
+    "enabledByDefault": false,
+    "domains": ["Weather", "AirQuality"],
+    "weatherParams": ["Temperature", "Precipitation"],
+    "airQualityParams": ["Pm25", "BirchPollen", "GrassPollen", "Alder", "Mugwort"]
+  },
+  {
+    "key": "Lifestyle:Gardening",
+    "name": "Gardening",
+    "category": "Lifestyle",
+    "output": "Condition",
+    "description": "Advises whether conditions are good for gardening work",
+    "longDescription": "Evaluates temperature, wind, and rain to rate gardening conditions. Pairs well with Soil Moisture and Evapotranspiration for complete garden intelligence.",
+    "entities": ["sensor.{location}_gardening"],
+    "automationExample": "Add gardening to your to-do list when conditions are ideal",
+    "enabledByDefault": false,
+    "domains": ["Weather"],
+    "weatherParams": ["Temperature", "WindSpeed", "Precipitation"]
+  },
+  {
+    "key": "Lifestyle:SoilMoisture",
+    "name": "SoilMoisture",
+    "category": "Lifestyle",
+    "output": "Condition",
+    "description": "Shows whether the topsoil is too dry, just right, or too wet",
+    "longDescription": "Monitors forecast soil moisture in the top centimeter. Reports dry (below 0.15, needs watering), optimal, and wet (above 0.35, avoid working the soil). Perfect for garden irrigation decisions.",
+    "entities": ["sensor.{location}_soil_moisture"],
+    "automationExample": "Turn on garden sprinklers when soil is forecast to be dry",
+    "enabledByDefault": false,
+    "domains": ["Weather"],
+    "weatherParams": ["SoilMoisture0To1cm"],
+    "options": [{ "name": "DryThreshold", "type": "number", "default": 0.15 }, { "name": "WetThreshold", "type": "number", "default": 0.35 }]
+  },
+  {
+    "key": "Lifestyle:Evapotranspiration",
+    "name": "Evapotranspiration",
+    "category": "Lifestyle",
+    "output": "Condition",
+    "description": "Shows how much water your garden loses to evaporation each day",
+    "longDescription": "Reports reference evapotranspiration (ET0) in mm/day. Low values (<2 mm) mean little watering needed; high values (>5 mm) mean fast water loss. Use it to calculate exactly how much to irrigate.",
+    "entities": ["sensor.{location}_evapotranspiration"],
+    "automationExample": "Adjust irrigation duration based on daily evapotranspiration",
+    "enabledByDefault": false,
+    "domains": ["Weather"],
+    "weatherParams": ["Evapotranspiration"],
+    "options": [{ "name": "LowMm", "type": "number", "default": 2.0 }, { "name": "HighMm", "type": "number", "default": 5.0 }]
+  },
+  {
+    "key": "Lifestyle:ClearSkyUv",
+    "name": "ClearSkyUv",
+    "category": "Lifestyle",
+    "output": "Alert",
+    "description": "Warns when UV would be dangerous if clouds part, even on partly cloudy days",
+    "longDescription": "Shows the maximum UV index that would hit you if clouds momentarily clear. Triggers when the clear-sky UV is dangerous (default >6), warning you that sun protection is needed even though it looks overcast. Prevents surprise sunburns.",
+    "entities": ["binary_sensor.{location}_clear_sky_uv_alert"],
+    "automationExample": "Remind to apply sunscreen when clear-sky UV is high despite cloud cover",
+    "enabledByDefault": false,
+    "domains": ["Weather"],
+    "weatherParams": ["UvIndexClearSky", "IsDay"],
+    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [6, 8, 10] }]
   },
   {
     "key": "Lifestyle:FireRisk",
     "name": "FireRisk",
     "category": "Lifestyle",
     "output": "Alert",
-    "description": "Wildfire risk index from temperature, humidity, wind, soil moisture, and dry spell",
+    "description": "Warns when wildfire conditions are dangerous based on a multi-factor risk index",
+    "longDescription": "Calculates a wildfire risk score from five weighted factors: high temperature, low humidity, strong wind, dry soil, and absence of recent rainfall. Critical during summer in fire-prone areas.",
+    "entities": ["binary_sensor.{location}_fire_risk_alert"],
+    "automationExample": "Disable outdoor lighting timers and notify when fire risk is elevated",
     "enabledByDefault": false,
     "domains": ["Weather", "Ensemble"],
     "weatherParams": ["Temperature", "Humidity", "WindSpeed", "SoilMoisture0To1cm", "Precipitation"],
     "ensembleParams": ["TemperatureSpread"],
-    "options": [
-      { "name": "TemperatureThreshold", "type": "number", "default": 30.0 },
-      { "name": "HumidityThreshold", "type": "number", "default": 30.0 },
-      { "name": "WindSpeedThreshold", "type": "number", "default": 5.6 },
-      { "name": "SoilMoistureThreshold", "type": "number", "default": 0.10 },
-      { "name": "DryHours", "type": "number", "default": 48 }
-    ]
-  },
-  {
-    "key": "AirQuality:PollenBlast",
-    "name": "PollenBlast",
-    "category": "AirQuality",
-    "output": "Alert",
-    "description": "Pollen explosion prediction after rain-to-dry weather transition",
-    "enabledByDefault": false,
-    "domains": ["Weather", "AirQuality"],
-    "weatherParams": ["Temperature", "WindSpeed", "Precipitation"],
-    "airQualityParams": ["GrassPollen", "BirchPollen"],
-    "options": [
-      { "name": "TemperatureThreshold", "type": "number", "default": 15.0 },
-      { "name": "WindSpeedThreshold", "type": "number", "default": 1.4 },
-      { "name": "PollenDelta", "type": "number", "default": 10.0 }
-    ]
+    "options": [{ "name": "TemperatureThreshold", "type": "number", "default": 30.0 }, { "name": "HumidityThreshold", "type": "number", "default": 30.0 }, { "name": "WindSpeedThreshold", "type": "number", "default": 5.6 }, { "name": "SoilMoistureThreshold", "type": "number", "default": 0.10 }, { "name": "DryHours", "type": "number", "default": 48 }]
   },
   {
     "key": "Lifestyle:GrowingDegree",
     "name": "GrowingDegree",
     "category": "Lifestyle",
     "output": "Forecast",
-    "description": "Growing Degree Days accumulation for agricultural planning",
+    "description": "Forecasts accumulated growing degree days for agricultural and garden planning",
+    "longDescription": "Calculates Growing Degree Days (GDD) by summing daily temperature differences above a base (default 5°C). GDD predicts crop readiness, pest emergence, and optimal planting windows. Useful for vegetable gardeners and hobby farmers.",
+    "entities": ["sensor.{location}_growing_degree"],
+    "automationExample": "Notify when accumulated GDD reaches the threshold for planting tomatoes",
     "enabledByDefault": false,
     "domains": ["Weather"],
     "weatherParams": ["Temperature"],
-    "options": [
-      { "name": "BaseTemperature", "type": "number", "default": 5.0 }
-    ]
+    "options": [{ "name": "BaseTemperature", "type": "number", "default": 5.0 }]
   },
   {
-    "key": "Marine:CoastalFlood",
-    "name": "CoastalFlood",
-    "category": "Marine",
-    "output": "Alert",
-    "description": "Storm surge risk from sea level deviation, wave height, and onshore wind",
+    "key": "Insight:ConfidenceTrend",
+    "name": "ConfidenceTrend",
+    "category": "Insight",
+    "output": "Trend",
+    "description": "Shows whether the weather forecast is becoming more or less certain",
+    "longDescription": "Tracks ensemble model spread over time. When models agree, the forecast is confident; when they diverge, uncertainty is high. Helps you judge how much to trust the forecast for important plans.",
+    "entities": ["sensor.{location}_confidence_trend"],
+    "automationExample": "Only commit to outdoor event plans when forecast confidence is high and stable",
     "enabledByDefault": false,
-    "domains": ["Marine", "Weather", "Ensemble"],
-    "marineParams": ["SeaLevelHeight", "WaveHeight", "WaveDirection"],
-    "weatherParams": ["WindSpeed", "WindDirection"],
-    "ensembleParams": ["TemperatureSpread"],
-    "options": [
-      { "name": "SeaLevelThresholdM", "type": "number", "default": 0.3 },
-      { "name": "WaveHeightThresholdM", "type": "number", "default": 1.5 },
-      { "name": "WindSpeedThreshold", "type": "number", "default": 4.2 }
-    ]
+    "domains": ["Ensemble"],
+    "ensembleParams": ["TemperatureSpread"]
+  },
+  {
+    "key": "Insight:FrontApproaching",
+    "name": "FrontApproaching",
+    "category": "Insight",
+    "output": "Condition",
+    "description": "Detects when a weather front is approaching based on pressure and wind shifts",
+    "longDescription": "Analyzes pressure trends, temperature changes, and wind direction shifts to detect an approaching weather front before the main weather change arrives. Gives you advance warning to prepare.",
+    "entities": ["sensor.{location}_front_approaching"],
+    "automationExample": "Send an early heads-up when a weather front is heading your way",
+    "enabledByDefault": false,
+    "domains": ["Weather"],
+    "weatherParams": ["Temperature", "Pressure", "WindDirection"]
+  },
+  {
+    "key": "Insight:SeasonalOutlook",
+    "name": "SeasonalOutlook",
+    "category": "Insight",
+    "output": "Forecast",
+    "description": "Shows whether the next few months will be warmer, cooler, wetter, or drier than normal",
+    "longDescription": "Provides a monthly outlook for the next three months using seasonal climate models. Shows temperature and precipitation anomalies. Helps with long-range planning like vacation timing or energy budget forecasting.",
+    "entities": ["sensor.{location}_seasonal_temperature_anomaly"],
+    "automationExample": "Plan heating budget based on whether a cold winter is forecast",
+    "enabledByDefault": false,
+    "domains": ["Seasonal"]
+  },
+  {
+    "key": "Weather:ModelComparison",
+    "name": "ModelComparison",
+    "category": "Weather",
+    "output": "Forecast",
+    "description": "Shows how different weather models compare for your location",
+    "longDescription": "Displays temperature and precipitation forecasts from multiple ensemble models side by side. When models agree, confidence is high; when they diverge, the forecast is uncertain. Adds a secondary weather entity per model in Home Assistant.",
+    "entities": ["weather.{location}_{model_name}"],
+    "automationExample": "Check model agreement before planning a weekend trip",
+    "enabledByDefault": false,
+    "domains": ["Ensemble"],
+    "ensembleParams": ["Models"]
+  },
+  {
+    "key": "Energy:SolarYield",
+    "name": "SolarYield",
+    "category": "Energy",
+    "output": "Condition",
+    "description": "Forecasts how much energy your solar panels will produce",
+    "longDescription": "Calculates expected solar yield based on Global Tilted Irradiance, your panel orientation, and system peak power. Essential for optimizing battery charging, scheduling high-power appliances, or selling surplus to the grid.",
+    "entities": ["sensor.{location}_solar_yield"],
+    "automationExample": "Run the dishwasher during peak solar production hours",
+    "enabledByDefault": false,
+    "domains": ["Weather"],
+    "weatherParams": ["GlobalTiltedIrradiance"]
+  },
+  {
+    "key": "Energy:SatelliteRadiation",
+    "name": "SatelliteRadiation",
+    "category": "Energy",
+    "output": "Condition",
+    "description": "Blends real satellite solar measurements with the forecast for accurate near-term prediction",
+    "longDescription": "Combines actual satellite-observed solar irradiance with the forecast model going forward. The satellite data is ground truth. This blend gives the most accurate short-term solar prediction available.",
+    "entities": ["sensor.{location}_satellite_radiation"],
+    "automationExample": "Use satellite-blended solar forecast for precise battery management",
+    "enabledByDefault": false,
+    "domains": ["Satellite"]
   },
   {
     "key": "Energy:ElevatedWind",
     "name": "ElevatedWind",
     "category": "Energy",
     "output": "Condition",
-    "description": "80m and 120m hub-height wind speed and direction for wind energy monitoring",
+    "description": "Shows wind speed and direction at 80m and 120m height for wind energy monitoring",
+    "longDescription": "Provides wind data at typical wind turbine hub heights, significantly different from the 10m surface wind in standard weather. Essential for wind energy assessment and turbine performance monitoring.",
+    "entities": ["sensor.{location}_elevated_wind"],
+    "automationExample": "Track daily wind energy potential alongside your solar yield",
     "enabledByDefault": false,
     "domains": ["Weather"],
     "weatherParams": ["WindSpeed80m", "WindDirection80m", "WindSpeed120m", "WindDirection120m"],
     "options": []
+  },
+  {
+    "key": "Flood:FloodRisk",
+    "name": "FloodRisk",
+    "category": "Flood",
+    "output": "Alert",
+    "description": "Warns when river discharge levels indicate flooding risk",
+    "longDescription": "Monitors forecast river discharge from the GloFAS global flood model. Triggers when discharge exceeds historical thresholds. Critical for properties near rivers or in flood-prone areas.",
+    "entities": ["binary_sensor.{location}_flood_risk_alert"],
+    "automationExample": "Activate flood barrier pump when flood risk is elevated",
+    "enabledByDefault": false,
+    "domains": ["Flood"]
+  },
+  {
+    "key": "Flood:FloodRain",
+    "name": "FloodRain",
+    "category": "Flood",
+    "output": "Alert",
+    "description": "Warns when heavy rain coincides with already high river levels",
+    "longDescription": "Combines rainfall forecast with river discharge data. When heavy rain is expected AND the river is already running high, the flood risk multiplies. Catches situations that neither rain nor river monitoring alone would flag.",
+    "entities": ["binary_sensor.{location}_flood_rain_alert"],
+    "automationExample": "Evacuate basement contents when flood rain alert goes red",
+    "enabledByDefault": false,
+    "domains": ["Weather", "Flood"],
+    "weatherParams": ["Precipitation"]
+  },
+  {
+    "key": "Flood:FloodTimeline",
+    "name": "FloodTimeline",
+    "category": "Flood",
+    "output": "Condition",
+    "description": "Shows the predicted river discharge curve for the coming weeks",
+    "longDescription": "Provides a timeline of forecast river discharge levels for up to 92 days ahead. Shows when the river is expected to rise, peak, and fall. Useful for long-range flood planning.",
+    "entities": ["sensor.{location}_river_discharge"],
+    "automationExample": "Plan sandbag delivery based on when peak discharge is predicted",
+    "enabledByDefault": false,
+    "domains": ["Flood"]
+  },
+  {
+    "key": "Marine:Swimming",
+    "name": "Swimming",
+    "category": "Marine",
+    "output": "Alert",
+    "description": "Warns when sea conditions make swimming unsafe",
+    "longDescription": "Evaluates wave height, wave period, and sea surface temperature to determine swimming safety. Triggers when waves are too high or water is dangerously cold. Useful for beach-goers and parents planning seaside trips.",
+    "entities": ["binary_sensor.{location}_swimming_conditions_alert"],
+    "automationExample": "Check swimming conditions before heading to the beach",
+    "enabledByDefault": false,
+    "domains": ["Marine"]
+  },
+  {
+    "key": "Marine:Surf",
+    "name": "Surf",
+    "category": "Marine",
+    "output": "Condition",
+    "description": "Rates surfing conditions based on swell, wind, and wave characteristics",
+    "longDescription": "Analyzes swell wave height, period, direction, and wind conditions to rate surf quality. Reports conditions as poor, fair, good, or epic. Helps surfers decide which days are worth the trip.",
+    "entities": ["sensor.{location}_surf"],
+    "automationExample": "Get notified when surf conditions are good at your favorite break",
+    "enabledByDefault": false,
+    "domains": ["Weather", "Marine"],
+    "optionalWeatherParams": ["WindDirection"]
+  },
+  {
+    "key": "Marine:OceanCurrents",
+    "name": "OceanCurrents",
+    "category": "Marine",
+    "output": "Condition",
+    "description": "Shows ocean current speed and direction for maritime safety and planning",
+    "longDescription": "Monitors forecast ocean current velocity and direction. Strong currents affect swimming safety, boat navigation, fishing, and diving conditions. Important for anyone who works or recreates on the water.",
+    "entities": ["sensor.{location}_ocean_currents"],
+    "automationExample": "Warn divers when ocean currents exceed safe limits",
+    "enabledByDefault": false,
+    "domains": ["Marine"],
+    "marineParams": ["OceanCurrentVelocity", "OceanCurrentDirection"],
+    "options": [{ "name": "StrongCurrentThresholdKmh", "type": "number", "default": 3.0 }]
+  },
+  {
+    "key": "Marine:CoastalFlood",
+    "name": "CoastalFlood",
+    "category": "Marine",
+    "output": "Alert",
+    "description": "Warns when storm surge conditions threaten coastal areas",
+    "longDescription": "Combines sea level height deviation, wave height, wave direction, and onshore wind to detect storm surge risk. Critical for coastal properties, harbors, and low-lying areas near the sea.",
+    "entities": ["binary_sensor.{location}_coastal_flood_alert"],
+    "automationExample": "Activate coastal property flood defenses when storm surge risk is high",
+    "enabledByDefault": false,
+    "domains": ["Marine", "Weather", "Ensemble"],
+    "marineParams": ["SeaLevelHeight", "WaveHeight", "WaveDirection"],
+    "weatherParams": ["WindSpeed", "WindDirection"],
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [{ "name": "SeaLevelThresholdM", "type": "number", "default": 0.3 }, { "name": "WaveHeightThresholdM", "type": "number", "default": 1.5 }, { "name": "WindSpeedThreshold", "type": "number", "default": 4.2 }]
   }
 ]

@@ -33,11 +33,11 @@ volumes:
 docker compose up -d
 ```
 
-Weather data comes from the Open-Meteo Ensemble Mean API; there is no model to configure. See [Weather](/configuration/weather) for the solar and forecast-days options.
+Weather data comes from the Open-Meteo deterministic Forecast API (`api.open-meteo.com`), which automatically picks the best available high-resolution model for your location. Alerts that need confidence also poll the Ensemble Mean API for spread data. There is no model to configure for the primary forecast. See [Weather](/configuration/weather) for forecast-days and solar options.
 
 The `/app/data` volume stores the SQLite journal (each PollWorker's learned schedule and API usage). Keep it mounted so state survives restarts.
 
-Each poll cycle fetches the domains the default features need per location (Weather, Air Quality), about 1,440 API calls per month at the default 60-minute interval. See [Budget](/configuration/budget).
+Each poll cycle fetches the domains the enabled features need per location. The defaults (18 features: 14 weather alerts + RainProbability + Commute + Pollen + PM2.5) need Weather, Ensemble and Air Quality, about 3,600 API calls per month at the default 60-minute interval. See [Budget](/configuration/budget).
 
 ::: tip
 For several locations or solar data, use the [Config Builder](/builder).
@@ -67,12 +67,10 @@ Copy `custom_components/njord` from the [ha-njord repository](https://github.com
 
 Under **Settings > Devices & Services > njord Weather**:
 
-- Per location: weather, air quality and flood data and the alert sensors
+- Per location: weather entity, air quality and flood sensors, alert binary sensors, lifestyle conditions, an event entity for alert state changes
 - On the server device: a "Trigger Poll" button, API usage, version, uptime and stream connectivity sensors
 
-::: warning
-The ha-njord entity structure is being updated for the multi-domain architecture. See [Entities](/home-assistant/entities).
-:::
+With all defaults you get about 45 entities per location. Enable more features to add lifestyle scores, energy monitoring, flood risk and more. See [Entities](/home-assistant/entities).
 
 ## How it works
 

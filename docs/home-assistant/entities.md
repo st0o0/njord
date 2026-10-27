@@ -4,11 +4,7 @@ The integration creates entities across five platforms: `weather`, `sensor`, `bi
 
 ## Weather (`weather.*`)
 
-Each location creates one weather entity from the Ensemble Mean forecast of the Weather domain.
-
-::: warning ha-njord update pending
-The server side is multi-domain (Weather, Air Quality, Flood, Solar), served by `GetDomainData` and `StreamDomainData`. The ha-njord integration is being updated to match, so the entity set below may change. Air quality and flood values are available over gRPC.
-:::
+Each location creates one weather entity from the high-resolution deterministic forecast (Forecast API, `api.open-meteo.com`). When Model Comparison is enabled, additional weather entities appear for each configured ensemble model.
 
 **State attributes (current conditions):**
 
@@ -25,44 +21,64 @@ The server side is multi-domain (Weather, Air Quality, Flood, Solar), served by 
 
 **Forecasts** are available via the `weather.get_forecasts` service with `type: hourly` or `type: daily`.
 
-## Air quality, flood and solar data
+## Domain data sensors
 
-The server delivers these domains per location alongside the weather forecast:
+The server delivers data for each enabled domain per location:
 
-| Domain | Values |
-|--------|--------|
-| Air Quality | `pm25`, `pm10`, `ozone`, `birch_pollen`, `grass_pollen`, `alder`, `mugwort` |
-| Flood | `discharge` with mean, median, min, max, P25 and P75 |
-| Solar | `direct_radiation`, `diffuse_radiation`, `shortwave_radiation`, `sunshine_duration` (needs a feature that requests solar variables on the server) |
+| Domain | Sensors | Examples |
+|--------|---------|---------|
+| Air Quality | PM2.5, PM10, ozone, pollen (birch, grass, alder, mugwort, ragweed), per-pollutant AQI | `sensor.lucerne_pm2_5`, `sensor.lucerne_birch_pollen` |
+| Flood | River discharge | `sensor.lucerne_river_discharge` |
+| Lifestyle | Commute safety, exercise, soil moisture, evapotranspiration, growing degree | `sensor.lucerne_commute_safety` |
+| Energy | Solar yield, elevated wind speed/direction | `sensor.lucerne_solar_yield` |
 
-Air quality and flood alerts are computed on the server and become available to Home Assistant once they are exposed over gRPC.
+The set of sensors depends on which features are enabled. The entity count for a single location ranges from about 45 (defaults) to 80+ (all features).
 
 ---
 
-## Alert sensors (`sensor.*_alert`)
+## Alert binary sensors (`binary_sensor.*_alert`)
 
-14 alert types, each showing the actual trigger value as state. **Disabled by default.**
+Up to 30 alert types as binary sensors. Active alerts show `on`, inactive show `off`. The active alert's severity and details are exposed as state attributes.
 
-| Alert Type | Entity suffix | Unit | What it measures |
-|------------|---------------|------|------------------|
-| Frost | `frost_alert` | °C | Minimum forecast temperature |
-| Heat | `heat_alert` | °C | Maximum forecast temperature |
-| Storm | `storm_alert` | m/s | Maximum wind gust speed |
-| Heavy Rain | `heavy_rain_alert` | mm | Precipitation amount |
-| UV | `uv_alert` | UV | Maximum UV index |
-| Fog | `fog_alert` | m | Minimum visibility |
-| Snow | `snow_alert` | cm | Snowfall depth |
-| Pressure Drop | `pressure_drop_alert` | hPa | Pressure change (3h) |
-| Thunderstorm | `thunderstorm_alert` | m/s | Wind gusts during thunderstorm |
-| Ice | `ice_alert` | °C | Surface temperature near freezing |
-| Wind Chill | `wind_chill_alert` | °C | Perceived cold temperature |
-| Visibility | `visibility_alert` | m | Low visibility distance |
-| Tropical Night | `tropical_night_alert` | °C | Minimum nighttime temperature |
-| Humidity | `humidity_alert` | % | Extreme humidity levels |
+### Weather alerts (20)
 
-Entity ID pattern: `sensor.njord_{location}_{type}_alert` (e.g. `sensor.njord_home_frost_alert`)
+| Alert | Entity suffix | What it warns about |
+|-------|---------------|---------------------|
+| Frost | `frost_alert` | Temperature below freezing |
+| Heat | `heat_alert` | Extreme air or apparent temperature |
+| Storm | `storm_alert` | Dangerous wind gusts |
+| Heavy Rain | `heavy_rain_alert` | Intense precipitation |
+| UV | `uv_alert` | High UV index |
+| Fog | `fog_alert` | Fog-forming conditions |
+| Snow | `snow_alert` | Significant snowfall |
+| Pressure Drop | `pressure_drop_alert` | Rapid pressure change |
+| Thunderstorm | `thunderstorm_alert` | Thunderstorm risk (CAPE + gusts) |
+| Ice | `ice_alert` | Black ice risk |
+| Wind Chill | `wind_chill_alert` | Dangerous wind chill |
+| Visibility | `visibility_alert` | Low visibility |
+| Tropical Night | `tropical_night_alert` | Night minimum above 20 °C |
+| Humidity | `humidity_alert` | Oppressive dew point |
+| Rain Probability | `rain_probability_alert` | High chance of rain in the next hours |
+| Wet-Bulb Danger | `wet_bulb_danger_alert` | Heat stroke risk (wet-bulb temperature) |
+| Clear-Sky UV | `clear_sky_uv_alert` | UV danger when clouds break |
+| Shower | `shower_alert` | Sudden convective showers |
+| Fire Risk | `fire_risk_alert` | Wildfire risk conditions |
+| Coastal Flood | `coastal_flood_alert` | Storm surge risk |
 
-State is `None` when no alert data is available. The trigger value (e.g. -2.1 °C for frost) is shown when an alert condition exists.
+### Other alerts
+
+| Alert | Entity suffix | What it warns about |
+|-------|---------------|---------------------|
+| Pollen | `pollen_alert` | High pollen concentration |
+| PM2.5 | `pm2_5_alert` | Fine particulate matter above WHO guidelines |
+| Dust | `dust_alert` | Saharan dust concentration |
+| Smog Risk | `smog_risk_alert` | Low boundary layer + high PM2.5 |
+| Pollen Blast | `pollen_blast_alert` | Pollen explosion after rain |
+| Flood Risk | `flood_risk_alert` | River discharge above historical thresholds |
+| Flood Rain | `flood_rain_alert` | Heavy rain + rising discharge |
+| Swimming | `swimming_conditions_alert` | Unsafe wave or water conditions |
+
+Entity ID pattern: `binary_sensor.{location}_{type}_alert`
 
 **Attributes:**
 

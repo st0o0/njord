@@ -15,20 +15,38 @@ export const CATEGORIES = [
 ] as const
 
 export interface FeatureEntry {
-  // Config key Category:Name; the wire key is the lowercase name.
   key: string
   name: string
   category: string
   output: 'Alert' | 'Score' | 'Condition' | 'Trend' | 'Forecast'
   description: string
+  longDescription?: string
+  entities?: string[]
   enabledByDefault: boolean
   domains: DomainName[]
   weatherParams?: string[]
   optionalWeatherParams?: string[]
   airQualityParams?: string[]
   ensembleParams?: string[]
+  marineParams?: string[]
   options?: FeatureOption[]
 }
+
+export interface FeatureGroup {
+  key: string
+  label: string
+  icon: string
+  features: FeatureEntry[]
+}
+
+export const USER_GROUPS: { key: string; label: string; icon: string; categories: string[]; outputs?: string[] }[] = [
+  { key: 'safety', label: 'Safety Alerts', icon: '🛡️', categories: ['Weather'], outputs: ['Alert'] },
+  { key: 'airquality', label: 'Air Quality', icon: '🌿', categories: ['AirQuality'] },
+  { key: 'lifestyle', label: 'Outdoor & Lifestyle', icon: '☀️', categories: ['Lifestyle'] },
+  { key: 'energy', label: 'Energy', icon: '⚡', categories: ['Energy'] },
+  { key: 'flood-marine', label: 'Flood & Marine', icon: '🌊', categories: ['Flood', 'Marine'] },
+  { key: 'insights', label: 'Insights & Forecasts', icon: '📊', categories: ['Insight', 'Weather'], outputs: ['Forecast', 'Trend', 'Condition'] },
+]
 
 // A per-feature setting below Njord:Features:<Category>:<Name>; null/absent in the config means the built-in default.
 export interface FeatureOption {
@@ -50,6 +68,40 @@ export function featureLabel(key: string): string {
 
 export function defaultFeatures(): Record<string, boolean> {
   return Object.fromEntries(FEATURES.map(f => [f.key, f.enabledByDefault]))
+}
+
+export function userFeatureGroups(): FeatureGroup[] {
+  return USER_GROUPS.map(g => ({
+    key: g.key,
+    label: g.label,
+    icon: g.icon,
+    features: FEATURES.filter(f => {
+      if (g.key === 'safety') return f.category === 'Weather' && f.output === 'Alert'
+      if (g.key === 'insights') return (f.category === 'Insight') || (f.category === 'Weather' && (f.output === 'Forecast' || f.output === 'Trend' || f.output === 'Condition'))
+      return g.categories.includes(f.category) && !(g.outputs && !g.outputs.includes(f.output))
+    }),
+  })).filter(g => g.features.length > 0)
+}
+
+export function recommendedFeatures(): Record<string, boolean> {
+  const recommended = new Set([
+    'Weather:Frost', 'Weather:Heat', 'Weather:Storm', 'Weather:HeavyRain',
+    'Weather:Uv', 'Weather:Fog', 'Weather:Snow', 'Weather:PressureDrop',
+    'Weather:Thunderstorm', 'Weather:Ice', 'Weather:WindChill', 'Weather:Visibility',
+    'Weather:TropicalNight', 'Weather:Humidity', 'Weather:RainProbability',
+    'AirQuality:Pollen', 'AirQuality:Pm25',
+    'Lifestyle:Commute',
+  ])
+  return Object.fromEntries(FEATURES.map(f => [f.key, recommended.has(f.key)]))
+}
+
+export function entityCount(features: Record<string, boolean>, locationCount: number): number {
+  let count = 0
+  for (const f of FEATURES) {
+    if (!features[f.key]) continue
+    count += f.entities?.length ?? 1
+  }
+  return count * Math.max(locationCount, 1) + 4 + 2 + 1
 }
 
 export function requiredDomains(features: Record<string, boolean>): DomainName[] {

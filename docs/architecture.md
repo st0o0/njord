@@ -10,22 +10,26 @@ njord runs as one Docker container without an external database (SQLite by defau
 
 ## Domains
 
-Each poll cycle fetches the domains that the enabled [features](/configuration/#features-and-domains) need (Weather and Air Quality by default):
+Each poll cycle fetches the domains that the enabled [features](/configuration/#features-and-domains) need. The defaults poll Weather, Ensemble and Air Quality:
 
 | Domain | Open-Meteo API | Content |
 |--------|----------------|---------|
-| **Weather** | Ensemble Mean | Hourly and daily weather values plus `ensemble_std_dev`; solar radiation variables when a feature needs them |
-| **Air Quality** | Air Quality | PM2.5, PM10, ozone, pollen (birch, grass, alder, mugwort) |
+| **Weather** | Forecast (`api.open-meteo.com/v1/forecast`) | High-resolution deterministic forecast using automatic best_match model blending (1-9 km). All weather variables including precipitation probability and UV index. |
+| **Ensemble** | Ensemble Mean (`ensemble-api.open-meteo.com/v1/ensemble`) | Temperature, precipitation and wind spread (standard deviation across 51 ensemble members) for alert confidence. Comparison model forecasts when ModelComparison is enabled. |
+| **Air Quality** | Air Quality | PM2.5, PM10, ozone, nitrogen dioxide, pollen (birch, grass, alder, mugwort, ragweed, olive), European and US AQI sub-indices |
 | **Flood** | Flood | River discharge with mean, median, min, max, P25 and P75 |
+| **Marine** | Marine | Wave height, period, direction (wind waves and swell), sea surface temperature, sea level, ocean currents |
+| **Seasonal** | Seasonal | Monthly temperature and precipitation anomalies for the next 3-6 months |
+| **Satellite** | Satellite Archive | Observed solar irradiance (GHI, direct, diffuse, DNI, tilted) for blending with the forecast |
 
-The Ensemble Mean API replaces polling individual models: one call per location returns a statistically robust forecast, with the ensemble spread as a confidence signal.
+Weather and Ensemble are separate domains that poll independently. The Weather domain delivers the primary forecast values; the Ensemble domain delivers uncertainty data and optional model comparison. Features that need confidence (9 of the 20 weather alerts) declare Ensemble in their requirements; features that don't need it use a fixed Medium confidence.
 
-## Three-zone design
+## Three-zone design (7 domains)
 
 <likec4-view view-id="internals"></likec4-view>
 
-- **Ingest**: `OpenMeteoGateway` routes each domain request to its endpoint and rate-limits against the budget. `OpenMeteoClient` builds requests and parses responses. It knows nothing about gRPC or Home Assistant.
-- **Domain**: `PollManager`, one `PollWorker` per location (cluster sharding), `ForecastPipeline` with the `FeatureEngine`, `BudgetTracker` and the feature rules (`Njord.Features`).
+- **Ingest**: `OpenMeteoGateway` routes each domain request to its client (`ForecastClient`, `EnsembleClient`, `AirQualityClient`, `FloodClient`, `MarineClient`, `SeasonalClient`, `SatelliteRadiationClient`) and rate-limits against the budget. Clients build requests and parse responses. They know nothing about gRPC or Home Assistant.
+- **Domain**: `PollManager`, one `PollWorker` per location (cluster sharding), `ForecastPipeline` with the `FeatureEngine`, `BudgetTracker` and the 53 feature rules (`Njord.Features`).
 - **Consumers**: `GrpcConsumer` behind the gRPC API. They attach to the pipeline via SourceRef and know nothing about Open-Meteo.
 
 Ingest and consumers never reference each other; all data flows through the domain model.
@@ -34,8 +38,8 @@ Ingest and consumers never reference each other; all data flows through the doma
 
 <likec4-view view-id="pipeline"></likec4-view>
 
-1. **PollWorker** (one per location, started by `PollManager`) persists its learned update cycle and next poll time. When due, it asks the gateway for each enabled domain (`FetchDomain`); the three fetches run in parallel.
-2. **Gateway** routes each request to Weather (Ensemble Mean), Air Quality or Flood and throttles to stay within the request budget.
+1. **PollWorker** (one per location, started by `PollManager`) persists its learned update cycle and next poll time per domain. When due, it asks the gateway for each enabled domain (`FetchDomain`); fetches run in parallel.
+2. **Gateway** routes each request to the matching domain client (Weather, Ensemble, Air Quality, Flood, Marine, Seasonal, Satellite) and throttles to stay within the request budget.
 3. **Fetch** parses the response into a `DomainForecast<T>` and offers a `DomainDataReceived` into the pipeline's `MergeHub`.
 4. **FeatureEngine** keeps a ring of recent `LocationForecast`s per location, replaces the changed domain slot and runs only the enabled feature rules that read that domain and whose required fields are present.
 5. **Feature rules** (`IFeatureRule`, usually `FeatureRule<TInput>`) project the `LocationForecast` into a typed input and return typed `FeatureResult` events such as alerts, scores or conditions (see below).
@@ -49,12 +53,15 @@ A feature rule declares its required domains and fields in a `FeatureDescriptor`
 
 | Group | Domains | Rules |
 |-------|---------|-------|
-| Weather alerts | Weather | 14 rules on `DomainForecast<WeatherPoint>`; confidence from the ensemble standard deviation |
-| Air quality alerts | Air Quality | Pollen, PM2.5 |
-| Flood risk | Flood | FloodRisk: discharge against historical median, P75 and max |
-| Flood rain (cross-domain) | Flood + Weather | FloodRain: at least 30 mm forecast rain in 24 h with rising discharge above the median |
+| Weather alerts | Weather (+ Ensemble for confidence) | 20 alerts: frost, heat, storm, heavy rain, UV, fog, snow, pressure drop, thunderstorm, ice, wind chill, visibility, tropical night, humidity, rain probability, wet-bulb danger, clear-sky UV, shower, snow depth, fire risk |
+| Air quality alerts | Air Quality (+ Weather for SmogRisk) | Pollen, PM2.5, Dust, SmogRisk, PollenBlast |
+| Flood alerts | Flood (+ Weather for FloodRain) | FloodRisk, FloodRain |
+| Marine alerts | Marine (+ Weather for CoastalFlood) | Swimming, CoastalFlood |
+| Lifestyle scores | Weather (+ Air Quality for some) | BBQ, Laundry, Outdoor, Commute, Exercise |
+| Conditions | Various | SoilMoisture, Evapotranspiration, Gardening, Ventilation, NightVentilation, SurfConditions, OceanCurrents, SnowDepthWatch, PollenTrend, ElevatedWind |
+| Trends and forecasts | Various | ConfidenceTrend, FrontApproaching, ModelComparison, SeasonalOutlook, GrowingDegree, SolarYield, SatelliteRadiation |
 
-Besides alerts there are scores, conditions, trends and forecasts. Every feature result reaches gRPC consumers as an `EnrichmentEvent` whose `feature` oneof case identifies the result type.
+53 feature rules across 8 categories. Every feature result reaches gRPC consumers as an `EnrichmentEvent` whose `feature` oneof case identifies the result type.
 
 ## gRPC services
 

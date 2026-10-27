@@ -4,7 +4,7 @@ layout: home
 hero:
   name: njord
   text: Multi-domain weather intelligence for Home Assistant
-  tagline: A .NET proxy for Open-Meteo. It polls the Ensemble Mean, Air Quality and Flood APIs per location, enriches the data with alerts (including cross-domain ones) and serves the results to Home Assistant over gRPC.
+  tagline: Polls seven Open-Meteo APIs per location, enriches the data with 53 features (alerts, scores, conditions, trends and forecasts) and streams everything to Home Assistant over gRPC.
   image:
     src: /logo.svg
     alt: njord
@@ -18,13 +18,13 @@ hero:
 
 features:
   - title: Native Home Assistant integration
-    details: The ha-njord custom integration streams domain data and alerts over gRPC, so entities update as soon as a poll cycle is processed.
-  - title: Three domains per location
-    details: Weather (Ensemble Mean, with solar radiation when a feature needs it), Air Quality (PM2.5, PM10, ozone, pollen) and Flood (river discharge). One PollWorker per location fetches all three each cycle.
-  - title: Alerts across domains
-    details: 14 weather alerts with confidence from ensemble spread, pollen and PM2.5 alerts for air quality, and flood risk alerts. FloodRain combines heavy forecast rain with rising river discharge.
-  - title: Feature rule pipeline
-    details: A FeatureEngine keeps recent LocationForecasts per location. Each feature rule declares the domains it reads and re-runs only when one of them changes.
+    details: The ha-njord custom integration streams domain data and enrichments over gRPC, so entities update as soon as a poll cycle is processed.
+  - title: Seven domains per location
+    details: "Weather (high-resolution deterministic forecast), Ensemble (confidence and model comparison), Air Quality (PM2.5, ozone, pollen), Flood (river discharge), Marine (waves, currents), Seasonal (monthly outlook) and Satellite (observed solar irradiance)."
+  - title: 53 features across all domains
+    details: "20 weather alerts with ensemble confidence, air quality and pollen alerts, flood and coastal flood warnings, fire risk, smog detection, lifestyle scores (BBQ, laundry, exercise, commute), gardening tools (soil moisture, evapotranspiration, growing degrees), energy monitoring (solar yield, hub-height wind) and more."
+  - title: Feature-driven configuration
+    details: You switch features on, njord derives which API domains to poll and which variables to request. The Config Builder shows the cost per feature. A default setup with one location uses less than 1% of the free-tier budget.
   - title: Static configuration, low footprint
-    details: One .NET container, SQLite by default, configured through appsettings.json or environment variables. A default setup with one location stays far below the free-tier limits.
+    details: One .NET container, SQLite by default, configured through environment variables or appsettings.json. No external database, no API key, no account needed.
 ---

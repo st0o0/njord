@@ -15,41 +15,51 @@ Open-Meteo's free tier (non-commercial use) has these soft limits:
 
 ## Calls per cycle
 
-Each PollWorker fetches the domains required by the enabled [features](./#features-and-domains), one API call each. The defaults need two:
+Each PollWorker fetches the domains required by the enabled [features](./#features-and-domains). The defaults (18 features) need three domains:
 
-| Call | Endpoint | Fetched when |
-|------|----------|--------------|
-| Weather | Ensemble Mean | a Weather feature is enabled (default) |
-| Air Quality | Air Quality API | `PollenAlert`, `Pm25Alert` or another Air Quality feature is enabled (default) |
-| Flood | Flood API | `FloodRisk` or `FloodRain` is enabled |
-| Marine | Marine API | `SwimmingConditions` or `SurfConditions` is enabled |
-
+| Domain | Endpoint | Fetched when | Call weight |
+|--------|----------|--------------|-------------|
+| Weather | Forecast API (`api.open-meteo.com`) | any Weather feature is enabled | `ceil(variables / 10) * ceil(forecastDays / 14)` |
+| Ensemble | Ensemble Mean API | a feature requiring ensemble spread or model comparison is enabled | Spread-only: 1. With models: `ceil(variables / 10) * ceil(days / 14) * modelCount` |
+| Air Quality | Air Quality API | any Air Quality feature is enabled | 1 |
+| Flood | Flood API | `FloodRisk`, `FloodRain` or `FloodTimeline` is enabled | 1 |
+| Marine | Marine API | `Swimming`, `Surf`, `OceanCurrents` or `CoastalFlood` is enabled | 1 |
+| Seasonal | Seasonal API | `SeasonalOutlook` is enabled | ~1/day (daily cycle) |
+| Satellite | Satellite Archive API | `SatelliteRadiation` is enabled | ~1/hour (hourly cycle) |
 
 ```
-calls per cycle  = locations x (weather weight + other required domains)
+calls per cycle  = locations x sum(domain weights)
 cycles per month = 30 days / poll interval
 projected        = calls per cycle x cycles per month
 guard            = monthly budget x 0.8
 ```
 
-### Example: one location (Lucerne)
+### Example: one location, defaults (Lucerne)
 
 | Setting | Value |
 |---------|-------|
 | Locations | 1 |
-| Domains | Weather, Air Quality (default features) |
+| Domains | Weather, Ensemble (spread-only), Air Quality |
 | Poll interval | 60 minutes |
 
 ```
-calls per cycle  = 1 x (2 + 1) = 3   (17 weather variables = weight 2, plus Air Quality)
+calls per cycle  = 1 x (4 + 1 + 1) = 6   (weather ~30 vars = weight 4, ensemble spread = 1, AQ = 1)
 cycles per month = 30 x 24 = 720
-projected        = 3 x 720 = 2,160 per month
+projected        = 6 x 720 = 4,320 per month
 guard            = 300,000 x 0.8 = 240,000
 ```
 
-2,160 calls is about 0.7% of the free-tier month. Even ten locations (21,600) stay far below the guard.
+4,320 calls is about 1.4% of the free-tier month. Even ten locations (43,200) stay well below the guard.
 
-Open-Meteo counts requests with many hourly variables or long forecasts as more than one call. That weight applies to the Weather domain only; see [Weather](./weather#api-call-weight).
+### Example: all features, 3 ensemble comparison models
+
+```
+calls per cycle  = 1 x (4 + 12 + 1 + 1 + 1) = 19  (weather 4, ensemble with 3 models 12, AQ 1, Flood 1, Marine 1)
+                   + Seasonal ~1/day + Satellite ~24/day
+projected        ≈ 19 x 720 + 30 + 720 = ~14,430 per month
+```
+
+Still only 4.8% of the free tier. The [Config Builder](/builder) calculates the exact cost for your configuration.
 
 ## Startup guard
 
