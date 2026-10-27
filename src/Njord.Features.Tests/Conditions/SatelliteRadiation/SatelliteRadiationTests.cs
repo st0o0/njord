@@ -20,7 +20,7 @@ public sealed class SatelliteRadiationTests
     [Fact]
     public void The_newest_observed_hour_is_reported()
     {
-        var forecast = WeatherOnly(Day()) with { Satellite = Observed((2, 300, 250), (1, 450, 380), (0, 500, 410)) };
+        var forecast = ForecastOnly(Day()) with { Satellite = Observed((2, 300, 250), (1, 450, 380), (0, 500, 410)) };
 
         var computed = Assert.IsType<SatelliteRadiationResult>(Run(Feature(), Now, forecast));
 
@@ -33,7 +33,7 @@ public sealed class SatelliteRadiationTests
     [Fact]
     public void The_observed_hour_is_blended_with_the_ensemble_for_the_next_24_hours()
     {
-        var forecast = WeatherOnly(Day((_, point) => point with { GlobalTiltedIrradiance = 100.0 }))
+        var forecast = ForecastOnly(Day((_, point) => point with { GlobalTiltedIrradiance = 100.0 }))
             with
         { Satellite = Observed((0, 600, null)) };
 
@@ -45,7 +45,7 @@ public sealed class SatelliteRadiationTests
     [Fact]
     public void Satellite_data_older_than_three_hours_is_ignored()
     {
-        var forecast = WeatherOnly(Day()) with { Satellite = Observed((4, 300, 250)) };
+        var forecast = ForecastOnly(Day()) with { Satellite = Observed((4, 300, 250)) };
 
         Assert.Null(Run(Feature(), Now, forecast));
     }
@@ -53,7 +53,7 @@ public sealed class SatelliteRadiationTests
     [Fact]
     public void Observed_hours_without_tilted_irradiance_are_ignored()
     {
-        var forecast = WeatherOnly(Day()) with { Satellite = Observed((0, null, 250)) };
+        var forecast = ForecastOnly(Day()) with { Satellite = Observed((0, null, 250)) };
 
         Assert.Null(Run(Feature(), Now, forecast));
     }
@@ -61,7 +61,7 @@ public sealed class SatelliteRadiationTests
     [Fact]
     public void Nothing_is_reported_without_satellite_data()
     {
-        Assert.Null(Run(Feature(), Now, WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
     }
 
     [Fact]

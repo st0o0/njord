@@ -21,7 +21,7 @@ public sealed class SeasonalOutlookTests
         new(new DateTimeOffset(year, month, 1, 0, 0, 0, TimeSpan.Zero), temp, precip, mean);
 
     private static LocationForecast With(params SeasonalPoint[] points) =>
-        WeatherOnly(Day()) with
+        ForecastOnly(Day()) with
         {
             Seasonal = new DomainForecast<SeasonalPoint>(DomainKind.Seasonal, October, TimeResolution.Monthly, [.. points]),
         };
@@ -65,7 +65,7 @@ public sealed class SeasonalOutlookTests
     [Fact]
     public void The_outlook_is_emitted_without_weather_data()
     {
-        var forecast = new LocationForecast(WeatherOnly(Day()).Location)
+        var forecast = new LocationForecast(ForecastOnly(Day()).Location)
         {
             Seasonal = new DomainForecast<SeasonalPoint>(DomainKind.Seasonal, October, TimeResolution.Monthly, [Month(2026, 11, 1.0)]),
         };
@@ -78,7 +78,7 @@ public sealed class SeasonalOutlookTests
     [Fact]
     public void Nothing_is_reported_without_seasonal_data()
     {
-        Assert.Null(Run(Feature(), October, WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), October, ForecastOnly(Day())));
     }
 
     [Fact]

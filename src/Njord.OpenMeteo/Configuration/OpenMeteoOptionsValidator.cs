@@ -5,7 +5,7 @@ using Njord.Core.Domain;
 namespace Njord.OpenMeteo.Configuration;
 
 public sealed class OpenMeteoOptionsValidator :
-    IValidateOptions<WeatherOptions>,
+    IValidateOptions<ForecastOptions>,
     IValidateOptions<AirQualityOptions>,
     IValidateOptions<FloodOptions>,
     IValidateOptions<MarineOptions>,
@@ -13,26 +13,26 @@ public sealed class OpenMeteoOptionsValidator :
     IValidateOptions<SatelliteOptions>,
     IValidateOptions<SolarYieldOptions>
 {
-    public ValidateOptionsResult Validate(string? name, WeatherOptions options) =>
+    public ValidateOptionsResult Validate(string? name, ForecastOptions options) =>
         Result([
-            Range("Weather.ForecastDays", options.ForecastDays, 1, 16),
+            Range("Forecast.ForecastDays", options.ForecastDays, 1, 16),
             options.Model is null
                 ? null
-                : "Njord:Weather:Model was replaced by Njord:Weather:Models (a list, the first entry is the primary model).",
-            options.Models is { Length: 0 } ? "Weather.Models must contain at least one model." : null,
+                : "Njord:Forecast:Model was replaced by Njord:Forecast:Models (a list, the first entry is the primary model).",
+            options.Models is { Length: 0 } ? "Forecast.Models must contain at least one model." : null,
             .. DuplicateModels(options),
             .. UnknownModels(options)]);
 
-    private static IEnumerable<string> DuplicateModels(WeatherOptions options) =>
+    private static IEnumerable<string> DuplicateModels(ForecastOptions options) =>
         (options.Models ?? [])
         .GroupBy(m => m).Where(g => g.Count() > 1)
-        .Select(g => $"Weather.Models contains '{g.Key}' more than once.");
+        .Select(g => $"Forecast.Models contains '{g.Key}' more than once.");
 
-    private static IEnumerable<string> UnknownModels(WeatherOptions options) =>
+    private static IEnumerable<string> UnknownModels(ForecastOptions options) =>
         (options.Models ?? [])
         .Where(m => WeatherModelCatalog.Find(m) is null)
         .Distinct()
-        .Select(m => $"Weather.Models entry '{m}' is not a known model (known: {string.Join(", ", WeatherModelCatalog.All.Select(i => i.Id))}).");
+        .Select(m => $"Forecast.Models entry '{m}' is not a known model (known: {string.Join(", ", WeatherModelCatalog.All.Select(i => i.Id))}).");
 
     public ValidateOptionsResult Validate(string? name, AirQualityOptions options) =>
         Result(

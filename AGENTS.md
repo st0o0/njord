@@ -123,7 +123,7 @@ SHARD REGIONS (Sharded Entity)
 ## Decisions
 
 - **Forecast + Ensemble split.** Primary weather comes from the deterministic Forecast API
-  (`api.open-meteo.com/v1/forecast`, `ForecastClient`, `DomainKind.Weather`) using best_match
+  (`api.open-meteo.com/v1/forecast`, `ForecastClient`, `DomainKind.Forecast`) using best_match
   (automatic high-resolution model blending, 1-9 km). Ensemble spread and comparison models come
   from the Ensemble Mean API (`ensemble-api.open-meteo.com/v1/ensemble`, `EnsembleClient`,
   `DomainKind.Ensemble`). `Njord:Weather:Models` (default `ecmwf_ifs025_ensemble_mean`; ids from
@@ -133,24 +133,24 @@ SHARD REGIONS (Sharded Entity)
   `IOptions<FeatureRequirementsOptions>`) and mapped to API names by `ParamMappings.ToApiNames()`;
   the clients only build the URL. `FeatureEngine` skips a rule whose required fields are missing
   from the stream (`LocationForecast.HasFields`). `BudgetGuard` uses the same resolved requirements:
-  Weather (Forecast API) costs `ceil(variables / 10) * ceil(forecastDays / 14)` calls per cycle
+  Forecast costs `ceil(variables / 10) * ceil(forecastDays / 14)` calls per cycle
   (no model multiplier), Ensemble costs `ceil(variables / 10) * ceil(forecastDays / 14) * modelCount`
   (spread-only: 1 call), every other required domain 1.
 - **Per-domain forecast days.** `Njord:AirQuality` (5, max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92,
   max 210) next to `Njord:Weather`.
-- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Category>:<Name>` (37 features; categories see
+- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Category>:<Name>` (53 features; categories see
   `docs/data/features.json`; env `Njord__Features__<Category>__<Name>__Enabled`). 18 are on by default: the 14
   weather alerts (`Weather:Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`, `PressureDrop`, `Thunderstorm`,
   `Ice`, `WindChill`, `Visibility`, `TropicalNight`, `Humidity`), `Lifestyle:Commute`, `AirQuality:Pollen`,
   `AirQuality:Pm25`; everything else is off. The entity set follows locations x enabled features.
 - **Per-domain discovery.** Every domain of a location learns its own cycle and polls independently.
-- **Domains:** `Weather`, `Ensemble`, `AirQuality`, `Flood`, `Marine`, `Seasonal`, `Satellite` (`DomainKind`); the gateway fetches all of them.
+- **Domains:** `Forecast`, `Ensemble`, `AirQuality`, `Flood`, `Marine`, `Seasonal`, `Satellite` (`DomainKind`); the gateway fetches all of them.
 - **Explicit coordinates.** A location is `Name`, `Latitude` and `Longitude`, all required (`NjordOptionsValidator`).
 - **Free tier assumed** (non-commercial): budget defaults to 300k/month, 600/min, optional
   `Polling:BudgetOverride`. Startup validates projected usage (`BudgetGuard`: locations x required
   domains x poll cycles x call weight) against 80 % of the monthly budget.
 - **Any change to polling needs a budget estimate** against 300k/month, 10k/day, and politeness toward
-  a free service. Weather (Forecast API) weighs `ceil(variables / 10) * ceil(forecastDays / 14)` calls;
+  a free service. Forecast weighs `ceil(variables / 10) * ceil(forecastDays / 14)` calls;
   Ensemble weighs `ceil(variables / 10) * ceil(forecastDays / 14) * modelCount` (spread-only: 1); others 1.
 - **Seasonal is a normal domain** (`DomainKind.Seasonal`, `SeasonalPoint`, `TimeResolution.Monthly`): the gateway fetches
   `seasonal-api.open-meteo.com` for `SeasonalOutlook`, the PollWorker learns its roughly daily cycle, `BudgetGuard`
@@ -162,7 +162,7 @@ SHARD REGIONS (Sharded Entity)
   `Njord:Satellite:PastHours`) for `SatelliteRadiation` (off by default, about 720 calls/month/location, counted per poll
   cycle by `BudgetGuard`). `SolarIrradianceBlend` takes satellite GTI up to the newest observation (ignored when
   older than 3 h) and ensemble GTI afterwards; `SolarYield` and `SatelliteRadiation` use it.
-- **Base parameters.** `FeatureResolution.WithBaseParams` always requests `weather_code` for a required Weather domain and `pm10` for a required AirQuality domain; `BudgetGuard` and the Config Builder count them.
+- **Base parameters.** `FeatureResolution.WithBaseParams` always requests `weather_code` for a required Forecast domain and `pm10` for a required AirQuality domain; `BudgetGuard` and the Config Builder count them.
 - **Failure backoff.** A failed fetch retries after 60 s, doubling per consecutive failure up to the poll interval (`FailureBackoff`); rate limit and budget rejections wait at least 5 min. The count is persisted in `DomainPolled.ConsecutiveFailures` and reset by a successful fetch.
 - Poll interval 60 min and discovery interval 20 min are config values.
 - Wire text for closed sets comes from explicit mappings, never `ToString()`.

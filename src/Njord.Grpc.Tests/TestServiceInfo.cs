@@ -23,5 +23,5 @@ public static class TestServiceInfo
 
     public sealed class FloodRain(bool enabled = true) : StubRule(FeatureCategory.Flood, "FloodRain", enabled);
 
-    public sealed class FrostAlert() : StubRule(FeatureCategory.Weather, "Frost");
+    public sealed class FrostAlert() : StubRule(FeatureCategory.Forecast, "Frost");
 }

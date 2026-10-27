@@ -1,13 +1,13 @@
 using System.Collections.Immutable;
 using Njord.Core.Domain;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 
 namespace Njord.Tests.Shared;
 
 public sealed class FakeForecastClient : IDomainClient
 {
-    public DomainKind Domain => DomainKind.Weather;
+    public DomainKind Domain => DomainKind.Forecast;
 
     public int CallWeight { get; set; } = 1;
 
@@ -39,7 +39,7 @@ public sealed class FakeForecastClient : IDomainClient
             return new FetchEmpty();
         }
 
-        var point = new WeatherPoint(
+        var point = new ForecastPoint(
             new DateTimeOffset(2026, 7, 11, 3, 0, 0, TimeSpan.Zero),
             Temperature: 20.0,
             ApparentTemperature: 18.5,
@@ -53,7 +53,7 @@ public sealed class FakeForecastClient : IDomainClient
             DewPoint: 12.0,
             UvIndex: 3.0);
 
-        var forecast = new DomainForecast<WeatherPoint>(DomainKind.Weather, now, TimeResolution.Hourly, [point]);
+        var forecast = new DomainForecast<ForecastPoint>(DomainKind.Forecast, now, TimeResolution.Hourly, [point]);
         return new FetchSuccess(forecast);
     }
 

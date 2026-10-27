@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.Flood;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 
 namespace Njord.Tests.Shared;
 
@@ -17,12 +17,12 @@ public static class FloodFixtures
     public static DomainForecast<FloodPoint> FloodForecast(params FloodPoint[] points) =>
         new(DomainKind.Flood, Now, TimeResolution.Daily, [.. points]);
 
-    public static DomainForecast<WeatherPoint> Rain(double hourlyMillimeters)
+    public static DomainForecast<ForecastPoint> Rain(double hourlyMillimeters)
     {
         var points = Enumerable.Range(0, 24)
-            .Select(h => new WeatherPoint(Now.AddHours(h), 12, 12, 2, hourlyMillimeters, 80, 90, 1005, 61, 90, 10, 1))
+            .Select(h => new ForecastPoint(Now.AddHours(h), 12, 12, 2, hourlyMillimeters, 80, 90, 1005, 61, 90, 10, 1))
             .ToImmutableArray();
-        return new DomainForecast<WeatherPoint>(DomainKind.Weather, Now, TimeResolution.Hourly, points);
+        return new DomainForecast<ForecastPoint>(DomainKind.Forecast, Now, TimeResolution.Hourly, points);
     }
 
 }

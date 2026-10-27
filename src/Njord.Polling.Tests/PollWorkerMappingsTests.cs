@@ -43,7 +43,7 @@ public sealed class PollWorkerMappingsTests
     [Fact]
     public void GetPersistenceState_and_FromPersistence_roundtrip()
     {
-        var state = Steady().Apply(Unchanged(DomainKind.Weather, T0.AddHours(9)));
+        var state = Steady().Apply(Unchanged(DomainKind.Forecast, T0.AddHours(9)));
 
         var restored = state.GetPersistenceState().FromPersistence();
 
@@ -52,7 +52,7 @@ public sealed class PollWorkerMappingsTests
             () => Assert.Equal(state.Active, restored.Active),
             () => Assert.Equal(state.DiscoveryInterval, restored.DiscoveryInterval),
             () => Assert.Equal(state.Domains.Count, restored.Domains.Count),
-            () => Assert.Equal(state.GetDomain(DomainKind.Weather), restored.GetDomain(DomainKind.Weather)));
+            () => Assert.Equal(state.GetDomain(DomainKind.Forecast), restored.GetDomain(DomainKind.Forecast)));
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class PollWorkerMappingsTests
 
         var domainDto = dto.DomainStates[0];
         Assert.Multiple(
-            () => Assert.Equal((int)DomainKind.Weather, domainDto.Domain),
+            () => Assert.Equal((int)DomainKind.Forecast, domainDto.Domain),
             () => Assert.Equal(3, domainDto.LastHash),
             () => Assert.Equal(PersistedPollPhase.Steady, domainDto.Phase),
             () => Assert.Equal(TimeSpan.FromHours(3), domainDto.LearnedCycle));
@@ -93,7 +93,7 @@ public sealed class PollWorkerMappingsTests
     public void A_started_state_keeps_the_coordinates_through_the_persistence_roundtrip()
     {
         var state = PollWorkerState.Empty.Apply(
-            new PollingStarted("lucerne", [(int)DomainKind.Weather], Discovery, T0, 47.05, 8.31));
+            new PollingStarted("lucerne", [(int)DomainKind.Forecast], Discovery, T0, 47.05, 8.31));
 
         var dto = state.GetPersistenceState();
         var restored = dto.FromPersistence();
@@ -134,23 +134,23 @@ public sealed class PollWorkerMappingsTests
     public void A_second_start_with_new_coordinates_replaces_the_target_and_keeps_the_domains()
     {
         var polled = Steady();
-        var domainBefore = polled.GetDomain(DomainKind.Weather);
+        var domainBefore = polled.GetDomain(DomainKind.Forecast);
 
         var moved = polled.Apply(
-            new PollingStarted("lucerne", [(int)DomainKind.Weather], Discovery, T0.AddHours(7), 47.10, 8.40));
+            new PollingStarted("lucerne", [(int)DomainKind.Forecast], Discovery, T0.AddHours(7), 47.10, 8.40));
 
         Assert.NotNull(moved.Target);
         Assert.Multiple(
             () => Assert.Equal(47.10, moved.Target.Location.Latitude),
             () => Assert.Equal(8.40, moved.Target.Location.Longitude),
-            () => Assert.Equal(domainBefore, moved.GetDomain(DomainKind.Weather)));
+            () => Assert.Equal(domainBefore, moved.GetDomain(DomainKind.Forecast)));
     }
 
     [Fact]
     public void A_second_start_with_new_coordinates_and_interval_replaces_the_target()
     {
         var moved = Started().Apply(
-            new PollingStarted("lucerne", [(int)DomainKind.Weather], TimeSpan.FromMinutes(30), T0, 47.10, 8.40));
+            new PollingStarted("lucerne", [(int)DomainKind.Forecast], TimeSpan.FromMinutes(30), T0, 47.10, 8.40));
 
         Assert.NotNull(moved.Target);
         Assert.Multiple(
@@ -184,7 +184,7 @@ public sealed class PollWorkerMappingsTests
 
         Assert.NotNull(dto);
         var state = dto.FromPersistence();
-        var weather = state.GetDomain(DomainKind.Weather);
+        var weather = state.GetDomain(DomainKind.Forecast);
         Assert.Multiple(
             () => Assert.Equal(PollPhase.Steady, weather.Phase),
             () => Assert.Equal(new PollTarget(Lucerne), state.Target),

@@ -3,49 +3,49 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.OpenMeteo.Ensemble;
 using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Mapping;
 using static Njord.OpenMeteo.Mapping.SeriesAccess;
 
-namespace Njord.OpenMeteo.Weather;
+namespace Njord.OpenMeteo.Forecast;
 
-internal static class WeatherResponseMappingExtensions
+internal static class ForecastResponseMappingExtensions
 {
     private const string TimeKey = "time";
     private const string MemberPrefix = "member";
 
     private static readonly FrozenSet<string> KnownNames =
-        ApiVariableNames.For<WeatherApiVariable>().Values
+        ApiVariableNames.For<ForecastApiVariable>().Values
             .Concat(ApiVariableNames.For<EnsembleApiVariable>().Values)
             .ToFrozenSet();
 
     private static readonly string[] BaseNames = [.. KnownNames.OrderByDescending(n => n.Length)];
 
-    public static ImmutableDictionary<string, DomainForecast<WeatherPoint>> ToModelForecasts(
-        this WeatherResponse response, DateTimeOffset modelRun, string singleModelId)
+    public static ImmutableDictionary<string, DomainForecast<ForecastPoint>> ToModelForecasts(
+        this ForecastResponse response, DateTimeOffset modelRun, string singleModelId)
     {
         if (response.Hourly is not { } hourly || hourly.Count == 0)
         {
-            return ImmutableDictionary<string, DomainForecast<WeatherPoint>>.Empty;
+            return ImmutableDictionary<string, DomainForecast<ForecastPoint>>.Empty;
         }
 
         var modelData = SplitByModel(hourly);
 
         if (modelData.IsEmpty)
         {
-            return ImmutableDictionary<string, DomainForecast<WeatherPoint>>.Empty;
+            return ImmutableDictionary<string, DomainForecast<ForecastPoint>>.Empty;
         }
 
         var time = hourly.TryGetValue(TimeKey, out var t) ? JsonNode.Parse(t.GetRawText()) : new JsonArray();
 
-        var forecasts = ImmutableDictionary.CreateBuilder<string, DomainForecast<WeatherPoint>>();
+        var forecasts = ImmutableDictionary.CreateBuilder<string, DomainForecast<ForecastPoint>>();
         foreach (var (model, series) in modelData)
         {
             series[TimeKey] = time?.DeepClone();
-            var data = series.Deserialize(OpenMeteoJsonContext.Default.WeatherHourlyData);
-            if (data?.ToForecast(modelRun)?.TrimTrailing((WeatherPoint p, WeatherParams f) => p.HasFields(f)) is { } forecast)
+            var data = series.Deserialize(OpenMeteoJsonContext.Default.ForecastHourlyData);
+            if (data?.ToForecast(modelRun)?.TrimTrailing((ForecastPoint p, ForecastParams f) => p.HasFields(f)) is { } forecast)
             {
                 var key = model.Length == 0 ? singleModelId : model;
                 forecasts[key] = forecast;
@@ -125,17 +125,17 @@ internal static class WeatherResponseMappingExtensions
         return false;
     }
 
-    private static DomainForecast<WeatherPoint>? ToForecast(this WeatherHourlyData h, DateTimeOffset modelRun)
+    private static DomainForecast<ForecastPoint>? ToForecast(this ForecastHourlyData h, DateTimeOffset modelRun)
     {
         if (h.Time.Length == 0)
         {
             return null;
         }
 
-        var points = new WeatherPoint[h.Time.Length];
+        var points = new ForecastPoint[h.Time.Length];
         for (var i = 0; i < h.Time.Length; i++)
         {
-            points[i] = new WeatherPoint(
+            points[i] = new ForecastPoint(
                 ValidFrom: DateTimeOffset.FromUnixTimeSeconds(h.Time[i]),
                 Temperature: At(h.Temperature, i),
                 ApparentTemperature: At(h.ApparentTemperature, i),
@@ -187,7 +187,7 @@ internal static class WeatherResponseMappingExtensions
                 LiftedIndex: At(h.LiftedIndex, i));
         }
 
-        return new DomainForecast<WeatherPoint>(
-            DomainKind.Weather, modelRun, TimeResolution.Hourly, [.. points]);
+        return new DomainForecast<ForecastPoint>(
+            DomainKind.Forecast, modelRun, TimeResolution.Hourly, [.. points]);
     }
 }

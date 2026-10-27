@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Flood;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 
 namespace Njord.Core.Tests.Domain;
 
@@ -59,10 +59,10 @@ public sealed class ForecastQueriesTests
     [Fact]
     public void Should_correlate_hourly_points_with_the_daily_point_covering_them()
     {
-        var hourly = new DomainForecast<WeatherPoint>(
-            DomainKind.Weather, Midnight, TimeResolution.Hourly,
+        var hourly = new DomainForecast<ForecastPoint>(
+            DomainKind.Forecast, Midnight, TimeResolution.Hourly,
             [.. new[] { 0, 12, 24 }.Select(h =>
-                new WeatherPoint(Midnight.AddHours(h), h, h, 0, 0, 0, 0, 1013, 0, 50, 0, 0))]);
+                new ForecastPoint(Midnight.AddHours(h), h, h, 0, 0, 0, 0, 1013, 0, 50, 0, 0))]);
         var daily = new DomainForecast<FloodPoint>(
             DomainKind.Flood, Midnight, TimeResolution.Daily,
             ImmutableArray.Create(new FloodPoint(Midnight, 99)));

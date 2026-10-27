@@ -83,13 +83,13 @@ Njord__Features__AirQuality__PollenTrend__Enabled: "true"
 
 Warns when atmospheric conditions trap pollution near the ground. Combines two signals:
 
-1. **Boundary layer height** below 500 m (from the Weather API) -- the atmospheric mixing layer is shallow, trapping pollutants
+1. **Boundary layer height** below 500 m (from the Forecast API) -- the atmospheric mixing layer is shallow, trapping pollutants
 2. **PM2.5** above 25 ug/m3 (from the Air Quality API) -- pollution is already elevated
 
 Both conditions must be present for the alert to fire.
 
 **Entity:** `binary_sensor.<location>_smog_risk_alert`
-**Domains:** Weather + AirQuality | **Default:** Off | **Confidence:** Medium
+**Domains:** Forecast + AirQuality | **Default:** Off | **Confidence:** Medium
 
 ```yaml
 Njord__Features__AirQuality__SmogRisk__Enabled: "true"

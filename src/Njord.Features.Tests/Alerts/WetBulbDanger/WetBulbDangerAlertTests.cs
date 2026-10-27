@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.WetBulbDanger;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -20,7 +20,7 @@ public sealed class WetBulbDangerAlertTests
     {
         var rule = new WetBulbDangerAlert(Opts(new WetBulbDangerConfig { Enabled = true }));
         var weather = Uniform(p => p with { WetBulbTemperature = wetBulb });
-        var result = Run(rule, Now, WeatherWithEnsemble(weather, EnsembleDay()));
+        var result = Run(rule, Now, ForecastWithEnsemble(weather, EnsembleDay()));
         return result is null
             ? AlertSeverity.None
             : Assert.IsAssignableFrom<AlertFeatureResult>(result).Severity;
@@ -39,7 +39,7 @@ public sealed class WetBulbDangerAlertTests
     {
         var rule = new WetBulbDangerAlert(Opts(new WetBulbDangerConfig { Enabled = true }));
         var weather = Uniform(p => p with { WetBulbTemperature = null });
-        var result = Run(rule, Now, WeatherWithEnsemble(weather, EnsembleDay()));
+        var result = Run(rule, Now, ForecastWithEnsemble(weather, EnsembleDay()));
         Assert.Null(result);
     }
 
@@ -48,7 +48,7 @@ public sealed class WetBulbDangerAlertTests
     {
         var rule = new WetBulbDangerAlert(Opts(new WetBulbDangerConfig { Enabled = true }));
         var weather = Uniform(p => p with { WetBulbTemperature = 30.5 });
-        var result = Run(rule, Now, WeatherWithEnsemble(weather, EnsembleDay()));
+        var result = Run(rule, Now, ForecastWithEnsemble(weather, EnsembleDay()));
         var alert = Assert.IsType<WetBulbDangerAlertResult>(result);
         Assert.Equal(30.5, alert.PeakWetBulb);
     }

@@ -1,29 +1,29 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.Shared;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.HeavyRain;
 
-public sealed class HeavyRainAlert(IOptions<HeavyRainConfig> config) : FeatureRule<WeatherEnsembleInput>
+public sealed class HeavyRainAlert(IOptions<HeavyRainConfig> config) : FeatureRule<ForecastEnsembleInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
-        FeatureCategory.Weather,
+        FeatureCategory.Forecast,
         Name: "HeavyRain",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Precipitation, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.Precipitation, Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
+    protected override ForecastEnsembleInput? Project(LocationForecast forecast) =>
+        forecast is { Forecast: { } w, Ensemble: { } e } ? new(w, e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
-        var window = ctx.Current.Weather.NextHoursInclusive(ctx.Now);
+        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
         if (window.HighestBy(p => p.Precipitation) is not { Precipitation: { } peakPrecipitation } wettest)
         {
             return null;

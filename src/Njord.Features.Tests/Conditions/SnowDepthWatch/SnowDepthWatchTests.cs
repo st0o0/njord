@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Conditions.SnowDepthWatch;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 using static Njord.Tests.Shared.AlertRuleFixture;
@@ -19,7 +19,7 @@ public sealed class SnowDepthWatchTests
     {
         var rule = new Features.Conditions.SnowDepthWatch.SnowDepthWatch(Opts(new SnowDepthWatchConfig { Enabled = true }));
         var weather = Uniform(p => p with { SnowDepth = depthMeters });
-        var result = Run(rule, Now, WeatherOnly(weather));
+        var result = Run(rule, Now, ForecastOnly(weather));
         return result is SnowDepthWatchResult r ? r.Level : null;
     }
 
@@ -48,7 +48,7 @@ public sealed class SnowDepthWatchTests
     {
         var rule = new Features.Conditions.SnowDepthWatch.SnowDepthWatch(Opts(new SnowDepthWatchConfig { Enabled = true }));
         var weather = Uniform(p => p with { SnowDepth = 0.15 });
-        var result = Run(rule, Now, WeatherOnly(weather));
+        var result = Run(rule, Now, ForecastOnly(weather));
         var condition = Assert.IsType<SnowDepthWatchResult>(result);
         Assert.Equal(15.0, condition.DepthCm);
     }
@@ -58,7 +58,7 @@ public sealed class SnowDepthWatchTests
     {
         var rule = new Features.Conditions.SnowDepthWatch.SnowDepthWatch(Opts(new SnowDepthWatchConfig { Enabled = true }));
         var weather = Uniform(p => p with { SnowDepth = null });
-        var result = Run(rule, Now, WeatherOnly(weather));
+        var result = Run(rule, Now, ForecastOnly(weather));
         Assert.Null(result);
     }
 }

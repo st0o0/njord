@@ -15,7 +15,7 @@ using Njord.Features.Alerts.Uv;
 using Njord.Features.Alerts.Visibility;
 using Njord.Features.Alerts.WindChill;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -29,17 +29,17 @@ public sealed class WeatherAlertsTests
 {
     private static IOptions<T> Opts<T>(T value) where T : class => Options.Create(value);
 
-    private static AlertSeverity Severity(FeatureRule<WeatherInput> rule, DomainForecast<WeatherPoint> weather)
+    private static AlertSeverity Severity(FeatureRule<ForecastInput> rule, DomainForecast<ForecastPoint> weather)
     {
-        var result = Run(rule, Now, WeatherOnly(weather));
+        var result = Run(rule, Now, ForecastOnly(weather));
         return result is null
             ? AlertSeverity.None
             : Assert.IsAssignableFrom<AlertFeatureResult>(result).Severity;
     }
 
-    private static AlertSeverity Severity(FeatureRule<WeatherEnsembleInput> rule, DomainForecast<WeatherPoint> weather)
+    private static AlertSeverity Severity(FeatureRule<ForecastEnsembleInput> rule, DomainForecast<ForecastPoint> weather)
     {
-        var result = Run(rule, Now, WeatherWithEnsemble(weather, EnsembleDay()));
+        var result = Run(rule, Now, ForecastWithEnsemble(weather, EnsembleDay()));
         return result is null
             ? AlertSeverity.None
             : Assert.IsAssignableFrom<AlertFeatureResult>(result).Severity;
@@ -165,7 +165,7 @@ public sealed class WeatherAlertsTests
     public void A_cold_forecast_produces_an_orange_frost_alert_for_the_location()
     {
         var frost = Assert.IsType<FrostAlertResult>(
-            Run(new FrostAlert(Opts(new FrostConfig())), Now, WeatherWithEnsemble(Uniform(p => p with { Temperature = -6.0 }), EnsembleDay())));
+            Run(new FrostAlert(Opts(new FrostConfig())), Now, ForecastWithEnsemble(Uniform(p => p with { Temperature = -6.0 }), EnsembleDay())));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Orange, frost.Severity),
@@ -181,7 +181,7 @@ public sealed class WeatherAlertsTests
     [Fact]
     public void Missing_ensemble_produces_no_alert_for_ensemble_requiring_alerts()
     {
-        Assert.Null(Run(new FrostAlert(Opts(new FrostConfig())), Now, WeatherOnly(Uniform(p => p with { Temperature = -6.0 }))));
+        Assert.Null(Run(new FrostAlert(Opts(new FrostConfig())), Now, ForecastOnly(Uniform(p => p with { Temperature = -6.0 }))));
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public sealed class WeatherAlertsTests
             3 => p with { Temperature = 40.0, ApparentTemperature = 40.0 },
             _ => p,
         });
-        var forecast = WeatherWithEnsemble(weather, EnsembleHourly(48));
+        var forecast = ForecastWithEnsemble(weather, EnsembleHourly(48));
 
         Assert.Multiple(
             () => Assert.IsType<FrostAlertResult>(Run(new FrostAlert(Opts(new FrostConfig())), Now, forecast)),
@@ -210,7 +210,7 @@ public sealed class WeatherAlertsTests
     public void The_seventeen_weather_alerts_are_alert_features_of_the_weather_category()
     {
         var alerts = FeatureServices.AllFeatureRules()
-            .Where(rule => rule.Descriptor is { Output: OutputKind.Alert, Category: FeatureCategory.Weather })
+            .Where(rule => rule.Descriptor is { Output: OutputKind.Alert, Category: FeatureCategory.Forecast })
             .ToList();
 
         Assert.Equal(17, alerts.Count);

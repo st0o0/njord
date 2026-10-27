@@ -36,23 +36,23 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         Assert.Multiple(
             () => Assert.Equal("Lucerne", location.Name),
             () => Assert.Equal(47.05, location.Latitude),
-            () => Assert.Equal([WeatherOptions.DefaultModel], location.Models));
+            () => Assert.Equal([ForecastOptions.DefaultModel], location.Models));
     }
 
     [Fact(Timeout = 30_000)]
     public async Task GetDomainData_returns_the_latest_event_of_the_requested_domain()
     {
-        var evt = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 3));
+        var evt = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 3));
         var service = CreateService(domainEvent: evt);
 
         var response = await service.GetDomainData(
-            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Weather }, TestServerCallContext.Create(TestContext.Current.CancellationToken));
+            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Forecast }, TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Multiple(
             () => Assert.Equal("Lucerne", response.Location),
-            () => Assert.Equal(Domain.Weather, response.Domain),
+            () => Assert.Equal(Domain.Forecast, response.Domain),
             () => Assert.Equal(Anchor, response.ModelRun.ToDateTimeOffset()),
-            () => Assert.Equal(3, response.Weather.Points.Count));
+            () => Assert.Equal(3, response.Forecast.Points.Count));
     }
 
     [Fact(Timeout = 30_000)]
@@ -79,26 +79,26 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 30_000)]
     public async Task GetDomainData_returns_the_requested_secondary_model_labelled_with_its_id()
     {
-        var evt = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2), "ukmo_global_ensemble_mean_20km");
+        var evt = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2), "ukmo_global_ensemble_mean_20km");
         var service = CreateService(domainEvent: evt, models: TwoModels);
 
         var response = await service.GetDomainData(
-            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Weather, Model = "ukmo_global_ensemble_mean_20km" },
+            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Forecast, Model = "ukmo_global_ensemble_mean_20km" },
             TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Multiple(
             () => Assert.Equal("ukmo_global_ensemble_mean_20km", response.Model),
-            () => Assert.Equal(2, response.Weather.Points.Count));
+            () => Assert.Equal(2, response.Forecast.Points.Count));
     }
 
     [Fact(Timeout = 30_000)]
     public async Task GetDomainData_labels_primary_weather_with_the_primary_model_id()
     {
-        var evt = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2));
+        var evt = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
         var service = CreateService(domainEvent: evt, models: TwoModels);
 
         var response = await service.GetDomainData(
-            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Weather },
+            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Forecast },
             TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Equal("ecmwf_ifs025_ensemble_mean", response.Model);
@@ -107,11 +107,11 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 30_000)]
     public async Task GetDomainData_is_not_found_for_a_model_that_is_not_enabled()
     {
-        var evt = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2));
+        var evt = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
         var service = CreateService(domainEvent: evt);
 
         var ex = await Assert.ThrowsAsync<RpcException>(() => service.GetDomainData(
-            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Weather, Model = "ukmo_global_ensemble_mean_20km" },
+            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Forecast, Model = "ukmo_global_ensemble_mean_20km" },
             TestServerCallContext.Create(TestContext.Current.CancellationToken)));
 
         Assert.Equal(StatusCode.NotFound, ex.StatusCode);
@@ -146,7 +146,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         var service = CreateService();
 
         var ex = await Assert.ThrowsAsync<RpcException>(() => service.GetDomainData(
-            new GetDomainDataRequest { Location = "atlantis", Domain = Domain.Weather }, TestServerCallContext.Create(TestContext.Current.CancellationToken)));
+            new GetDomainDataRequest { Location = "atlantis", Domain = Domain.Forecast }, TestServerCallContext.Create(TestContext.Current.CancellationToken)));
 
         Assert.Multiple(
             () => Assert.Equal(StatusCode.NotFound, ex.StatusCode),
@@ -210,7 +210,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         ActorRegistry.Register<IGrpcConsumer>(
             Sys.ActorOf(Props.Create(() => new FakeConsumer(domainEvent, analysis))), overwrite: true);
         return new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Opts(Options),
-            TestServiceInfo.Opts(new FeatureRequirementsOptions { WeatherModels = models ?? [WeatherOptions.DefaultModel] }), TimeProvider.System);
+            TestServiceInfo.Opts(new FeatureRequirementsOptions { WeatherModels = models ?? [ForecastOptions.DefaultModel] }), TimeProvider.System);
     }
 
     private sealed class FakeConsumer : ReceiveActor

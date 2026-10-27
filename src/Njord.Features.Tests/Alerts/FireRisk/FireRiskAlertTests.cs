@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.FireRisk;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -18,16 +18,19 @@ public sealed class FireRiskAlertTests
 
     private static FireRiskAlert Rule(FireRiskConfig? cfg = null) => new(Opts(cfg ?? new FireRiskConfig { Enabled = true }));
 
-    private static PipelineEvent? Run(DomainForecast<WeatherPoint> weather, FireRiskConfig? cfg = null) =>
-        FeatureRunner.Run(Rule(cfg), Now, WeatherWithEnsemble(weather, EnsembleDay()));
+    private static PipelineEvent? Run(DomainForecast<ForecastPoint> weather, FireRiskConfig? cfg = null) =>
+        FeatureRunner.Run(Rule(cfg), Now, ForecastWithEnsemble(weather, EnsembleDay()));
 
     [Fact]
     public void All_conditions_met_produces_red_severity()
     {
         var weather = Day((_, p) => p with
         {
-            Temperature = 38.0, Humidity = 15.0, WindSpeed = 8.0,
-            SoilMoisture0To1cm = 0.05, Precipitation = 0.0,
+            Temperature = 38.0,
+            Humidity = 15.0,
+            WindSpeed = 8.0,
+            SoilMoisture0To1cm = 0.05,
+            Precipitation = 0.0,
         });
         var result = Run(weather);
         Assert.NotNull(result);
@@ -40,8 +43,11 @@ public sealed class FireRiskAlertTests
     {
         var weather = Day((_, p) => p with
         {
-            Temperature = 33.0, Humidity = 20.0, WindSpeed = 5.0,
-            SoilMoisture0To1cm = 0.05, Precipitation = 0.0,
+            Temperature = 33.0,
+            Humidity = 20.0,
+            WindSpeed = 5.0,
+            SoilMoisture0To1cm = 0.05,
+            Precipitation = 0.0,
         });
         var result = Run(weather);
         Assert.NotNull(result);
@@ -55,8 +61,11 @@ public sealed class FireRiskAlertTests
     {
         var weather = Day((_, p) => p with
         {
-            Temperature = 25.0, Humidity = 60.0, WindSpeed = 2.0,
-            SoilMoisture0To1cm = 0.30, Precipitation = 5.0,
+            Temperature = 25.0,
+            Humidity = 60.0,
+            WindSpeed = 2.0,
+            SoilMoisture0To1cm = 0.30,
+            Precipitation = 5.0,
         });
         var result = Run(weather);
         Assert.Null(result);
@@ -67,11 +76,14 @@ public sealed class FireRiskAlertTests
     {
         var weather = Day((_, p) => p with
         {
-            Temperature = 38.0, Humidity = 15.0, WindSpeed = 8.0,
-            SoilMoisture0To1cm = 0.05, Precipitation = 0.0,
+            Temperature = 38.0,
+            Humidity = 15.0,
+            WindSpeed = 8.0,
+            SoilMoisture0To1cm = 0.05,
+            Precipitation = 0.0,
         });
         var ensemble = EnsembleDay(spread: 0.5);
-        var result = FeatureRunner.Run(Rule(), Now, WeatherWithEnsemble(weather, ensemble));
+        var result = FeatureRunner.Run(Rule(), Now, ForecastWithEnsemble(weather, ensemble));
         Assert.NotNull(result);
         var alert = Assert.IsType<FireRiskAlertResult>(result, exactMatch: false);
         Assert.Equal(ConfidenceLevel.High, alert.Level);

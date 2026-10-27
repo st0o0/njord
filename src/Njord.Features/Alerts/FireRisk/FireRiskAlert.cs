@@ -1,13 +1,13 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.Shared;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.FireRisk;
 
-public sealed class FireRiskAlert(IOptions<FireRiskConfig> config) : FeatureRule<WeatherEnsembleInput>
+public sealed class FireRiskAlert(IOptions<FireRiskConfig> config) : FeatureRule<ForecastEnsembleInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
@@ -15,19 +15,19 @@ public sealed class FireRiskAlert(IOptions<FireRiskConfig> config) : FeatureRule
         Name: "FireRisk",
         DefaultEnabled: false,
         new DomainRequirements(
-            Weather: WeatherParams.Temperature | WeatherParams.Humidity | WeatherParams.WindSpeed
-                | WeatherParams.SoilMoisture0To1cm | WeatherParams.Precipitation,
+            Forecast: ForecastParams.Temperature | ForecastParams.Humidity | ForecastParams.WindSpeed
+                | ForecastParams.SoilMoisture0To1cm | ForecastParams.Precipitation,
             Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
+    protected override ForecastEnsembleInput? Project(LocationForecast forecast) =>
+        forecast is { Forecast: { } w, Ensemble: { } e } ? new(w, e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
         var cfg = config.Value;
-        var window = ctx.Current.Weather.NextHoursInclusive(ctx.Now);
+        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
         if (window.Count == 0)
         {
             return null;

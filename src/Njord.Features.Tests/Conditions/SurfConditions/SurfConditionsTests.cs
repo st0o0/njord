@@ -2,8 +2,8 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Conditions.SurfConditions;
 using Njord.Forecast;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
-using Njord.Forecast.Weather;
 using Njord.Messages.Pipeline;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.MarineFixtures;
@@ -20,9 +20,9 @@ public sealed class SurfConditionsTests
     [Fact]
     public void Swell_data_with_offshore_wind_scores_100()
     {
-        var weather = new DomainForecast<WeatherPoint>(DomainKind.Weather, Now, TimeResolution.Hourly,
-            [new WeatherPoint(Now, WindDirection: 90.0)]);
-        var current = new LocationForecast(Lucerne, Weather: weather, Marine: MarineForecast(Swell()));
+        var weather = new DomainForecast<ForecastPoint>(DomainKind.Forecast, Now, TimeResolution.Hourly,
+            [new ForecastPoint(Now, WindDirection: 90.0)]);
+        var current = new LocationForecast(Lucerne, Forecast: weather, Marine: MarineForecast(Swell()));
 
         var surf = Assert.IsType<SurfConditionsResult>(Run(Feature(), Now, current));
 
@@ -47,7 +47,7 @@ public sealed class SurfConditionsTests
             new DomainRequirements(
                 Marine: MarineParams.SwellWaveHeight | MarineParams.SwellWavePeriod,
                 OptionalMarine: MarineParams.SwellWaveDirection | MarineParams.WindWaveHeight,
-                OptionalWeather: WeatherParams.WindDirection),
+                OptionalForecast: ForecastParams.WindDirection),
             Feature().Descriptor.Requirements);
     }
 }

@@ -22,7 +22,7 @@ public sealed class PollWorkerIntervalTests : Akka.Hosting.TestKit.TestKit
     private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
     private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
     private static readonly PollTarget Target = new(Lucerne);
-    private static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Weather, DomainKind.AirQuality];
+    private static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Forecast, DomainKind.AirQuality];
 
     private static IOptions<FeatureRequirementsOptions> RequirementsFor(IReadOnlyList<DomainKind> domains) =>
         Options.Create(new FeatureRequirementsOptions { Domains = domains });
@@ -99,7 +99,7 @@ public sealed class PollWorkerIntervalTests : Akka.Hosting.TestKit.TestKit
         return report;
     }
 
-    private static FetchDomainCompleted Completed(int hash) => new(Lucerne, DomainKind.Weather, hash);
+    private static FetchDomainCompleted Completed(int hash) => new(Lucerne, DomainKind.Forecast, hash);
 
     [Fact(Timeout = 30_000)]
     public async Task A_shorter_discovery_interval_replans_the_pending_poll()
@@ -112,7 +112,7 @@ public sealed class PollWorkerIntervalTests : Akka.Hosting.TestKit.TestKit
 
         await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         var next = await ExpectRequestAsync(ct);
-        Assert.Equal(DomainKind.Weather, next.Domain);
+        Assert.Equal(DomainKind.Forecast, next.Domain);
     }
 
     [Fact(Timeout = 30_000)]

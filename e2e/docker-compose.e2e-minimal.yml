@@ -17,7 +17,7 @@ services:
       - Njord__Locations__0__Longitude=13.4050
 
       # ── Weather (minimal: 2 days, default single model) ───
-      - Njord__Weather__ForecastDays=2
+      - Njord__Forecast__ForecastDays=2
 
       # No Njord__Features__ env vars: rely entirely on defaults
       # Defaults: 14 weather alerts + Commute + Pollen + Pm25

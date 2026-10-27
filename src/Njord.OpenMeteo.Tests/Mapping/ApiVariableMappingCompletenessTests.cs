@@ -1,16 +1,16 @@
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
 using Njord.Forecast.Seasonal;
 using Njord.Forecast.Solar;
-using Njord.Forecast.Weather;
 using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Flood;
+using Njord.OpenMeteo.Forecast;
 using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Marine;
 using Njord.OpenMeteo.Satellite;
 using Njord.OpenMeteo.Seasonal;
-using Njord.OpenMeteo.Weather;
 
 namespace Njord.OpenMeteo.Tests.Mapping;
 
@@ -19,14 +19,14 @@ public sealed class ApiVariableMappingCompletenessTests
     [Fact]
     public void Should_map_every_weather_flag_to_a_distinct_named_api_variable()
     {
-        var flags = Enum.GetValues<WeatherParams>().Where(f => f != WeatherParams.None).ToList();
+        var flags = Enum.GetValues<ForecastParams>().Where(f => f != ForecastParams.None).ToList();
 
         var variables = flags.Select(f => f.ToApiVariable()).ToList();
 
         Assert.Multiple(
             () => Assert.Equal(flags.Count, variables.Distinct().Count()),
-            () => Assert.Equal(Enum.GetValues<WeatherApiVariable>().Length, variables.Count),
-            () => Assert.Equal(variables.Count, ApiVariableNames.For<WeatherApiVariable>().Count),
+            () => Assert.Equal(Enum.GetValues<ForecastApiVariable>().Length, variables.Count),
+            () => Assert.Equal(variables.Count, ApiVariableNames.For<ForecastApiVariable>().Count),
             () => Assert.All(variables, v => Assert.False(string.IsNullOrEmpty(v.ToApiName()))));
     }
 
@@ -104,8 +104,8 @@ public sealed class ApiVariableMappingCompletenessTests
     public void Should_chain_flag_to_variable_to_api_name()
     {
         Assert.Multiple(
-            () => Assert.Equal(WeatherApiVariable.WindDirection, WeatherParams.WindDirection.ToApiVariable()),
-            () => Assert.Equal("wind_direction_10m", WeatherApiVariable.WindDirection.ToApiName()),
+            () => Assert.Equal(ForecastApiVariable.WindDirection, ForecastParams.WindDirection.ToApiVariable()),
+            () => Assert.Equal("wind_direction_10m", ForecastApiVariable.WindDirection.ToApiName()),
             () => Assert.Equal(["pm2_5", "ozone"], (AirQualityParams.Pm25 | AirQualityParams.Ozone).ToApiNames()));
     }
 }

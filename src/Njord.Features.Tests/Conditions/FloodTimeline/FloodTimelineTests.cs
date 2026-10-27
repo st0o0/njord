@@ -15,7 +15,7 @@ public sealed class FloodTimelineTests
     private static FloodTimeline Feature() => new(Options.Create(new FloodTimelineConfig { Enabled = true }));
 
     private static LocationForecast With(params FloodPoint[] points) =>
-        WeatherOnly(Day()) with { Flood = F.FloodForecast(points) };
+        ForecastOnly(Day()) with { Flood = F.FloodForecast(points) };
 
     [Fact]
     public void The_peak_day_and_the_days_above_the_warning_level_are_reported()
@@ -44,7 +44,7 @@ public sealed class FloodTimelineTests
     [Fact]
     public void Nothing_is_reported_without_flood_data()
     {
-        Assert.Null(Run(Feature(), Now, WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
     }
 
     [Fact]

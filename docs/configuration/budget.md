@@ -19,7 +19,7 @@ Each PollWorker fetches the domains required by the enabled [features](./#featur
 
 | Domain | Endpoint | Fetched when | Call weight |
 |--------|----------|--------------|-------------|
-| Weather | Forecast API (`api.open-meteo.com`) | any Weather feature is enabled | `ceil(variables / 10) * ceil(forecastDays / 14)` |
+| Forecast | `api.open-meteo.com/v1/forecast` | any weather feature is enabled | `ceil(variables / 10) * ceil(forecastDays / 14)` |
 | Ensemble | Ensemble Mean API | a feature requiring ensemble spread or model comparison is enabled | Spread-only: 1. With models: `ceil(variables / 10) * ceil(days / 14) * modelCount` |
 | Air Quality | Air Quality API | any Air Quality feature is enabled | 1 |
 | Flood | Flood API | `FloodRisk`, `FloodRain` or `FloodTimeline` is enabled | 1 |
@@ -39,11 +39,11 @@ guard            = monthly budget x 0.8
 | Setting | Value |
 |---------|-------|
 | Locations | 1 |
-| Domains | Weather, Ensemble (spread-only), Air Quality |
+| Domains | Forecast, Ensemble (spread-only), Air Quality |
 | Poll interval | 60 minutes |
 
 ```
-calls per cycle  = 1 x (4 + 1 + 1) = 6   (weather ~30 vars = weight 4, ensemble spread = 1, AQ = 1)
+calls per cycle  = 1 x (4 + 1 + 1) = 6   (forecast ~30 vars = weight 4, ensemble spread = 1, AQ = 1)
 cycles per month = 30 x 24 = 720
 projected        = 6 x 720 = 4,320 per month
 guard            = 300,000 x 0.8 = 240,000
@@ -54,7 +54,7 @@ guard            = 300,000 x 0.8 = 240,000
 ### Example: all features, 3 ensemble comparison models
 
 ```
-calls per cycle  = 1 x (4 + 12 + 1 + 1 + 1) = 19  (weather 4, ensemble with 3 models 12, AQ 1, Flood 1, Marine 1)
+calls per cycle  = 1 x (4 + 12 + 1 + 1 + 1) = 19  (forecast 4, ensemble with 3 models 12, AQ 1, Flood 1, Marine 1)
                    + Seasonal ~1/day + Satellite ~24/day
 projected        ≈ 19 x 720 + 30 + 720 = ~14,430 per month
 ```

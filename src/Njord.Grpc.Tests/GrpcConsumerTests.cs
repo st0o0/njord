@@ -24,12 +24,12 @@ public sealed class GrpcConsumerTests : Akka.Hosting.TestKit.TestKit
         var (consumer, _) = await StartAsync();
 
         var domainData = await consumer.Ask<DomainDataResponse>(
-            new QueryDomainData(DomainData.Lucerne, DomainKind.Weather), AskTimeout, ct);
+            new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), AskTimeout, ct);
         var analysis = await consumer.Ask<LatestAnalysisResponse>(
             new QueryLatestAnalysis(DomainData.Lucerne), AskTimeout, ct);
 
         Assert.Multiple(
-            () => Assert.Equal(new DomainDataNotAvailable(DomainData.Lucerne, DomainKind.Weather), domainData),
+            () => Assert.Equal(new DomainDataNotAvailable(DomainData.Lucerne, DomainKind.Forecast), domainData),
             () => Assert.Equal(new LatestAnalysisNotAvailable(DomainData.Lucerne), analysis));
     }
 
@@ -38,7 +38,7 @@ public sealed class GrpcConsumerTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
-        var weather = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2));
+        var weather = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
         var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor);
 
         await pipeline.OfferAsync(weather, ct);
@@ -47,7 +47,7 @@ public sealed class GrpcConsumerTests : Akka.Hosting.TestKit.TestKit
         await AwaitAssertAsync(async () =>
         {
             var domainData = await consumer.Ask<DomainDataResponse>(
-                new QueryDomainData(DomainData.Lucerne, DomainKind.Weather), AskTimeout, ct);
+                new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), AskTimeout, ct);
             var analysis = await consumer.Ask<LatestAnalysisResponse>(
                 new QueryLatestAnalysis(DomainData.Lucerne), AskTimeout, ct);
             Assert.Equal(new DomainDataResult(weather), domainData);

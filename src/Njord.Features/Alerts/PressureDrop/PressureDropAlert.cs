@@ -1,31 +1,31 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.PressureDrop;
 
-public sealed class PressureDropAlert(IOptions<PressureDropConfig> config) : FeatureRule<WeatherInput>
+public sealed class PressureDropAlert(IOptions<PressureDropConfig> config) : FeatureRule<ForecastInput>
 {
     private const int DropSpanHours = 3;
     private const int MinimumHours = 4;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
-        FeatureCategory.Weather,
+        FeatureCategory.Forecast,
         Name: "PressureDrop",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Pressure));
+        new DomainRequirements(Forecast: ForecastParams.Pressure));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override ForecastInput? Project(LocationForecast forecast) =>
+        forecast.Forecast is { } w ? new(w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var window = ctx.Current.Weather.NextHoursInclusive(ctx.Now);
+        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
         if (window.Count < MinimumHours)
         {
             return null;
@@ -55,10 +55,10 @@ public sealed class PressureDropAlert(IOptions<PressureDropConfig> config) : Fea
             MaxDrop: rounded);
     }
 
-    private static (double Drop, WeatherPoint? End) MaxDrop(IReadOnlyList<WeatherPoint> window, DateTimeOffset now)
+    private static (double Drop, ForecastPoint? End) MaxDrop(IReadOnlyList<ForecastPoint> window, DateTimeOffset now)
     {
         var maxDrop = 0.0;
-        WeatherPoint? end = null;
+        ForecastPoint? end = null;
         for (var i = 0; i < window.Count; i++)
         {
             for (var j = 0; j < i; j++)

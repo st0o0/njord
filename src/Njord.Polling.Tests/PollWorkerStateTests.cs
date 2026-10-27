@@ -18,7 +18,7 @@ public sealed class PollWorkerStateTests
     public void Initial_state_is_discovery_with_immediate_poll()
     {
         var state = Started();
-        var weather = state.GetDomain(DomainKind.Weather);
+        var weather = state.GetDomain(DomainKind.Forecast);
 
         Assert.Multiple(
             () => Assert.Equal(new PollTarget(new Location("lucerne", 0, 0)), state.Target),
@@ -32,8 +32,8 @@ public sealed class PollWorkerStateTests
     [Fact]
     public void First_data_change_stays_in_discovery()
     {
-        var state = Started().Apply(Changed(DomainKind.Weather, 42, T0.AddMinutes(20)));
-        var weather = state.GetDomain(DomainKind.Weather);
+        var state = Started().Apply(Changed(DomainKind.Forecast, 42, T0.AddMinutes(20)));
+        var weather = state.GetDomain(DomainKind.Forecast);
 
         Assert.Multiple(
             () => Assert.Equal(PollPhase.Discovery, weather.Phase),
@@ -47,9 +47,9 @@ public sealed class PollWorkerStateTests
     public void Second_data_change_records_a_candidate_and_stays_in_discovery()
     {
         var state = Started()
-            .Apply(Changed(DomainKind.Weather, 42, T0.AddHours(1)))
-            .Apply(Changed(DomainKind.Weather, 99, T0.AddHours(4)));
-        var weather = state.GetDomain(DomainKind.Weather);
+            .Apply(Changed(DomainKind.Forecast, 42, T0.AddHours(1)))
+            .Apply(Changed(DomainKind.Forecast, 99, T0.AddHours(4)));
+        var weather = state.GetDomain(DomainKind.Forecast);
 
         Assert.Multiple(
             () => Assert.Equal(PollPhase.Discovery, weather.Phase),
@@ -60,7 +60,7 @@ public sealed class PollWorkerStateTests
     [Fact]
     public void Third_consistent_change_computes_cycle_and_transitions_to_steady()
     {
-        var weather = Steady().GetDomain(DomainKind.Weather);
+        var weather = Steady().GetDomain(DomainKind.Forecast);
 
         Assert.Multiple(
             () => Assert.Equal(PollPhase.Steady, weather.Phase),
@@ -78,14 +78,14 @@ public sealed class PollWorkerStateTests
 
         foreach (var delay in expected)
         {
-            state = state.Apply(Unchanged(DomainKind.Weather, now));
-            var next = state.GetDomain(DomainKind.Weather).NextPollAt;
+            state = state.Apply(Unchanged(DomainKind.Forecast, now));
+            var next = state.GetDomain(DomainKind.Forecast).NextPollAt;
             Assert.NotNull(next);
             Assert.Equal(now + delay, next);
             now = next.Value;
         }
 
-        Assert.Equal(4, state.GetDomain(DomainKind.Weather).MissCount);
+        Assert.Equal(4, state.GetDomain(DomainKind.Forecast).MissCount);
     }
 
     [Fact]
@@ -95,35 +95,35 @@ public sealed class PollWorkerStateTests
         var now = T0.AddHours(9);
         for (var i = 0; i < 4; i++)
         {
-            state = state.Apply(Unchanged(DomainKind.Weather, now));
-            var next = state.GetDomain(DomainKind.Weather).NextPollAt;
+            state = state.Apply(Unchanged(DomainKind.Forecast, now));
+            var next = state.GetDomain(DomainKind.Forecast).NextPollAt;
             Assert.NotNull(next);
             var nextAt = next.Value;
             Assert.True(nextAt - now <= TimeSpan.FromMinutes(15), $"miss {i + 1} waits {nextAt - now}");
             now = nextAt;
         }
 
-        Assert.Equal(PollPhase.Steady, state.GetDomain(DomainKind.Weather).Phase);
+        Assert.Equal(PollPhase.Steady, state.GetDomain(DomainKind.Forecast).Phase);
     }
 
     [Fact]
     public void Five_misses_in_steady_falls_back_to_discovery()
     {
         var state = Steady();
-        Assert.Equal(PollPhase.Steady, state.GetDomain(DomainKind.Weather).Phase);
+        Assert.Equal(PollPhase.Steady, state.GetDomain(DomainKind.Forecast).Phase);
 
         var now = T0.AddHours(9);
         var lastMiss = now;
         for (var i = 0; i < 5; i++)
         {
             lastMiss = now;
-            state = state.Apply(Unchanged(DomainKind.Weather, now));
-            var next = state.GetDomain(DomainKind.Weather).NextPollAt;
+            state = state.Apply(Unchanged(DomainKind.Forecast, now));
+            var next = state.GetDomain(DomainKind.Forecast).NextPollAt;
             Assert.NotNull(next);
             now = next.Value;
         }
 
-        var weather = state.GetDomain(DomainKind.Weather);
+        var weather = state.GetDomain(DomainKind.Forecast);
         Assert.Multiple(
             () => Assert.Equal(PollPhase.Discovery, weather.Phase),
             () => Assert.Null(weather.LearnedCycle),
@@ -138,15 +138,15 @@ public sealed class PollWorkerStateTests
         var now = T0;
         for (var i = 0; i < 10; i++)
         {
-            state = state.Apply(Unchanged(DomainKind.Weather, now));
-            var weather = state.GetDomain(DomainKind.Weather);
+            state = state.Apply(Unchanged(DomainKind.Forecast, now));
+            var weather = state.GetDomain(DomainKind.Forecast);
             Assert.Equal(PollPhase.Discovery, weather.Phase);
             Assert.Equal(now + Discovery, weather.NextPollAt);
             Assert.NotNull(weather.NextPollAt);
             now = weather.NextPollAt.Value;
         }
 
-        Assert.Equal(10, state.GetDomain(DomainKind.Weather).MissCount);
+        Assert.Equal(10, state.GetDomain(DomainKind.Forecast).MissCount);
     }
 
     [Fact]
@@ -156,13 +156,13 @@ public sealed class PollWorkerStateTests
         var now = T0.AddHours(9);
         for (var i = 0; i < 20; i++)
         {
-            state = state.Apply(Failed(DomainKind.Weather, now));
-            var next = state.GetDomain(DomainKind.Weather).NextPollAt;
+            state = state.Apply(Failed(DomainKind.Forecast, now));
+            var next = state.GetDomain(DomainKind.Forecast).NextPollAt;
             Assert.NotNull(next);
             now = next.Value;
         }
 
-        var weather = state.GetDomain(DomainKind.Weather);
+        var weather = state.GetDomain(DomainKind.Forecast);
         Assert.Multiple(
             () => Assert.Equal(PollPhase.Steady, weather.Phase),
             () => Assert.Equal(TimeSpan.FromHours(3), weather.LearnedCycle));
@@ -175,15 +175,15 @@ public sealed class PollWorkerStateTests
         var now = T0.AddHours(9);
         for (var i = 0; i < 3; i++)
         {
-            state = state.Apply(Unchanged(DomainKind.Weather, now));
-            var next = state.GetDomain(DomainKind.Weather).NextPollAt;
+            state = state.Apply(Unchanged(DomainKind.Forecast, now));
+            var next = state.GetDomain(DomainKind.Forecast).NextPollAt;
             Assert.NotNull(next);
             now = next.Value;
         }
 
-        Assert.Equal(3, state.GetDomain(DomainKind.Weather).MissCount);
+        Assert.Equal(3, state.GetDomain(DomainKind.Forecast).MissCount);
 
-        state = state.Apply(Changed(DomainKind.Weather, 4, now));
-        Assert.Equal(0, state.GetDomain(DomainKind.Weather).MissCount);
+        state = state.Apply(Changed(DomainKind.Forecast, 4, now));
+        Assert.Equal(0, state.GetDomain(DomainKind.Forecast).MissCount);
     }
 }

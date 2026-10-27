@@ -1,11 +1,11 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.ApproachingFront;
 
-public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : FeatureRule<WeatherInput>
+public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : FeatureRule<ForecastInput>
 {
     public const double PressureDropThreshold = 3.0;
     public const double WindShiftThreshold = 45.0;
@@ -16,22 +16,22 @@ public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : 
         FeatureCategory.Insight,
         Name: "FrontApproaching",
         DefaultEnabled: false,
-        new DomainRequirements(Weather: WeatherParams.Pressure | WeatherParams.Temperature | WeatherParams.WindDirection),
+        new DomainRequirements(Forecast: ForecastParams.Pressure | ForecastParams.Temperature | ForecastParams.WindDirection),
         PollDepth: 1);
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override ForecastInput? Project(LocationForecast forecast) =>
+        forecast.Forecast is { } w ? new(w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
         if (ctx.History.Count < 2)
         {
             return null;
         }
 
-        var hours = ctx.Current.Weather.NextHours(ctx.Now, 24 + WindowHours);
+        var hours = ctx.Current.Forecast.NextHours(ctx.Now, 24 + WindowHours);
         var windows = hours
             .Select(start => (Start: start, End: hours.FirstOrDefault(p => p.ValidFrom == start.ValidFrom.AddHours(WindowHours))))
             .Where(pair => pair.End is not null)
@@ -51,7 +51,7 @@ public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : 
             Math.Round(best.Start.Temperature - best.End.Temperature ?? 0.0, 1));
     }
 
-    private static bool WindShifted(WeatherPoint start, WeatherPoint end)
+    private static bool WindShifted(ForecastPoint start, ForecastPoint end)
     {
         if (start.WindDirection is not { } from || end.WindDirection is not { } to)
         {

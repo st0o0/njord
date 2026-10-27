@@ -1,30 +1,30 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.Shared;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.Heat;
 
-public sealed class HeatAlert(IOptions<HeatConfig> config) : FeatureRule<WeatherEnsembleInput>
+public sealed class HeatAlert(IOptions<HeatConfig> config) : FeatureRule<ForecastEnsembleInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
-        FeatureCategory.Weather,
+        FeatureCategory.Forecast,
         Name: "Heat",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.ApparentTemperature, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.ApparentTemperature, Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
+    protected override ForecastEnsembleInput? Project(LocationForecast forecast) =>
+        forecast is { Forecast: { } w, Ensemble: { } e } ? new(w, e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
         var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Max);
-        var window = ctx.Current.Weather.NextHoursInclusive(ctx.Now);
+        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
         if (window.HighestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } apparent } hottestApparent
             || window.HighestBy(p => p.Temperature) is not { Temperature: { } air } hottestAir)
         {

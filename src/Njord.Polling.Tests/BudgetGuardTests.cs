@@ -3,9 +3,9 @@ using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Forecast.AirQuality;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Seasonal;
 using Njord.Forecast.Solar;
-using Njord.Forecast.Weather;
 using Njord.Polling.Configuration;
 
 namespace Njord.Polling.Tests;
@@ -27,13 +27,13 @@ public sealed class BudgetGuardTests
             EnsembleModels = ensembleModels ?? [],
         };
 
-    private static FeatureRequirementsOptions Resolved(WeatherParams weather = WeatherParams.Temperature, ImmutableArray<string>? models = null) =>
-        Requirements(new DomainRequirements(Weather: weather, AirQuality: AirQualityParams.Pm25), models);
+    private static FeatureRequirementsOptions Resolved(ForecastParams weather = ForecastParams.Temperature, ImmutableArray<string>? models = null) =>
+        Requirements(new DomainRequirements(Forecast: weather, AirQuality: AirQualityParams.Pm25), models);
 
     private static readonly ImmutableArray<string> ThreeModels = ["a", "b", "c"];
 
     private static string? Violation(NjordOptions scope, PollingOptions polling, FeatureRequirementsOptions requirements, FloodOptions? flood = null) =>
-        BudgetGuard.Violation(scope, polling, requirements, new WeatherOptions(), flood);
+        BudgetGuard.Violation(scope, polling, requirements, new ForecastOptions(), flood);
 
     private static PollingOptions WithMonthlyBudget(int perMonth) => new() { BudgetOverride = new RequestBudget(perMonth, 600) };
 
@@ -84,14 +84,14 @@ public sealed class BudgetGuardTests
     public void Should_charge_nothing_for_weather_when_it_is_not_required()
     {
         // Only the air quality call per cycle: 720 calls; 1000 budget -> guard 800.
-        Assert.Null(Violation(Scope(), WithMonthlyBudget(1_000), Resolved(WeatherParams.None)));
+        Assert.Null(Violation(Scope(), WithMonthlyBudget(1_000), Resolved(ForecastParams.None)));
     }
 
     [Fact]
     public void Should_weigh_the_flood_ensemble_into_the_projection()
     {
         var resolved = Requirements(new DomainRequirements(
-            Weather: WeatherParams.Temperature, Flood: Forecast.Flood.FloodParams.Discharge));
+            Forecast: ForecastParams.Temperature, Flood: Forecast.Flood.FloodParams.Discharge));
         var polling = WithMonthlyBudget(2_000);
 
         // plain: (1 + 1) x 720 = 1440 <= 1600; ensemble: (1 + 5) x 720 = 4320.
@@ -105,7 +105,7 @@ public sealed class BudgetGuardTests
     {
         // weather 1 + ensemble spread 1 = 2 calls x 720 = 1440; 1800 budget -> guard 1440, exactly at limit.
         var resolved = Requirements(
-            new DomainRequirements(Weather: WeatherParams.Temperature, Ensemble: EnsembleParams.TemperatureSpread),
+            new DomainRequirements(Forecast: ForecastParams.Temperature, Ensemble: EnsembleParams.TemperatureSpread),
             ensembleModels: ["ecmwf_ifs025_ensemble_mean"]);
 
         Assert.Null(Violation(Scope(), WithMonthlyBudget(1_800), resolved));
@@ -117,7 +117,7 @@ public sealed class BudgetGuardTests
         // weather 1 + ensemble (1 var_weight x 3 models) = 4 calls x 720 = 2880; 3000 budget -> guard 2400, exceeds.
         var resolved = Requirements(
             new DomainRequirements(
-                Weather: WeatherParams.Temperature,
+                Forecast: ForecastParams.Temperature,
                 Ensemble: EnsembleParams.TemperatureSpread | EnsembleParams.Models),
             ensembleModels: ThreeModels);
 
@@ -127,7 +127,7 @@ public sealed class BudgetGuardTests
     [Fact]
     public void Should_charge_nothing_for_ensemble_when_not_required()
     {
-        var resolved = Requirements(new DomainRequirements(Weather: WeatherParams.Temperature));
+        var resolved = Requirements(new DomainRequirements(Forecast: ForecastParams.Temperature));
 
         // weather 1 call x 720 = 720; 1000 budget -> within guard.
         Assert.Null(Violation(Scope(), WithMonthlyBudget(1_000), resolved));
@@ -136,11 +136,11 @@ public sealed class BudgetGuardTests
     [Fact]
     public void Should_weigh_the_base_weather_field_into_the_call_weight()
     {
-        var tenVariables = WeatherParams.Temperature | WeatherParams.WindGusts | WeatherParams.Precipitation | WeatherParams.Humidity
-            | WeatherParams.Pressure | WeatherParams.CloudCover | WeatherParams.WindSpeed | WeatherParams.Snowfall
-            | WeatherParams.WindDirection | WeatherParams.ApparentTemperature;
-        var plain = Requirements(new DomainRequirements(Weather: tenVariables));
-        var withBase = Requirements(FeatureResolution.WithBaseParams(new DomainRequirements(Weather: tenVariables)));
+        var tenVariables = ForecastParams.Temperature | ForecastParams.WindGusts | ForecastParams.Precipitation | ForecastParams.Humidity
+            | ForecastParams.Pressure | ForecastParams.CloudCover | ForecastParams.WindSpeed | ForecastParams.Snowfall
+            | ForecastParams.WindDirection | ForecastParams.ApparentTemperature;
+        var plain = Requirements(new DomainRequirements(Forecast: tenVariables));
+        var withBase = Requirements(FeatureResolution.WithBaseParams(new DomainRequirements(Forecast: tenVariables)));
 
         // 10 variables weigh 1 call x 720 cycles = 720 (guard 800 of 1000); with weather_code 11 variables weigh 2 calls = 1440.
         Assert.Multiple(

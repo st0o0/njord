@@ -1,30 +1,30 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.Shared;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.WindChill;
 
-public sealed class WindChillAlert(IOptions<WindChillConfig> config) : FeatureRule<WeatherEnsembleInput>
+public sealed class WindChillAlert(IOptions<WindChillConfig> config) : FeatureRule<ForecastEnsembleInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
-        FeatureCategory.Weather,
+        FeatureCategory.Forecast,
         Name: "WindChill",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.ApparentTemperature, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.ApparentTemperature, Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
+    protected override ForecastEnsembleInput? Project(LocationForecast forecast) =>
+        forecast is { Forecast: { } w, Ensemble: { } e } ? new(w, e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
         var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Min);
-        if (ctx.Current.Weather.NextHoursInclusive(ctx.Now).LowestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } low } coldest)
+        if (ctx.Current.Forecast.NextHoursInclusive(ctx.Now).LowestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } low } coldest)
         {
             return null;
         }

@@ -1,8 +1,8 @@
 using System.Text.Json;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.OpenMeteo.Ensemble;
+using Njord.OpenMeteo.Forecast;
 using Njord.OpenMeteo.Http;
-using Njord.OpenMeteo.Weather;
 
 namespace Njord.OpenMeteo.Tests;
 
@@ -10,8 +10,8 @@ public sealed class EnsembleResponseMappingTests
 {
     private static readonly DateTimeOffset Run = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
 
-    private static WeatherResponse Parse(string json) =>
-        Assert.IsType<WeatherResponse>(JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.WeatherResponse));
+    private static ForecastResponse Parse(string json) =>
+        Assert.IsType<ForecastResponse>(JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.ForecastResponse));
 
     [Fact]
     public void Extracts_temperature_spread_from_plain_keys()

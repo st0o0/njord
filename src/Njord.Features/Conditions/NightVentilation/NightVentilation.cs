@@ -2,12 +2,12 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Shared;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.NightVentilation;
 
-public sealed class NightVentilation(IOptions<NightVentilationConfig> config) : FeatureRule<WeatherInput>
+public sealed class NightVentilation(IOptions<NightVentilationConfig> config) : FeatureRule<ForecastInput>
 {
     public const double HotDayPeak = 28.0;
     public const double CoolNightLimit = 20.0;
@@ -17,16 +17,16 @@ public sealed class NightVentilation(IOptions<NightVentilationConfig> config) : 
         FeatureCategory.Lifestyle,
         Name: "NightVentilation",
         DefaultEnabled: false,
-        new DomainRequirements(Weather: WeatherParams.Temperature));
+        new DomainRequirements(Forecast: ForecastParams.Temperature));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override ForecastInput? Project(LocationForecast forecast) =>
+        forecast.Forecast is { } w ? new(w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var weather = ctx.Current.Weather;
+        var weather = ctx.Current.Forecast;
         var tomorrowStart = new DateTimeOffset(ctx.Now.UtcDateTime.Date.AddDays(1), TimeSpan.Zero);
         var tomorrowPoints = weather.Points
             .Where(p => p.ValidFrom >= tomorrowStart && p.ValidFrom < tomorrowStart.AddDays(1))

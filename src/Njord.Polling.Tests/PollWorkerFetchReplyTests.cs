@@ -22,7 +22,7 @@ public sealed class PollWorkerFetchReplyTests : Akka.Hosting.TestKit.TestKit
 
     private static readonly IOptions<FeatureRequirementsOptions> Requirements = Options.Create(new FeatureRequirementsOptions
     {
-        Domains = [DomainKind.Weather, DomainKind.AirQuality],
+        Domains = [DomainKind.Forecast, DomainKind.AirQuality],
     });
 
     private static readonly PollTarget Target = new(new Location("lucerne", 0, 0));

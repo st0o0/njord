@@ -2,10 +2,10 @@ using Google.Protobuf.WellKnownTypes;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
 using Njord.Forecast.Seasonal;
 using Njord.Forecast.Solar;
-using Njord.Forecast.Weather;
 using Njord.Grpc.V2;
 using Njord.Messages.Pipeline;
 
@@ -15,7 +15,7 @@ internal static class DomainDataProtoMappingExtensions
 {
     public static DomainDataUpdate? ToDomainDataUpdate(this PipelineEvent pipelineEvent) => pipelineEvent switch
     {
-        PipelineEvent.WeatherDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Weather = e.Forecast.ToWeatherData(), Model = e.ModelId ?? string.Empty }),
+        PipelineEvent.ForecastDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Forecast = e.Forecast.ToWeatherData(), Model = e.ModelId ?? string.Empty }),
         PipelineEvent.AirQualityDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { AirQuality = e.Forecast.ToAirQualityData() }),
         PipelineEvent.FloodDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Flood = e.Forecast.ToFloodData() }),
         PipelineEvent.MarineDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Marine = e.Forecast.ToMarineData() }),
@@ -26,11 +26,11 @@ internal static class DomainDataProtoMappingExtensions
     };
 
     public static string? ToModelId(this PipelineEvent pipelineEvent) =>
-        pipelineEvent is PipelineEvent.WeatherDataReceived e ? e.ModelId : null;
+        pipelineEvent is PipelineEvent.ForecastDataReceived e ? e.ModelId : null;
 
     public static DomainKind? ToDomainKind(this PipelineEvent pipelineEvent) => pipelineEvent switch
     {
-        PipelineEvent.WeatherDataReceived => DomainKind.Weather,
+        PipelineEvent.ForecastDataReceived => DomainKind.Forecast,
         PipelineEvent.AirQualityDataReceived => DomainKind.AirQuality,
         PipelineEvent.FloodDataReceived => DomainKind.Flood,
         PipelineEvent.MarineDataReceived => DomainKind.Marine,
@@ -42,7 +42,7 @@ internal static class DomainDataProtoMappingExtensions
 
     public static Location? ToDomainLocation(this PipelineEvent pipelineEvent) => pipelineEvent switch
     {
-        PipelineEvent.WeatherDataReceived e => e.Location,
+        PipelineEvent.ForecastDataReceived e => e.Location,
         PipelineEvent.AirQualityDataReceived e => e.Location,
         PipelineEvent.FloodDataReceived e => e.Location,
         PipelineEvent.MarineDataReceived e => e.Location,
@@ -60,9 +60,9 @@ internal static class DomainDataProtoMappingExtensions
         return update;
     }
 
-    private static WeatherData ToWeatherData(this DomainForecast<WeatherPoint> forecast)
+    private static ForecastDomainData ToWeatherData(this DomainForecast<ForecastPoint> forecast)
     {
-        var data = new WeatherData();
+        var data = new ForecastDomainData();
         data.Points.AddRange(forecast.Points.Select(p => p.ToProto()));
         return data;
     }
@@ -118,9 +118,9 @@ internal static class DomainDataProtoMappingExtensions
         return sample;
     }
 
-    public static WeatherSample ToProto(this WeatherPoint p)
+    public static ForecastSample ToProto(this ForecastPoint p)
     {
-        var sample = new WeatherSample
+        var sample = new ForecastSample
         {
             ValidAt = p.ValidFrom.ToTimestamp(),
         };

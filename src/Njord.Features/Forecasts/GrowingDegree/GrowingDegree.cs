@@ -1,30 +1,30 @@
 using System.Collections.Immutable;
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Forecasts.GrowingDegree;
 
-public sealed class GrowingDegree(IOptions<GrowingDegreeConfig> config) : FeatureRule<WeatherInput>
+public sealed class GrowingDegree(IOptions<GrowingDegreeConfig> config) : FeatureRule<ForecastInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Forecast,
         FeatureCategory.Lifestyle,
         Name: "GrowingDegree",
         DefaultEnabled: false,
-        new DomainRequirements(Weather: WeatherParams.Temperature));
+        new DomainRequirements(Forecast: ForecastParams.Temperature));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w } ? new(w) : null;
+    protected override ForecastInput? Project(LocationForecast forecast) =>
+        forecast is { Forecast: { } w } ? new(w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
         var baseTemp = config.Value.BaseTemperature;
         var today = DateOnly.FromDateTime(ctx.Now.UtcDateTime);
-        var points = ctx.Current.Weather.Points;
+        var points = ctx.Current.Forecast.Points;
 
         var days = points
             .Where(p => p.Temperature is not null)

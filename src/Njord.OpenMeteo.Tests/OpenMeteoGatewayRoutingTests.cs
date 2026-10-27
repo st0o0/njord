@@ -7,10 +7,10 @@ using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
 using Njord.Forecast.Seasonal;
 using Njord.Forecast.Solar;
-using Njord.Forecast.Weather;
 using Njord.Messages.Forecast;
 using Njord.OpenMeteo.Gateway;
 using Njord.Tests.Shared;
@@ -69,14 +69,14 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 30000)]
     public async Task A_weather_fetch_uses_the_weather_client_and_delivers_weather_points()
     {
-        var (completed, received) = await FetchAsync(DomainKind.Weather, TestContext.Current.CancellationToken);
+        var (completed, received) = await FetchAsync(DomainKind.Forecast, TestContext.Current.CancellationToken);
 
         Assert.Multiple(
-            () => Assert.Equal(DomainKind.Weather, completed.Domain),
+            () => Assert.Equal(DomainKind.Forecast, completed.Domain),
             () => Assert.Equal(received.Data.GetHashCode(), completed.Hash),
             () => Assert.Equal("lucerne", received.Location.Name),
             () => Assert.Equal(47.05, received.Location.Latitude),
-            () => Assert.IsType<DomainForecast<WeatherPoint>>(received.Data),
+            () => Assert.IsType<DomainForecast<ForecastPoint>>(received.Data),
             () => Assert.Equal(1, _weather.Calls),
             () => Assert.Equal(0, _airQuality.Calls + _flood.Calls + _marine.Calls));
     }
@@ -172,11 +172,11 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
         await _attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         _weather.Throws = true;
 
-        Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Weather));
+        Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Forecast));
 
         var failed = await _region.ExpectMsgAsync<FetchDomainFailed>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         Assert.Multiple(
-            () => Assert.Equal(DomainKind.Weather, failed.Domain),
+            () => Assert.Equal(DomainKind.Forecast, failed.Domain),
             () => Assert.Equal(PollFailureReason.Transport, failed.Reason));
         await _forecasts.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), ct);
     }
@@ -203,7 +203,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 30000)]
     public async Task The_reply_carries_the_requested_location()
     {
-        var (completed, _) = await FetchAsync(DomainKind.Weather, TestContext.Current.CancellationToken);
+        var (completed, _) = await FetchAsync(DomainKind.Forecast, TestContext.Current.CancellationToken);
 
         Assert.Equal(Lucerne, completed.Location);
     }
@@ -215,7 +215,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
         await _attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         _weather.Throws = true;
 
-        Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Weather));
+        Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Forecast));
 
         var failed = await _region.ExpectMsgAsync<FetchDomainFailed>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         Assert.Equal(Lucerne, failed.Location);
@@ -232,7 +232,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
         {
             for (var i = 0; i < 100; i++)
             {
-                Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Weather));
+                Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Forecast));
             }
 
             var rejected = await _region.ExpectMsgAsync<FetchDomainRejected>(TimeSpan.FromSeconds(5), cancellationToken: ct);

@@ -47,7 +47,7 @@ public sealed class ExerciseAdvisoryTests
     [Fact]
     public void Nothing_is_reported_without_air_quality_data()
     {
-        Assert.Null(Run(Feature(), Now, WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
     }
 
     [Fact]

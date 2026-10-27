@@ -1,18 +1,18 @@
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
 using Njord.Forecast.Seasonal;
 using Njord.Forecast.Solar;
-using Njord.Forecast.Weather;
 
 namespace Njord.Messages.Pipeline;
 
 public abstract record PipelineEvent
 {
-    public sealed record WeatherDataReceived(
+    public sealed record ForecastDataReceived(
         Location Location,
-        DomainForecast<WeatherPoint> Forecast,
+        DomainForecast<ForecastPoint> Forecast,
         string? ModelId = null) : PipelineEvent;
 
     public sealed record AirQualityDataReceived(

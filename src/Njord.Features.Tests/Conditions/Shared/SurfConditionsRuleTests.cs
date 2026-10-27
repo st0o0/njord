@@ -1,7 +1,7 @@
 using Njord.Features.Conditions.Shared;
 using Njord.Forecast;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
-using Njord.Forecast.Weather;
 using static Njord.Tests.Shared.MarineFixtures;
 
 namespace Njord.Features.Tests.Conditions;
@@ -156,8 +156,8 @@ public sealed class SurfConditionsRuleTests
     public void Evaluate_picks_the_best_hour_of_the_window_and_reads_wind_at_that_hour()
     {
         var marine = MarineForecast(Swell(1.8, 6.0, hour: 0), Swell(1.8, 14.0, hour: 1), Swell(1.8, 10.0, hour: 2));
-        var weather = new DomainForecast<WeatherPoint>(DomainKind.Weather, Now, TimeResolution.Hourly,
-            [new WeatherPoint(Now.AddHours(1), WindDirection: 90.0)]);
+        var weather = new DomainForecast<ForecastPoint>(DomainKind.Forecast, Now, TimeResolution.Hourly,
+            [new ForecastPoint(Now.AddHours(1), WindDirection: 90.0)]);
 
         var result = SurfConditionsRule.Evaluate(marine, weather, Now);
 

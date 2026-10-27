@@ -129,12 +129,12 @@ public sealed class WeatherGrpcService(
 
     private static string? ResolveModel(GetDomainDataRequest request, DomainKind domain, CatalogLocation location, string primary)
     {
-        if (string.IsNullOrEmpty(request.Model) || (domain == DomainKind.Weather && request.Model == primary))
+        if (string.IsNullOrEmpty(request.Model) || (domain == DomainKind.Forecast && request.Model == primary))
         {
             return null;
         }
 
-        if (domain != DomainKind.Weather || !location.Models.Contains(request.Model))
+        if (domain != DomainKind.Forecast || !location.Models.Contains(request.Model))
         {
             throw new RpcException(new GrpcStatus(StatusCode.NotFound,
                 $"Model '{request.Model}' is not enabled for '{location.Location.Name}'"));
@@ -145,7 +145,7 @@ public sealed class WeatherGrpcService(
 
     private static DomainDataUpdate WithPrimaryModel(DomainDataUpdate update, string primary)
     {
-        if (update.DataCase == DomainDataUpdate.DataOneofCase.Weather && update.Model.Length == 0)
+        if (update.DataCase == DomainDataUpdate.DataOneofCase.Forecast && update.Model.Length == 0)
         {
             update.Model = primary;
         }

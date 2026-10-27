@@ -2,8 +2,8 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Conditions.SolarYield;
 using Njord.Forecast;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Solar;
-using Njord.Forecast.Weather;
 using Njord.Messages.Pipeline;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
@@ -15,7 +15,7 @@ public sealed class SolarYieldTests
 {
     private static SolarYield Feature() => new(Options.Create(new SolarYieldConfig { Enabled = true }));
 
-    private static LocationForecast Sunny() => WeatherOnly(Day((hour, point) => point with
+    private static LocationForecast Sunny() => ForecastOnly(Day((hour, point) => point with
     {
         GlobalTiltedIrradiance = hour == 3 ? 800.0 : 100.0,
     }));
@@ -40,7 +40,7 @@ public sealed class SolarYieldTests
     [Fact]
     public void Direct_and_diffuse_radiation_without_tilted_irradiance_yield_nothing()
     {
-        var forecast = WeatherOnly(Day((_, point) => point with { DirectRadiation = 500.0, DiffuseRadiation = 50.0 }));
+        var forecast = ForecastOnly(Day((_, point) => point with { DirectRadiation = 500.0, DiffuseRadiation = 50.0 }));
 
         Assert.Null(Run(Feature(), Now, forecast));
     }
@@ -75,12 +75,12 @@ public sealed class SolarYieldTests
     [Fact]
     public void The_requirements_ask_for_global_tilted_irradiance()
     {
-        Assert.Equal(WeatherParams.GlobalTiltedIrradiance, Feature().Descriptor.Requirements.Weather);
+        Assert.Equal(ForecastParams.GlobalTiltedIrradiance, Feature().Descriptor.Requirements.Forecast);
     }
 
     [Fact]
     public void Nothing_is_reported_without_radiation_data()
     {
-        Assert.Null(Run(Feature(), Now, WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
     }
 }

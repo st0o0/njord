@@ -1,12 +1,12 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Shared;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Scores.Laundry;
 
-public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<WeatherInput>
+public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<ForecastInput>
 {
     public const double GoodHourScore = 60.0;
 
@@ -15,18 +15,18 @@ public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<W
         FeatureCategory.Lifestyle,
         Name: "Laundry",
         DefaultEnabled: false,
-        new DomainRequirements(Weather: WeatherParams.Precipitation | WeatherParams.Temperature | WeatherParams.Humidity
-            | WeatherParams.WindSpeed | WeatherParams.PrecipitationProbability | WeatherParams.CloudCover,
-        OptionalWeather: WeatherParams.SunshineDuration));
+        new DomainRequirements(Forecast: ForecastParams.Precipitation | ForecastParams.Temperature | ForecastParams.Humidity
+            | ForecastParams.WindSpeed | ForecastParams.PrecipitationProbability | ForecastParams.CloudCover,
+        OptionalForecast: ForecastParams.SunshineDuration));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override ForecastInput? Project(LocationForecast forecast) =>
+        forecast.Forecast is { } w ? new(w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var hours = ctx.Current.Weather.NextHours(ctx.Now);
+        var hours = ctx.Current.Forecast.NextHours(ctx.Now);
         if (hours.Count == 0)
         {
             return null;
@@ -44,7 +44,7 @@ public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<W
         return new LaundryScoreResult(ctx.Location, (int)Math.Round(windowScore), hours[start].ValidFrom, length);
     }
 
-    private static double ScoreHour(WeatherPoint point)
+    private static double ScoreHour(ForecastPoint point)
     {
         if (point.Precipitation > 0.1)
         {

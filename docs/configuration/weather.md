@@ -1,6 +1,6 @@
 # Weather
 
-Options for the Weather domain under `Njord:Weather`. The model defaults to the ECMWF IFS ensemble mean and can be changed with `Models`; the variable list is built into the client. Air Quality, Flood and Marine use fixed variable sets too.
+Options for the Forecast domain under `Njord:Weather`. The model defaults to the ECMWF IFS ensemble mean and can be changed with `Models`; the variable list is built into the client. Air Quality, Flood and Marine use fixed variable sets too.
 
 ```json
 {
@@ -27,4 +27,4 @@ The weather request asks only for the hourly variables the enabled features need
 weather weight = ceil(variables / 10) x ceil(ForecastDays / 14) x model count
 ```
 
-The weight is charged to the Weather domain only; every other domain costs one call per location and cycle. See the [budget](./budget) projection.
+The weight is charged to the Forecast domain only; every other domain costs one call per location and cycle. See the [budget](./budget) projection.

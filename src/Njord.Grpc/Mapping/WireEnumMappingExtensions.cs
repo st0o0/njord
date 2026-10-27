@@ -18,7 +18,7 @@ internal static class WireEnumMappingExtensions
 
     public static ProtoDomain ToProto(this DomainKind domain) => domain switch
     {
-        DomainKind.Weather => ProtoDomain.Weather,
+        DomainKind.Forecast => ProtoDomain.Forecast,
         DomainKind.AirQuality => ProtoDomain.AirQuality,
         DomainKind.Flood => ProtoDomain.Flood,
         DomainKind.Marine => ProtoDomain.Marine,
@@ -30,7 +30,7 @@ internal static class WireEnumMappingExtensions
 
     public static DomainKind ToDomain(this ProtoDomain domain) => domain switch
     {
-        ProtoDomain.Weather => DomainKind.Weather,
+        ProtoDomain.Forecast => DomainKind.Forecast,
         ProtoDomain.AirQuality => DomainKind.AirQuality,
         ProtoDomain.Flood => DomainKind.Flood,
         ProtoDomain.Marine => DomainKind.Marine,

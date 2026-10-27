@@ -1,12 +1,12 @@
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 
 namespace Njord.Features.Alerts.Shared;
 
-internal static class WeatherPointExtensions
+internal static class ForecastPointExtensions
 {
-    public static WeatherPoint? LowestBy(this IEnumerable<WeatherPoint> points, Func<WeatherPoint, double?> selector)
+    public static ForecastPoint? LowestBy(this IEnumerable<ForecastPoint> points, Func<ForecastPoint, double?> selector)
     {
-        WeatherPoint? best = null;
+        ForecastPoint? best = null;
         var bestValue = double.MaxValue;
         foreach (var point in points)
         {
@@ -20,9 +20,9 @@ internal static class WeatherPointExtensions
         return best;
     }
 
-    public static WeatherPoint? HighestBy(this IEnumerable<WeatherPoint> points, Func<WeatherPoint, double?> selector)
+    public static ForecastPoint? HighestBy(this IEnumerable<ForecastPoint> points, Func<ForecastPoint, double?> selector)
     {
-        WeatherPoint? best = null;
+        ForecastPoint? best = null;
         var bestValue = double.MinValue;
         foreach (var point in points)
         {

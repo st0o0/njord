@@ -14,7 +14,7 @@ public sealed class CommuteSafetyTests
     [Fact]
     public void Benign_weather_is_reported_as_safe()
     {
-        var safety = Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, WeatherOnly(Day())));
+        var safety = Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, ForecastOnly(Day())));
 
         Assert.Multiple(
             () => Assert.Equal(CommuteLevel.Safe, safety.Level),
@@ -26,7 +26,7 @@ public sealed class CommuteSafetyTests
     {
         var weather = Uniform(p => p with { Temperature = 0.0, DewPoint = -0.5 });
 
-        var safety = Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, WeatherOnly(weather)));
+        var safety = Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, ForecastOnly(weather)));
 
         Assert.Multiple(
             () => Assert.Equal(CommuteLevel.Dangerous, safety.Level),
@@ -38,7 +38,7 @@ public sealed class CommuteSafetyTests
     {
         var weather = Uniform(p => p with { WindSpeed = 20.0 });
 
-        var safety = Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, WeatherOnly(weather)));
+        var safety = Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, ForecastOnly(weather)));
 
         Assert.Multiple(
             () => Assert.Equal(CommuteLevel.Caution, safety.Level),
@@ -50,7 +50,7 @@ public sealed class CommuteSafetyTests
     {
         var weather = Day((hour, p) => hour >= 2 ? p with { Precipitation = 8.0 } : p);
 
-        var safety = Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, WeatherOnly(weather)));
+        var safety = Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, ForecastOnly(weather)));
 
         Assert.Equal(CommuteLevel.Safe, safety.Level);
     }

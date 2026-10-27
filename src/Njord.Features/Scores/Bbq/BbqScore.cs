@@ -1,12 +1,12 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Shared;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Scores.Bbq;
 
-public sealed class BbqScore(IOptions<BbqConfig> config) : FeatureRule<WeatherInput>
+public sealed class BbqScore(IOptions<BbqConfig> config) : FeatureRule<ForecastInput>
 {
     public const double GoodHourScore = 70.0;
 
@@ -15,17 +15,17 @@ public sealed class BbqScore(IOptions<BbqConfig> config) : FeatureRule<WeatherIn
         FeatureCategory.Lifestyle,
         Name: "Bbq",
         DefaultEnabled: false,
-        new DomainRequirements(Weather: WeatherParams.Precipitation | WeatherParams.Temperature | WeatherParams.WindSpeed
-            | WeatherParams.PrecipitationProbability | WeatherParams.CloudCover));
+        new DomainRequirements(Forecast: ForecastParams.Precipitation | ForecastParams.Temperature | ForecastParams.WindSpeed
+            | ForecastParams.PrecipitationProbability | ForecastParams.CloudCover));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override ForecastInput? Project(LocationForecast forecast) =>
+        forecast.Forecast is { } w ? new(w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var hours = ctx.Current.Weather.NextHours(ctx.Now);
+        var hours = ctx.Current.Forecast.NextHours(ctx.Now);
         if (hours.Count == 0)
         {
             return null;
@@ -35,7 +35,7 @@ public sealed class BbqScore(IOptions<BbqConfig> config) : FeatureRule<WeatherIn
         return new BbqScoreResult(ctx.Location, score, hours[start].ValidFrom, length);
     }
 
-    private static double ScoreHour(WeatherPoint point)
+    private static double ScoreHour(ForecastPoint point)
     {
         if (point.Precipitation > 0.1)
         {

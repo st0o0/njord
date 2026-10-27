@@ -1,52 +1,52 @@
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
-using Njord.Forecast.Weather;
 using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Ensemble;
 using Njord.OpenMeteo.Flood;
+using Njord.OpenMeteo.Forecast;
 using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Marine;
 using Njord.OpenMeteo.Satellite;
 using Njord.OpenMeteo.Seasonal;
-using Njord.OpenMeteo.Weather;
 
 namespace Njord.OpenMeteo.Tests.Mapping;
 
 public sealed class ParamsMappingsTests
 {
     [Theory]
-    [InlineData(WeatherParams.Temperature, "temperature_2m")]
-    [InlineData(WeatherParams.ApparentTemperature, "apparent_temperature")]
-    [InlineData(WeatherParams.WindSpeed, "wind_speed_10m")]
-    [InlineData(WeatherParams.Precipitation, "precipitation")]
-    [InlineData(WeatherParams.PrecipitationProbability, "precipitation_probability")]
-    [InlineData(WeatherParams.CloudCover, "cloud_cover")]
-    [InlineData(WeatherParams.Pressure, "pressure_msl")]
-    [InlineData(WeatherParams.WeatherCode, "weather_code")]
-    [InlineData(WeatherParams.Humidity, "relative_humidity_2m")]
-    [InlineData(WeatherParams.DewPoint, "dew_point_2m")]
-    [InlineData(WeatherParams.UvIndex, "uv_index")]
-    [InlineData(WeatherParams.WindGusts, "wind_gusts_10m")]
-    [InlineData(WeatherParams.Visibility, "visibility")]
-    [InlineData(WeatherParams.Cape, "cape")]
-    [InlineData(WeatherParams.Rain, "rain")]
-    [InlineData(WeatherParams.Snowfall, "snowfall")]
-    [InlineData(WeatherParams.SoilTemperature, "soil_temperature_0_to_10cm")]
-    [InlineData(WeatherParams.FreezingLevelHeight, "freezing_level_height")]
-    [InlineData(WeatherParams.IsDay, "is_day")]
-    [InlineData(WeatherParams.ShortwaveRadiation, "shortwave_radiation")]
-    [InlineData(WeatherParams.DirectRadiation, "direct_radiation")]
-    [InlineData(WeatherParams.DiffuseRadiation, "diffuse_radiation")]
-    [InlineData(WeatherParams.DirectNormalIrradiance, "direct_normal_irradiance")]
-    [InlineData(WeatherParams.SunshineDuration, "sunshine_duration")]
-    [InlineData(WeatherParams.WindDirection, "wind_direction_10m")]
-    [InlineData(WeatherParams.GlobalTiltedIrradiance, "global_tilted_irradiance")]
-    [InlineData(WeatherParams.SnowDepth, "snow_depth")]
-    [InlineData(WeatherParams.WetBulbTemperature, "wet_bulb_temperature_2m")]
-    [InlineData(WeatherParams.SnowfallHeight, "snowfall_height")]
-    [InlineData(WeatherParams.UvIndexClearSky, "uv_index_clear_sky")]
-    public void Should_map_each_weather_flag_to_its_api_name(WeatherParams param, string expected) =>
+    [InlineData(ForecastParams.Temperature, "temperature_2m")]
+    [InlineData(ForecastParams.ApparentTemperature, "apparent_temperature")]
+    [InlineData(ForecastParams.WindSpeed, "wind_speed_10m")]
+    [InlineData(ForecastParams.Precipitation, "precipitation")]
+    [InlineData(ForecastParams.PrecipitationProbability, "precipitation_probability")]
+    [InlineData(ForecastParams.CloudCover, "cloud_cover")]
+    [InlineData(ForecastParams.Pressure, "pressure_msl")]
+    [InlineData(ForecastParams.WeatherCode, "weather_code")]
+    [InlineData(ForecastParams.Humidity, "relative_humidity_2m")]
+    [InlineData(ForecastParams.DewPoint, "dew_point_2m")]
+    [InlineData(ForecastParams.UvIndex, "uv_index")]
+    [InlineData(ForecastParams.WindGusts, "wind_gusts_10m")]
+    [InlineData(ForecastParams.Visibility, "visibility")]
+    [InlineData(ForecastParams.Cape, "cape")]
+    [InlineData(ForecastParams.Rain, "rain")]
+    [InlineData(ForecastParams.Snowfall, "snowfall")]
+    [InlineData(ForecastParams.SoilTemperature, "soil_temperature_0_to_10cm")]
+    [InlineData(ForecastParams.FreezingLevelHeight, "freezing_level_height")]
+    [InlineData(ForecastParams.IsDay, "is_day")]
+    [InlineData(ForecastParams.ShortwaveRadiation, "shortwave_radiation")]
+    [InlineData(ForecastParams.DirectRadiation, "direct_radiation")]
+    [InlineData(ForecastParams.DiffuseRadiation, "diffuse_radiation")]
+    [InlineData(ForecastParams.DirectNormalIrradiance, "direct_normal_irradiance")]
+    [InlineData(ForecastParams.SunshineDuration, "sunshine_duration")]
+    [InlineData(ForecastParams.WindDirection, "wind_direction_10m")]
+    [InlineData(ForecastParams.GlobalTiltedIrradiance, "global_tilted_irradiance")]
+    [InlineData(ForecastParams.SnowDepth, "snow_depth")]
+    [InlineData(ForecastParams.WetBulbTemperature, "wet_bulb_temperature_2m")]
+    [InlineData(ForecastParams.SnowfallHeight, "snowfall_height")]
+    [InlineData(ForecastParams.UvIndexClearSky, "uv_index_clear_sky")]
+    public void Should_map_each_weather_flag_to_its_api_name(ForecastParams param, string expected) =>
         Assert.Equal([expected], param.ToApiNames());
 
     [Theory]
@@ -108,7 +108,7 @@ public sealed class ParamsMappingsTests
     [Fact]
     public void Should_return_the_names_of_all_set_flags_in_flag_order()
     {
-        var names = (WeatherParams.Temperature | WeatherParams.WindDirection | WeatherParams.Rain).ToApiNames();
+        var names = (ForecastParams.Temperature | ForecastParams.WindDirection | ForecastParams.Rain).ToApiNames();
 
         Assert.Equal(["temperature_2m", "rain", "wind_direction_10m"], names);
     }
@@ -117,7 +117,7 @@ public sealed class ParamsMappingsTests
     public void Should_return_no_names_for_none()
     {
         Assert.Multiple(
-            () => Assert.Empty(WeatherParams.None.ToApiNames()),
+            () => Assert.Empty(ForecastParams.None.ToApiNames()),
             () => Assert.Empty(AirQualityParams.None.ToApiNames()),
             () => Assert.Empty(FloodParams.None.ToApiNames()),
             () => Assert.Empty(FloodParams.Ensemble.ToApiNames()),

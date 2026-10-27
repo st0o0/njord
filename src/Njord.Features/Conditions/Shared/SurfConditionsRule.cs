@@ -1,7 +1,7 @@
 using Njord.Core.Domain;
 using Njord.Forecast;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
-using Njord.Forecast.Weather;
 
 namespace Njord.Features.Conditions.Shared;
 
@@ -32,7 +32,7 @@ public static class SurfConditionsRule
     public const string Onshore = "onshore";
 
     public static SurfAssessment? Evaluate(
-        DomainForecast<MarinePoint> marine, DomainForecast<WeatherPoint>? weather, DateTimeOffset now)
+        DomainForecast<MarinePoint> marine, DomainForecast<ForecastPoint>? weather, DateTimeOffset now)
     {
         SurfAssessment? best = null;
 
@@ -148,7 +148,7 @@ public static class SurfConditionsRule
         return share > ChoppyShare ? 10.0 : 0.0;
     }
 
-    private static double? WindDirectionAt(DomainForecast<WeatherPoint>? weather, DateTimeOffset validFrom)
+    private static double? WindDirectionAt(DomainForecast<ForecastPoint>? weather, DateTimeOffset validFrom)
     {
         if (weather is null)
         {

@@ -2,12 +2,12 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Shared;
 using Njord.Forecast.AirQuality;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.ExerciseAdvisory;
 
-public sealed class ExerciseAdvisory(IOptions<ExerciseAdvisoryConfig> config) : FeatureRule<WeatherAqInput>
+public sealed class ExerciseAdvisory(IOptions<ExerciseAdvisoryConfig> config) : FeatureRule<ForecastAqInput>
 {
     public const double SafeScore = 70.0;
     public const double CautionScore = 45.0;
@@ -24,18 +24,18 @@ public sealed class ExerciseAdvisory(IOptions<ExerciseAdvisoryConfig> config) : 
         Name: "Exercise",
         DefaultEnabled: false,
         new DomainRequirements(
-        Weather: WeatherParams.Temperature | WeatherParams.Humidity,
+        Forecast: ForecastParams.Temperature | ForecastParams.Humidity,
         AirQuality: AirQualityParams.Pm25 | AirQualityParams.Ozone,
-        OptionalWeather: WeatherParams.UvIndex));
+        OptionalForecast: ForecastParams.UvIndex));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherAqInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w, AirQuality: { } aq } ? new(w, aq) : null;
+    protected override ForecastAqInput? Project(LocationForecast forecast) =>
+        forecast is { Forecast: { } w, AirQuality: { } aq } ? new(w, aq) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherAqInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastAqInput> ctx)
     {
-        var hours = ctx.Current.Weather.NextHours(ctx.Now, 12)
+        var hours = ctx.Current.Forecast.NextHours(ctx.Now, 12)
             .Select(point => (Point: point, Air: ForecastQueries.ValueAt(ctx.Current.AirQuality, point.ValidFrom)))
             .Where(pair => pair.Air is not null)
             .Select(pair => Components(pair.Point, pair.Air!))
@@ -73,7 +73,7 @@ public sealed class ExerciseAdvisory(IOptions<ExerciseAdvisoryConfig> config) : 
         }
     }
 
-    private static Hour? Components(WeatherPoint weather, AirQualityPoint air)
+    private static Hour? Components(ForecastPoint weather, AirQualityPoint air)
     {
         if (air is not { Pm25: { } airPm25, Ozone: { } airOzone }
             || weather is not { Temperature: { } airTemperature, Humidity: { } relativeHumidity })

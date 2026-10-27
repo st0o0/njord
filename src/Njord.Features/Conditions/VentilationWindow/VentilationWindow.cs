@@ -3,12 +3,12 @@ using Njord.Core.Domain;
 using Njord.Features.Shared;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.VentilationWindow;
 
-public sealed class VentilationWindow(IOptions<VentilationWindowConfig> config) : FeatureRule<WeatherAqInput>
+public sealed class VentilationWindow(IOptions<VentilationWindowConfig> config) : FeatureRule<ForecastAqInput>
 {
     public const double MaxPm25 = 15.0;
     public const double MaxPollen = 20.0;
@@ -22,19 +22,19 @@ public sealed class VentilationWindow(IOptions<VentilationWindowConfig> config) 
         Name: "Ventilation",
         DefaultEnabled: false,
         new DomainRequirements(
-        Weather: WeatherParams.Temperature | WeatherParams.Precipitation,
+        Forecast: ForecastParams.Temperature | ForecastParams.Precipitation,
         AirQuality: AirQualityParams.Pm25,
         OptionalAirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
             | AirQualityParams.Alder | AirQualityParams.Mugwort));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherAqInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w, AirQuality: { } aq } ? new(w, aq) : null;
+    protected override ForecastAqInput? Project(LocationForecast forecast) =>
+        forecast is { Forecast: { } w, AirQuality: { } aq } ? new(w, aq) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherAqInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastAqInput> ctx)
     {
-        var hours = ctx.Current.Weather.NextHours(ctx.Now)
+        var hours = ctx.Current.Forecast.NextHours(ctx.Now)
             .Select(point => (Point: point, Air: ForecastQueries.ValueAt(ctx.Current.AirQuality, point.ValidFrom)))
             .Where(pair => pair.Air is not null)
             .ToList();
@@ -51,11 +51,11 @@ public sealed class VentilationWindow(IOptions<VentilationWindowConfig> config) 
         }
 
         var first = hours[start].Point.ValidFrom;
-        var end = hours[start + length - 1].Point.ValidFrom + ctx.Current.Weather.Resolution.ToTimeSpan();
+        var end = hours[start + length - 1].Point.ValidFrom + ctx.Current.Forecast.Resolution.ToTimeSpan();
         return new VentilationWindowResult(ctx.Location, first, end);
     }
 
-    private static bool IsOpenWindowHour(WeatherPoint weather, AirQualityPoint air)
+    private static bool IsOpenWindowHour(ForecastPoint weather, AirQualityPoint air)
     {
         var pollen = Math.Max(
             Math.Max(air.BirchPollen ?? 0, air.GrassPollen ?? 0),

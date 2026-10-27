@@ -6,7 +6,7 @@ using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.FloodRisk;
 
-public sealed class FloodRiskAlert(IOptions<FloodRiskConfig> config) : FeatureRule<FloodWeatherInput>
+public sealed class FloodRiskAlert(IOptions<FloodRiskConfig> config) : FeatureRule<FloodForecastInput>
 {
     public const int ForecastDays = 7;
     public const double MedianFactor = 2.0;
@@ -23,10 +23,10 @@ public sealed class FloodRiskAlert(IOptions<FloodRiskConfig> config) : FeatureRu
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override FloodWeatherInput? Project(LocationForecast forecast) =>
-        forecast is { Flood: { } f, Weather: { } w } ? new(f, w) : null;
+    protected override FloodForecastInput? Project(LocationForecast forecast) =>
+        forecast is { Flood: { } f, Forecast: { } w } ? new(f, w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<FloodWeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<FloodForecastInput> ctx)
     {
         var best = (Severity: AlertSeverity.None, Trigger: 0.0, Threshold: 0.0, HoursUntil: 0, Confidence: 1.0, Level: ConfidenceLevel.High);
         foreach (var point in ctx.Current.Flood.NextDays(ctx.Now, ForecastDays))

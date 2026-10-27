@@ -1,11 +1,11 @@
 import featureData from '../../../data/features.json'
 
-export const DOMAINS = ['Weather', 'Ensemble', 'AirQuality', 'Flood', 'Marine', 'Seasonal', 'Satellite'] as const
+export const DOMAINS = ['Forecast', 'Ensemble', 'AirQuality', 'Flood', 'Marine', 'Seasonal', 'Satellite'] as const
 
 export type DomainName = (typeof DOMAINS)[number]
 
 export const CATEGORIES = [
-  { key: 'Weather', label: 'Weather alerts' },
+  { key: 'Forecast', label: 'Forecast Alerts' },
   { key: 'AirQuality', label: 'Air quality' },
   { key: 'Lifestyle', label: 'Lifestyle' },
   { key: 'Insight', label: 'Insight' },
@@ -40,12 +40,12 @@ export interface FeatureGroup {
 }
 
 export const USER_GROUPS: { key: string; label: string; icon: string; categories: string[]; outputs?: string[] }[] = [
-  { key: 'safety', label: 'Safety Alerts', icon: '🛡️', categories: ['Weather'], outputs: ['Alert'] },
+  { key: 'safety', label: 'Safety Alerts', icon: '🛡️', categories: ['Forecast'], outputs: ['Alert'] },
   { key: 'airquality', label: 'Air Quality', icon: '🌿', categories: ['AirQuality'] },
   { key: 'lifestyle', label: 'Outdoor & Lifestyle', icon: '☀️', categories: ['Lifestyle'] },
   { key: 'energy', label: 'Energy', icon: '⚡', categories: ['Energy'] },
   { key: 'flood-marine', label: 'Flood & Marine', icon: '🌊', categories: ['Flood', 'Marine'] },
-  { key: 'insights', label: 'Insights & Forecasts', icon: '📊', categories: ['Insight', 'Weather'], outputs: ['Forecast', 'Trend', 'Condition'] },
+  { key: 'insights', label: 'Insights & Forecasts', icon: '📊', categories: ['Insight', 'Forecast'], outputs: ['Forecast', 'Trend', 'Condition'] },
 ]
 
 // A per-feature setting below Njord:Features:<Category>:<Name>; null/absent in the config means the built-in default.
@@ -76,8 +76,8 @@ export function userFeatureGroups(): FeatureGroup[] {
     label: g.label,
     icon: g.icon,
     features: FEATURES.filter(f => {
-      if (g.key === 'safety') return f.category === 'Weather' && f.output === 'Alert'
-      if (g.key === 'insights') return (f.category === 'Insight') || (f.category === 'Weather' && (f.output === 'Forecast' || f.output === 'Trend' || f.output === 'Condition'))
+      if (g.key === 'safety') return f.category === 'Forecast' && f.output === 'Alert'
+      if (g.key === 'insights') return (f.category === 'Insight') || (f.category === 'Forecast' && (f.output === 'Forecast' || f.output === 'Trend' || f.output === 'Condition'))
       return g.categories.includes(f.category) && !(g.outputs && !g.outputs.includes(f.output))
     }),
   })).filter(g => g.features.length > 0)
@@ -85,10 +85,10 @@ export function userFeatureGroups(): FeatureGroup[] {
 
 export function recommendedFeatures(): Record<string, boolean> {
   const recommended = new Set([
-    'Weather:Frost', 'Weather:Heat', 'Weather:Storm', 'Weather:HeavyRain',
-    'Weather:Uv', 'Weather:Fog', 'Weather:Snow', 'Weather:PressureDrop',
-    'Weather:Thunderstorm', 'Weather:Ice', 'Weather:WindChill', 'Weather:Visibility',
-    'Weather:TropicalNight', 'Weather:Humidity', 'Weather:RainProbability',
+    'Forecast:Frost', 'Forecast:Heat', 'Forecast:Storm', 'Forecast:HeavyRain',
+    'Forecast:Uv', 'Forecast:Fog', 'Forecast:Snow', 'Forecast:PressureDrop',
+    'Forecast:Thunderstorm', 'Forecast:Ice', 'Forecast:WindChill', 'Forecast:Visibility',
+    'Forecast:TropicalNight', 'Forecast:Humidity', 'Forecast:RainProbability',
     'AirQuality:Pollen', 'AirQuality:Pm25',
     'Lifestyle:Commute',
   ])
@@ -144,7 +144,7 @@ export interface NjordConfig {
   discoveryInterval: string
   features: Record<string, boolean>
   locations: LocationConfig[]
-  // Only values that differ from the feature default: featureOptions['Weather:Frost'].Thresholds = [0, -5, -15]
+  // Only values that differ from the feature default: featureOptions['Forecast:Frost'].Thresholds = [0, -5, -15]
   featureOptions: Record<string, Record<string, OptionValue>>
   budgetOverride: { requestsPerMonth: number; requestsPerMinute: number } | null
   persistence: { provider: string; connectionString: string }

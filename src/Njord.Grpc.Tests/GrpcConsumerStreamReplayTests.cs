@@ -22,13 +22,13 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
-        var weather = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2));
+        var weather = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
 
         await pipeline.OfferAsync(weather, ct);
         await AwaitAssertAsync(async () =>
         {
             var q = await consumer.Ask<DomainDataResponse>(
-                new QueryDomainData(DomainData.Lucerne, DomainKind.Weather), AskTimeout, ct);
+                new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), AskTimeout, ct);
             Assert.IsType<DomainDataResult>(q);
         }, TimeSpan.FromSeconds(5), cancellationToken: ct);
 
@@ -70,7 +70,7 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
 
-        var weather = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2));
+        var weather = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
         var flood = new PipelineEvent.FloodDataReceived(DomainData.Lucerne, DomainData.Flood(Anchor));
         var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor);
 
@@ -105,13 +105,13 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
-        var weather = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2));
+        var weather = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
 
         await pipeline.OfferAsync(weather, ct);
         await AwaitAssertAsync(async () =>
         {
             var q = await consumer.Ask<DomainDataResponse>(
-                new QueryDomainData(DomainData.Lucerne, DomainKind.Weather), AskTimeout, ct);
+                new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), AskTimeout, ct);
             Assert.IsType<DomainDataResult>(q);
         }, TimeSpan.FromSeconds(5), cancellationToken: ct);
 

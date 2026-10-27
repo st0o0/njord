@@ -1,6 +1,6 @@
 using Njord.Core.Domain;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Core.Tests.Domain;
@@ -79,42 +79,42 @@ public sealed class FeatureRuleTests
 
     private static LocationForecast ForecastWithWeather()
     {
-        var point = new WeatherPoint(Now, Temperature: 20.0);
-        var forecast = new DomainForecast<WeatherPoint>(DomainKind.Weather, Now, TimeResolution.Hourly, [point]);
-        return new LocationForecast(TestLocation, Weather: forecast);
+        var point = new ForecastPoint(Now, Temperature: 20.0);
+        var forecast = new DomainForecast<ForecastPoint>(DomainKind.Forecast, Now, TimeResolution.Hourly, [point]);
+        return new LocationForecast(TestLocation, Forecast: forecast);
     }
 
-    private sealed class SkippingRule : FeatureRule<WeatherInput>
+    private sealed class SkippingRule : FeatureRule<ForecastInput>
     {
-        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Weather, "Test", true, default);
+        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Forecast, "Test", true, default);
         public override bool Enabled => true;
-        protected override WeatherInput? Project(LocationForecast f) => null;
-        protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx) => throw new InvalidOperationException("Should not be called");
+        protected override ForecastInput? Project(LocationForecast f) => null;
+        protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) => throw new InvalidOperationException("Should not be called");
     }
 
-    private sealed class NullEvalRule : FeatureRule<WeatherInput>
+    private sealed class NullEvalRule : FeatureRule<ForecastInput>
     {
-        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Weather, "Test", true, default);
+        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Forecast, "Test", true, default);
         public override bool Enabled => true;
-        protected override WeatherInput? Project(LocationForecast f) => f.Weather is { } w ? new(w) : null;
-        protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx) => null;
+        protected override ForecastInput? Project(LocationForecast f) => f.Forecast is { } w ? new(w) : null;
+        protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) => null;
     }
 
-    private sealed class ProducingRule : FeatureRule<WeatherInput>
+    private sealed class ProducingRule : FeatureRule<ForecastInput>
     {
-        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Weather, "Test", true, default);
+        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Forecast, "Test", true, default);
         public override bool Enabled => true;
-        protected override WeatherInput? Project(LocationForecast f) => f.Weather is { } w ? new(w) : null;
-        protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx) => new TestFeatureResult(TestLocation);
+        protected override ForecastInput? Project(LocationForecast f) => f.Forecast is { } w ? new(w) : null;
+        protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) => new TestFeatureResult(TestLocation);
     }
 
-    private sealed class HistoryCapturingRule(int pollDepth) : FeatureRule<WeatherInput>
+    private sealed class HistoryCapturingRule(int pollDepth) : FeatureRule<ForecastInput>
     {
-        public IReadOnlyList<WeatherInput>? CapturedHistory { get; private set; }
+        public IReadOnlyList<ForecastInput>? CapturedHistory { get; private set; }
         public override FeatureDescriptor Descriptor => new(OutputKind.Trend, FeatureCategory.Insight, "Test", true, default, PollDepth: pollDepth);
         public override bool Enabled => true;
-        protected override WeatherInput? Project(LocationForecast f) => f.Weather is { } w ? new(w) : null;
-        protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+        protected override ForecastInput? Project(LocationForecast f) => f.Forecast is { } w ? new(w) : null;
+        protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
         {
             CapturedHistory = ctx.History;
             return null;

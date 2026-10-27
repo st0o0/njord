@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.WindChill;
 
 public sealed class WindChillConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Weather:WindChill";
+    private const string SectionName = "Njord:Features:Forecast:WindChill";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
     public double[]? Thresholds { get; set; }

@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Forecasts.ModelComparison;
@@ -13,15 +13,15 @@ public sealed class ModelComparison(IOptions<ModelComparisonConfig> config) : Fe
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Forecast,
-        FeatureCategory.Weather,
+        FeatureCategory.Forecast,
         Name: FeatureName,
         DefaultEnabled: false,
-        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.Precipitation, Ensemble: EnsembleParams.Models));
+        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.Precipitation, Ensemble: EnsembleParams.Models));
 
     public override bool Enabled => config.Value.Enabled;
 
     protected override ModelComparisonInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w, Models.Count: >= 2 } ? new(w, forecast.Models) : null;
+        forecast is { Forecast: { } w, Models.Count: >= 2 } ? new(w, forecast.Models) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ModelComparisonInput> ctx)
     {
@@ -41,7 +41,7 @@ public sealed class ModelComparison(IOptions<ModelComparisonConfig> config) : Fe
         return days.IsEmpty ? null : new ModelComparisonResult(ctx.Location, days);
     }
 
-    private static ModelDayValues Summarize(string modelId, IEnumerable<WeatherPoint> points)
+    private static ModelDayValues Summarize(string modelId, IEnumerable<ForecastPoint> points)
     {
         var list = points.ToList();
         var temps = list.Where(p => p.Temperature is not null).Select(p => p.Temperature!.Value).ToList();

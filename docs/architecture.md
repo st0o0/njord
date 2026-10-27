@@ -10,11 +10,11 @@ njord runs as one Docker container without an external database (SQLite by defau
 
 ## Domains
 
-Each poll cycle fetches the domains that the enabled [features](/configuration/#features-and-domains) need. The defaults poll Weather, Ensemble and Air Quality:
+Each poll cycle fetches the domains that the enabled [features](/configuration/#features-and-domains) need. The defaults poll Forecast, Ensemble and Air Quality:
 
 | Domain | Open-Meteo API | Content |
 |--------|----------------|---------|
-| **Weather** | Forecast (`api.open-meteo.com/v1/forecast`) | High-resolution deterministic forecast using automatic best_match model blending (1-9 km). All weather variables including precipitation probability and UV index. |
+| **Forecast** | `api.open-meteo.com/v1/forecast` | High-resolution deterministic forecast using automatic best_match model blending (1-9 km). All weather variables including precipitation probability and UV index. |
 | **Ensemble** | Ensemble Mean (`ensemble-api.open-meteo.com/v1/ensemble`) | Temperature, precipitation and wind spread (standard deviation across 51 ensemble members) for alert confidence. Comparison model forecasts when ModelComparison is enabled. |
 | **Air Quality** | Air Quality | PM2.5, PM10, ozone, nitrogen dioxide, pollen (birch, grass, alder, mugwort, ragweed, olive), European and US AQI sub-indices |
 | **Flood** | Flood | River discharge with mean, median, min, max, P25 and P75 |
@@ -22,7 +22,7 @@ Each poll cycle fetches the domains that the enabled [features](/configuration/#
 | **Seasonal** | Seasonal | Monthly temperature and precipitation anomalies for the next 3-6 months |
 | **Satellite** | Satellite Archive | Observed solar irradiance (GHI, direct, diffuse, DNI, tilted) for blending with the forecast |
 
-Weather and Ensemble are separate domains that poll independently. The Weather domain delivers the primary forecast values; the Ensemble domain delivers uncertainty data and optional model comparison. Features that need confidence (9 of the 20 weather alerts) declare Ensemble in their requirements; features that don't need it use a fixed Medium confidence.
+Forecast and Ensemble are separate domains that poll independently. The Forecast domain delivers the primary forecast values; the Ensemble domain delivers uncertainty data and optional model comparison. Features that need confidence (9 of the 20 weather alerts) declare Ensemble in their requirements; features that don't need it use a fixed Medium confidence.
 
 ## Three-zone design (7 domains)
 
@@ -39,7 +39,7 @@ Ingest and consumers never reference each other; all data flows through the doma
 <likec4-view view-id="pipeline"></likec4-view>
 
 1. **PollWorker** (one per location, started by `PollManager`) persists its learned update cycle and next poll time per domain. When due, it asks the gateway for each enabled domain (`FetchDomain`); fetches run in parallel.
-2. **Gateway** routes each request to the matching domain client (Weather, Ensemble, Air Quality, Flood, Marine, Seasonal, Satellite) and throttles to stay within the request budget.
+2. **Gateway** routes each request to the matching domain client (Forecast, Ensemble, Air Quality, Flood, Marine, Seasonal, Satellite) and throttles to stay within the request budget.
 3. **Fetch** parses the response into a `DomainForecast<T>` and offers a `DomainDataReceived` into the pipeline's `MergeHub`.
 4. **FeatureEngine** keeps a ring of recent `LocationForecast`s per location, replaces the changed domain slot and runs only the enabled feature rules that read that domain and whose required fields are present.
 5. **Feature rules** (`IFeatureRule`, usually `FeatureRule<TInput>`) project the `LocationForecast` into a typed input and return typed `FeatureResult` events such as alerts, scores or conditions (see below).
@@ -53,11 +53,11 @@ A feature rule declares its required domains and fields in a `FeatureDescriptor`
 
 | Group | Domains | Rules |
 |-------|---------|-------|
-| Weather alerts | Weather (+ Ensemble for confidence) | 20 alerts: frost, heat, storm, heavy rain, UV, fog, snow, pressure drop, thunderstorm, ice, wind chill, visibility, tropical night, humidity, rain probability, wet-bulb danger, clear-sky UV, shower, snow depth, fire risk |
-| Air quality alerts | Air Quality (+ Weather for SmogRisk) | Pollen, PM2.5, Dust, SmogRisk, PollenBlast |
-| Flood alerts | Flood (+ Weather for FloodRain) | FloodRisk, FloodRain |
-| Marine alerts | Marine (+ Weather for CoastalFlood) | Swimming, CoastalFlood |
-| Lifestyle scores | Weather (+ Air Quality for some) | BBQ, Laundry, Outdoor, Commute, Exercise |
+| Weather alerts | Forecast (+ Ensemble for confidence) | 20 alerts: frost, heat, storm, heavy rain, UV, fog, snow, pressure drop, thunderstorm, ice, wind chill, visibility, tropical night, humidity, rain probability, wet-bulb danger, clear-sky UV, shower, snow depth, fire risk |
+| Air quality alerts | Air Quality (+ Forecast for SmogRisk) | Pollen, PM2.5, Dust, SmogRisk, PollenBlast |
+| Flood alerts | Flood (+ Forecast for FloodRain) | FloodRisk, FloodRain |
+| Marine alerts | Marine (+ Forecast for CoastalFlood) | Swimming, CoastalFlood |
+| Lifestyle scores | Forecast (+ Air Quality for some) | BBQ, Laundry, Outdoor, Commute, Exercise |
 | Conditions | Various | SoilMoisture, Evapotranspiration, Gardening, Ventilation, NightVentilation, SurfConditions, OceanCurrents, SnowDepthWatch, PollenTrend, ElevatedWind |
 | Trends and forecasts | Various | ConfidenceTrend, FrontApproaching, ModelComparison, SeasonalOutlook, GrowingDegree, SolarYield, SatelliteRadiation |
 

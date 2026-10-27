@@ -28,8 +28,8 @@ public sealed class ForecastPipelineInputTests : Akka.Hosting.TestKit.TestKit
     private static IReadOnlyList<IFeatureRule> AllFeaturesOff() =>
         [new FrostAlert(Options.Create(new FrostConfig { Enabled = false }))];
 
-    private static DomainDataReceived Weather(Location location, double temperature = 10.0) =>
-        DomainData.Received(location, DomainData.Weather(Start, 48, (_, p) => p with { Temperature = temperature }));
+    private static DomainDataReceived Forecast(Location location, double temperature = 10.0) =>
+        DomainData.Received(location, DomainData.Forecast(Start, 48, (_, p) => p with { Temperature = temperature }));
 
     private static DomainDataReceived Ensemble(Location location) =>
         DomainData.Received(location, DomainData.Ensemble(Start, temperatureSpread: 0.5));
@@ -70,9 +70,9 @@ public sealed class ForecastPipelineInputTests : Akka.Hosting.TestKit.TestKit
         var first = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
         var second = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
 
-        await first.OfferAsync(Weather(DomainData.Lucerne), ct);
+        await first.OfferAsync(Forecast(DomainData.Lucerne), ct);
         var fromFirst = await NextWeatherAsync(consumer, ct);
-        await second.OfferAsync(Weather(DomainData.Bern), ct);
+        await second.OfferAsync(Forecast(DomainData.Bern), ct);
         var fromSecond = await NextWeatherAsync(consumer, ct);
 
         Assert.Multiple(
@@ -91,7 +91,7 @@ public sealed class ForecastPipelineInputTests : Akka.Hosting.TestKit.TestKit
         var producer = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
 
         await producer.OfferAsync(Ensemble(DomainData.Lucerne), ct);
-        await producer.OfferAsync(Weather(DomainData.Lucerne, temperature: -3.0), ct);
+        await producer.OfferAsync(Forecast(DomainData.Lucerne, temperature: -3.0), ct);
 
         var raised = await NextFrostAlertAsync(consumer, ct);
         Assert.Multiple(
@@ -109,7 +109,7 @@ public sealed class ForecastPipelineInputTests : Akka.Hosting.TestKit.TestKit
         await PipelineProducer.AttachConsumerAsync(pipeline, Sys, consumer, ct);
         var producer = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
 
-        await producer.OfferAsync(Weather(DomainData.Lucerne, temperature: -3.0), ct);
+        await producer.OfferAsync(Forecast(DomainData.Lucerne, temperature: -3.0), ct);
 
         await NextWeatherAsync(consumer, ct);
         await consumer.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), ct);
@@ -123,13 +123,13 @@ public sealed class ForecastPipelineInputTests : Akka.Hosting.TestKit.TestKit
         var consumer = CreateTestProbe();
         await PipelineProducer.AttachConsumerAsync(pipeline, Sys, consumer, ct);
         var first = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
-        await first.OfferAsync(Weather(DomainData.Lucerne), ct);
+        await first.OfferAsync(Forecast(DomainData.Lucerne), ct);
         await NextWeatherAsync(consumer, ct);
 
         first.Complete();
         await first.WatchCompletionAsync().WaitAsync(TimeSpan.FromSeconds(10), ct);
         var second = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
-        await second.OfferAsync(Weather(DomainData.Bern), ct);
+        await second.OfferAsync(Forecast(DomainData.Bern), ct);
 
         var received = await NextWeatherAsync(consumer, ct);
         Assert.Equal("Bern", received.Location.Name);
@@ -143,12 +143,12 @@ public sealed class ForecastPipelineInputTests : Akka.Hosting.TestKit.TestKit
         var consumer = CreateTestProbe();
         await PipelineProducer.AttachConsumerAsync(pipeline, Sys, consumer, ct);
         var first = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
-        await first.OfferAsync(Weather(DomainData.Lucerne), ct);
+        await first.OfferAsync(Forecast(DomainData.Lucerne), ct);
         await NextWeatherAsync(consumer, ct);
 
         first.Fail(new InvalidOperationException("producer failed"));
         var second = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
-        await second.OfferAsync(Weather(DomainData.Bern), ct);
+        await second.OfferAsync(Forecast(DomainData.Bern), ct);
 
         var received = await NextWeatherAsync(consumer, ct);
         Assert.Equal("Bern", received.Location.Name);
@@ -162,24 +162,24 @@ public sealed class ForecastPipelineInputTests : Akka.Hosting.TestKit.TestKit
         var consumer = CreateTestProbe();
         await PipelineProducer.AttachConsumerAsync(pipeline, Sys, consumer, ct);
         var first = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
-        await first.OfferAsync(Weather(DomainData.Lucerne, temperature: 10.0), ct);
+        await first.OfferAsync(Forecast(DomainData.Lucerne, temperature: 10.0), ct);
         await NextWeatherAsync(consumer, ct);
 
         first.Complete();
         var second = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
         await second.OfferAsync(Ensemble(DomainData.Lucerne), ct);
-        await second.OfferAsync(Weather(DomainData.Lucerne, temperature: -4.0), ct);
+        await second.OfferAsync(Forecast(DomainData.Lucerne, temperature: -4.0), ct);
 
         var raised = await NextFrostAlertAsync(consumer, ct);
         Assert.Equal("Lucerne", raised.Location.Name);
     }
 
-    private static async Task<PipelineEvent.WeatherDataReceived> NextWeatherAsync(Akka.TestKit.TestProbe consumer, CancellationToken ct)
+    private static async Task<PipelineEvent.ForecastDataReceived> NextWeatherAsync(Akka.TestKit.TestProbe consumer, CancellationToken ct)
     {
         var message = await consumer.FishForMessageAsync(
-            m => m is PipelineEvent.WeatherDataReceived or ConsumerCompleted or ConsumerFailed,
+            m => m is PipelineEvent.ForecastDataReceived or ConsumerCompleted or ConsumerFailed,
             TimeSpan.FromSeconds(10), cancellationToken: ct);
-        return Assert.IsType<PipelineEvent.WeatherDataReceived>(message);
+        return Assert.IsType<PipelineEvent.ForecastDataReceived>(message);
     }
 
     private static async Task<FrostAlertResult> NextFrostAlertAsync(Akka.TestKit.TestProbe consumer, CancellationToken ct)

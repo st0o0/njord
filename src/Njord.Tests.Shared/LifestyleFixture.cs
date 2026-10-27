@@ -3,7 +3,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using static Njord.Tests.Shared.AlertRuleFixture;
 
 namespace Njord.Tests.Shared;
@@ -25,11 +25,11 @@ public static class LifestyleFixture
         return new DomainForecast<AirQualityPoint>(DomainKind.AirQuality, Now, TimeResolution.Hourly, points);
     }
 
-    public static LocationForecast Combined(DomainForecast<WeatherPoint> weather, DomainForecast<AirQualityPoint> air) =>
+    public static LocationForecast Combined(DomainForecast<ForecastPoint> weather, DomainForecast<AirQualityPoint> air) =>
         new(Lucerne, weather, air);
 
-    public static LocationForecast WeatherOnly(DomainForecast<WeatherPoint> weather) => new(Lucerne, weather);
+    public static LocationForecast ForecastOnly(DomainForecast<ForecastPoint> weather) => new(Lucerne, weather);
 
-    public static LocationForecast WeatherWithEnsemble(DomainForecast<WeatherPoint> weather, DomainForecast<EnsemblePoint> ensemble) =>
+    public static LocationForecast ForecastWithEnsemble(DomainForecast<ForecastPoint> weather, DomainForecast<EnsemblePoint> ensemble) =>
         new(Lucerne, weather, Ensemble: ensemble);
 }

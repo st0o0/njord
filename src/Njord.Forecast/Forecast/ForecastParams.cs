@@ -1,7 +1,7 @@
-namespace Njord.Forecast.Weather;
+namespace Njord.Forecast.Forecast;
 
 [Flags]
-public enum WeatherParams : long
+public enum ForecastParams : long
 {
     None = 0,
     Temperature = 1L << 0,

@@ -2,8 +2,8 @@ using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Text.Json;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
-using Njord.OpenMeteo.Weather;
+using Njord.Forecast.Forecast;
+using Njord.OpenMeteo.Forecast;
 
 namespace Njord.OpenMeteo.Ensemble;
 
@@ -17,7 +17,7 @@ internal static class EnsembleResponseMappingExtensions
     private static readonly string[] BaseNames = [.. SpreadNames.Keys.OrderByDescending(n => n.Length)];
 
     public static DomainForecast<EnsemblePoint>? ToEnsembleForecast(
-        this WeatherResponse response, DateTimeOffset modelRun, string primaryModel)
+        this ForecastResponse response, DateTimeOffset modelRun, string primaryModel)
     {
         if (response.Hourly is not { } hourly || hourly.Count == 0)
         {

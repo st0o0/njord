@@ -2,7 +2,7 @@ using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Core.Tests.Domain;
@@ -16,15 +16,15 @@ public sealed class FeatureResolutionConfigureTests
         public PipelineEvent? Execute(RingBuffer<LocationForecast> ring, DateTimeOffset now) => null;
     }
 
-    private static readonly StubRule Frost = new("Frost", FeatureCategory.Weather, true,
-        new(Weather: WeatherParams.Temperature | WeatherParams.WindGusts, Ensemble: EnsembleParams.TemperatureSpread));
+    private static readonly StubRule Frost = new("Frost", FeatureCategory.Forecast, true,
+        new(Forecast: ForecastParams.Temperature | ForecastParams.WindGusts, Ensemble: EnsembleParams.TemperatureSpread));
 
     private static readonly StubRule Pollen = new("Pollen", FeatureCategory.AirQuality, true,
         new(AirQuality: AirQualityParams.BirchPollen));
 
     private static StubRule Comparison(bool enabled) => new(
-        FeatureResolution.ComparisonFeatureName, FeatureCategory.Weather, enabled,
-        new(Weather: WeatherParams.Temperature));
+        FeatureResolution.ComparisonFeatureName, FeatureCategory.Forecast, enabled,
+        new(Forecast: ForecastParams.Temperature));
 
     private static readonly string[] ThreeModels = ["model_a", "model_b", "model_c"];
 
@@ -33,9 +33,9 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [Frost, Pollen], new WeatherOptions());
+        FeatureResolution.Configure(options, [Frost, Pollen], new ForecastOptions());
 
-        Assert.True(options.Requirements.Requires(DomainKind.Weather));
+        Assert.True(options.Requirements.Requires(DomainKind.Forecast));
         Assert.True(options.Requirements.Requires(DomainKind.AirQuality));
         Assert.False(options.Requirements.Requires(DomainKind.Flood));
     }
@@ -45,9 +45,9 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [Frost, Pollen], new WeatherOptions());
+        FeatureResolution.Configure(options, [Frost, Pollen], new ForecastOptions());
 
-        Assert.Equal([DomainKind.Weather, DomainKind.AirQuality, DomainKind.Ensemble], options.Domains.Order().ToList());
+        Assert.Equal([DomainKind.Forecast, DomainKind.AirQuality, DomainKind.Ensemble], options.Domains.Order().ToList());
     }
 
     [Fact]
@@ -55,12 +55,12 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [], new WeatherOptions());
+        FeatureResolution.Configure(options, [], new ForecastOptions());
 
         Assert.Equal(default, options.Requirements);
         Assert.Empty(options.Domains);
         Assert.Single(options.WeatherModels);
-        Assert.Equal(WeatherOptions.DefaultModel, options.PrimaryWeatherModel);
+        Assert.Equal(ForecastOptions.DefaultModel, options.PrimaryWeatherModel);
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed class FeatureResolutionConfigureTests
         var options = new FeatureRequirementsOptions();
 
         FeatureResolution.Configure(options, [Frost, Comparison(true)],
-            new WeatherOptions { Models = ThreeModels });
+            new ForecastOptions { Models = ThreeModels });
 
         Assert.Equal(3, options.WeatherModels.Length);
         Assert.Equal("model_a", options.PrimaryWeatherModel);
@@ -81,7 +81,7 @@ public sealed class FeatureResolutionConfigureTests
         var options = new FeatureRequirementsOptions();
 
         FeatureResolution.Configure(options, [Frost, Comparison(false)],
-            new WeatherOptions { Models = ThreeModels });
+            new ForecastOptions { Models = ThreeModels });
 
         Assert.Single(options.WeatherModels);
         Assert.Equal("model_a", options.PrimaryWeatherModel);
@@ -92,9 +92,9 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [Frost], new WeatherOptions());
+        FeatureResolution.Configure(options, [Frost], new ForecastOptions());
 
-        Assert.True(options.Requirements.AllWeather.HasFlag(WeatherParams.WeatherCode));
+        Assert.True(options.Requirements.AllForecast.HasFlag(ForecastParams.WeatherCode));
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [Frost], new WeatherOptions());
+        FeatureResolution.Configure(options, [Frost], new ForecastOptions());
 
         Assert.False(options.Requirements.Requires(DomainKind.AirQuality));
     }
@@ -112,7 +112,7 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [Frost], new WeatherOptions());
+        FeatureResolution.Configure(options, [Frost], new ForecastOptions());
 
         Assert.True(options.Requirements.Requires(DomainKind.Ensemble));
         Assert.Contains(DomainKind.Ensemble, options.Domains);
@@ -123,7 +123,7 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [Frost], new WeatherOptions { Models = ThreeModels });
+        FeatureResolution.Configure(options, [Frost], new ForecastOptions { Models = ThreeModels });
 
         Assert.Single(options.EnsembleModels);
         Assert.Equal("model_a", options.EnsembleModels[0]);
@@ -135,7 +135,7 @@ public sealed class FeatureResolutionConfigureTests
         var options = new FeatureRequirementsOptions();
 
         FeatureResolution.Configure(options, [Frost, Comparison(true)],
-            new WeatherOptions { Models = ThreeModels });
+            new ForecastOptions { Models = ThreeModels });
 
         Assert.Equal(3, options.EnsembleModels.Length);
     }
@@ -145,7 +145,7 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [Pollen], new WeatherOptions());
+        FeatureResolution.Configure(options, [Pollen], new ForecastOptions());
 
         Assert.True(options.EnsembleModels.IsDefaultOrEmpty);
     }

@@ -1,13 +1,13 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
-using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.CoastalFlood;
 
-public sealed class CoastalFloodAlert(IOptions<CoastalFloodConfig> config) : FeatureRule<MarineWeatherEnsembleInput>
+public sealed class CoastalFloodAlert(IOptions<CoastalFloodConfig> config) : FeatureRule<MarineForecastEnsembleInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
@@ -16,19 +16,19 @@ public sealed class CoastalFloodAlert(IOptions<CoastalFloodConfig> config) : Fea
         DefaultEnabled: false,
         new DomainRequirements(
             Marine: MarineParams.SeaLevelHeight | MarineParams.WaveHeight | MarineParams.WaveDirection,
-            Weather: WeatherParams.WindSpeed | WeatherParams.WindDirection,
+            Forecast: ForecastParams.WindSpeed | ForecastParams.WindDirection,
             Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override MarineWeatherEnsembleInput? Project(LocationForecast forecast) =>
-        forecast is { Marine: { } m, Weather: { } w, Ensemble: { } e } ? new(m, w, e) : null;
+    protected override MarineForecastEnsembleInput? Project(LocationForecast forecast) =>
+        forecast is { Marine: { } m, Forecast: { } w, Ensemble: { } e } ? new(m, w, e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<MarineWeatherEnsembleInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<MarineForecastEnsembleInput> ctx)
     {
         var cfg = config.Value;
         var marine = ctx.Current.Marine.NextHoursInclusive(ctx.Now);
-        var weather = ctx.Current.Weather.NextHoursInclusive(ctx.Now);
+        var weather = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
 
         double? maxSeaLevel = null;
         double? maxWaveHeight = null;

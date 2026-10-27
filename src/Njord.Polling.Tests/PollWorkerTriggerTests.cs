@@ -22,7 +22,7 @@ public sealed class PollWorkerTriggerTests : Akka.Hosting.TestKit.TestKit
     private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
     private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
     private static readonly PollTarget Target = new(Lucerne);
-    private static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Weather, DomainKind.AirQuality];
+    private static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Forecast, DomainKind.AirQuality];
 
     private static IOptions<FeatureRequirementsOptions> RequirementsFor(IReadOnlyList<DomainKind> domains) =>
         Options.Create(new FeatureRequirementsOptions { Domains = domains });
@@ -99,13 +99,13 @@ public sealed class PollWorkerTriggerTests : Akka.Hosting.TestKit.TestKit
         return report;
     }
 
-    private static FetchDomainCompleted Completed(int hash) => new(Lucerne, DomainKind.Weather, hash);
+    private static FetchDomainCompleted Completed(int hash) => new(Lucerne, DomainKind.Forecast, hash);
 
     [Fact(Timeout = 30_000)]
     public async Task A_poll_asks_only_the_configured_domains()
     {
         var ct = TestContext.Current.CancellationToken;
-        IReadOnlyList<DomainKind> domains = [DomainKind.Weather, DomainKind.Flood];
+        IReadOnlyList<DomainKind> domains = [DomainKind.Forecast, DomainKind.Flood];
         var worker = Sys.ActorOf(
             Props.Create(() => new PollWorker(_time, Options.Create(new PollingOptions()), RequirementsFor(domains), TargetId)),
             $"worker-{Guid.NewGuid():N}");
@@ -115,7 +115,7 @@ public sealed class PollWorkerTriggerTests : Akka.Hosting.TestKit.TestKit
         var first = await ExpectRequestAsync(ct);
         var second = await ExpectRequestAsync(ct);
         await _gateway.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
-        Assert.Equal([DomainKind.Weather, DomainKind.Flood], new[] { first.Domain, second.Domain }.Order());
+        Assert.Equal([DomainKind.Forecast, DomainKind.Flood], new[] { first.Domain, second.Domain }.Order());
     }
 
     [Fact(Timeout = 30_000)]
@@ -167,7 +167,7 @@ public sealed class PollWorkerTriggerTests : Akka.Hosting.TestKit.TestKit
         worker.Tell(new TriggerLocationPoll(TargetId));
 
         var request = await replacement.ExpectMsgAsync<FetchDomain>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-        Assert.Equal(DomainKind.Weather, request.Domain);
+        Assert.Equal(DomainKind.Forecast, request.Domain);
         await _gateway.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), ct);
     }
 

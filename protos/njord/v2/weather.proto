@@ -33,7 +33,7 @@ message GetCatalogResponse {
 enum Domain {
   reserved 4;
   DOMAIN_UNSPECIFIED = 0;
-  DOMAIN_WEATHER = 1;
+  DOMAIN_FORECAST = 1;
   DOMAIN_AIR_QUALITY = 2;
   DOMAIN_FLOOD = 3;
   DOMAIN_MARINE = 5;
@@ -45,7 +45,7 @@ enum Domain {
 message GetDomainDataRequest {
   string location = 1;
   Domain domain = 2;
-  // Weather only. Empty selects the primary model; unknown or disabled ids return NOT_FOUND.
+  // Forecast only. Empty selects the primary model; unknown or disabled ids return NOT_FOUND.
   string model = 3;
 }
 
@@ -61,10 +61,10 @@ message DomainDataUpdate {
   string location = 1;
   Domain domain = 2;
   google.protobuf.Timestamp model_run = 3;
-  // Set only for weather updates: the weather model id the data belongs to.
+  // Set only for forecast updates: the model id the data belongs to.
   string model = 4;
   oneof data {
-    WeatherData weather = 10;
+    ForecastDomainData forecast = 10;
     AirQualityData air_quality = 11;
     FloodData flood = 12;
     MarineData marine = 14;
@@ -74,11 +74,11 @@ message DomainDataUpdate {
   }
 }
 
-message WeatherData {
-  repeated WeatherSample points = 1;
+message ForecastDomainData {
+  repeated ForecastSample points = 1;
 }
 
-message WeatherSample {
+message ForecastSample {
   google.protobuf.Timestamp valid_at = 1;
   double temperature = 2;
   double apparent_temperature = 3;

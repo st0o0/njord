@@ -2,8 +2,8 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
-using Njord.Forecast.Weather;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Core.Tests.Domain;
@@ -21,8 +21,8 @@ public sealed class FeatureResolutionTests
         public PipelineEvent? Execute(RingBuffer<LocationForecast> ring, DateTimeOffset now) => null;
     }
 
-    private static readonly StubRule Frost = new("Frost", FeatureCategory.Weather, true, new(Weather: WeatherParams.Temperature | WeatherParams.WindGusts));
-    private static readonly StubRule Commute = new("Commute", FeatureCategory.Lifestyle, true, new(Weather: WeatherParams.Temperature | WeatherParams.Precipitation));
+    private static readonly StubRule Frost = new("Frost", FeatureCategory.Forecast, true, new(Forecast: ForecastParams.Temperature | ForecastParams.WindGusts));
+    private static readonly StubRule Commute = new("Commute", FeatureCategory.Lifestyle, true, new(Forecast: ForecastParams.Temperature | ForecastParams.Precipitation));
     private static readonly StubRule Pollen = new("Pollen", FeatureCategory.AirQuality, true, new(AirQuality: AirQualityParams.BirchPollen));
     private static readonly StubRule Pm25 = new("Pm25", FeatureCategory.AirQuality, true, new(AirQuality: AirQualityParams.Pm25));
 
@@ -37,7 +37,7 @@ public sealed class FeatureResolutionTests
     {
         var domains = FeatureResolution.RequiredDomains([Frost, Commute, Pollen, Pm25, FloodRisk(false), Swimming(false)]);
 
-        Assert.Equal(new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality }, domains.ToHashSet());
+        Assert.Equal(new HashSet<DomainKind> { DomainKind.Forecast, DomainKind.AirQuality }, domains.ToHashSet());
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class FeatureResolutionTests
         var domains = FeatureResolution.RequiredDomains([Frost, Pollen, FloodRisk(true)]);
 
         Assert.Equal(
-            new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality, DomainKind.Flood },
+            new HashSet<DomainKind> { DomainKind.Forecast, DomainKind.AirQuality, DomainKind.Flood },
             domains.ToHashSet());
     }
 
@@ -55,7 +55,7 @@ public sealed class FeatureResolutionTests
     {
         var domains = FeatureResolution.RequiredDomains([Frost, Off(Pollen), Off(Pm25)]);
 
-        Assert.Equal(new HashSet<DomainKind> { DomainKind.Weather }, domains.ToHashSet());
+        Assert.Equal(new HashSet<DomainKind> { DomainKind.Forecast }, domains.ToHashSet());
     }
 
     [Fact]
@@ -75,8 +75,8 @@ public sealed class FeatureResolutionTests
 
         Assert.Multiple(
             () => Assert.Equal(
-                WeatherParams.Temperature | WeatherParams.WindGusts | WeatherParams.Precipitation,
-                requirements.Weather),
+                ForecastParams.Temperature | ForecastParams.WindGusts | ForecastParams.Precipitation,
+                requirements.Forecast),
             () => Assert.Equal(AirQualityParams.BirchPollen | AirQualityParams.Pm25, requirements.AirQuality),
             () => Assert.Equal(FloodParams.None, requirements.Flood),
             () => Assert.Equal(MarineParams.None, requirements.Marine));
@@ -101,7 +101,7 @@ public sealed class FeatureResolutionTests
     {
         var requirements = FeatureResolution.WithBaseParams(FeatureResolution.RequiredParams([Frost]));
 
-        Assert.Equal(WeatherParams.Temperature | WeatherParams.WindGusts | WeatherParams.WeatherCode, requirements.Weather);
+        Assert.Equal(ForecastParams.Temperature | ForecastParams.WindGusts | ForecastParams.WeatherCode, requirements.Forecast);
     }
 
     [Fact]
@@ -120,6 +120,6 @@ public sealed class FeatureResolutionTests
         Assert.Multiple(
             () => Assert.Equal(AirQualityParams.None, requirements.AirQuality),
             () => Assert.False(requirements.Requires(DomainKind.AirQuality)),
-            () => Assert.False(FeatureResolution.WithBaseParams(default).Requires(DomainKind.Weather)));
+            () => Assert.False(FeatureResolution.WithBaseParams(default).Requires(DomainKind.Forecast)));
     }
 }

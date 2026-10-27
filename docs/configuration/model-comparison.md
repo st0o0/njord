@@ -1,6 +1,6 @@
 # Model comparison
 
-`Weather:ModelComparison` fetches several ensemble-mean weather models in one request and compares them. It is off by default.
+`Forecast:ModelComparison` fetches several ensemble-mean weather models in one request and compares them. It is off by default.
 
 ```json
 {
@@ -15,7 +15,7 @@
 }
 ```
 
-As environment variables: `Njord__Weather__Models__0=ecmwf_ifs025_ensemble_mean`, `Njord__Weather__Models__1=ecmwf_aifs025_ensemble_mean`, `Njord__Features__Weather__ModelComparison__Enabled=true`.
+As environment variables: `Njord__Weather__Models__0=ecmwf_ifs025_ensemble_mean`, `Njord__Weather__Models__1=ecmwf_aifs025_ensemble_mean`, `Njord__Features__Forecast__ModelComparison__Enabled=true`.
 
 ## Models
 

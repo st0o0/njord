@@ -14,7 +14,7 @@ public sealed class ModelComparisonTests
 
     private static LocationForecast With(params (string Id, double Temp, double Rain)[] models)
     {
-        var forecast = WeatherOnly(Uniform(p => p));
+        var forecast = ForecastOnly(Uniform(p => p));
         foreach (var (id, temp, rain) in models)
         {
             forecast = forecast.WithModel(id, Uniform(p => p with { Temperature = temp, Precipitation = rain }));
@@ -46,6 +46,6 @@ public sealed class ModelComparisonTests
     [Fact]
     public void Nothing_is_reported_without_model_data()
     {
-        Assert.Null(Run(Feature(), Now, WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
     }
 }

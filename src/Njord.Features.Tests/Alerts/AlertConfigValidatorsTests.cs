@@ -47,7 +47,7 @@ public sealed class AlertConfigValidatorsTests
     {
         var result = new HeatConfigValidator().Validate(null, new HeatConfig { Thresholds = [30, 35] });
 
-        Assert.Contains("Njord:Features:Weather:Heat:Thresholds needs three values", ValidationAssert.SingleFailure(result));
+        Assert.Contains("Njord:Features:Forecast:Heat:Thresholds needs three values", ValidationAssert.SingleFailure(result));
     }
 
     [Fact]

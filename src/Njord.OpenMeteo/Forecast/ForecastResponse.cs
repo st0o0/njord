@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Njord.OpenMeteo.Weather;
+namespace Njord.OpenMeteo.Forecast;
 
-public sealed record WeatherHourlyData(
+public sealed record ForecastHourlyData(
     [property: JsonPropertyName("time")] long[] Time,
     [property: JsonPropertyName("temperature_2m")] double?[]? Temperature = null,
     [property: JsonPropertyName("apparent_temperature")] double?[]? ApparentTemperature = null,
@@ -54,7 +54,7 @@ public sealed record WeatherHourlyData(
     [property: JsonPropertyName("temperature_80m")] double?[]? Temperature80m = null,
     [property: JsonPropertyName("temperature_120m")] double?[]? Temperature120m = null);
 
-public sealed record WeatherResponse(
+public sealed record ForecastResponse(
     [property: JsonPropertyName("latitude")] double Latitude,
     [property: JsonPropertyName("longitude")] double Longitude,
     [property: JsonPropertyName("hourly")] Dictionary<string, JsonElement>? Hourly);

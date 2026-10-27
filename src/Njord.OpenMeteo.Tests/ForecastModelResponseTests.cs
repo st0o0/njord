@@ -1,22 +1,22 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Njord.OpenMeteo.Forecast;
 using Njord.OpenMeteo.Http;
-using Njord.OpenMeteo.Weather;
 
 namespace Njord.OpenMeteo.Tests;
 
-public sealed class WeatherModelResponseTests
+public sealed class ForecastModelResponseTests
 {
     private static readonly DateTimeOffset Run = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
 
-    private static WeatherResponse Parse(string json) =>
-        Assert.IsType<WeatherResponse>(JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.WeatherResponse));
+    private static ForecastResponse Parse(string json) =>
+        Assert.IsType<ForecastResponse>(JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.ForecastResponse));
 
     [Fact]
     public void A_single_model_response_with_plain_keys_is_keyed_by_the_requested_model()
     {
-        var forecasts = Parse(OpenMeteoFixtures.WeatherSingleModel).ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
+        var forecasts = Parse(OpenMeteoFixtures.ForecastSingleModel).ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
 
         var forecast = Assert.Single(forecasts);
         Assert.Multiple(
@@ -27,7 +27,7 @@ public sealed class WeatherModelResponseTests
     [Fact]
     public void A_multi_model_response_splits_suffixed_keys_into_one_forecast_per_model()
     {
-        var response = Parse(OpenMeteoFixtures.WeatherThreeModels);
+        var response = Parse(OpenMeteoFixtures.ForecastThreeModels);
 
         var forecasts = response.ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
 
@@ -40,7 +40,7 @@ public sealed class WeatherModelResponseTests
     [Fact]
     public void Member_series_are_ignored()
     {
-        var forecasts = Parse(OpenMeteoFixtures.WeatherThreeModels).ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
+        var forecasts = Parse(OpenMeteoFixtures.ForecastThreeModels).ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
 
         Assert.DoesNotContain(forecasts.Keys, k => k.StartsWith("member", StringComparison.Ordinal));
     }
@@ -48,7 +48,7 @@ public sealed class WeatherModelResponseTests
     [Fact]
     public void A_model_whose_values_are_all_null_is_omitted()
     {
-        var forecasts = Parse(OpenMeteoFixtures.WeatherThreeModels).ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
+        var forecasts = Parse(OpenMeteoFixtures.ForecastThreeModels).ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
 
         Assert.False(forecasts.ContainsKey("ukmo_global_ensemble_mean_20km"));
     }
@@ -74,14 +74,14 @@ public sealed class WeatherModelResponseTests
     [Fact]
     public void Every_hourly_property_name_is_in_the_api_variable_names_cache()
     {
-        var names = typeof(WeatherHourlyData).GetConstructors()[0].GetParameters()
-            .Select(p => typeof(WeatherHourlyData).GetProperty(p.Name!)?.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
+        var names = typeof(ForecastHourlyData).GetConstructors()[0].GetParameters()
+            .Select(p => typeof(ForecastHourlyData).GetProperty(p.Name!)?.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
                 ?? p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name)
             .OfType<string>()
             .Where(n => n != "time")
             .ToList();
 
-        var apiNames = ApiVariableNames.For<WeatherApiVariable>().Values.ToHashSet();
+        var apiNames = ApiVariableNames.For<ForecastApiVariable>().Values.ToHashSet();
 
         Assert.NotEmpty(names);
         Assert.All(names, n => Assert.True(apiNames.Contains(n), n));

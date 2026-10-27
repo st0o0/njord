@@ -36,11 +36,11 @@ Warns when the forecast temperature drops below freezing. Critical for protectin
 | Red | -15 °C | Severe frost |
 
 **Entity:** `binary_sensor.<location>_frost_alert`
-**Domains:** Weather + Ensemble | **Default:** On | **Confidence:** From ensemble spread
+**Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Weather__Frost__Enabled: "true"
-Njord__Features__Weather__Frost__Thresholds: "[0, -5, -15]"
+Njord__Features__Forecast__Frost__Enabled: "true"
+Njord__Features__Forecast__Frost__Thresholds: "[0, -5, -15]"
 ```
 
 **Automation ideas:**
@@ -61,10 +61,10 @@ Warns when air or apparent temperature exceeds dangerous levels. Uses the higher
 | Red | 40 °C | Extreme heat |
 
 **Entity:** `binary_sensor.<location>_heat_alert`
-**Domains:** Weather + Ensemble | **Default:** On | **Confidence:** From ensemble spread
+**Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Weather__Heat__Thresholds: "[30, 35, 40]"
+Njord__Features__Forecast__Heat__Thresholds: "[30, 35, 40]"
 ```
 
 **Automation ideas:**
@@ -85,11 +85,11 @@ Warns when the wet-bulb temperature -- a measure combining heat and humidity -- 
 | Red | 32 °C | Life-threatening, avoid all outdoor exertion |
 
 **Entity:** `binary_sensor.<location>_wet_bulb_danger_alert`
-**Domains:** Weather + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
+**Domains:** Forecast + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Weather__WetBulbDanger__Enabled: "true"
-Njord__Features__Weather__WetBulbDanger__Thresholds: "[26, 28, 32]"
+Njord__Features__Forecast__WetBulbDanger__Enabled: "true"
+Njord__Features__Forecast__WetBulbDanger__Thresholds: "[26, 28, 32]"
 ```
 
 **Automation ideas:**
@@ -110,10 +110,10 @@ Warns when the nighttime low stays above 20 °C, making sleep difficult. Checked
 | Red | 25 °C | Tropical night |
 
 **Entity:** `binary_sensor.<location>_tropical_night_alert`
-**Domains:** Weather + Ensemble | **Default:** On | **Confidence:** From ensemble spread
+**Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Weather__TropicalNight__Thresholds: "[20, 23, 25]"
+Njord__Features__Forecast__TropicalNight__Thresholds: "[20, 23, 25]"
 ```
 
 **Automation ideas:**
@@ -134,10 +134,10 @@ Warns when the apparent temperature drops to dangerous wind-chill levels. Releva
 | Red | -30 °C | Extreme danger |
 
 **Entity:** `binary_sensor.<location>_wind_chill_alert`
-**Domains:** Weather + Ensemble | **Default:** On | **Confidence:** From ensemble spread
+**Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Weather__WindChill__Thresholds: "[-10, -20, -30]"
+Njord__Features__Forecast__WindChill__Thresholds: "[-10, -20, -30]"
 ```
 
 ---
@@ -155,10 +155,10 @@ Warns when wind gusts are expected to exceed storm thresholds.
 | Red | 33 m/s (119 km/h) | Violent storm |
 
 **Entity:** `binary_sensor.<location>_storm_alert`
-**Domains:** Weather + Ensemble | **Default:** On | **Confidence:** From ensemble spread
+**Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Weather__Storm__GustThresholds: "[17, 25, 33]"
+Njord__Features__Forecast__Storm__GustThresholds: "[17, 25, 33]"
 ```
 
 **Automation ideas:**
@@ -179,12 +179,12 @@ Detects convective storm potential from CAPE (atmospheric energy), precipitation
 | Red | Extreme instability with severe gusts |
 
 **Entity:** `binary_sensor.<location>_thunderstorm_alert`
-**Domains:** Weather + Ensemble | **Default:** On | **Confidence:** From ensemble spread
+**Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Weather__Thunderstorm__CapeThreshold: "1000"
-Njord__Features__Weather__Thunderstorm__PrecipThreshold: "5"
-Njord__Features__Weather__Thunderstorm__GustThreshold: "15"
+Njord__Features__Forecast__Thunderstorm__CapeThreshold: "1000"
+Njord__Features__Forecast__Thunderstorm__PrecipThreshold: "5"
+Njord__Features__Forecast__Thunderstorm__GustThreshold: "15"
 ```
 
 **Automation ideas:**
@@ -207,11 +207,11 @@ Warns when significant rainfall is expected -- either in a single hour or accumu
 | Red | Hourly > 40 mm or daily > 100 mm |
 
 **Entity:** `binary_sensor.<location>_heavy_rain_alert`
-**Domains:** Weather + Ensemble | **Default:** On | **Confidence:** From ensemble spread
+**Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Weather__HeavyRain__HourlyThreshold: "10"
-Njord__Features__Weather__HeavyRain__DailyThreshold: "25"
+Njord__Features__Forecast__HeavyRain__HourlyThreshold: "10"
+Njord__Features__Forecast__HeavyRain__DailyThreshold: "25"
 ```
 
 **Automation ideas:**
@@ -232,11 +232,11 @@ Warns when the chance of rain is high in the next few hours. Uses the native `pr
 | Red | 90% | Rain almost certain |
 
 **Entity:** `binary_sensor.<location>_rain_probability_alert`
-**Domains:** Weather + Ensemble | **Default:** On | **Confidence:** From ensemble spread
+**Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Weather__RainProbability__WindowHours: "6"
-Njord__Features__Weather__RainProbability__Thresholds: "[50, 70, 90]"
+Njord__Features__Forecast__RainProbability__WindowHours: "6"
+Njord__Features__Forecast__RainProbability__Thresholds: "[50, 70, 90]"
 ```
 
 **Automation ideas:**
@@ -257,12 +257,12 @@ Warns about sudden convective showers -- intense, localized rainfall that can st
 | Red | 10 mm/h | Heavy downpour |
 
 **Entity:** `binary_sensor.<location>_shower_alert`
-**Domains:** Weather + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
+**Domains:** Forecast + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Weather__Shower__Enabled: "true"
-Njord__Features__Weather__Shower__WindowHours: "6"
-Njord__Features__Weather__Shower__Thresholds: "[3, 5, 10]"
+Njord__Features__Forecast__Shower__Enabled: "true"
+Njord__Features__Forecast__Shower__WindowHours: "6"
+Njord__Features__Forecast__Shower__Thresholds: "[3, 5, 10]"
 ```
 
 ---
@@ -272,7 +272,7 @@ Njord__Features__Weather__Shower__Thresholds: "[3, 5, 10]"
 Warns when significant snowfall is expected, considering the freezing level height to confirm snow reaches the ground.
 
 **Entity:** `binary_sensor.<location>_snow_alert`
-**Domains:** Weather + Ensemble | **Default:** On | **Confidence:** From ensemble spread
+**Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ---
 
@@ -287,10 +287,10 @@ Warns about black ice conditions: temperatures near or below freezing combined w
 | Red | Temperature below -2 °C with wet surfaces |
 
 **Entity:** `binary_sensor.<location>_ice_alert`
-**Domains:** Weather + Ensemble | **Default:** On | **Confidence:** From ensemble spread
+**Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Weather__Ice__Threshold: "2"
+Njord__Features__Forecast__Ice__Threshold: "2"
 ```
 
 **Automation ideas:**
@@ -312,11 +312,11 @@ Warns when atmospheric pressure drops rapidly -- a reliable indicator of approac
 | Orange | 10 hPa / 3h | Severe weather system |
 
 **Entity:** `binary_sensor.<location>_pressure_drop_alert`
-**Domains:** Weather | **Default:** On | **Confidence:** Medium (pressure is inherently stable)
+**Domains:** Forecast | **Default:** On | **Confidence:** Medium (pressure is inherently stable)
 
 ```yaml
-Njord__Features__Weather__PressureDrop__Threshold: "5"
-Njord__Features__Weather__PressureDrop__SevereThreshold: "10"
+Njord__Features__Forecast__PressureDrop__Threshold: "5"
+Njord__Features__Forecast__PressureDrop__SevereThreshold: "10"
 ```
 
 ---
@@ -326,10 +326,10 @@ Njord__Features__Weather__PressureDrop__SevereThreshold: "10"
 Warns when conditions favor fog formation: temperature close to dew point, low wind, and high humidity persisting for several hours.
 
 **Entity:** `binary_sensor.<location>_fog_alert`
-**Domains:** Weather | **Default:** On | **Confidence:** Medium (fog is a local phenomenon)
+**Domains:** Forecast | **Default:** On | **Confidence:** Medium (fog is a local phenomenon)
 
 ```yaml
-Njord__Features__Weather__Fog__PersistentHours: "4"
+Njord__Features__Forecast__Fog__PersistentHours: "4"
 ```
 
 **Automation ideas:**
@@ -350,10 +350,10 @@ Warns when forecast visibility drops below safe distances.
 | Red | 50 m | Near-zero visibility |
 
 **Entity:** `binary_sensor.<location>_visibility_alert`
-**Domains:** Weather | **Default:** On | **Confidence:** Medium
+**Domains:** Forecast | **Default:** On | **Confidence:** Medium
 
 ```yaml
-Njord__Features__Weather__Visibility__Thresholds: "[1000, 200, 50]"
+Njord__Features__Forecast__Visibility__Thresholds: "[1000, 200, 50]"
 ```
 
 ---
@@ -369,10 +369,10 @@ Warns when daytime dew point creates muggy, uncomfortable conditions.
 | Red | 24 °C dew point | Oppressive |
 
 **Entity:** `binary_sensor.<location>_humidity_alert`
-**Domains:** Weather | **Default:** On | **Confidence:** Medium
+**Domains:** Forecast | **Default:** On | **Confidence:** Medium
 
 ```yaml
-Njord__Features__Weather__Humidity__Thresholds: "[16, 21, 24]"
+Njord__Features__Forecast__Humidity__Thresholds: "[16, 21, 24]"
 ```
 
 ---
@@ -384,7 +384,7 @@ Njord__Features__Weather__Humidity__Thresholds: "[16, 21, 24]"
 Warns when the UV index reaches levels that can cause sunburn.
 
 **Entity:** `binary_sensor.<location>_uv_alert`
-**Domains:** Weather | **Default:** On | **Confidence:** Medium (UV depends on solar angle, not ensemble)
+**Domains:** Forecast | **Default:** On | **Confidence:** Medium (UV depends on solar angle, not ensemble)
 
 ---
 
@@ -399,7 +399,7 @@ Warns about the maximum possible UV index **without clouds**. Even on partly clo
 | Red | 10 | Extreme UV potential |
 
 **Entity:** `binary_sensor.<location>_clear_sky_uv_alert`
-**Domains:** Weather | **Default:** Off | **Confidence:** Medium
+**Domains:** Forecast | **Default:** Off | **Confidence:** Medium
 
 ```yaml
 Njord__Features__Lifestyle__ClearSkyUv__Enabled: "true"
@@ -433,7 +433,7 @@ Assesses wildfire risk by combining multiple weather factors into a weighted sco
 | Red | > 0.8 |
 
 **Entity:** `binary_sensor.<location>_fire_risk_alert`
-**Domains:** Weather + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
+**Domains:** Forecast + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
 
 ```yaml
 Njord__Features__Lifestyle__FireRisk__Enabled: "true"
@@ -462,7 +462,7 @@ Warns about storm surge risk by combining sea level deviation, wave height, and 
 | Onshore wind | > 4.2 m/s (15 km/h) |
 
 **Entity:** `binary_sensor.<location>_coastal_flood_alert`
-**Domains:** Marine + Weather + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
+**Domains:** Marine + Forecast + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
 
 ```yaml
 Njord__Features__Marine__CoastalFlood__Enabled: "true"

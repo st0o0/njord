@@ -25,9 +25,9 @@ public sealed class ShardMessageExtractorTests
         var location = new Location("Lucerne", 0, 0);
 
         Assert.Multiple(
-            () => Assert.Equal("Lucerne", _extractor.EntityId(new FetchDomainCompleted(location, DomainKind.Weather, 1))),
-            () => Assert.Equal("Lucerne", _extractor.EntityId(new FetchDomainFailed(location, DomainKind.Weather, PollFailureReason.Transport, null))),
-            () => Assert.Equal("Lucerne", _extractor.EntityId(new FetchDomainRejected(location, DomainKind.Weather, FetchRejectionReason.Budget))));
+            () => Assert.Equal("Lucerne", _extractor.EntityId(new FetchDomainCompleted(location, DomainKind.Forecast, 1))),
+            () => Assert.Equal("Lucerne", _extractor.EntityId(new FetchDomainFailed(location, DomainKind.Forecast, PollFailureReason.Transport, null))),
+            () => Assert.Equal("Lucerne", _extractor.EntityId(new FetchDomainRejected(location, DomainKind.Forecast, FetchRejectionReason.Budget))));
     }
 
     [Fact]

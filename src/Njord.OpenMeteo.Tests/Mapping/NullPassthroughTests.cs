@@ -1,10 +1,10 @@
 using System.Text.Json;
 using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Flood;
+using Njord.OpenMeteo.Forecast;
 using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Marine;
-using Njord.OpenMeteo.Weather;
 
 namespace Njord.OpenMeteo.Tests.Mapping;
 
@@ -14,8 +14,8 @@ public sealed class NullPassthroughTests
     private const long Hour0 = 1_783_771_200;
     private const string Model = "ecmwf_ifs025_ensemble_mean";
 
-    private static WeatherResponse ParseWeather(string json) =>
-        JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.WeatherResponse)!;
+    private static ForecastResponse ParseWeather(string json) =>
+        JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.ForecastResponse)!;
 
     [Fact]
     public void Should_leave_weather_fields_null_when_the_response_lacks_the_variable()

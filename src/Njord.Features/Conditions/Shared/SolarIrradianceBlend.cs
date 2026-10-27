@@ -27,7 +27,7 @@ public static class SolarIrradianceBlend
 
     public static IReadOnlyList<IrradianceHour> Hours(LocationForecast forecast, DateTimeOffset now, int hours)
     {
-        if (forecast.Weather is not { } weather)
+        if (forecast.Forecast is not { } weather)
         {
             return [];
         }

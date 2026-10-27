@@ -1,30 +1,30 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.Shared;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.TropicalNight;
 
-public sealed class TropicalNightAlert(IOptions<TropicalNightConfig> config) : FeatureRule<WeatherEnsembleInput>
+public sealed class TropicalNightAlert(IOptions<TropicalNightConfig> config) : FeatureRule<ForecastEnsembleInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
-        FeatureCategory.Weather,
+        FeatureCategory.Forecast,
         Name: "TropicalNight",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.IsDay, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.IsDay, Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
+    protected override ForecastEnsembleInput? Project(LocationForecast forecast) =>
+        forecast is { Forecast: { } w, Ensemble: { } e } ? new(w, e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
         var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Max);
-        var night = ctx.Current.Weather.NextHoursInclusive(ctx.Now).Where(p => p is { IsDay: <= 0.5, Temperature: not null }).ToList();
+        var night = ctx.Current.Forecast.NextHoursInclusive(ctx.Now).Where(p => p is { IsDay: <= 0.5, Temperature: not null }).ToList();
         if (night.Count == 0)
         {
             return null;

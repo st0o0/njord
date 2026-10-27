@@ -8,16 +8,16 @@ using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
-using Njord.Forecast.Weather;
 using Njord.Messages.Forecast;
 using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Ensemble;
 using Njord.OpenMeteo.Flood;
+using Njord.OpenMeteo.Forecast;
 using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Marine;
-using Njord.OpenMeteo.Weather;
 using Njord.Tests.Shared;
 
 namespace Njord.OpenMeteo.Tests;
@@ -27,7 +27,7 @@ public sealed class OpenMeteoClientTests
     private static readonly DateTimeOffset Now = new(2026, 7, 11, 0, 0, 0, TimeSpan.Zero);
 
     private static IOptions<FeatureRequirementsOptions> Needs(
-        WeatherParams weather = WeatherParams.None,
+        ForecastParams weather = ForecastParams.None,
         AirQualityParams air = AirQualityParams.None,
         FloodParams flood = FloodParams.None,
         MarineParams marine = MarineParams.None,
@@ -36,26 +36,26 @@ public sealed class OpenMeteoClientTests
         string[]? ensembleModels = null) =>
         Options.Create(new FeatureRequirementsOptions
         {
-            Requirements = new DomainRequirements(Weather: weather, AirQuality: air, Flood: flood, Marine: marine, Ensemble: ensemble),
-            WeatherModels = [.. models ?? [WeatherOptions.DefaultModel]],
-            EnsembleModels = [.. ensembleModels ?? [WeatherOptions.DefaultModel]],
+            Requirements = new DomainRequirements(Forecast: weather, AirQuality: air, Flood: flood, Marine: marine, Ensemble: ensemble),
+            WeatherModels = [.. models ?? [ForecastOptions.DefaultModel]],
+            EnsembleModels = [.. ensembleModels ?? [ForecastOptions.DefaultModel]],
         });
 
     private static ForecastClient Forecast(
         HttpClient http,
-        WeatherParams flags = WeatherParams.Temperature,
+        ForecastParams flags = ForecastParams.Temperature,
         SolarYieldOptions? solar = null,
-        WeatherOptions? options = null) =>
-        new(http, Options.Create(options ?? new WeatherOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: flags), NullLogger<ForecastClient>.Instance);
+        ForecastOptions? options = null) =>
+        new(http, Options.Create(options ?? new ForecastOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: flags), NullLogger<ForecastClient>.Instance);
 
     private static EnsembleClient Ensemble(
         HttpClient http,
         EnsembleParams ensemble = EnsembleParams.TemperatureSpread,
-        WeatherParams weather = WeatherParams.None,
+        ForecastParams weather = ForecastParams.None,
         SolarYieldOptions? solar = null,
-        WeatherOptions? options = null,
+        ForecastOptions? options = null,
         string[]? models = null) =>
-        new(http, Options.Create(options ?? new WeatherOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: weather, ensemble: ensemble, ensembleModels: models), NullLogger<EnsembleClient>.Instance);
+        new(http, Options.Create(options ?? new ForecastOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: weather, ensemble: ensemble, ensembleModels: models), NullLogger<EnsembleClient>.Instance);
 
     private static FloodClient Flood(HttpClient http, FloodOptions? options = null) =>
         new(http, Options.Create(options ?? new FloodOptions()), Needs(flood: FloodParams.Discharge));
@@ -80,10 +80,10 @@ public sealed class OpenMeteoClientTests
     [Fact(Timeout = 5000)]
     public async Task The_forecast_uri_carries_variables_and_days_without_models()
     {
-        var uri = await Capture("api", http => Forecast(http, WeatherParams.Rain | WeatherParams.Temperature), TestContext.Current.CancellationToken);
+        var uri = await Capture("api", http => Forecast(http, ForecastParams.Rain | ForecastParams.Temperature), TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            $"/v1/forecast?latitude=47.05&longitude=8.31&hourly=temperature_2m,rain&wind_speed_unit=ms&forecast_days={new WeatherOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
+            $"/v1/forecast?latitude=47.05&longitude=8.31&hourly=temperature_2m,rain&wind_speed_unit=ms&forecast_days={new ForecastOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
@@ -93,7 +93,7 @@ public sealed class OpenMeteoClientTests
         var uri = await Capture("ensemble-api", http => Ensemble(http, EnsembleParams.TemperatureSpread | EnsembleParams.PrecipitationSpread), TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            $"/v1/ensemble?latitude=47.05&longitude=8.31&hourly=temperature_2m_spread,precipitation_spread&models={WeatherOptions.DefaultModel}&wind_speed_unit=ms&forecast_days={new WeatherOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
+            $"/v1/ensemble?latitude=47.05&longitude=8.31&hourly=temperature_2m_spread,precipitation_spread&models={ForecastOptions.DefaultModel}&wind_speed_unit=ms&forecast_days={new ForecastOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
@@ -113,7 +113,7 @@ public sealed class OpenMeteoClientTests
         string[] models = ["ecmwf_ifs025_ensemble_mean", "ecmwf_aifs025_ensemble_mean"];
         var http = StubOpenMeteoHandler.ClientFor("ensemble-api", HttpStatusCode.OK, OpenMeteoFixtures.EnsembleMultiModel);
 
-        var result = await Ensemble(http, EnsembleParams.TemperatureSpread | EnsembleParams.Models, WeatherParams.Temperature, models: models).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
+        var result = await Ensemble(http, EnsembleParams.TemperatureSpread | EnsembleParams.Models, ForecastParams.Temperature, models: models).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchSuccess>(result);
         var primary = Assert.IsType<DomainForecast<EnsemblePoint>>(success.Forecast);
@@ -137,10 +137,10 @@ public sealed class OpenMeteoClientTests
     {
         var solar = new SolarYieldOptions { Tilt = 25, Azimuth = 135 };
 
-        var uri = await Capture("api", http => Forecast(http, WeatherParams.GlobalTiltedIrradiance, solar), TestContext.Current.CancellationToken);
+        var uri = await Capture("api", http => Forecast(http, ForecastParams.GlobalTiltedIrradiance, solar), TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            $"/v1/forecast?latitude=47.05&longitude=8.31&hourly=global_tilted_irradiance&wind_speed_unit=ms&tilt=25&azimuth=-45&forecast_days={new WeatherOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
+            $"/v1/forecast?latitude=47.05&longitude=8.31&hourly=global_tilted_irradiance&wind_speed_unit=ms&tilt=25&azimuth=-45&forecast_days={new ForecastOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
@@ -205,9 +205,9 @@ public sealed class OpenMeteoClientTests
     public void The_forecast_call_weight_follows_the_resolved_variables_and_days()
     {
         var client = new ForecastClient(
-            new HttpClient(), Options.Create(new WeatherOptions { ForecastDays = 4 }), Options.Create(new SolarYieldOptions()), Options.Create(new FeatureRequirementsOptions { Requirements = TestRequirements.All, WeatherModels = [WeatherOptions.DefaultModel] }), NullLogger<ForecastClient>.Instance);
+            new HttpClient(), Options.Create(new ForecastOptions { ForecastDays = 4 }), Options.Create(new SolarYieldOptions()), Options.Create(new FeatureRequirementsOptions { Requirements = TestRequirements.All, WeatherModels = [ForecastOptions.DefaultModel] }), NullLogger<ForecastClient>.Instance);
 
-        var variables = TestRequirements.All.Weather.ToApiNames();
+        var variables = TestRequirements.All.Forecast.ToApiNames();
 
         Assert.Multiple(
             () => Assert.Equal(CallWeight.Of(variables.Count, 4), client.CallWeight),
@@ -228,14 +228,14 @@ public sealed class OpenMeteoClientTests
     [Fact(Timeout = 5000)]
     public async Task A_forecast_response_is_mapped_into_a_weather_domain_forecast()
     {
-        var http = StubOpenMeteoHandler.ClientFor("api", HttpStatusCode.OK, OpenMeteoFixtures.WeatherHourly);
+        var http = StubOpenMeteoHandler.ClientFor("api", HttpStatusCode.OK, OpenMeteoFixtures.ForecastHourly);
 
         var result = await Forecast(http).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchSuccess>(result);
-        var forecast = Assert.IsType<DomainForecast<WeatherPoint>>(success.Forecast);
+        var forecast = Assert.IsType<DomainForecast<ForecastPoint>>(success.Forecast);
         Assert.Multiple(
-            () => Assert.Equal(DomainKind.Weather, forecast.Domain),
+            () => Assert.Equal(DomainKind.Forecast, forecast.Domain),
             () => Assert.Equal(20.5, forecast.Points[0].Temperature));
     }
 

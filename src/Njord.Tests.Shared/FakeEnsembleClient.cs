@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Njord.Core.Domain;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 
 namespace Njord.Tests.Shared;
 
@@ -40,9 +40,9 @@ public sealed class FakeEnsembleClient : IDomainClient
             ? ImmutableDictionary<string, IDomainForecast>.Empty
             : ModelIds.ToImmutableDictionary(
                 id => id,
-                id => (IDomainForecast)new DomainForecast<WeatherPoint>(DomainKind.Weather, now, TimeResolution.Hourly,
+                id => (IDomainForecast)new DomainForecast<ForecastPoint>(DomainKind.Forecast, now, TimeResolution.Hourly,
                 [
-                    new WeatherPoint(
+                    new ForecastPoint(
                         new DateTimeOffset(2026, 7, 11, 3, 0, 0, TimeSpan.Zero),
                         Temperature: 10.0 + id.Length,
                         Precipitation: 0.0)

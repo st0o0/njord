@@ -51,7 +51,7 @@ public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
         return (pipeline, attached, forecasts);
     }
 
-    private static FetchDomain Fetch() => new(new Location("lucerne", 47.05, 8.31), DomainKind.Weather);
+    private static FetchDomain Fetch() => new(new Location("lucerne", 47.05, 8.31), DomainKind.Forecast);
 
     [Fact(Timeout = 30000)]
     public async Task A_request_before_the_pipeline_input_is_attached_is_rejected_as_pipeline_unavailable()
@@ -114,7 +114,7 @@ public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
         gateway.Tell(Fetch());
 
         var completed = await _region.ExpectMsgAsync<FetchDomainCompleted>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-        Assert.Equal(DomainKind.Weather, completed.Domain);
+        Assert.Equal(DomainKind.Forecast, completed.Domain);
     }
 
     [Fact(Timeout = 30000)]
@@ -132,9 +132,9 @@ public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
         gateway.Tell(Fetch());
 
         var first = await _region.ExpectMsgAsync<FetchDomainCompleted>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-        Assert.Equal(DomainKind.Weather, first.Domain);
+        Assert.Equal(DomainKind.Forecast, first.Domain);
 
         var second = await _region.ExpectMsgAsync<FetchDomainCompleted>(TimeSpan.FromSeconds(10), cancellationToken: ct);
-        Assert.Equal(DomainKind.Weather, second.Domain);
+        Assert.Equal(DomainKind.Forecast, second.Domain);
     }
 }

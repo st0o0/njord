@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using Njord.Core.Configuration;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 
 namespace Njord.Core.Domain;
 
@@ -18,7 +18,7 @@ public static class FeatureResolution
 
     public static DomainRequirements WithBaseParams(DomainRequirements requirements) => requirements with
     {
-        Weather = requirements.AllWeather != default ? requirements.Weather | WeatherParams.WeatherCode : requirements.Weather,
+        Forecast = requirements.AllForecast != default ? requirements.Forecast | ForecastParams.WeatherCode : requirements.Forecast,
         AirQuality = requirements.AllAirQuality != default ? requirements.AirQuality | AirQualityParams.Pm10 : requirements.AirQuality,
     };
 
@@ -31,7 +31,7 @@ public static class FeatureResolution
     public static void Configure(
         FeatureRequirementsOptions options,
         IEnumerable<IFeatureRule> features,
-        WeatherOptions weather)
+        ForecastOptions weather)
     {
         var enabled = EnabledFeatures(features);
         var raw = enabled.Aggregate(default(DomainRequirements),

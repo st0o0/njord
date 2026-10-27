@@ -1,32 +1,32 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.Shared;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.Thunderstorm;
 
-public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : FeatureRule<WeatherEnsembleInput>
+public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : FeatureRule<ForecastEnsembleInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
-        FeatureCategory.Weather,
+        FeatureCategory.Forecast,
         Name: "Thunderstorm",
         DefaultEnabled: true,
         new DomainRequirements(
-            Weather: WeatherParams.Cape | WeatherParams.Precipitation | WeatherParams.WindGusts,
-            OptionalWeather: WeatherParams.ConvectiveInhibition | WeatherParams.LiftedIndex,
+            Forecast: ForecastParams.Cape | ForecastParams.Precipitation | ForecastParams.WindGusts,
+            OptionalForecast: ForecastParams.ConvectiveInhibition | ForecastParams.LiftedIndex,
             Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
+    protected override ForecastEnsembleInput? Project(LocationForecast forecast) =>
+        forecast is { Forecast: { } w, Ensemble: { } e } ? new(w, e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
-        var evaluable = ctx.Current.Weather.NextHoursInclusive(ctx.Now).Where(p => p.Cape is not null && p.WindGusts is not null).ToList();
+        var evaluable = ctx.Current.Forecast.NextHoursInclusive(ctx.Now).Where(p => p.Cape is not null && p.WindGusts is not null).ToList();
         if (evaluable.Count == 0)
         {
             return null;
@@ -62,7 +62,7 @@ public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : Fea
             PeakValue: null, HoursUntil: meetAll.Count > 0 ? meetAll[0].HoursFrom(ctx.Now) : null, DurationHours: null, Level: level);
     }
 
-    private static AlertSeverity ApplyStabilityModifier(AlertSeverity severity, WeatherPoint? peak, ThunderstormConfig cfg)
+    private static AlertSeverity ApplyStabilityModifier(AlertSeverity severity, ForecastPoint? peak, ThunderstormConfig cfg)
     {
         if (peak is not { ConvectiveInhibition: { } cin, LiftedIndex: { } li })
         {

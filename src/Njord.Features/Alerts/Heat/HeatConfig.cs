@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.Heat;
 
 public sealed class HeatConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Weather:Heat";
+    private const string SectionName = "Njord:Features:Forecast:Heat";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
     public double[]? Thresholds { get; set; }

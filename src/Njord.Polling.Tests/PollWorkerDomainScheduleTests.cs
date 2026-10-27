@@ -22,7 +22,7 @@ public sealed class PollWorkerDomainScheduleTests : Akka.Hosting.TestKit.TestKit
     private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
     private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
     private static readonly PollTarget Target = new(Lucerne);
-    private static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Weather, DomainKind.AirQuality];
+    private static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Forecast, DomainKind.AirQuality];
 
     private static IOptions<FeatureRequirementsOptions> RequirementsFor(IReadOnlyList<DomainKind> domains) =>
         Options.Create(new FeatureRequirementsOptions { Domains = domains });
@@ -99,7 +99,7 @@ public sealed class PollWorkerDomainScheduleTests : Akka.Hosting.TestKit.TestKit
         return report;
     }
 
-    private static FetchDomainCompleted Completed(int hash) => new(Lucerne, DomainKind.Weather, hash);
+    private static FetchDomainCompleted Completed(int hash) => new(Lucerne, DomainKind.Forecast, hash);
 
     private async Task StopAsync(IActorRef worker, CancellationToken ct)
     {
@@ -114,12 +114,12 @@ public sealed class PollWorkerDomainScheduleTests : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
 
-        // Weather answers, AirQuality fails: weather waits a discovery interval, air quality retries after a minute.
+        // Forecast answers, AirQuality fails: weather waits a discovery interval, air quality retries after a minute.
         foreach (var _ in EnabledDomains)
         {
             var request = await ExpectRequestAsync(ct);
-            _gateway.LastSender.Tell(request.Domain == DomainKind.Weather
-                ? new FetchDomainCompleted(Lucerne, DomainKind.Weather, 1)
+            _gateway.LastSender.Tell(request.Domain == DomainKind.Forecast
+                ? new FetchDomainCompleted(Lucerne, DomainKind.Forecast, 1)
                 : new FetchDomainFailed(Lucerne, request.Domain, PollFailureReason.Transport, "down"));
         }
 

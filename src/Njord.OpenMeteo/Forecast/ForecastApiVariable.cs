@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-namespace Njord.OpenMeteo.Weather;
+namespace Njord.OpenMeteo.Forecast;
 
-public enum WeatherApiVariable
+public enum ForecastApiVariable
 {
     [JsonStringEnumMemberName("temperature_2m")]
     Temperature,

@@ -35,7 +35,7 @@ public sealed class OpsGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         Assert.Multiple(
             () => Assert.False(status.BudgetPartial),
             () => Assert.False(status.ModelsPartial),
-            () => Assert.Equal(["Flood:FloodRisk", "Lifestyle:Bbq", "Weather:Frost"], status.ActiveEnrichments),
+            () => Assert.Equal(["Flood:FloodRisk", "Forecast:Frost", "Lifestyle:Bbq"], status.ActiveEnrichments),
             () => Assert.Equal(40, status.Budget.MonthlyUsed),
             () => Assert.Equal("Lucerne", model.Location),
             () => Assert.Equal(V2.PollPhase.Steady, model.Phase));

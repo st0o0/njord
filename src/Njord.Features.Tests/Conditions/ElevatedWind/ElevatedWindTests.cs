@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Features.Conditions.ElevatedWind;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
@@ -17,7 +17,7 @@ public sealed class ElevatedWindTests
     {
         var rule = new Features.Conditions.ElevatedWind.ElevatedWind(Opts(new ElevatedWindConfig { Enabled = true }));
         var weather = Uniform(p => p with { WindSpeed80m = 12.5, WindDirection80m = 270, WindSpeed120m = 14.1, WindDirection120m = 265 });
-        var result = Run(rule, Now, WeatherOnly(weather));
+        var result = Run(rule, Now, ForecastOnly(weather));
         var condition = Assert.IsType<ElevatedWindResult>(result);
         Assert.Equal(12.5, condition.Speed80m);
         Assert.Equal(270, condition.Direction80m);
@@ -30,7 +30,7 @@ public sealed class ElevatedWindTests
     {
         var rule = new Features.Conditions.ElevatedWind.ElevatedWind(Opts(new ElevatedWindConfig { Enabled = true }));
         var weather = Uniform(p => p with { WindSpeed80m = null, WindDirection80m = null });
-        var result = Run(rule, Now, WeatherOnly(weather));
+        var result = Run(rule, Now, ForecastOnly(weather));
         Assert.Null(result);
     }
 
@@ -39,7 +39,7 @@ public sealed class ElevatedWindTests
     {
         var rule = new Features.Conditions.ElevatedWind.ElevatedWind(Opts(new ElevatedWindConfig { Enabled = true }));
         var weather = Uniform(p => p with { WindSpeed80m = 10.0, WindDirection80m = 180, WindSpeed120m = null, WindDirection120m = null });
-        var result = Run(rule, Now, WeatherOnly(weather));
+        var result = Run(rule, Now, ForecastOnly(weather));
         var condition = Assert.IsType<ElevatedWindResult>(result);
         Assert.Null(condition.Speed120m);
         Assert.Null(condition.Direction120m);

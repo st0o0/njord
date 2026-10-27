@@ -2,32 +2,32 @@ using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
 using Njord.Forecast.Seasonal;
 using Njord.Forecast.Solar;
-using Njord.Forecast.Weather;
 
 namespace Njord.Core.Domain;
 
 public sealed record LocationForecast(
     Location Location,
-    DomainForecast<WeatherPoint>? Weather = null,
+    DomainForecast<ForecastPoint>? Forecast = null,
     DomainForecast<AirQualityPoint>? AirQuality = null,
     DomainForecast<FloodPoint>? Flood = null,
     DomainForecast<MarinePoint>? Marine = null,
     DomainForecast<SeasonalPoint>? Seasonal = null,
     DomainForecast<SatelliteRadiationPoint>? Satellite = null,
     DomainForecast<EnsemblePoint>? Ensemble = null,
-    ImmutableDictionary<string, DomainForecast<WeatherPoint>>? ModelWeather = null)
+    ImmutableDictionary<string, DomainForecast<ForecastPoint>>? ModelForecast = null)
 {
-    public ImmutableDictionary<string, DomainForecast<WeatherPoint>> Models => ModelWeather ?? ImmutableDictionary<string, DomainForecast<WeatherPoint>>.Empty;
+    public ImmutableDictionary<string, DomainForecast<ForecastPoint>> Models => ModelForecast ?? ImmutableDictionary<string, DomainForecast<ForecastPoint>>.Empty;
 
-    public LocationForecast WithModel(string modelId, DomainForecast<WeatherPoint> forecast) =>
-        this with { ModelWeather = Models.SetItem(modelId, forecast) };
+    public LocationForecast WithModel(string modelId, DomainForecast<ForecastPoint> forecast) =>
+        this with { ModelForecast = Models.SetItem(modelId, forecast) };
 
     public LocationForecast With(DomainKind domain, IDomainForecast forecast) => domain switch
     {
-        DomainKind.Weather => this with { Weather = Cast<WeatherPoint>(domain, forecast) },
+        DomainKind.Forecast => this with { Forecast = Cast<ForecastPoint>(domain, forecast) },
         DomainKind.AirQuality => this with { AirQuality = Cast<AirQualityPoint>(domain, forecast) },
         DomainKind.Flood => this with { Flood = Cast<FloodPoint>(domain, forecast) },
         DomainKind.Marine => this with { Marine = Cast<MarinePoint>(domain, forecast) },
@@ -39,7 +39,7 @@ public sealed record LocationForecast(
 
     public IDomainForecast? Get(DomainKind domain) => domain switch
     {
-        DomainKind.Weather => Weather,
+        DomainKind.Forecast => Forecast,
         DomainKind.AirQuality => AirQuality,
         DomainKind.Flood => Flood,
         DomainKind.Marine => Marine,
@@ -50,7 +50,7 @@ public sealed record LocationForecast(
     };
 
     public bool HasFields(DomainRequirements required) =>
-        HasFields(Weather, required.Weather, static (point, param) => point.HasFields(param))
+        HasFields(Forecast, required.Forecast, static (point, param) => point.HasFields(param))
         && HasFields(AirQuality, required.AirQuality, static (point, param) => point.HasFields(param))
         && HasFields(Flood, required.Flood, static (point, param) => point.HasFields(param))
         && HasFields(Marine, required.Marine, static (point, param) => point.HasFields(param))

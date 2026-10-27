@@ -22,7 +22,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
     private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
     private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
     private static readonly PollTarget Target = new(Lucerne);
-    private static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Weather, DomainKind.AirQuality];
+    private static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Forecast, DomainKind.AirQuality];
 
     private static IOptions<FeatureRequirementsOptions> RequirementsFor(IReadOnlyList<DomainKind> domains) =>
         Options.Create(new FeatureRequirementsOptions { Domains = domains });
@@ -111,7 +111,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         return report;
     }
 
-    private static FetchDomainCompleted Completed(int hash) => new(Lucerne, DomainKind.Weather, hash);
+    private static FetchDomainCompleted Completed(int hash) => new(Lucerne, DomainKind.Forecast, hash);
 
     private async Task StopAsync(IActorRef worker, CancellationToken ct)
     {
@@ -131,7 +131,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         await StartedWorkerAsync(ct);
 
         var report = await AnswerAllAndLastReportAsync(
-            new FetchDomainFailed(Lucerne, DomainKind.Weather, reason, "simulated"), ct);
+            new FetchDomainFailed(Lucerne, DomainKind.Forecast, reason, "simulated"), ct);
 
         Assert.Equal(_time.GetUtcNow() + TimeSpan.FromSeconds(delaySeconds), report.State.NextPollUtc);
     }
@@ -147,7 +147,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         await StartedWorkerAsync(ct);
 
         var report = await AnswerAllAndLastReportAsync(
-            new FetchDomainRejected(Lucerne, DomainKind.Weather, reason), ct);
+            new FetchDomainRejected(Lucerne, DomainKind.Forecast, reason), ct);
 
         Assert.Equal(_time.GetUtcNow() + TimeSpan.FromSeconds(delaySeconds), report.State.NextPollUtc);
     }
@@ -157,16 +157,16 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Weather, PollFailureReason.Transport, "simulated"), ct);
+        await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Forecast, PollFailureReason.Transport, "simulated"), ct);
 
         worker.Tell(new TriggerLocationPoll(TargetId));
         var deferred = await AnswerAllAndLastReportAsync(
-            new FetchDomainRejected(Lucerne, DomainKind.Weather, FetchRejectionReason.PipelineUnavailable), ct);
+            new FetchDomainRejected(Lucerne, DomainKind.Forecast, FetchRejectionReason.PipelineUnavailable), ct);
 
         // The pipeline-unavailable rejection leaves the failure count at one, so the next failure is the second and backs off two minutes.
         worker.Tell(new TriggerLocationPoll(TargetId));
         var queueFull = await AnswerAllAndLastReportAsync(
-            new FetchDomainRejected(Lucerne, DomainKind.Weather, FetchRejectionReason.QueueFull), ct);
+            new FetchDomainRejected(Lucerne, DomainKind.Forecast, FetchRejectionReason.QueueFull), ct);
 
         Assert.Multiple(
             () => Assert.Equal(_time.GetUtcNow() + PollWorkerState.PipelineUnavailableRetry, deferred.State.NextPollUtc),
@@ -177,7 +177,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
     {
         worker.Tell(new TriggerLocationPoll(TargetId));
         return await AnswerAllAndLastReportAsync(
-            new FetchDomainFailed(Lucerne, DomainKind.Weather, PollFailureReason.Transport, "simulated"), ct);
+            new FetchDomainFailed(Lucerne, DomainKind.Forecast, PollFailureReason.Transport, "simulated"), ct);
     }
 
     [Fact(Timeout = 30_000)]
@@ -185,7 +185,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Weather, PollFailureReason.Transport, "simulated"), ct);
+        await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Forecast, PollFailureReason.Transport, "simulated"), ct);
         await FailOnceAsync(worker, ct);
 
         var third = await FailOnceAsync(worker, ct);
@@ -198,7 +198,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Weather, PollFailureReason.Transport, "simulated"), ct);
+        await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Forecast, PollFailureReason.Transport, "simulated"), ct);
         await FailOnceAsync(worker, ct);
         await FailOnceAsync(worker, ct);
 
@@ -214,7 +214,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Weather, PollFailureReason.Transport, "simulated"), ct);
+        await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Forecast, PollFailureReason.Transport, "simulated"), ct);
         for (var i = 0; i < 3; i++)
         {
             await FailOnceAsync(worker, ct);
@@ -234,7 +234,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Weather, PollFailureReason.Transport, "simulated"), ct);
+        await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Forecast, PollFailureReason.Transport, "simulated"), ct);
         for (var i = 0; i < 4; i++)
         {
             await FailOnceAsync(worker, ct);
@@ -242,7 +242,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
 
         worker.Tell(new TriggerLocationPoll(TargetId));
         var report = await AnswerAllAndLastReportAsync(
-            new FetchDomainFailed(Lucerne, DomainKind.Weather, PollFailureReason.RateLimited, "simulated"), ct);
+            new FetchDomainFailed(Lucerne, DomainKind.Forecast, PollFailureReason.RateLimited, "simulated"), ct);
 
         Assert.Equal(_time.GetUtcNow() + TimeSpan.FromMinutes(32), report.State.NextPollUtc);
     }
@@ -252,9 +252,9 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAllAsync(new FetchDomainRejected(Lucerne, DomainKind.Weather, FetchRejectionReason.PipelineUnavailable), ct);
+        await AnswerAllAsync(new FetchDomainRejected(Lucerne, DomainKind.Forecast, FetchRejectionReason.PipelineUnavailable), ct);
         worker.Tell(new TriggerLocationPoll(TargetId));
-        await AnswerAllAsync(new FetchDomainRejected(Lucerne, DomainKind.Weather, FetchRejectionReason.PipelineUnavailable), ct);
+        await AnswerAllAsync(new FetchDomainRejected(Lucerne, DomainKind.Forecast, FetchRejectionReason.PipelineUnavailable), ct);
 
         var failed = await FailOnceAsync(worker, ct);
 
@@ -275,7 +275,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
                 : Completed(1));
         }
 
-        // The report state follows the Weather domain (last change, miss count) and the earliest due domain (next poll).
+        // The report state follows the Forecast domain (last change, miss count) and the earliest due domain (next poll).
         var last = await DrainReportsAsync(EnabledDomains.Count, ct);
 
         Assert.Multiple(

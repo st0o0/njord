@@ -1,11 +1,11 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.CommuteSafety;
 
-public sealed class CommuteSafety(IOptions<CommuteSafetyConfig> config) : FeatureRule<WeatherInput>
+public sealed class CommuteSafety(IOptions<CommuteSafetyConfig> config) : FeatureRule<ForecastInput>
 {
     public const double IceTemperature = 1.0;
     public const double DewPointSpread = 2.0;
@@ -18,17 +18,17 @@ public sealed class CommuteSafety(IOptions<CommuteSafetyConfig> config) : Featur
         FeatureCategory.Lifestyle,
         Name: "Commute",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.DewPoint | WeatherParams.Humidity
-            | WeatherParams.Precipitation | WeatherParams.WindSpeed));
+        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.DewPoint | ForecastParams.Humidity
+            | ForecastParams.Precipitation | ForecastParams.WindSpeed));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override ForecastInput? Project(LocationForecast forecast) =>
+        forecast.Forecast is { } w ? new(w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var hours = ctx.Current.Weather.NextHours(ctx.Now, 2);
+        var hours = ctx.Current.Forecast.NextHours(ctx.Now, 2);
         if (hours.Count == 0)
         {
             return null;

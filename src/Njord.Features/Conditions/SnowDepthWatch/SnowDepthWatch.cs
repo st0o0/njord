@@ -1,28 +1,28 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.Shared;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.SnowDepthWatch;
 
-public sealed class SnowDepthWatch(IOptions<SnowDepthWatchConfig> config) : FeatureRule<WeatherInput>
+public sealed class SnowDepthWatch(IOptions<SnowDepthWatchConfig> config) : FeatureRule<ForecastInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
-        FeatureCategory.Weather,
+        FeatureCategory.Forecast,
         Name: "SnowDepthWatch",
         DefaultEnabled: false,
-        new DomainRequirements(Weather: WeatherParams.SnowDepth));
+        new DomainRequirements(Forecast: ForecastParams.SnowDepth));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override ForecastInput? Project(LocationForecast forecast) =>
+        forecast.Forecast is { } w ? new(w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var window = ctx.Current.Weather.NextHoursInclusive(ctx.Now);
+        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
         if (window.HighestBy(p => p.SnowDepth) is not { SnowDepth: { } maxDepth })
         {
             return null;

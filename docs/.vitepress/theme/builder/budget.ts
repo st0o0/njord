@@ -56,7 +56,7 @@ export function computeBudget(config: NjordConfig): BudgetResult {
 }
 
 function weatherWeight(config: NjordConfig, features: Record<string, boolean>): number {
-  return requiredDomains(features).includes('Weather')
+  return requiredDomains(features).includes('Forecast')
     ? Math.ceil(weatherVariableCount(features) / 10) * Math.ceil(config.weather.forecastDays / 14)
     : 0
 }
@@ -86,7 +86,7 @@ function ensembleWeight(config: NjordConfig, features: Record<string, boolean>):
 
 function callsPerLocationCycle(config: NjordConfig, features: Record<string, boolean>): number {
   const domains = requiredDomains(features)
-  const otherDomains = domains.filter(d => d !== 'Weather' && d !== 'Ensemble' && d !== 'Seasonal').length
+  const otherDomains = domains.filter(d => d !== 'Forecast' && d !== 'Ensemble' && d !== 'Seasonal').length
   const floodExtraWeight = domains.includes('Flood') && config.flood.includeEnsemble ? FLOOD_ENSEMBLE_WEIGHT - 1 : 0
   return weatherWeight(config, features) + ensembleWeight(config, features) + otherDomains + floodExtraWeight
 }

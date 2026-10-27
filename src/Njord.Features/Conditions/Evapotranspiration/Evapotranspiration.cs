@@ -1,27 +1,27 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.Evapotranspiration;
 
-public sealed class Evapotranspiration(IOptions<EvapotranspirationConfig> config) : FeatureRule<WeatherInput>
+public sealed class Evapotranspiration(IOptions<EvapotranspirationConfig> config) : FeatureRule<ForecastInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
         Name: "Evapotranspiration",
         DefaultEnabled: false,
-        new DomainRequirements(Weather: WeatherParams.Evapotranspiration));
+        new DomainRequirements(Forecast: ForecastParams.Evapotranspiration));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override ForecastInput? Project(LocationForecast forecast) =>
+        forecast.Forecast is { } w ? new(w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var today = ctx.Current.Weather.NextHoursInclusive(ctx.Now, 24);
+        var today = ctx.Current.Forecast.NextHoursInclusive(ctx.Now, 24);
         var dailySum = 0.0;
         foreach (var point in today)
         {

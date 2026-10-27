@@ -4,7 +4,7 @@ namespace Njord.Features.Conditions.SnowDepthWatch;
 
 public sealed class SnowDepthWatchConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Weather:SnowDepthWatch";
+    private const string SectionName = "Njord:Features:Forecast:SnowDepthWatch";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public double LightThreshold { get; set; } = 2;

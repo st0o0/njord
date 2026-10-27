@@ -2,7 +2,7 @@ namespace Njord.Forecast;
 
 public enum DomainKind
 {
-    Weather,
+    Forecast,
     AirQuality,
     Flood,
     Marine,

@@ -1,7 +1,7 @@
 using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Tests.Shared;
 
 namespace Njord.IntegrationTests;
@@ -24,7 +24,7 @@ public sealed class HandlerRequirementsTests
         var requirements = Features[name].Descriptor.Requirements;
 
         Assert.Multiple(
-            () => Assert.NotEqual(WeatherParams.None, requirements.Weather),
+            () => Assert.NotEqual(ForecastParams.None, requirements.Forecast),
             () => Assert.Equal(AirQualityParams.None, requirements.AirQuality),
             () => Assert.False(requirements.Requires(DomainKind.AirQuality)),
             () => Assert.False(requirements.Requires(DomainKind.Flood)),
@@ -40,7 +40,7 @@ public sealed class HandlerRequirementsTests
         var requirements = Features[name].Descriptor.Requirements;
 
         Assert.Multiple(
-            () => Assert.True(requirements.Requires(DomainKind.Weather)),
+            () => Assert.True(requirements.Requires(DomainKind.Forecast)),
             () => Assert.True(requirements.Requires(DomainKind.AirQuality)),
             () => Assert.False(requirements.Requires(DomainKind.Flood)));
     }
@@ -57,7 +57,7 @@ public sealed class HandlerRequirementsTests
     public void Should_declare_the_radiation_params_the_solar_yield_reads()
     {
         Assert.Equal(
-            new DomainRequirements(Weather: WeatherParams.GlobalTiltedIrradiance),
+            new DomainRequirements(Forecast: ForecastParams.GlobalTiltedIrradiance),
             Features["SolarYield"].Descriptor.Requirements);
     }
 

@@ -1,6 +1,6 @@
 # Locations
 
-Each location is a geographic point for which njord fetches Weather, Air Quality and Flood data. One persistent PollWorker runs per location. At least one location is required.
+Each location is a geographic point for which njord fetches Forecast, Air Quality and Flood data. One persistent PollWorker runs per location. At least one location is required.
 
 ## Options
 
@@ -39,7 +39,7 @@ Each location is a geographic point for which njord fetches Weather, Air Quality
 
 ## Budget impact
 
-Every location adds three API calls per poll cycle (Weather, Air Quality, Flood). Two locations at the default 60-minute interval project to 4,320 calls per month. See [Budget](./budget).
+Every location adds three API calls per poll cycle (Forecast, Air Quality, Flood). Two locations at the default 60-minute interval project to 4,320 calls per month. See [Budget](./budget).
 
 
 ::: tip

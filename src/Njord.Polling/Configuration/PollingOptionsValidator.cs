@@ -46,8 +46,8 @@ public sealed class PollingOptionsValidator(IConfiguration configuration, IOptio
         return scope is null || scope.Locations.Count == 0 ? null : scope;
     }
 
-    private WeatherOptions ReadWeather() =>
-        configuration.GetSection(IConfigSection.SectionOf<WeatherOptions>()).Get<WeatherOptions>() ?? new WeatherOptions();
+    private ForecastOptions ReadWeather() =>
+        configuration.GetSection(IConfigSection.SectionOf<ForecastOptions>()).Get<ForecastOptions>() ?? new ForecastOptions();
 
     private FloodOptions ReadFlood() =>
         configuration.GetSection(IConfigSection.SectionOf<FloodOptions>()).Get<FloodOptions>() ?? new FloodOptions();

@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.RainProbability;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -20,7 +20,7 @@ public sealed class RainProbabilityAlertTests
     {
         var rule = new RainProbabilityAlert(Opts(new RainProbabilityConfig()));
         var weather = Uniform(p => p with { PrecipitationProbability = probability });
-        var result = Run(rule, Now, WeatherWithEnsemble(weather, EnsembleDay()));
+        var result = Run(rule, Now, ForecastWithEnsemble(weather, EnsembleDay()));
         return result is null
             ? AlertSeverity.None
             : Assert.IsAssignableFrom<AlertFeatureResult>(result).Severity;
@@ -39,7 +39,7 @@ public sealed class RainProbabilityAlertTests
     {
         var rule = new RainProbabilityAlert(Opts(new RainProbabilityConfig()));
         var weather = Uniform(p => p with { PrecipitationProbability = null });
-        var result = Run(rule, Now, WeatherWithEnsemble(weather, EnsembleDay()));
+        var result = Run(rule, Now, ForecastWithEnsemble(weather, EnsembleDay()));
         Assert.Null(result);
     }
 
@@ -49,7 +49,7 @@ public sealed class RainProbabilityAlertTests
         var config = new RainProbabilityConfig { WindowHours = 3 };
         var rule = new RainProbabilityAlert(Opts(config));
         var weather = Hourly(24, (hour, p) => p with { PrecipitationProbability = hour > 3 ? 95.0 : 10.0 });
-        var result = Run(rule, Now, WeatherWithEnsemble(weather, EnsembleDay()));
+        var result = Run(rule, Now, ForecastWithEnsemble(weather, EnsembleDay()));
         Assert.Null(result);
     }
 
@@ -58,7 +58,7 @@ public sealed class RainProbabilityAlertTests
     {
         var rule = new RainProbabilityAlert(Opts(new RainProbabilityConfig()));
         var weather = Uniform(p => p with { PrecipitationProbability = 90.0 });
-        var result = Run(rule, Now, WeatherOnly(weather));
+        var result = Run(rule, Now, ForecastOnly(weather));
         Assert.Null(result);
     }
 
@@ -67,7 +67,7 @@ public sealed class RainProbabilityAlertTests
     {
         var rule = new RainProbabilityAlert(Opts(new RainProbabilityConfig()));
         var weather = Uniform(p => p with { PrecipitationProbability = 85.0 });
-        var result = Run(rule, Now, WeatherWithEnsemble(weather, EnsembleDay()));
+        var result = Run(rule, Now, ForecastWithEnsemble(weather, EnsembleDay()));
         var alert = Assert.IsType<RainProbabilityAlertResult>(result);
         Assert.Equal(85.0, alert.PeakProbability);
     }

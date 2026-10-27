@@ -12,7 +12,7 @@ Configure your system:
 - **Azimuth**: panel compass direction, 180 = south (default: 180)
 
 **Entity:** `sensor.<location>_solar_yield`
-**Domains:** Weather | **Default:** Off
+**Domains:** Forecast | **Default:** Off
 
 ```yaml
 Njord__Features__Energy__SolarYield__Enabled: "true"
@@ -53,7 +53,7 @@ SatelliteRadiation uses about 720 API calls/month/location. Enable it only if yo
 Reports wind speed and direction at turbine hub heights (80 m and 120 m above ground). Ground-level wind (10 m) underestimates what a turbine experiences due to the wind speed profile increasing with altitude.
 
 **Entity:** `sensor.<location>_elevated_wind`
-**Domains:** Weather | **Default:** Off
+**Domains:** Forecast | **Default:** Off
 
 ```yaml
 Njord__Features__Energy__ElevatedWind__Enabled: "true"

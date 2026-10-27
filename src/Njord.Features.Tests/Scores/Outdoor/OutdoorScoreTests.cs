@@ -38,6 +38,6 @@ public sealed class OutdoorScoreTests
     [Fact]
     public void Missing_air_quality_data_yields_nothing()
     {
-        Assert.Null(Run(Feature(), Now, WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
     }
 }

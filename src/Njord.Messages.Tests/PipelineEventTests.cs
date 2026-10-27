@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.Flood;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Messages.Tests;
@@ -14,12 +14,12 @@ public sealed class PipelineEventTests
     [Fact]
     public void Should_carry_location_and_forecast_in_a_weather_event()
     {
-        var points = ImmutableArray.Create(new WeatherPoint(Run, 20, 19, 3, 0, 0, 0, 1013, 0, 50, 10, 1));
-        var forecast = new DomainForecast<WeatherPoint>(DomainKind.Weather, Run, TimeResolution.Hourly, points);
+        var points = ImmutableArray.Create(new ForecastPoint(Run, 20, 19, 3, 0, 0, 0, 1013, 0, 50, 10, 1));
+        var forecast = new DomainForecast<ForecastPoint>(DomainKind.Forecast, Run, TimeResolution.Hourly, points);
 
-        PipelineEvent evt = new PipelineEvent.WeatherDataReceived(Lucerne, forecast);
+        PipelineEvent evt = new PipelineEvent.ForecastDataReceived(Lucerne, forecast);
 
-        var received = Assert.IsType<PipelineEvent.WeatherDataReceived>(evt);
+        var received = Assert.IsType<PipelineEvent.ForecastDataReceived>(evt);
         Assert.Multiple(
             () => Assert.Equal(Lucerne, received.Location),
             () => Assert.Same(forecast, received.Forecast));

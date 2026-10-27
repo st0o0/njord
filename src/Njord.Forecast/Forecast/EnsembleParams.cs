@@ -1,4 +1,4 @@
-namespace Njord.Forecast.Weather;
+namespace Njord.Forecast.Forecast;
 
 [Flags]
 public enum EnsembleParams : long

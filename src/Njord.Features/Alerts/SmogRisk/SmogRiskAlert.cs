@@ -1,30 +1,30 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Forecast.AirQuality;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.SmogRisk;
 
-public sealed class SmogRiskAlert(IOptions<SmogRiskConfig> config) : FeatureRule<WeatherAqInput>
+public sealed class SmogRiskAlert(IOptions<SmogRiskConfig> config) : FeatureRule<ForecastAqInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.AirQuality,
         Name: "SmogRisk",
         DefaultEnabled: false,
-        new DomainRequirements(Weather: WeatherParams.BoundaryLayerHeight, AirQuality: AirQualityParams.Pm25));
+        new DomainRequirements(Forecast: ForecastParams.BoundaryLayerHeight, AirQuality: AirQualityParams.Pm25));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherAqInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w, AirQuality: { } aq } ? new(w, aq) : null;
+    protected override ForecastAqInput? Project(LocationForecast forecast) =>
+        forecast is { Forecast: { } w, AirQuality: { } aq } ? new(w, aq) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherAqInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastAqInput> ctx)
     {
         var cfg = config.Value;
-        var weatherWindow = ctx.Current.Weather.NextHoursInclusive(ctx.Now, 12);
+        var weatherWindow = ctx.Current.Forecast.NextHoursInclusive(ctx.Now, 12);
         var aqWindow = ctx.Current.AirQuality.NextHoursInclusive(ctx.Now, 12);
 
         double? lowestBoundary = null;

@@ -1,13 +1,13 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Forecast.Flood;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.FloodRain;
 
-public sealed class FloodRainAlert(IOptions<FloodRainConfig> config) : FeatureRule<FloodWeatherInput>
+public sealed class FloodRainAlert(IOptions<FloodRainConfig> config) : FeatureRule<FloodForecastInput>
 {
     public const int ForecastDays = 7;
     public const double HeavyRain24HourMillimeters = 30.0;
@@ -17,17 +17,17 @@ public sealed class FloodRainAlert(IOptions<FloodRainConfig> config) : FeatureRu
         FeatureCategory.Flood,
         Name: "FloodRain",
         DefaultEnabled: false,
-        new DomainRequirements(Weather: WeatherParams.Precipitation,
+        new DomainRequirements(Forecast: ForecastParams.Precipitation,
             Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override FloodWeatherInput? Project(LocationForecast forecast) =>
-        forecast is { Flood: { } f, Weather: { } w } ? new(f, w) : null;
+    protected override FloodForecastInput? Project(LocationForecast forecast) =>
+        forecast is { Flood: { } f, Forecast: { } w } ? new(f, w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<FloodWeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<FloodForecastInput> ctx)
     {
-        var rain = ctx.Current.Weather.NextHoursInclusive(ctx.Now).Sum(p => p.Precipitation);
+        var rain = ctx.Current.Forecast.NextHoursInclusive(ctx.Now).Sum(p => p.Precipitation);
         if (rain < HeavyRain24HourMillimeters)
         {
             return null;

@@ -1,29 +1,29 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.Shared;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.Uv;
 
-public sealed class UvAlert(IOptions<UvConfig> config) : FeatureRule<WeatherInput>
+public sealed class UvAlert(IOptions<UvConfig> config) : FeatureRule<ForecastInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
-        FeatureCategory.Weather,
+        FeatureCategory.Forecast,
         Name: "Uv",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.UvIndex));
+        new DomainRequirements(Forecast: ForecastParams.UvIndex));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override ForecastInput? Project(LocationForecast forecast) =>
+        forecast.Forecast is { } w ? new(w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        if (ctx.Current.Weather.NextHoursInclusive(ctx.Now).HighestBy(p => p.UvIndex) is not { UvIndex: { } uvIndex } peak || uvIndex <= 0)
+        if (ctx.Current.Forecast.NextHoursInclusive(ctx.Now).HighestBy(p => p.UvIndex) is not { UvIndex: { } uvIndex } peak || uvIndex <= 0)
         {
             return null;
         }

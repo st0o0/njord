@@ -4,7 +4,7 @@ using Njord.Core.Domain;
 using Njord.Features.Alerts.PollenBlast;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -20,7 +20,7 @@ public sealed class PollenBlastAlertTests
 
     private static PollenBlastAlert Rule() => new(Opts(new PollenBlastConfig { Enabled = true }));
 
-    private static LocationForecast Forecast(DomainForecast<WeatherPoint> weather, DomainForecast<AirQualityPoint> aq) =>
+    private static LocationForecast Forecast(DomainForecast<ForecastPoint> weather, DomainForecast<AirQualityPoint> aq) =>
         new(Lucerne, weather, aq);
 
     [Fact]

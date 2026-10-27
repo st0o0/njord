@@ -1,7 +1,7 @@
 using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Flood;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 
 namespace Njord.Tests.Shared;
 
@@ -10,7 +10,7 @@ public static class DomainData
     public static readonly Location Lucerne = new("Lucerne", 47.05, 8.31);
     public static readonly Location Bern = new("Bern", 46.95, 7.45);
 
-    public static WeatherPoint BenignPoint(DateTimeOffset validFrom) => new(
+    public static ForecastPoint BenignPoint(DateTimeOffset validFrom) => new(
         validFrom,
         Temperature: 10.0,
         ApparentTemperature: 10.0,
@@ -33,22 +33,22 @@ public static class DomainData
         IsDay: 1,
         SoilTemperature: 10.0);
 
-    public static DomainForecast<WeatherPoint> Weather(
-        DateTimeOffset start, int hours = 48, Func<int, WeatherPoint, WeatherPoint>? shape = null)
+    public static DomainForecast<ForecastPoint> Forecast(
+        DateTimeOffset start, int hours = 48, Func<int, ForecastPoint, ForecastPoint>? shape = null)
     {
         var points = Enumerable.Range(0, hours).Select(hour =>
         {
             var point = BenignPoint(start.AddHours(hour));
             return shape?.Invoke(hour, point) ?? point;
         });
-        return new DomainForecast<WeatherPoint>(DomainKind.Weather, start, TimeResolution.Hourly, [.. points]);
+        return new DomainForecast<ForecastPoint>(DomainKind.Forecast, start, TimeResolution.Hourly, [.. points]);
     }
 
     public static DomainForecast<FloodPoint> Flood(DateTimeOffset start, double discharge = 12.5) =>
         new(DomainKind.Flood, start, TimeResolution.Daily, [new FloodPoint(start, discharge)]);
 
-    public static DomainDataReceived Received(Location location, DomainForecast<WeatherPoint> forecast) =>
-        new(location, DomainKind.Weather, forecast);
+    public static DomainDataReceived Received(Location location, DomainForecast<ForecastPoint> forecast) =>
+        new(location, DomainKind.Forecast, forecast);
 
     public static DomainDataReceived Received(Location location, DomainForecast<FloodPoint> forecast) =>
         new(location, DomainKind.Flood, forecast);

@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Njord.Forecast.Flood;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
-using Njord.Forecast.Weather;
 
 namespace Njord.Forecast.Tests;
 
@@ -44,11 +44,11 @@ public sealed class DomainForecastTests
     [Fact]
     public void Should_expose_metadata_through_the_domain_forecast_interface()
     {
-        var points = ImmutableArray.Create(new WeatherPoint(Run, 20, 19, 3, 0, 0, 0, 1013, 0, 50, 10, 1));
-        IDomainForecast forecast = new DomainForecast<WeatherPoint>(DomainKind.Weather, Run, TimeResolution.Hourly, points);
+        var points = ImmutableArray.Create(new ForecastPoint(Run, 20, 19, 3, 0, 0, 0, 1013, 0, 50, 10, 1));
+        IDomainForecast forecast = new DomainForecast<ForecastPoint>(DomainKind.Forecast, Run, TimeResolution.Hourly, points);
 
         Assert.Multiple(
-            () => Assert.Equal(DomainKind.Weather, forecast.Domain),
+            () => Assert.Equal(DomainKind.Forecast, forecast.Domain),
             () => Assert.Equal(Run, forecast.ModelRun),
             () => Assert.Equal(TimeResolution.Hourly, forecast.Resolution),
             () => Assert.Equal(Run, forecast.LastValid));

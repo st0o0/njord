@@ -1,4 +1,4 @@
-namespace Njord.Forecast.Weather;
+namespace Njord.Forecast.Forecast;
 
 public sealed record EnsemblePoint(
     DateTimeOffset ValidFrom,

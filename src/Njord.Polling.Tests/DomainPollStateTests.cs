@@ -35,12 +35,12 @@ public sealed class DomainPollStateTests
     public void Domains_learn_independently()
     {
         var state = Steady(DomainKind.AirQuality)
-            .Apply(Changed(DomainKind.Weather, 1, T0))
-            .Apply(Changed(DomainKind.Weather, 2, T0.AddHours(6)));
+            .Apply(Changed(DomainKind.Forecast, 1, T0))
+            .Apply(Changed(DomainKind.Forecast, 2, T0.AddHours(6)));
 
         Assert.Multiple(
             () => Assert.Equal(PollPhase.Steady, state.GetDomain(DomainKind.AirQuality).Phase),
-            () => Assert.Equal(PollPhase.Discovery, state.GetDomain(DomainKind.Weather).Phase));
+            () => Assert.Equal(PollPhase.Discovery, state.GetDomain(DomainKind.Forecast).Phase));
     }
 
     [Fact]
@@ -73,12 +73,12 @@ public sealed class DomainPollStateTests
     {
         // Advance every domain past T0 so the NextPollUtc reflects only the re-planned ones.
         var state = StartedAll()
-            .Apply(Changed(DomainKind.Weather, 1, T0))
+            .Apply(Changed(DomainKind.Forecast, 1, T0))
             .Apply(Changed(DomainKind.AirQuality, 1, T0))
             .Apply(Changed(DomainKind.Flood, 1, T0))
             .Apply(Changed(DomainKind.Marine, 1, T0))
-            .Apply(Changed(DomainKind.Weather, 2, T0.AddHours(6)))
-            .Apply(Changed(DomainKind.Weather, 3, T0.AddHours(12)))
+            .Apply(Changed(DomainKind.Forecast, 2, T0.AddHours(6)))
+            .Apply(Changed(DomainKind.Forecast, 3, T0.AddHours(12)))
             .Apply(Changed(DomainKind.Flood, 2, T0.AddHours(12)));
 
         // Flood: 2 changes -> Discovery, NextPollAt = T0+12h + 20min.
@@ -90,14 +90,14 @@ public sealed class DomainPollStateTests
     public void Only_domains_whose_schedule_has_come_are_due()
     {
         var state = StartedAll()
-            .Apply(Changed(DomainKind.Weather, 1, T0))
+            .Apply(Changed(DomainKind.Forecast, 1, T0))
             .Apply(Changed(DomainKind.Flood, 1, T0.AddMinutes(10)));
-        DomainKind[] enabled = [DomainKind.Weather, DomainKind.Flood, DomainKind.AirQuality];
+        DomainKind[] enabled = [DomainKind.Forecast, DomainKind.Flood, DomainKind.AirQuality];
 
         Assert.Multiple(
             () => Assert.Equal([DomainKind.AirQuality], state.DueDomainsAt(enabled, T0 + TimeSpan.FromMinutes(5))),
             () => Assert.Equal(
-                [DomainKind.Weather, DomainKind.AirQuality],
+                [DomainKind.Forecast, DomainKind.AirQuality],
                 state.DueDomainsAt(enabled, T0 + Discovery)));
     }
 }

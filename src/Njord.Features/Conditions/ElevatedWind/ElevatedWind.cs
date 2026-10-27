@@ -1,28 +1,28 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.Shared;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.ElevatedWind;
 
-public sealed class ElevatedWind(IOptions<ElevatedWindConfig> config) : FeatureRule<WeatherInput>
+public sealed class ElevatedWind(IOptions<ElevatedWindConfig> config) : FeatureRule<ForecastInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Energy,
         Name: "ElevatedWind",
         DefaultEnabled: false,
-        new DomainRequirements(Weather: WeatherParams.WindSpeed80m | WeatherParams.WindDirection80m | WeatherParams.WindSpeed120m | WeatherParams.WindDirection120m));
+        new DomainRequirements(Forecast: ForecastParams.WindSpeed80m | ForecastParams.WindDirection80m | ForecastParams.WindSpeed120m | ForecastParams.WindDirection120m));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override ForecastInput? Project(LocationForecast forecast) =>
+        forecast.Forecast is { } w ? new(w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var window = ctx.Current.Weather.NextHoursInclusive(ctx.Now);
+        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
         var current = window.FirstOrDefault();
         if (current is not { WindSpeed80m: { } speed80, WindDirection80m: { } dir80 })
         {

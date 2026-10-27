@@ -3,7 +3,7 @@ using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 
 namespace Njord.Polling.Configuration;
 
@@ -20,17 +20,17 @@ internal static class BudgetGuard
     private static readonly TimeSpan Month = TimeSpan.FromDays(30);
 
     internal static string? Violation(
-        NjordOptions scope, PollingOptions polling, FeatureRequirementsOptions featureRequirements, WeatherOptions weather,
+        NjordOptions scope, PollingOptions polling, FeatureRequirementsOptions featureRequirements, ForecastOptions weather,
         FloodOptions? flood = null)
     {
         var requirements = featureRequirements.Requirements;
         var locationCount = scope.Locations.Count;
 
-        var weatherRequired = requirements.Requires(DomainKind.Weather);
+        var weatherRequired = requirements.Requires(DomainKind.Forecast);
         var ensembleRequired = requirements.Requires(DomainKind.Ensemble);
         var otherDomains = new[] { DomainKind.AirQuality, DomainKind.Flood, DomainKind.Marine, DomainKind.Satellite }.Count(requirements.Requires);
         var weatherCallWeight = weatherRequired
-            ? CallWeight.Of(BitOperations.PopCount((ulong)requirements.AllWeather), weather.ForecastDays)
+            ? CallWeight.Of(BitOperations.PopCount((ulong)requirements.AllForecast), weather.ForecastDays)
             : 0;
 
         var ensembleCallWeight = 0;
@@ -39,7 +39,7 @@ internal static class BudgetGuard
             var ensembleModels = featureRequirements.EnsembleModels;
             var hasModels = requirements.AllEnsemble.HasFlag(EnsembleParams.Models);
             var ensembleVars = hasModels
-                ? BitOperations.PopCount((ulong)requirements.AllWeather) + EnsembleSpreadVariableCount
+                ? BitOperations.PopCount((ulong)requirements.AllForecast) + EnsembleSpreadVariableCount
                 : EnsembleSpreadVariableCount;
             var ensembleModelCount = hasModels ? ensembleModels.Length : 1;
             ensembleCallWeight = CallWeight.Of(ensembleVars, weather.ForecastDays) * ensembleModelCount;

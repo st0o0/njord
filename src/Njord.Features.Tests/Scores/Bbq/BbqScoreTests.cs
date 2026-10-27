@@ -15,7 +15,7 @@ public sealed class BbqScoreTests
     [Fact]
     public void An_ideal_evening_scores_at_least_ninety()
     {
-        var forecast = WeatherOnly(Uniform(point => point with { Temperature = 24.0, WindSpeed = 2.0, CloudCover = 20.0 }));
+        var forecast = ForecastOnly(Uniform(point => point with { Temperature = 24.0, WindSpeed = 2.0, CloudCover = 20.0 }));
 
         var score = Assert.IsType<BbqScoreResult>(Run(Feature(), Now, forecast));
 
@@ -27,7 +27,7 @@ public sealed class BbqScoreTests
     [Fact]
     public void The_dry_window_between_showers_is_found()
     {
-        var forecast = WeatherOnly(Day((hour, point) => point with
+        var forecast = ForecastOnly(Day((hour, point) => point with
         {
             Temperature = 24.0,
             WindSpeed = 2.0,
@@ -45,7 +45,7 @@ public sealed class BbqScoreTests
     [Fact]
     public void Rain_all_day_reports_no_window()
     {
-        var forecast = WeatherOnly(Uniform(point => point with { Precipitation = 3.0 }));
+        var forecast = ForecastOnly(Uniform(point => point with { Precipitation = 3.0 }));
 
         var score = Assert.IsType<BbqScoreResult>(Run(Feature(), Now, forecast));
 

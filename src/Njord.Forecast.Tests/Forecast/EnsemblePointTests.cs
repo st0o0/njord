@@ -1,6 +1,6 @@
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 
-namespace Njord.Forecast.Tests.Weather;
+namespace Njord.Forecast.Tests.Forecast;
 
 public sealed class EnsemblePointTests
 {

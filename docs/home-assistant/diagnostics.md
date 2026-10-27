@@ -13,7 +13,7 @@ The integration supports Home Assistant's built-in diagnostics download for trou
 | Section | Content |
 |---------|---------|
 | `locations` | Configured location names |
-| `forecasts` | Current domain data per location (Weather, Air Quality, Flood, Solar): timestamps and update status |
+| `forecasts` | Current domain data per location (Forecast, Air Quality, Flood, Solar): timestamps and update status |
 | `enrichments` | Current alerts per location |
 | `active_enrichments` | Which enrichment features are enabled on the server |
 | `server` | Server status (version, uptime, budget usage, per-location poll state), only if the status coordinator is active |

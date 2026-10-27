@@ -5,7 +5,7 @@ using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Forecast.AirQuality;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Polling.Configuration;
 using Njord.Tests.Shared;
 
@@ -25,7 +25,7 @@ public sealed class PollingOptionsValidatorTests
             Options.Create(new FeatureRequirementsOptions
             {
                 Requirements = new DomainRequirements(
-                    Weather: WeatherParams.Temperature,
+                    Forecast: ForecastParams.Temperature,
                     AirQuality: AirQualityParams.Pm25,
                     Ensemble: hasEnsemble ? EnsembleParams.TemperatureSpread | EnsembleParams.Models : EnsembleParams.None),
                 WeatherModels = ["ecmwf_ifs025_ensemble_mean"],

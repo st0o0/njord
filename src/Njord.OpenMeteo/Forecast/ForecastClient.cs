@@ -4,12 +4,12 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Mapping;
 
-namespace Njord.OpenMeteo.Weather;
+namespace Njord.OpenMeteo.Forecast;
 
 public sealed class ForecastClient : IDomainClient
 {
@@ -21,16 +21,16 @@ public sealed class ForecastClient : IDomainClient
     private readonly IReadOnlyList<string> _variables;
     private readonly int _forecastDays;
 
-    public ForecastClient(HttpClient httpClient, IOptions<WeatherOptions> options, IOptions<SolarYieldOptions> solar, IOptions<FeatureRequirementsOptions> requirements, ILogger<ForecastClient> logger)
+    public ForecastClient(HttpClient httpClient, IOptions<ForecastOptions> options, IOptions<SolarYieldOptions> solar, IOptions<FeatureRequirementsOptions> requirements, ILogger<ForecastClient> logger)
     {
         _httpClient = httpClient;
         _solar = solar.Value;
-        _variables = requirements.Value.Requirements.AllWeather.ToApiNames();
+        _variables = requirements.Value.Requirements.AllForecast.ToApiNames();
         _forecastDays = Math.Min(options.Value.ForecastDays, MaxForecastDays);
         CallWeight = Core.Polling.CallWeight.Of(_variables.Count, _forecastDays);
     }
 
-    public DomainKind Domain => DomainKind.Weather;
+    public DomainKind Domain => DomainKind.Forecast;
 
     public int CallWeight { get; }
 
@@ -41,7 +41,7 @@ public sealed class ForecastClient : IDomainClient
             (ClientRequest.Hourly, ClientRequest.List(_variables)),
             (ClientRequest.WindSpeedUnit, ClientRequest.MetersPerSecond),
         };
-        if (_variables.Contains(WeatherApiVariable.GlobalTiltedIrradiance.ToApiName()))
+        if (_variables.Contains(ForecastApiVariable.GlobalTiltedIrradiance.ToApiName()))
         {
             query.Add((ClientRequest.Tilt, ClientRequest.Number(_solar.Tilt)));
             query.Add((ClientRequest.Azimuth, ClientRequest.Number(ClientRequest.ToApiAzimuth(_solar.Azimuth))));
@@ -50,12 +50,12 @@ public sealed class ForecastClient : IDomainClient
         query.Add((ClientRequest.ForecastDays, ClientRequest.Number(_forecastDays)));
         var uri = ClientRequest.Uri(OpenMeteoEndpoints.ForecastPath, latitude, longitude, [.. query]);
         return ClientRequest.ExecuteResultAsync(
-            () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.WeatherResponse, cancellationToken),
+            () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.ForecastResponse, cancellationToken),
             response => ToSuccess(response.ToModelForecasts(now, BestMatch)),
             cancellationToken);
     }
 
-    private static FetchResult ToSuccess(System.Collections.Immutable.ImmutableDictionary<string, DomainForecast<WeatherPoint>> forecasts)
+    private static FetchResult ToSuccess(System.Collections.Immutable.ImmutableDictionary<string, DomainForecast<ForecastPoint>> forecasts)
     {
         if (!forecasts.TryGetValue(BestMatch, out var primary))
         {

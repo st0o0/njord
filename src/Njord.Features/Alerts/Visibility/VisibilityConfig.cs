@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.Visibility;
 
 public sealed class VisibilityConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Weather:Visibility";
+    private const string SectionName = "Njord:Features:Forecast:Visibility";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
     public double[]? Thresholds { get; set; }

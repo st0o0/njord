@@ -8,10 +8,10 @@ For full descriptions, configuration examples, and automation ideas for all 53 f
 
 | Alert group | Domains | Rules |
 |-------------|---------|-------|
-| Weather alerts | Weather (+ Ensemble for 9 alerts) | 20 alerts (below) |
-| Air quality alerts | Air Quality (+ Weather for SmogRisk, PollenBlast) | Pollen, PM2.5, Dust, SmogRisk, PollenBlast |
-| Flood alerts | Flood (+ Weather for FloodRain) | FloodRisk, FloodRain |
-| Marine alerts | Marine (+ Weather for CoastalFlood) | Swimming, CoastalFlood |
+| Weather alerts | Forecast (+ Ensemble for 9 alerts) | 20 alerts (below) |
+| Air quality alerts | Air Quality (+ Forecast for SmogRisk, PollenBlast) | Pollen, PM2.5, Dust, SmogRisk, PollenBlast |
+| Flood alerts | Flood (+ Forecast for FloodRain) | FloodRisk, FloodRain |
+| Marine alerts | Marine (+ Forecast for CoastalFlood) | Swimming, CoastalFlood |
 
 Thresholds below apply to the weather alerts; the Pollen and PM2.5 rules use fixed thresholds.
 
@@ -89,9 +89,9 @@ Evaluated on the Flood forecast for the next seven days.
 | FloodRisk | Flood | Discharge above twice the historical median | Yellow |
 | | | Discharge above P75 | Orange |
 | | | Discharge above the historical maximum | Red |
-| FloodRain | Flood + Weather | At least 30 mm forecast rain in 24 h, discharge rising and above the median | Orange (Red when above P75) |
+| FloodRain | Flood + Forecast | At least 30 mm forecast rain in 24 h, discharge rising and above the median | Orange (Red when above P75) |
 
-FloodRain is the cross-domain example: it re-evaluates when either the Weather or the Flood domain is updated.
+FloodRain is the cross-domain example: it re-evaluates when either the Forecast or the Flood domain is updated.
 
 ### Flood ensemble
 
@@ -103,8 +103,8 @@ Cost: an ensemble flood request is budgeted with a call weight of 5 (50 members 
 
 | Feature | Domains | What it does |
 |---------|---------|-------------|
-| **SmogRisk** | Weather + Air Quality | Warns when a shallow atmospheric boundary layer (<500 m) traps fine particles. Combines boundary layer height from the weather forecast with PM2.5 from the air quality forecast. |
-| **PollenBlast** | Weather + Air Quality | Predicts pollen explosions: after a rainy period, warm and dry weather with wind causes a sudden burst of pollen release. Uses 8 polls of history to detect the transition. |
+| **SmogRisk** | Forecast + Air Quality | Warns when a shallow atmospheric boundary layer (<500 m) traps fine particles. Combines boundary layer height from the weather forecast with PM2.5 from the air quality forecast. |
+| **PollenBlast** | Forecast + Air Quality | Predicts pollen explosions: after a rainy period, warm and dry weather with wind causes a sudden burst of pollen release. Uses 8 polls of history to detect the transition. |
 | **RagweedPollen** | Air Quality | Ragweed pollen concentration sensor, relevant for North America and Eastern Europe. Follows the same pattern as birch, grass, alder and mugwort pollen. |
 | **GranularAqi** | Air Quality | Exposes five per-pollutant European AQI sub-indices (PM2.5, PM10, NO2, ozone, SO2). More specific than the overall AQI. |
 
@@ -112,25 +112,25 @@ Cost: an ensemble flood request is budgeted with a call weight of 5 (50 members 
 
 | Feature | Domains | What it does |
 |---------|---------|-------------|
-| **Surf** | Weather + Marine | Rates surf conditions from swell height, period and wind direction. Swell-only when wind data is absent. |
+| **Surf** | Forecast + Marine | Rates surf conditions from swell height, period and wind direction. Swell-only when wind data is absent. |
 | **OceanCurrents** | Marine | Reports ocean current speed and direction. Highlights strong currents above the configurable threshold (default 3 km/h). |
-| **CoastalFlood** | Marine + Weather + Ensemble | Storm surge risk: combines sea level deviation above normal with high waves and onshore wind. Three severity levels with ensemble confidence. |
+| **CoastalFlood** | Marine + Forecast + Ensemble | Storm surge risk: combines sea level deviation above normal with high waves and onshore wind. Three severity levels with ensemble confidence. |
 
 ## Lifestyle and gardening
 
 | Feature | Domains | What it does |
 |---------|---------|-------------|
-| **SoilMoisture** | Weather | Reports soil moisture at the surface: dry (<0.15 m3/m3), optimal, or wet (>0.35). Helps you decide when to water or when to stay off the lawn. |
-| **Evapotranspiration** | Weather | Shows how much water plants lose per day (mm). Low (<2 mm) means minimal watering, high (>5 mm) means irrigation is needed. |
-| **GrowingDegree** | Weather | Accumulates Growing Degree Days above a base temperature (default 5 °C). A planning tool for agriculture and gardening: track warmth accumulation over the forecast window. |
+| **SoilMoisture** | Forecast | Reports soil moisture at the surface: dry (<0.15 m3/m3), optimal, or wet (>0.35). Helps you decide when to water or when to stay off the lawn. |
+| **Evapotranspiration** | Forecast | Shows how much water plants lose per day (mm). Low (<2 mm) means minimal watering, high (>5 mm) means irrigation is needed. |
+| **GrowingDegree** | Forecast | Accumulates Growing Degree Days above a base temperature (default 5 °C). A planning tool for agriculture and gardening: track warmth accumulation over the forecast window. |
 
 ## Energy features
 
 | Feature | Domains | What it does |
 |---------|---------|-------------|
-| **SolarYield** | Weather | Expected solar yield from the tilted panel irradiance forecast. Configure panel tilt and azimuth under `Njord:SolarYield`. |
+| **SolarYield** | Forecast | Expected solar yield from the tilted panel irradiance forecast. Configure panel tilt and azimuth under `Njord:SolarYield`. |
 | **SatelliteRadiation** | Satellite | Observed solar irradiance from satellite, blended with the ensemble forecast for hours ahead. |
-| **ElevatedWind** | Weather | 80 m and 120 m hub-height wind speed and direction for wind energy monitoring. Exposed as HA sensors. |
+| **ElevatedWind** | Forecast | 80 m and 120 m hub-height wind speed and direction for wind energy monitoring. Exposed as HA sensors. |
 
 ## Wire exposure
 

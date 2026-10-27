@@ -31,7 +31,7 @@ Njord__Features__Marine__Swimming__Enabled: "true"
 Reports surf conditions from swell wave height, swell period, and wind direction. Longer swell periods with moderate height and offshore (or light) wind produce the best surfing conditions.
 
 **Entity:** `sensor.<location>_surf_conditions`
-**Domains:** Weather + Marine | **Default:** Off
+**Domains:** Forecast + Marine | **Default:** Off
 
 ```yaml
 Njord__Features__Marine__Surf__Enabled: "true"

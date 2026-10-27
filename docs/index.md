@@ -20,7 +20,7 @@ features:
   - title: Native Home Assistant integration
     details: The ha-njord custom integration streams domain data and enrichments over gRPC, so entities update as soon as a poll cycle is processed.
   - title: Seven domains per location
-    details: "Weather (high-resolution deterministic forecast), Ensemble (confidence and model comparison), Air Quality (PM2.5, ozone, pollen), Flood (river discharge), Marine (waves, currents), Seasonal (monthly outlook) and Satellite (observed solar irradiance)."
+    details: "Forecast (high-resolution deterministic), Ensemble (confidence and model comparison), Air Quality (PM2.5, ozone, pollen), Flood (river discharge), Marine (waves, currents), Seasonal (monthly outlook) and Satellite (observed solar irradiance)."
   - title: 53 features across all domains
     details: "20 weather alerts with ensemble confidence, air quality and pollen alerts, flood and coastal flood warnings, fire risk, smog detection, lifestyle scores (BBQ, laundry, exercise, commute), gardening tools (soil moisture, evapotranspiration, growing degrees), energy monitoring (solar yield, hub-height wind) and more."
   - title: Feature-driven configuration

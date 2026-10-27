@@ -14,27 +14,27 @@ public sealed class GrpcConsumerStateTests
     [Fact]
     public void Weather_data_is_kept_separately_per_model()
     {
-        var primary = new PipelineEvent.WeatherDataReceived(Lucerne, DomainData.Weather(Anchor, 2));
-        var secondary = new PipelineEvent.WeatherDataReceived(Lucerne, DomainData.Weather(Anchor, 3), "ukmo_global_ensemble_mean_20km");
+        var primary = new PipelineEvent.ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor, 2));
+        var secondary = new PipelineEvent.ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor, 3), "ukmo_global_ensemble_mean_20km");
 
         var state = GrpcConsumerState.Empty.Apply(primary).Apply(secondary);
 
         Assert.Multiple(
-            () => Assert.Equal(primary, state.GetDomainData(Lucerne, DomainKind.Weather)),
-            () => Assert.Equal(secondary, state.GetDomainData(Lucerne, DomainKind.Weather, "ukmo_global_ensemble_mean_20km")));
+            () => Assert.Equal(primary, state.GetDomainData(Lucerne, DomainKind.Forecast)),
+            () => Assert.Equal(secondary, state.GetDomainData(Lucerne, DomainKind.Forecast, "ukmo_global_ensemble_mean_20km")));
     }
 
     [Fact]
     public void Domain_data_is_kept_as_the_latest_event_per_location_and_domain()
     {
-        var older = new PipelineEvent.WeatherDataReceived(Lucerne, DomainData.Weather(Anchor, 2));
-        var newer = new PipelineEvent.WeatherDataReceived(Lucerne, DomainData.Weather(Anchor.AddHours(1), 2));
+        var older = new PipelineEvent.ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor, 2));
+        var newer = new PipelineEvent.ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor.AddHours(1), 2));
         var flood = new PipelineEvent.FloodDataReceived(Lucerne, DomainData.Flood(Anchor));
 
         var state = GrpcConsumerState.Empty.Apply(older).Apply(flood).Apply(newer);
 
         Assert.Multiple(
-            () => Assert.Equal(newer, state.GetDomainData(Lucerne, DomainKind.Weather)),
+            () => Assert.Equal(newer, state.GetDomainData(Lucerne, DomainKind.Forecast)),
             () => Assert.Equal(flood, state.GetDomainData(Lucerne, DomainKind.Flood)));
     }
 
@@ -56,10 +56,10 @@ public sealed class GrpcConsumerStateTests
     public void Domain_data_of_another_location_or_domain_is_not_available()
     {
         var state = GrpcConsumerState.Empty.Apply(
-            new PipelineEvent.WeatherDataReceived(Lucerne, DomainData.Weather(Anchor, 2)));
+            new PipelineEvent.ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor, 2)));
 
         Assert.Multiple(
-            () => Assert.Null(state.GetDomainData(DomainData.Bern, DomainKind.Weather)),
+            () => Assert.Null(state.GetDomainData(DomainData.Bern, DomainKind.Forecast)),
             () => Assert.Null(state.GetDomainData(Lucerne, DomainKind.Marine)));
     }
 

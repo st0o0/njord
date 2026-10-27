@@ -1,11 +1,11 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.Gardening;
 
-public sealed class Gardening(IOptions<GardeningConfig> config) : FeatureRule<WeatherInput>
+public sealed class Gardening(IOptions<GardeningConfig> config) : FeatureRule<ForecastInput>
 {
     public const double FrostTemperature = 2.0;
     public const double RainThreshold = 2.0;
@@ -16,17 +16,17 @@ public sealed class Gardening(IOptions<GardeningConfig> config) : FeatureRule<We
         FeatureCategory.Lifestyle,
         Name: "Gardening",
         DefaultEnabled: false,
-        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.WindSpeed | WeatherParams.Precipitation));
+        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.WindSpeed | ForecastParams.Precipitation));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override ForecastInput? Project(LocationForecast forecast) =>
+        forecast.Forecast is { } w ? new(w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var day = ctx.Current.Weather.NextHours(ctx.Now);
-        var twoDays = ctx.Current.Weather.NextHours(ctx.Now, 48);
+        var day = ctx.Current.Forecast.NextHours(ctx.Now);
+        var twoDays = ctx.Current.Forecast.NextHours(ctx.Now, 48);
         if (day.Count == 0)
         {
             return null;

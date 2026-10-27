@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.Uv;
 
 public sealed class UvConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Weather:Uv";
+    private const string SectionName = "Njord:Features:Forecast:Uv";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
 }

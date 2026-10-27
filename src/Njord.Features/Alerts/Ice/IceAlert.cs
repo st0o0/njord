@@ -1,30 +1,30 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.Ice;
 
-public sealed class IceAlert(IOptions<IceConfig> config) : FeatureRule<WeatherEnsembleInput>
+public sealed class IceAlert(IOptions<IceConfig> config) : FeatureRule<ForecastEnsembleInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
-        FeatureCategory.Weather,
+        FeatureCategory.Forecast,
         Name: "Ice",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.Precipitation,
-            OptionalWeather: WeatherParams.Rain | WeatherParams.SoilTemperature,
+        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.Precipitation,
+            OptionalForecast: ForecastParams.Rain | ForecastParams.SoilTemperature,
             Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
+    protected override ForecastEnsembleInput? Project(LocationForecast forecast) =>
+        forecast is { Forecast: { } w, Ensemble: { } e } ? new(w, e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
-        var icy = ctx.Current.Weather.NextHoursInclusive(ctx.Now)
+        var icy = ctx.Current.Forecast.NextHoursInclusive(ctx.Now)
             .Where(p => (p.Rain ?? p.Precipitation) > 0 && p.Temperature <= config.Value.Threshold)
             .ToList();
         if (icy.MinBy(p => p.Temperature) is not { Temperature: { } minTemp } coldest)

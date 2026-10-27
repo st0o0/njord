@@ -21,7 +21,7 @@ public sealed class NjordTestHost : IAsyncDisposable
     private NjordTestHost(WebApplication app, FakeForecastClient weather, FakeAirQualityClient airQuality, FakeFloodClient flood, FakeMarineClient marine, string dataDirectory)
     {
         App = app;
-        Weather = weather;
+        Forecast = weather;
         AirQuality = airQuality;
         Flood = flood;
         Marine = marine;
@@ -32,7 +32,7 @@ public sealed class NjordTestHost : IAsyncDisposable
 
     public WebApplication App { get; }
 
-    public FakeForecastClient Weather { get; }
+    public FakeForecastClient Forecast { get; }
 
     public FakeAirQualityClient AirQuality { get; }
 
@@ -88,7 +88,7 @@ public sealed class NjordTestHost : IAsyncDisposable
                 b.Services.RemoveAll<IReadOnlyDictionary<DomainKind, IDomainClient>>();
                 b.Services.AddSingleton<IReadOnlyDictionary<DomainKind, IDomainClient>>(new Dictionary<DomainKind, IDomainClient>
                 {
-                    [DomainKind.Weather] = weather,
+                    [DomainKind.Forecast] = weather,
                     [DomainKind.Ensemble] = ensemble,
                     [DomainKind.AirQuality] = airQuality,
                     [DomainKind.Flood] = flood,

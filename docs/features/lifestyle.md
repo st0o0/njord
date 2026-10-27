@@ -7,7 +7,7 @@ Lifestyle features help you make daily decisions -- from commuting to gardening 
 Rates how safe and comfortable your commute will be based on rain, wind, temperature, humidity, and ice risk. The result is a score from 0 (dangerous) to 100 (perfect conditions).
 
 **Entity:** `sensor.<location>_commute_safety` (score 0--100)
-**Domains:** Weather | **Default:** On
+**Domains:** Forecast | **Default:** On
 
 **Automation ideas:**
 - Morning TTS announcement: "Commute safety is 45 -- take extra care on the road"
@@ -21,7 +21,7 @@ Rates how safe and comfortable your commute will be based on rain, wind, tempera
 Advises whether outdoor exercise is safe, considering heat stress, humidity, air quality (PM2.5 and ozone), and UV exposure. Reports a recommendation: ideal, moderate, caution, or avoid.
 
 **Entity:** `sensor.<location>_exercise`
-**Domains:** Weather + AirQuality | **Default:** Off
+**Domains:** Forecast + AirQuality | **Default:** Off
 
 ```yaml
 Njord__Features__Lifestyle__Exercise__Enabled: "true"
@@ -39,7 +39,7 @@ Njord__Features__Lifestyle__Exercise__Enabled: "true"
 Scores how well your laundry will dry outdoors today (0--100). Considers temperature, wind, humidity, sunshine, rain probability, and cloud cover. A score above 70 means good drying conditions.
 
 **Entity:** `sensor.<location>_laundry` (score 0--100)
-**Domains:** Weather | **Default:** Off
+**Domains:** Forecast | **Default:** Off
 
 ```yaml
 Njord__Features__Lifestyle__Laundry__Enabled: "true"
@@ -56,7 +56,7 @@ Njord__Features__Lifestyle__Laundry__Enabled: "true"
 An overall outdoor activity score (0--100) combining temperature, wind, rain, cloud cover, UV, and air quality. Think of it as "how pleasant is it outside right now?"
 
 **Entity:** `sensor.<location>_outdoor` (score 0--100)
-**Domains:** Weather + AirQuality | **Default:** Off
+**Domains:** Forecast + AirQuality | **Default:** Off
 
 ```yaml
 Njord__Features__Lifestyle__Outdoor__Enabled: "true"
@@ -69,7 +69,7 @@ Njord__Features__Lifestyle__Outdoor__Enabled: "true"
 Scores barbecue weather (0--100). Considers temperature (warm enough?), wind (grill management), rain probability, and cloud cover. A score above 70 means fire up the grill.
 
 **Entity:** `sensor.<location>_bbq` (score 0--100)
-**Domains:** Weather | **Default:** Off
+**Domains:** Forecast | **Default:** Off
 
 ```yaml
 Njord__Features__Lifestyle__Bbq__Enabled: "true"
@@ -86,7 +86,7 @@ Njord__Features__Lifestyle__Bbq__Enabled: "true"
 Advises when nighttime temperatures are cool enough to ventilate your home for passive cooling. Useful in summer when you want to avoid air conditioning.
 
 **Entity:** `binary_sensor.<location>_night_ventilation`
-**Domains:** Weather | **Default:** Off
+**Domains:** Forecast | **Default:** Off
 
 ```yaml
 Njord__Features__Lifestyle__NightVentilation__Enabled: "true"
@@ -103,7 +103,7 @@ Njord__Features__Lifestyle__NightVentilation__Enabled: "true"
 Finds the best time window to air out rooms, considering temperature, rain, PM2.5, and pollen. Avoids recommending ventilation during high-pollen or high-pollution periods.
 
 **Entity:** `binary_sensor.<location>_ventilation_window`
-**Domains:** Weather + AirQuality | **Default:** Off
+**Domains:** Forecast + AirQuality | **Default:** Off
 
 ```yaml
 Njord__Features__Lifestyle__Ventilation__Enabled: "true"
@@ -120,7 +120,7 @@ Njord__Features__Lifestyle__Ventilation__Enabled: "true"
 Advises on gardening conditions based on temperature (not too hot, not freezing), wind (not too strong for delicate plants), and rain (save the watering).
 
 **Entity:** `binary_sensor.<location>_planting_safe`
-**Domains:** Weather | **Default:** Off
+**Domains:** Forecast | **Default:** Off
 
 ```yaml
 Njord__Features__Lifestyle__Gardening__Enabled: "true"
@@ -143,7 +143,7 @@ Reports the topsoil (0--1 cm) moisture status. Tells you whether the ground is t
 | Wet | > 0.35 m3/m3 | Too wet, avoid foot traffic |
 
 **Entity:** `sensor.<location>_soil_moisture`
-**Domains:** Weather | **Default:** Off
+**Domains:** Forecast | **Default:** Off
 
 ```yaml
 Njord__Features__Lifestyle__SoilMoisture__Enabled: "true"
@@ -169,7 +169,7 @@ Reports daily water loss from the ground through evaporation and plant transpira
 | High | > 5 mm | Heavy irrigation needed |
 
 **Entity:** `sensor.<location>_evapotranspiration`
-**Domains:** Weather | **Default:** Off
+**Domains:** Forecast | **Default:** Off
 
 ```yaml
 Njord__Features__Lifestyle__Evapotranspiration__Enabled: "true"
@@ -196,14 +196,14 @@ Reports snow accumulation depth. Useful for winter road maintenance, ski conditi
 | Extreme | > 50 cm | Exceptional accumulation |
 
 **Entity:** `sensor.<location>_snow_depth_watch`
-**Domains:** Weather | **Default:** Off
+**Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Weather__SnowDepthWatch__Enabled: "true"
-Njord__Features__Weather__SnowDepthWatch__LightThreshold: "2"
-Njord__Features__Weather__SnowDepthWatch__ModerateThreshold: "10"
-Njord__Features__Weather__SnowDepthWatch__HeavyThreshold: "25"
-Njord__Features__Weather__SnowDepthWatch__ExtremeThreshold: "50"
+Njord__Features__Forecast__SnowDepthWatch__Enabled: "true"
+Njord__Features__Forecast__SnowDepthWatch__LightThreshold: "2"
+Njord__Features__Forecast__SnowDepthWatch__ModerateThreshold: "10"
+Njord__Features__Forecast__SnowDepthWatch__HeavyThreshold: "25"
+Njord__Features__Forecast__SnowDepthWatch__ExtremeThreshold: "50"
 ```
 
 **Automation ideas:**
@@ -217,7 +217,7 @@ Njord__Features__Weather__SnowDepthWatch__ExtremeThreshold: "50"
 Reports wind speed and direction at 80 m and 120 m hub height -- the altitudes where wind turbines operate. Useful for monitoring small wind installations or assessing wind energy potential.
 
 **Entity:** `sensor.<location>_elevated_wind`
-**Domains:** Weather | **Default:** Off
+**Domains:** Forecast | **Default:** Off
 
 ```yaml
 Njord__Features__Energy__ElevatedWind__Enabled: "true"

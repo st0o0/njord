@@ -4,7 +4,7 @@ using Njord.Core.Domain;
 using Njord.Features.Alerts.Frost;
 using Njord.Forecast;
 using Njord.Forecast.Flood;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -15,64 +15,64 @@ public sealed class FeatureEngineTests
 {
     private static readonly DateTimeOffset Start = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
 
-    private sealed record Seen(WeatherInput Current, IReadOnlyList<WeatherInput> History);
+    private sealed record Seen(ForecastInput Current, IReadOnlyList<ForecastInput> History);
 
     private sealed record ProbeResult(Location Location) : FeatureResult(Location);
 
     private sealed class RecordingRule(DomainRequirements requirements, int pollDepth = 0, bool enabled = true)
-        : FeatureRule<WeatherInput>
+        : FeatureRule<ForecastInput>
     {
         public List<Seen> Calls { get; } = [];
 
         public override FeatureDescriptor Descriptor { get; } =
-            new(OutputKind.Alert, FeatureCategory.Weather, "Test", true, requirements, PollDepth: pollDepth);
+            new(OutputKind.Alert, FeatureCategory.Forecast, "Test", true, requirements, PollDepth: pollDepth);
 
         public override bool Enabled => enabled;
 
-        protected override WeatherInput? Project(LocationForecast forecast) =>
-            forecast.Weather is { } w ? new(w) : null;
+        protected override ForecastInput? Project(LocationForecast forecast) =>
+            forecast.Forecast is { } w ? new(w) : null;
 
-        protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+        protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
         {
             Calls.Add(new Seen(ctx.Current, [.. ctx.History]));
             return new ProbeResult(ctx.Location);
         }
     }
 
-    private static DomainRequirements Temperature => new(Weather: WeatherParams.Temperature);
+    private static DomainRequirements Temperature => new(Forecast: ForecastParams.Temperature);
 
     private static FeatureEngine Engine(params IFeatureRule[] rules) =>
         new(rules, new FakeTimeProvider(Start));
 
-    private static double? TemperatureOf(WeatherInput input) => input.Weather.Points[0].Temperature;
+    private static double? TemperatureOf(ForecastInput input) => input.Forecast.Points[0].Temperature;
 
-    private static DomainDataReceived Weather(Location location, double temperature) =>
-        DomainData.Received(location, DomainData.Weather(Start, 4, (_, p) => p with { Temperature = temperature }));
+    private static DomainDataReceived Forecast(Location location, double temperature) =>
+        DomainData.Received(location, DomainData.Forecast(Start, 4, (_, p) => p with { Temperature = temperature }));
 
     [Fact]
     public void The_domain_event_comes_first_followed_by_the_feature_result()
     {
         var engine = Engine(new RecordingRule(Temperature));
 
-        var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
+        var events = engine.Process(Forecast(DomainData.Lucerne, 10.0));
 
         Assert.Equal(2, events.Count);
         Assert.Multiple(
-            () => Assert.IsType<PipelineEvent.WeatherDataReceived>(events[0]),
+            () => Assert.IsType<PipelineEvent.ForecastDataReceived>(events[0]),
             () => Assert.IsType<ProbeResult>(events[1]));
     }
 
-    private sealed class SilentRule : FeatureRule<WeatherInput>
+    private sealed class SilentRule : FeatureRule<ForecastInput>
     {
         public override FeatureDescriptor Descriptor { get; } =
-            new(OutputKind.Alert, FeatureCategory.Weather, "Silent", true, Temperature);
+            new(OutputKind.Alert, FeatureCategory.Forecast, "Silent", true, Temperature);
 
         public override bool Enabled => true;
 
-        protected override WeatherInput? Project(LocationForecast forecast) =>
-            forecast.Weather is { } w ? new(w) : null;
+        protected override ForecastInput? Project(LocationForecast forecast) =>
+            forecast.Forecast is { } w ? new(w) : null;
 
-        protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx) => null;
+        protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) => null;
     }
 
     [Fact]
@@ -80,9 +80,9 @@ public sealed class FeatureEngineTests
     {
         var engine = Engine(new SilentRule());
 
-        var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
+        var events = engine.Process(Forecast(DomainData.Lucerne, 10.0));
 
-        Assert.IsType<PipelineEvent.WeatherDataReceived>(Assert.Single(events));
+        Assert.IsType<PipelineEvent.ForecastDataReceived>(Assert.Single(events));
     }
 
     [Fact]
@@ -91,8 +91,8 @@ public sealed class FeatureEngineTests
         var rule = new RecordingRule(Temperature);
         var engine = Engine(rule);
 
-        engine.Process(Weather(DomainData.Lucerne, 10.0));
-        engine.Process(Weather(DomainData.Lucerne, 4.0));
+        engine.Process(Forecast(DomainData.Lucerne, 10.0));
+        engine.Process(Forecast(DomainData.Lucerne, 4.0));
 
         var last = rule.Calls[^1];
         Assert.Multiple(
@@ -107,8 +107,8 @@ public sealed class FeatureEngineTests
         var rule = new RecordingRule(Temperature, pollDepth: 1);
         var engine = Engine(rule);
 
-        engine.Process(Weather(DomainData.Lucerne, 10.0));
-        engine.Process(Weather(DomainData.Lucerne, 4.0));
+        engine.Process(Forecast(DomainData.Lucerne, 10.0));
+        engine.Process(Forecast(DomainData.Lucerne, 4.0));
 
         var last = rule.Calls[^1];
         Assert.Equal(2, last.History.Count);
@@ -124,9 +124,9 @@ public sealed class FeatureEngineTests
         var rule = new RecordingRule(Temperature, pollDepth: 1);
         var engine = Engine(rule);
 
-        engine.Process(Weather(DomainData.Lucerne, 10.0));
+        engine.Process(Forecast(DomainData.Lucerne, 10.0));
         engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Flood(Start)));
-        engine.Process(Weather(DomainData.Lucerne, 1.0));
+        engine.Process(Forecast(DomainData.Lucerne, 1.0));
 
         var last = rule.Calls[^1];
         Assert.Equal(1.0, TemperatureOf(last.Current));
@@ -139,9 +139,9 @@ public sealed class FeatureEngineTests
         var rule = new RecordingRule(Temperature, pollDepth: 1);
         var engine = Engine(rule);
 
-        engine.Process(Weather(DomainData.Lucerne, 10.0));
-        engine.Process(Weather(DomainData.Bern, 2.0));
-        engine.Process(Weather(DomainData.Lucerne with { Name = "LUCERNE" }, 5.0));
+        engine.Process(Forecast(DomainData.Lucerne, 10.0));
+        engine.Process(Forecast(DomainData.Bern, 2.0));
+        engine.Process(Forecast(DomainData.Lucerne with { Name = "LUCERNE" }, 5.0));
 
         Assert.Multiple(
             () => Assert.Single(rule.Calls[1].History),
@@ -156,7 +156,7 @@ public sealed class FeatureEngineTests
         var flood = new RecordingRule(new DomainRequirements(Flood: FloodParams.Discharge));
         var engine = Engine(weather, flood);
 
-        engine.Process(Weather(DomainData.Lucerne, 10.0));
+        engine.Process(Forecast(DomainData.Lucerne, 10.0));
 
         Assert.Multiple(
             () => Assert.Single(weather.Calls),
@@ -167,10 +167,10 @@ public sealed class FeatureEngineTests
     public void A_rule_whose_optional_field_is_missing_still_runs()
     {
         var rule = new RecordingRule(new DomainRequirements(
-            Weather: WeatherParams.Temperature, OptionalWeather: WeatherParams.ShortwaveRadiation));
+            Forecast: ForecastParams.Temperature, OptionalForecast: ForecastParams.ShortwaveRadiation));
         var engine = Engine(rule);
 
-        var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
+        var events = engine.Process(Forecast(DomainData.Lucerne, 10.0));
 
         Assert.Multiple(
             () => Assert.Single(rule.Calls),
@@ -181,14 +181,14 @@ public sealed class FeatureEngineTests
     public void A_rule_whose_required_field_is_missing_is_skipped_and_emits_nothing()
     {
         var rule = new RecordingRule(new DomainRequirements(
-            Weather: WeatherParams.Temperature | WeatherParams.ShortwaveRadiation));
+            Forecast: ForecastParams.Temperature | ForecastParams.ShortwaveRadiation));
         var engine = Engine(rule);
 
-        var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
+        var events = engine.Process(Forecast(DomainData.Lucerne, 10.0));
 
         Assert.Multiple(
             () => Assert.Empty(rule.Calls),
-            () => Assert.IsType<PipelineEvent.WeatherDataReceived>(Assert.Single(events)));
+            () => Assert.IsType<PipelineEvent.ForecastDataReceived>(Assert.Single(events)));
     }
 
     [Fact]
@@ -198,7 +198,7 @@ public sealed class FeatureEngineTests
         var engine = Engine(rule);
 
         var events = engine.Process(
-            DomainData.Received(DomainData.Lucerne, DomainData.Weather(Start, 4, (_, p) => p with { Temperature = 10.0, WeatherCode = null })));
+            DomainData.Received(DomainData.Lucerne, DomainData.Forecast(Start, 4, (_, p) => p with { Temperature = 10.0, WeatherCode = null })));
 
         Assert.Multiple(
             () => Assert.Single(rule.Calls),
@@ -208,11 +208,11 @@ public sealed class FeatureEngineTests
     [Fact]
     public void Other_rules_still_run_when_one_is_skipped()
     {
-        var skipped = new RecordingRule(new DomainRequirements(Weather: WeatherParams.ShortwaveRadiation));
+        var skipped = new RecordingRule(new DomainRequirements(Forecast: ForecastParams.ShortwaveRadiation));
         var running = new RecordingRule(Temperature);
         var engine = Engine(skipped, running);
 
-        var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
+        var events = engine.Process(Forecast(DomainData.Lucerne, 10.0));
 
         Assert.Multiple(
             () => Assert.Empty(skipped.Calls),
@@ -224,10 +224,10 @@ public sealed class FeatureEngineTests
     public void A_rule_requiring_a_domain_that_was_not_fetched_waits_for_it()
     {
         var rule = new RecordingRule(new DomainRequirements(
-            Weather: WeatherParams.Temperature, Flood: FloodParams.Discharge));
+            Forecast: ForecastParams.Temperature, Flood: FloodParams.Discharge));
         var engine = Engine(rule);
 
-        engine.Process(Weather(DomainData.Lucerne, 10.0));
+        engine.Process(Forecast(DomainData.Lucerne, 10.0));
         Assert.Empty(rule.Calls);
 
         engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Flood(Start)));
@@ -240,7 +240,7 @@ public sealed class FeatureEngineTests
         var rule = new RecordingRule(Temperature, enabled: false);
         var engine = Engine(rule);
 
-        var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
+        var events = engine.Process(Forecast(DomainData.Lucerne, 10.0));
 
         Assert.Multiple(
             () => Assert.Empty(rule.Calls),
@@ -251,11 +251,11 @@ public sealed class FeatureEngineTests
     public void The_requirements_are_the_union_of_the_enabled_rules()
     {
         var engine = Engine(
-            new RecordingRule(new DomainRequirements(Weather: WeatherParams.Temperature)),
-            new RecordingRule(new DomainRequirements(Weather: WeatherParams.WindSpeed)),
-            new RecordingRule(new DomainRequirements(Weather: WeatherParams.ShortwaveRadiation), enabled: false));
+            new RecordingRule(new DomainRequirements(Forecast: ForecastParams.Temperature)),
+            new RecordingRule(new DomainRequirements(Forecast: ForecastParams.WindSpeed)),
+            new RecordingRule(new DomainRequirements(Forecast: ForecastParams.ShortwaveRadiation), enabled: false));
 
-        Assert.Equal(WeatherParams.Temperature | WeatherParams.WindSpeed, engine.Requirements.Weather);
+        Assert.Equal(ForecastParams.Temperature | ForecastParams.WindSpeed, engine.Requirements.Forecast);
     }
 
     [Fact]
@@ -265,28 +265,28 @@ public sealed class FeatureEngineTests
 
         engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Ensemble(Start)));
         var events = engine.Process(
-            DomainData.Received(DomainData.Lucerne, DomainData.Weather(Start, 48, (_, p) => p with { Temperature = -6.0 })));
+            DomainData.Received(DomainData.Lucerne, DomainData.Forecast(Start, 48, (_, p) => p with { Temperature = -6.0 })));
 
         Assert.Equal(2, events.Count);
-        Assert.IsType<PipelineEvent.WeatherDataReceived>(events[0]);
+        Assert.IsType<PipelineEvent.ForecastDataReceived>(events[0]);
         var frost = Assert.IsType<FrostAlertResult>(events[1]);
         Assert.Equal(AlertSeverity.Orange, frost.Severity);
     }
 
-    private sealed class EnsembleProbeRule : FeatureRule<WeatherEnsembleInput>
+    private sealed class EnsembleProbeRule : FeatureRule<ForecastEnsembleInput>
     {
-        public List<WeatherEnsembleInput> Calls { get; } = [];
+        public List<ForecastEnsembleInput> Calls { get; } = [];
 
         public override FeatureDescriptor Descriptor { get; } =
-            new(OutputKind.Alert, FeatureCategory.Weather, "EnsembleProbe", true,
-                new DomainRequirements(Weather: WeatherParams.Temperature, Ensemble: EnsembleParams.TemperatureSpread));
+            new(OutputKind.Alert, FeatureCategory.Forecast, "EnsembleProbe", true,
+                new DomainRequirements(Forecast: ForecastParams.Temperature, Ensemble: EnsembleParams.TemperatureSpread));
 
         public override bool Enabled => true;
 
-        protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
-            forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
+        protected override ForecastEnsembleInput? Project(LocationForecast forecast) =>
+            forecast is { Forecast: { } w, Ensemble: { } e } ? new(w, e) : null;
 
-        protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
+        protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
         {
             Calls.Add(ctx.Current);
             return new ProbeResult(ctx.Location);
@@ -299,7 +299,7 @@ public sealed class FeatureEngineTests
         var rule = new EnsembleProbeRule();
         var engine = Engine(rule);
 
-        engine.Process(Weather(DomainData.Lucerne, 10.0));
+        engine.Process(Forecast(DomainData.Lucerne, 10.0));
         Assert.Empty(rule.Calls);
 
         engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Ensemble(Start)));
@@ -313,7 +313,7 @@ public sealed class FeatureEngineTests
         var engine = Engine(rule);
 
         engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Ensemble(Start, temperatureSpread: 2.5)));
-        engine.Process(Weather(DomainData.Lucerne, 10.0));
+        engine.Process(Forecast(DomainData.Lucerne, 10.0));
 
         var call = Assert.Single(rule.Calls);
         Assert.Equal(2.5, call.Ensemble.Points[0].TemperatureSpread);
@@ -323,7 +323,7 @@ public sealed class FeatureEngineTests
     public void Data_that_does_not_match_its_domain_is_rejected()
     {
         var engine = Engine();
-        var mismatched = new DomainDataReceived(DomainData.Lucerne, DomainKind.Weather, DomainData.Flood(Start));
+        var mismatched = new DomainDataReceived(DomainData.Lucerne, DomainKind.Forecast, DomainData.Flood(Start));
 
         var ex = Assert.Throws<ArgumentException>(() => engine.Process(mismatched));
 
@@ -335,12 +335,12 @@ public sealed class FeatureEngineTests
         public List<ModelComparisonInput> Calls { get; } = [];
 
         public override FeatureDescriptor Descriptor { get; } =
-            new(OutputKind.Forecast, FeatureCategory.Weather, "Probe", true, new DomainRequirements(Weather: WeatherParams.Temperature));
+            new(OutputKind.Forecast, FeatureCategory.Forecast, "Probe", true, new DomainRequirements(Forecast: ForecastParams.Temperature));
 
         public override bool Enabled => true;
 
         protected override ModelComparisonInput? Project(LocationForecast forecast) =>
-            forecast.Weather is { } w ? new(w, forecast.Models) : null;
+            forecast.Forecast is { } w ? new(w, forecast.Models) : null;
 
         protected override PipelineEvent? Evaluate(FeatureContext<ModelComparisonInput> ctx)
         {
@@ -350,7 +350,7 @@ public sealed class FeatureEngineTests
     }
 
     private static DomainDataReceived ModelData(Location location, string modelId, double temperature) =>
-        DomainData.Received(location, DomainData.Weather(Start, 4, (_, p) => p with { Temperature = temperature })) with { ModelId = modelId };
+        DomainData.Received(location, DomainData.Forecast(Start, 4, (_, p) => p with { Temperature = temperature })) with { ModelId = modelId };
 
     [Fact]
     public void A_secondary_model_emits_its_data_event_but_runs_no_rule()
@@ -360,7 +360,7 @@ public sealed class FeatureEngineTests
 
         var events = engine.Process(ModelData(DomainData.Lucerne, "ukmo", 8.0));
 
-        var received = Assert.IsType<PipelineEvent.WeatherDataReceived>(Assert.Single(events));
+        var received = Assert.IsType<PipelineEvent.ForecastDataReceived>(Assert.Single(events));
         Assert.Multiple(
             () => Assert.Equal("ukmo", received.ModelId),
             () => Assert.Empty(rule.Calls));
@@ -374,13 +374,13 @@ public sealed class FeatureEngineTests
 
         engine.Process(ModelData(DomainData.Lucerne, "ukmo", 8.0));
         engine.Process(ModelData(DomainData.Lucerne, "ecmwf", 12.0));
-        var events = engine.Process(Weather(DomainData.Lucerne, 12.0));
+        var events = engine.Process(Forecast(DomainData.Lucerne, 12.0));
 
         var call = Assert.Single(rule.Calls);
         Assert.Multiple(
             () => Assert.Equal(["ecmwf", "ukmo"], call.Models.Keys.Order().ToArray()),
             () => Assert.Equal(8.0, call.Models["ukmo"].Points[0].Temperature),
-            () => Assert.Null(Assert.IsType<PipelineEvent.WeatherDataReceived>(events[0]).ModelId),
+            () => Assert.Null(Assert.IsType<PipelineEvent.ForecastDataReceived>(events[0]).ModelId),
             () => Assert.Contains(events, e => e is ProbeResult));
     }
 
@@ -391,8 +391,8 @@ public sealed class FeatureEngineTests
         var engine = Engine(rule);
 
         engine.Process(ModelData(DomainData.Lucerne, "ukmo", 8.0));
-        engine.Process(Weather(DomainData.Lucerne, 12.0));
-        engine.Process(Weather(DomainData.Lucerne, 13.0));
+        engine.Process(Forecast(DomainData.Lucerne, 12.0));
+        engine.Process(Forecast(DomainData.Lucerne, 13.0));
 
         Assert.Equal(2, rule.Calls.Count);
         Assert.Equal(["ukmo"], rule.Calls[1].Models.Keys);

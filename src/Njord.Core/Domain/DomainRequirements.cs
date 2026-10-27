@@ -1,19 +1,19 @@
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
 using Njord.Forecast.Seasonal;
 using Njord.Forecast.Solar;
-using Njord.Forecast.Weather;
 
 namespace Njord.Core.Domain;
 
 public readonly record struct DomainRequirements(
-    WeatherParams Weather = default,
+    ForecastParams Forecast = default,
     AirQualityParams AirQuality = default,
     FloodParams Flood = default,
     MarineParams Marine = default,
-    WeatherParams OptionalWeather = default,
+    ForecastParams OptionalForecast = default,
     AirQualityParams OptionalAirQuality = default,
     FloodParams OptionalFlood = default,
     MarineParams OptionalMarine = default,
@@ -24,7 +24,7 @@ public readonly record struct DomainRequirements(
     EnsembleParams Ensemble = default,
     EnsembleParams OptionalEnsemble = default)
 {
-    public WeatherParams AllWeather => Weather | OptionalWeather;
+    public ForecastParams AllForecast => Forecast | OptionalForecast;
 
     public AirQualityParams AllAirQuality => AirQuality | OptionalAirQuality;
 
@@ -39,11 +39,11 @@ public readonly record struct DomainRequirements(
     public EnsembleParams AllEnsemble => Ensemble | OptionalEnsemble;
 
     public static DomainRequirements operator |(DomainRequirements a, DomainRequirements b) => new(
-        a.Weather | b.Weather,
+        a.Forecast | b.Forecast,
         a.AirQuality | b.AirQuality,
         a.Flood | b.Flood,
         a.Marine | b.Marine,
-        a.OptionalWeather | b.OptionalWeather,
+        a.OptionalForecast | b.OptionalForecast,
         a.OptionalAirQuality | b.OptionalAirQuality,
         a.OptionalFlood | b.OptionalFlood,
         a.OptionalMarine | b.OptionalMarine,
@@ -56,7 +56,7 @@ public readonly record struct DomainRequirements(
 
     public bool Requires(DomainKind domain) => domain switch
     {
-        DomainKind.Weather => AllWeather != default,
+        DomainKind.Forecast => AllForecast != default,
         DomainKind.AirQuality => AllAirQuality != default,
         DomainKind.Flood => AllFlood != default,
         DomainKind.Marine => AllMarine != default,

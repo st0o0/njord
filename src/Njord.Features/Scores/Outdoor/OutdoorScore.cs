@@ -2,12 +2,12 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Shared;
 using Njord.Forecast.AirQuality;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Scores.Outdoor;
 
-public sealed class OutdoorScore(IOptions<OutdoorConfig> config) : FeatureRule<WeatherAqInput>
+public sealed class OutdoorScore(IOptions<OutdoorConfig> config) : FeatureRule<ForecastAqInput>
 {
     public const double GoodHourScore = 85.0;
 
@@ -17,21 +17,21 @@ public sealed class OutdoorScore(IOptions<OutdoorConfig> config) : FeatureRule<W
         Name: "Outdoor",
         DefaultEnabled: false,
         new DomainRequirements(
-        Weather: WeatherParams.Temperature | WeatherParams.Precipitation | WeatherParams.PrecipitationProbability
-            | WeatherParams.WindSpeed | WeatherParams.CloudCover,
+        Forecast: ForecastParams.Temperature | ForecastParams.Precipitation | ForecastParams.PrecipitationProbability
+            | ForecastParams.WindSpeed | ForecastParams.CloudCover,
         AirQuality: AirQualityParams.Pm25,
-        OptionalWeather: WeatherParams.UvIndex,
+        OptionalForecast: ForecastParams.UvIndex,
         OptionalAirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
             | AirQualityParams.Alder | AirQualityParams.Mugwort));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherAqInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w, AirQuality: { } aq } ? new(w, aq) : null;
+    protected override ForecastAqInput? Project(LocationForecast forecast) =>
+        forecast is { Forecast: { } w, AirQuality: { } aq } ? new(w, aq) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherAqInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastAqInput> ctx)
     {
-        var hours = ctx.Current.Weather.NextHours(ctx.Now)
+        var hours = ctx.Current.Forecast.NextHours(ctx.Now)
             .Select(point => (Point: point, Air: ForecastQueries.ValueAt(ctx.Current.AirQuality, point.ValidFrom)))
             .Where(pair => pair.Air is not null)
             .ToList();
@@ -44,7 +44,7 @@ public sealed class OutdoorScore(IOptions<OutdoorConfig> config) : FeatureRule<W
         return new OutdoorScoreResult(ctx.Location, score, hours[start].Point.ValidFrom, length);
     }
 
-    private static double ScoreHour(WeatherPoint weather, AirQualityPoint air)
+    private static double ScoreHour(ForecastPoint weather, AirQualityPoint air)
     {
         if (weather is not { Temperature: { } airTemperature, PrecipitationProbability: { } probability, WindSpeed: { } windSpeed, CloudCover: { } cloudCover }
             || air.Pm25 is not { } pm25)

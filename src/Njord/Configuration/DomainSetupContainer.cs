@@ -13,7 +13,7 @@ public sealed class DomainSetupContainer : IServiceSetupContainer
         services.AddFeatures();
 
         services.AddOptions<FeatureRequirementsOptions>()
-            .Configure<IEnumerable<IFeatureRule>, IOptions<WeatherOptions>>(
+            .Configure<IEnumerable<IFeatureRule>, IOptions<ForecastOptions>>(
                 static (options, features, weather) =>
                     FeatureResolution.Configure(options, features, weather.Value))
             .ValidateOnStart();

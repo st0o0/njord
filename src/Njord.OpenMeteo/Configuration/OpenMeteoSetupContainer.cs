@@ -14,12 +14,12 @@ using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Budget;
 using Njord.OpenMeteo.Ensemble;
 using Njord.OpenMeteo.Flood;
+using Njord.OpenMeteo.Forecast;
 using Njord.OpenMeteo.Gateway;
 using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Marine;
 using Njord.OpenMeteo.Satellite;
 using Njord.OpenMeteo.Seasonal;
-using Njord.OpenMeteo.Weather;
 using Servus.Akka;
 using Servus.Application.Startup;
 
@@ -29,7 +29,7 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddNjordOptions<WeatherOptions, OpenMeteoOptionsValidator>();
+        services.AddNjordOptions<ForecastOptions, OpenMeteoOptionsValidator>();
         services.AddNjordOptions<AirQualityOptions, OpenMeteoOptionsValidator>();
         services.AddNjordOptions<MarineOptions, OpenMeteoOptionsValidator>();
         services.AddNjordOptions<FloodOptions, OpenMeteoOptionsValidator>();

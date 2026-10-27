@@ -57,13 +57,13 @@ public sealed class GrpcChannelTests : IAsyncLifetime
 
         var forecast = await Eventually.ValueAsync(async () =>
         {
-            var response = await client.GetDomainDataAsync(new GetDomainDataRequest { Location = "luzern", Domain = Domain.Weather }, cancellationToken: ct);
-            return response.Weather?.Points.Count > 0 ? response : null;
+            var response = await client.GetDomainDataAsync(new GetDomainDataRequest { Location = "luzern", Domain = Domain.Forecast }, cancellationToken: ct);
+            return response.Forecast?.Points.Count > 0 ? response : null;
         }, ct);
 
         Assert.Multiple(
             () => Assert.Equal("luzern", forecast.Location),
-            () => Assert.Equal(Domain.Weather, forecast.Domain));
+            () => Assert.Equal(Domain.Forecast, forecast.Domain));
     }
 
     [Fact(Timeout = 30_000)]

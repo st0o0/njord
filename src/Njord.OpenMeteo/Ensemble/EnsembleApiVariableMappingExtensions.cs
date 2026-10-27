@@ -1,4 +1,4 @@
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 
 namespace Njord.OpenMeteo.Ensemble;
 

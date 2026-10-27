@@ -18,9 +18,9 @@ public sealed class MultiModelTests : IAsyncLifetime
             _directory.Path,
             settings =>
             {
-                settings["Njord:Weather:Models:0"] = Primary;
-                settings["Njord:Weather:Models:1"] = Secondary;
-                settings["Njord:Features:Weather:ModelComparison:Enabled"] = "true";
+                settings["Njord:Forecast:Models:0"] = Primary;
+                settings["Njord:Forecast:Models:1"] = Secondary;
+                settings["Njord:Features:Forecast:ModelComparison:Enabled"] = "true";
             },
             TestContext.Current.CancellationToken,
             [Primary, Secondary]);
@@ -43,16 +43,16 @@ public sealed class MultiModelTests : IAsyncLifetime
 
         var primary = await Eventually.ValueAsync(async () =>
         {
-            var response = await client.GetDomainDataAsync(new GetDomainDataRequest { Location = "luzern", Domain = Domain.Weather }, cancellationToken: ct);
-            return response.Weather?.Points.Count > 0 ? response : null;
+            var response = await client.GetDomainDataAsync(new GetDomainDataRequest { Location = "luzern", Domain = Domain.Forecast }, cancellationToken: ct);
+            return response.Forecast?.Points.Count > 0 ? response : null;
         }, ct);
         var secondary = await client.GetDomainDataAsync(
-            new GetDomainDataRequest { Location = "luzern", Domain = Domain.Weather, Model = Secondary }, cancellationToken: ct);
+            new GetDomainDataRequest { Location = "luzern", Domain = Domain.Forecast, Model = Secondary }, cancellationToken: ct);
         var unknown = await Assert.ThrowsAsync<global::Grpc.Core.RpcException>(async () =>
-            await client.GetDomainDataAsync(new GetDomainDataRequest { Location = "luzern", Domain = Domain.Weather, Model = "icon_d2" }, cancellationToken: ct));
+            await client.GetDomainDataAsync(new GetDomainDataRequest { Location = "luzern", Domain = Domain.Forecast, Model = "icon_d2" }, cancellationToken: ct));
 
         Assert.Multiple(
-            () => Assert.NotEqual(primary.Weather.Points[0].Temperature, secondary.Weather.Points[0].Temperature),
+            () => Assert.NotEqual(primary.Forecast.Points[0].Temperature, secondary.Forecast.Points[0].Temperature),
             () => Assert.Equal(global::Grpc.Core.StatusCode.NotFound, unknown.StatusCode));
     }
 }

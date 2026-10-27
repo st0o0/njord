@@ -1,12 +1,12 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Conditions.Shared;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.SolarYield;
 
-public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<WeatherSolarInput>
+public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<ForecastSolarInput>
 {
     public const double SystemEfficiency = 0.8;
 
@@ -15,16 +15,16 @@ public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<
         FeatureCategory.Energy,
         Name: "SolarYield",
         DefaultEnabled: false,
-        new DomainRequirements(Weather: WeatherParams.GlobalTiltedIrradiance));
+        new DomainRequirements(Forecast: ForecastParams.GlobalTiltedIrradiance));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherSolarInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w, forecast.Satellite!) : null;
+    protected override ForecastSolarInput? Project(LocationForecast forecast) =>
+        forecast.Forecast is { } w ? new(w, forecast.Satellite!) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherSolarInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastSolarInput> ctx)
     {
-        var locationForecast = new LocationForecast(ctx.Location, Weather: ctx.Current.Weather, Satellite: ctx.Current.Satellite);
+        var locationForecast = new LocationForecast(ctx.Location, Forecast: ctx.Current.Forecast, Satellite: ctx.Current.Satellite);
         var hours = SolarIrradianceBlend.Hours(locationForecast, ctx.Now, 24);
         if (hours.Count == 0)
         {

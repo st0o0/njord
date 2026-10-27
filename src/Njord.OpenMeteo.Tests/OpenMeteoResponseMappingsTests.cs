@@ -1,14 +1,14 @@
 using System.Text.Json;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
-using Njord.Forecast.Weather;
 using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Flood;
+using Njord.OpenMeteo.Forecast;
 using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Marine;
-using Njord.OpenMeteo.Weather;
 
 namespace Njord.OpenMeteo.Tests;
 
@@ -18,8 +18,8 @@ public sealed class OpenMeteoResponseMappingsTests
     private const long Hour0 = 1_783_771_200;
     private const string Model = "ecmwf_ifs025_ensemble_mean";
 
-    private static WeatherResponse ParseWeather(string json) =>
-        JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.WeatherResponse)!;
+    private static ForecastResponse ParseWeather(string json) =>
+        JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.ForecastResponse)!;
 
     [Fact]
     public void A_weather_response_maps_to_hourly_weather_points()
@@ -36,7 +36,7 @@ public sealed class OpenMeteoResponseMappingsTests
         var forecast = Assert.Single(forecasts).Value;
 
         Assert.Multiple(
-            () => Assert.Equal(DomainKind.Weather, forecast.Domain),
+            () => Assert.Equal(DomainKind.Forecast, forecast.Domain),
             () => Assert.Equal(TimeResolution.Hourly, forecast.Resolution),
             () => Assert.Equal(Run, forecast.ModelRun),
             () => Assert.Equal(2, forecast.Points.Length),

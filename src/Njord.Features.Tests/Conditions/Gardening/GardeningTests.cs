@@ -14,7 +14,7 @@ public sealed class GardeningTests
     [Fact]
     public void Frost_is_flagged_and_blocks_planting()
     {
-        var forecast = WeatherOnly(Day((hour, point) => hour == 5 ? point with { Temperature = -1.0 } : point));
+        var forecast = ForecastOnly(Day((hour, point) => hour == 5 ? point with { Temperature = -1.0 } : point));
 
         var advice = Assert.IsType<GardeningResult>(Run(Feature(), Now, forecast));
 
@@ -27,7 +27,7 @@ public sealed class GardeningTests
     [Fact]
     public void A_mild_dry_day_calls_for_planting_and_watering()
     {
-        var advice = Assert.IsType<GardeningResult>(Run(Feature(), Now, WeatherOnly(Day())));
+        var advice = Assert.IsType<GardeningResult>(Run(Feature(), Now, ForecastOnly(Day())));
 
         Assert.Multiple(
             () => Assert.False(advice.FrostRisk),
@@ -39,7 +39,7 @@ public sealed class GardeningTests
     [Fact]
     public void Expected_rain_skips_watering()
     {
-        var forecast = WeatherOnly(Day((hour, point) => hour == 2 ? point with { Precipitation = 5.0 } : point));
+        var forecast = ForecastOnly(Day((hour, point) => hour == 2 ? point with { Precipitation = 5.0 } : point));
 
         var advice = Assert.IsType<GardeningResult>(Run(Feature(), Now, forecast));
 

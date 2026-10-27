@@ -20,7 +20,7 @@ public sealed class GrowingDegreeTests
     public void Warm_day_accumulates_gdd()
     {
         var weather = Day((_, p) => p with { Temperature = 20.0 });
-        var result = Run(Rule(), Now, WeatherOnly(weather));
+        var result = Run(Rule(), Now, ForecastOnly(weather));
         Assert.NotNull(result);
         var gdd = Assert.IsType<GrowingDegreeResult>(result, exactMatch: false);
         Assert.True(gdd.CumulativeGdd > 0);
@@ -31,7 +31,7 @@ public sealed class GrowingDegreeTests
     public void Cold_day_accumulates_zero()
     {
         var weather = Day((_, p) => p with { Temperature = 2.0 });
-        var result = Run(Rule(), Now, WeatherOnly(weather));
+        var result = Run(Rule(), Now, ForecastOnly(weather));
         Assert.NotNull(result);
         var gdd = Assert.IsType<GrowingDegreeResult>(result, exactMatch: false);
         Assert.Equal(0, gdd.CumulativeGdd);
@@ -41,7 +41,7 @@ public sealed class GrowingDegreeTests
     public void Custom_base_temperature()
     {
         var weather = Day((_, p) => p with { Temperature = 12.0 });
-        var result = Run(Rule(baseTemp: 10.0), Now, WeatherOnly(weather));
+        var result = Run(Rule(baseTemp: 10.0), Now, ForecastOnly(weather));
         Assert.NotNull(result);
         var gdd = Assert.IsType<GrowingDegreeResult>(result, exactMatch: false);
         Assert.True(gdd.CumulativeGdd > 0);
@@ -51,7 +51,7 @@ public sealed class GrowingDegreeTests
     public void Multi_day_accumulation()
     {
         var weather = Hourly(48, (_, p) => p with { Temperature = 20.0 });
-        var result = Run(Rule(), Now, WeatherOnly(weather));
+        var result = Run(Rule(), Now, ForecastOnly(weather));
         Assert.NotNull(result);
         var gdd = Assert.IsType<GrowingDegreeResult>(result, exactMatch: false);
         Assert.True(gdd.Days.Length >= 2);

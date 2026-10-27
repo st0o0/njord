@@ -1,13 +1,13 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Conditions.Shared;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
-using Njord.Forecast.Weather;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.SurfConditions;
 
-public sealed class SurfConditions(IOptions<SurfConditionsConfig> config) : FeatureRule<MarineWeatherInput>
+public sealed class SurfConditions(IOptions<SurfConditionsConfig> config) : FeatureRule<MarineForecastInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
@@ -17,16 +17,16 @@ public sealed class SurfConditions(IOptions<SurfConditionsConfig> config) : Feat
         new DomainRequirements(
         Marine: MarineParams.SwellWaveHeight | MarineParams.SwellWavePeriod,
         OptionalMarine: MarineParams.SwellWaveDirection | MarineParams.WindWaveHeight,
-        OptionalWeather: WeatherParams.WindDirection));
+        OptionalForecast: ForecastParams.WindDirection));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override MarineWeatherInput? Project(LocationForecast forecast) =>
-        forecast.Marine is { } m ? new(m, forecast.Weather!) : null;
+    protected override MarineForecastInput? Project(LocationForecast forecast) =>
+        forecast.Marine is { } m ? new(m, forecast.Forecast!) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<MarineWeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<MarineForecastInput> ctx)
     {
-        if (SurfConditionsRule.Evaluate(ctx.Current.Marine, ctx.Current.Weather, ctx.Now) is not { } surf)
+        if (SurfConditionsRule.Evaluate(ctx.Current.Marine, ctx.Current.Forecast, ctx.Now) is not { } surf)
         {
             return null;
         }

@@ -28,7 +28,7 @@ Njord__Features__Flood__FloodRisk__Enabled: "true"
 
 ## FloodRain
 
-A cross-domain alert combining heavy rainfall from the Weather forecast with rising river discharge from the Flood forecast. Fires when both conditions are present simultaneously -- heavy rain upstream and discharge already elevated.
+A cross-domain alert combining heavy rainfall from the Forecast domain with rising river discharge from the Flood forecast. Fires when both conditions are present simultaneously -- heavy rain upstream and discharge already elevated.
 
 | Severity | Condition |
 |----------|-----------|
@@ -36,7 +36,7 @@ A cross-domain alert combining heavy rainfall from the Weather forecast with ris
 | Red | Same conditions but discharge above the 75th percentile |
 
 **Entity:** `binary_sensor.<location>_flood_rain_alert`
-**Domains:** Weather + Flood | **Default:** Off
+**Domains:** Forecast + Flood | **Default:** Off
 
 ```yaml
 Njord__Features__Flood__FloodRain__Enabled: "true"

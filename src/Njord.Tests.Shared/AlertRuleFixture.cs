@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 
 namespace Njord.Tests.Shared;
 
@@ -8,7 +8,7 @@ public static class AlertRuleFixture
 {
     public static readonly DateTimeOffset Now = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
 
-    public static WeatherPoint Benign(DateTimeOffset validFrom) => new(
+    public static ForecastPoint Benign(DateTimeOffset validFrom) => new(
         ValidFrom: validFrom,
         Temperature: 15.0,
         ApparentTemperature: 15.0,
@@ -22,7 +22,7 @@ public static class AlertRuleFixture
         DewPoint: 5.0,
         UvIndex: 0.0);
 
-    public static DomainForecast<WeatherPoint> Hourly(int hours, Func<int, WeatherPoint, WeatherPoint>? shape = null)
+    public static DomainForecast<ForecastPoint> Hourly(int hours, Func<int, ForecastPoint, ForecastPoint>? shape = null)
     {
         var points = Enumerable.Range(0, hours)
             .Select(hour =>
@@ -31,14 +31,14 @@ public static class AlertRuleFixture
                 return shape is null ? point : shape(hour, point);
             })
             .ToImmutableArray();
-        return new DomainForecast<WeatherPoint>(DomainKind.Weather, Now, TimeResolution.Hourly, points);
+        return new DomainForecast<ForecastPoint>(DomainKind.Forecast, Now, TimeResolution.Hourly, points);
     }
 
-    public static DomainForecast<WeatherPoint> Day(Func<int, WeatherPoint, WeatherPoint>? shape = null) => Hourly(24, shape);
+    public static DomainForecast<ForecastPoint> Day(Func<int, ForecastPoint, ForecastPoint>? shape = null) => Hourly(24, shape);
 
-    public static DomainForecast<WeatherPoint> Uniform(Func<WeatherPoint, WeatherPoint> change) => Day((_, point) => change(point));
+    public static DomainForecast<ForecastPoint> Uniform(Func<ForecastPoint, ForecastPoint> change) => Day((_, point) => change(point));
 
-    public static DomainForecast<WeatherPoint> Empty() => Hourly(0);
+    public static DomainForecast<ForecastPoint> Empty() => Hourly(0);
 
     public static DomainForecast<EnsemblePoint> EnsembleHourly(int hours, double spread = 1.5)
     {

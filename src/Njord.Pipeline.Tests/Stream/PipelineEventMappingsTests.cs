@@ -16,11 +16,11 @@ public sealed class PipelineEventMappingsTests
     [Fact]
     public void Weather_data_maps_to_a_weather_data_event()
     {
-        var forecast = DomainData.Weather(Start, 2);
+        var forecast = DomainData.Forecast(Start, 2);
 
-        var mapped = new DomainDataReceived(Lucerne, DomainKind.Weather, forecast).ToPipelineEvent();
+        var mapped = new DomainDataReceived(Lucerne, DomainKind.Forecast, forecast).ToPipelineEvent();
 
-        var weather = Assert.IsType<PipelineEvent.WeatherDataReceived>(mapped);
+        var weather = Assert.IsType<PipelineEvent.ForecastDataReceived>(mapped);
         Assert.Multiple(
             () => Assert.Equal(Lucerne, weather.Location),
             () => Assert.Same(forecast, weather.Forecast));

@@ -37,7 +37,6 @@ function applyRecommended() {
   Object.assign(config.features, recommendedFeatures())
 }
 
-const featuresWithOptions = computed(() => FEATURES.filter(f => f.options?.length && isFeatureOn(f.key)))
 const totalEntities = computed(() => entityCount(config.features, config.locations.length))
 
 function getOption(key: string, option: FeatureOption): OptionValue {
@@ -213,9 +212,34 @@ onMounted(() => {
               </div>
             </div>
             <p class="feature-desc">{{ f.description }}</p>
-            <button v-if="f.longDescription" class="btn-info" @click.prevent="toggleInfo(f.key)">{{ expandedFeature === f.key ? 'Less' : 'More info' }}</button>
+            <button v-if="f.longDescription || (f.options?.length && isFeatureOn(f.key))" class="btn-info" @click.prevent="toggleInfo(f.key)">{{ expandedFeature === f.key ? 'Less' : f.options?.length && isFeatureOn(f.key) ? 'Settings' : 'More info' }}</button>
             <div v-if="expandedFeature === f.key" class="feature-detail">
-              <p>{{ f.longDescription }}</p>
+              <p v-if="f.longDescription">{{ f.longDescription }}</p>
+              <div v-if="f.options?.length && isFeatureOn(f.key)" class="inline-options">
+                <label v-for="opt in f.options" :key="opt.name" class="inline-option">
+                  <span class="option-name">{{ opt.name }}</span>
+                  <span v-if="opt.type === 'numberArray'" class="array-inputs">
+                    <input
+                      v-for="(v, idx) in getArrayOption(f.key, opt)"
+                      :key="idx"
+                      type="number"
+                      step="any"
+                      :value="v"
+                      @input="setArrayOption(f.key, opt, idx, ($event.target as HTMLInputElement).value)"
+                      class="option-input option-input-small"
+                    />
+                  </span>
+                  <input
+                    v-else
+                    type="number"
+                    step="any"
+                    :placeholder="String(opt.default)"
+                    :value="getOption(f.key, opt)"
+                    @input="setNumberOption(f.key, opt, ($event.target as HTMLInputElement).value)"
+                    class="option-input"
+                  />
+                </label>
+              </div>
               <div v-if="f.entities?.length" class="entity-list">
                 <span class="entity-label">HA entities:</span>
                 <code v-for="e in f.entities" :key="e">{{ e }}</code>
@@ -272,43 +296,6 @@ onMounted(() => {
       </div>
       <p class="section-hint">Only used for domains an enabled feature requires. Defaults: air quality 5, marine 8, flood 92.</p>
     </details>
-
-    <!-- Feature options -->
-    <div v-if="featuresWithOptions.length" class="section">
-      <h3>Feature settings</h3>
-      <p class="section-hint">Customize thresholds for your location and preferences. Leave defaults for most users.</p>
-      <div class="enrichment-grid">
-        <div v-for="f in featuresWithOptions" :key="f.key" class="enrichment-card selected">
-          <div class="enrichment-header"><strong>{{ featureLabel(f.key) }}</strong></div>
-          <div class="enrichment-options">
-            <label v-for="opt in f.options" :key="opt.name" class="enrichment-option">
-              <span class="option-name">{{ opt.name }}</span>
-              <span v-if="opt.type === 'numberArray'" class="array-inputs">
-                <input
-                  v-for="(v, idx) in getArrayOption(f.key, opt)"
-                  :key="idx"
-                  type="number"
-                  step="any"
-                  :value="v"
-                  @input="setArrayOption(f.key, opt, idx, ($event.target as HTMLInputElement).value)"
-                  class="option-input option-input-small"
-                />
-              </span>
-              <input
-                v-else
-                type="number"
-                step="any"
-                :placeholder="String(opt.default)"
-                :value="getOption(f.key, opt)"
-                @input="setNumberOption(f.key, opt, ($event.target as HTMLInputElement).value)"
-                class="option-input"
-              />
-            </label>
-          </div>
-        </div>
-      </div>
-      <p class="section-hint">Only values that differ from the default are written to the config. Threshold lists are three severity steps (yellow, orange, red).</p>
-    </div>
 
     <!-- Persistence -->
     <details class="section">
@@ -438,12 +425,8 @@ button.active { background: var(--vp-c-brand-1); color: white; border-color: var
 .btn-remove { color: var(--vp-c-danger-1); border-color: var(--vp-c-danger-1); }
 .btn-copy { margin-left: auto; }
 
-.enrichment-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
-.enrichment-card { padding: 10px; border: 1px solid var(--vp-c-divider); border-radius: 6px; }
-.enrichment-card.selected { border-color: var(--vp-c-brand-1); background: var(--vp-c-brand-soft); }
-.enrichment-header { display: flex; gap: 6px; align-items: center; font-size: 13px; }
-.enrichment-options { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
-.enrichment-option { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; font-size: 12px; color: var(--vp-c-text-2); gap: 2px; }
+.inline-options { margin-top: 8px; padding: 8px; background: var(--vp-c-bg-soft); border-radius: 4px; display: flex; flex-direction: column; gap: 4px; }
+.inline-option { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; font-size: 12px; color: var(--vp-c-text-2); gap: 2px; }
 .option-name { min-width: 100px; }
 .option-input { width: 100px; font-size: 12px; }
 .option-input-small { width: 64px; }

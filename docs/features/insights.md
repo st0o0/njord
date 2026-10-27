@@ -32,7 +32,7 @@ Requires at least two models configured in `Njord:Weather:Models`.
 **Domains:** Ensemble | **Default:** Off
 
 ```yaml
-Njord__Features__Weather__ModelComparison__Enabled: "true"
+Njord__Features__Forecast__ModelComparison__Enabled: "true"
 Njord__Weather__Models__0: "ecmwf_ifs025_ensemble_mean"
 Njord__Weather__Models__1: "ecmwf_aifs025_ensemble_mean"
 Njord__Weather__Models__2: "ukmo_global_ensemble_mean_20km"
@@ -73,7 +73,7 @@ Njord__Seasonal__ForecastMonths: "3"
 Detects approaching weather fronts by monitoring pressure trends, temperature changes, and wind direction shifts. An early warning that conditions are about to change significantly.
 
 **Entity:** `sensor.<location>_front_approaching`
-**Domains:** Weather | **Default:** Off
+**Domains:** Forecast | **Default:** Off
 
 ```yaml
 Njord__Features__Insight__FrontApproaching__Enabled: "true"
@@ -93,7 +93,7 @@ Calculates Growing Degree Days (GDD) -- an agricultural metric that tracks heat 
 **How it works:** For each forecast day, GDD = max(0, mean_temperature - base_temperature). The result accumulates over the forecast horizon.
 
 **Entity:** `sensor.<location>_growing_degree`
-**Domains:** Weather | **Default:** Off
+**Domains:** Forecast | **Default:** Off
 
 ```yaml
 Njord__Features__Lifestyle__GrowingDegree__Enabled: "true"
@@ -126,7 +126,7 @@ Uses trend data from the last 8 poll cycles to detect the rain-to-dry transition
 | Prior rain | Detected in poll history |
 
 **Entity:** `binary_sensor.<location>_pollen_blast_alert`
-**Domains:** Weather + AirQuality | **Default:** Off | **Confidence:** Medium
+**Domains:** Forecast + AirQuality | **Default:** Off | **Confidence:** Medium
 
 ```yaml
 Njord__Features__AirQuality__PollenBlast__Enabled: "true"

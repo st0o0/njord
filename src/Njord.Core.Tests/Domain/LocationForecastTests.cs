@@ -2,8 +2,8 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
+using Njord.Forecast.Forecast;
 using Njord.Forecast.Marine;
-using Njord.Forecast.Weather;
 
 namespace Njord.Core.Tests.Domain;
 
@@ -24,7 +24,7 @@ public sealed class LocationForecastTests
     }
 
     [Theory]
-    [InlineData(DomainKind.Weather)]
+    [InlineData(DomainKind.Forecast)]
     [InlineData(DomainKind.AirQuality)]
     [InlineData(DomainKind.Flood)]
     [InlineData(DomainKind.Marine)]
@@ -32,7 +32,7 @@ public sealed class LocationForecastTests
     {
         IDomainForecast data = kind switch
         {
-            DomainKind.Weather => Empty<WeatherPoint>(kind),
+            DomainKind.Forecast => Empty<ForecastPoint>(kind),
             DomainKind.AirQuality => Empty<AirQualityPoint>(kind),
             DomainKind.Flood => Empty<FloodPoint>(kind),
             _ => Empty<MarinePoint>(kind),
@@ -48,15 +48,15 @@ public sealed class LocationForecastTests
     [Fact]
     public void Should_replace_existing_domain_data_without_mutating_the_original()
     {
-        var first = Empty<WeatherPoint>(DomainKind.Weather);
+        var first = Empty<ForecastPoint>(DomainKind.Forecast);
         var second = first with { ModelRun = Run.AddHours(1) };
-        var original = new LocationForecast(Lucerne).With(DomainKind.Weather, first);
+        var original = new LocationForecast(Lucerne).With(DomainKind.Forecast, first);
 
-        var updated = original.With(DomainKind.Weather, second);
+        var updated = original.With(DomainKind.Forecast, second);
 
         Assert.Multiple(
-            () => Assert.Same(first, original.Weather),
-            () => Assert.Same(second, updated.Weather));
+            () => Assert.Same(first, original.Forecast),
+            () => Assert.Same(second, updated.Forecast));
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public sealed class LocationForecastTests
     {
         var flood = Empty<FloodPoint>(DomainKind.Flood);
 
-        var ex = Assert.Throws<ArgumentException>(() => new LocationForecast(Lucerne).With(DomainKind.Weather, flood));
+        var ex = Assert.Throws<ArgumentException>(() => new LocationForecast(Lucerne).With(DomainKind.Forecast, flood));
 
         Assert.Equal("forecast", ex.ParamName);
     }

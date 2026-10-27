@@ -1,13 +1,13 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Forecast.AirQuality;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.PollenBlast;
 
-public sealed class PollenBlastAlert(IOptions<PollenBlastConfig> config) : FeatureRule<WeatherAqInput>
+public sealed class PollenBlastAlert(IOptions<PollenBlastConfig> config) : FeatureRule<ForecastAqInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
@@ -15,16 +15,16 @@ public sealed class PollenBlastAlert(IOptions<PollenBlastConfig> config) : Featu
         Name: "PollenBlast",
         DefaultEnabled: false,
         new DomainRequirements(
-            Weather: WeatherParams.Temperature | WeatherParams.WindSpeed | WeatherParams.Precipitation,
+            Forecast: ForecastParams.Temperature | ForecastParams.WindSpeed | ForecastParams.Precipitation,
             AirQuality: AirQualityParams.GrassPollen | AirQualityParams.BirchPollen),
         PollDepth: 8);
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherAqInput? Project(LocationForecast forecast) =>
-        forecast is { Weather: { } w, AirQuality: { } aq } ? new(w, aq) : null;
+    protected override ForecastAqInput? Project(LocationForecast forecast) =>
+        forecast is { Forecast: { } w, AirQuality: { } aq } ? new(w, aq) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherAqInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastAqInput> ctx)
     {
         var cfg = config.Value;
         if (ctx.History.Count < 3)
@@ -36,7 +36,7 @@ public sealed class PollenBlastAlert(IOptions<PollenBlastConfig> config) : Featu
         for (var i = ctx.History.Count - 1; i >= 1; i--)
         {
             var past = ctx.History[i];
-            if (past.Weather.Points.Any(p => p.Precipitation is > 0 && p.Precipitation.Value >= cfg.PrecipitationThreshold))
+            if (past.Forecast.Points.Any(p => p.Precipitation is > 0 && p.Precipitation.Value >= cfg.PrecipitationThreshold))
             {
                 hadRain = true;
                 break;
@@ -48,7 +48,7 @@ public sealed class PollenBlastAlert(IOptions<PollenBlastConfig> config) : Featu
             return null;
         }
 
-        var currentWeather = ctx.Current.Weather.NextHoursInclusive(ctx.Now, 12);
+        var currentWeather = ctx.Current.Forecast.NextHoursInclusive(ctx.Now, 12);
         var isDry = currentWeather.All(p => p.Precipitation is null or < 0.1);
         var isWarm = currentWeather.Any(p => p.Temperature >= cfg.TemperatureThreshold);
         var isWindy = currentWeather.Any(p => p.WindSpeed >= cfg.WindSpeedThreshold);

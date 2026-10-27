@@ -22,7 +22,7 @@ public sealed class PollWorkerOutcomeTests : Akka.Hosting.TestKit.TestKit
     private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
     private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
     private static readonly PollTarget Target = new(Lucerne);
-    private static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Weather, DomainKind.AirQuality];
+    private static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Forecast, DomainKind.AirQuality];
 
     private static IOptions<FeatureRequirementsOptions> RequirementsFor(IReadOnlyList<DomainKind> domains) =>
         Options.Create(new FeatureRequirementsOptions { Domains = domains });
@@ -111,7 +111,7 @@ public sealed class PollWorkerOutcomeTests : Akka.Hosting.TestKit.TestKit
         return report;
     }
 
-    private static FetchDomainCompleted Completed(int hash) => new(Lucerne, DomainKind.Weather, hash);
+    private static FetchDomainCompleted Completed(int hash) => new(Lucerne, DomainKind.Forecast, hash);
 
     [Fact(Timeout = 30_000)]
     public async Task A_first_start_reports_the_initial_state_and_polls_immediately()
@@ -128,7 +128,7 @@ public sealed class PollWorkerOutcomeTests : Akka.Hosting.TestKit.TestKit
             () => Assert.Equal(_time.GetUtcNow(), report.State.NextPollUtc),
             () => Assert.Null(report.State.LastChangeUtc),
             () => Assert.Equal(Lucerne, request.Location),
-            () => Assert.Equal(DomainKind.Weather, request.Domain));
+            () => Assert.Equal(DomainKind.Forecast, request.Domain));
     }
 
     [Fact(Timeout = 30_000)]
@@ -180,7 +180,7 @@ public sealed class PollWorkerOutcomeTests : Akka.Hosting.TestKit.TestKit
         // Third consistent change at +6h - transitions to Steady
         _time.Advance(TimeSpan.FromHours(3));
         worker.Tell(new TriggerLocationPoll(TargetId));
-        // Drain all requests and collect the last report to check the Weather domain state.
+        // Drain all requests and collect the last report to check the Forecast domain state.
         var reports = new List<PollWorkerReport>();
         foreach (var _ in EnabledDomains)
         {
@@ -205,7 +205,7 @@ public sealed class PollWorkerOutcomeTests : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         await StartedWorkerAsync(ct);
 
-        var report = await AnswerAllAndLastReportAsync(new FetchDomainCompleted(new Location("LUCERNE", 0, 0), DomainKind.Weather, 42), ct);
+        var report = await AnswerAllAndLastReportAsync(new FetchDomainCompleted(new Location("LUCERNE", 0, 0), DomainKind.Forecast, 42), ct);
 
         Assert.Multiple(
             () => Assert.Equal(Target, report.Target),

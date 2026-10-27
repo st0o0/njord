@@ -14,47 +14,47 @@ public sealed class OpenMeteoOptionsValidatorTests
     [InlineData(17)]
     public void Should_reject_weather_forecast_days_outside_one_to_sixteen(int days)
     {
-        var result = _validator.Validate(null, new WeatherOptions { ForecastDays = days });
+        var result = _validator.Validate(null, new ForecastOptions { ForecastDays = days });
 
-        Assert.Contains("Weather.ForecastDays must be between 1 and 16", ValidationAssert.SingleFailure(result));
+        Assert.Contains("Forecast.ForecastDays must be between 1 and 16", ValidationAssert.SingleFailure(result));
     }
 
     [Fact]
     public void Should_reject_an_empty_model_list()
     {
-        var result = _validator.Validate(null, new WeatherOptions { Models = [] });
+        var result = _validator.Validate(null, new ForecastOptions { Models = [] });
 
-        Assert.Equal("Weather.Models must contain at least one model.", ValidationAssert.SingleFailure(result));
+        Assert.Equal("Forecast.Models must contain at least one model.", ValidationAssert.SingleFailure(result));
     }
 
     [Fact]
     public void Should_reject_a_duplicate_model_naming_it()
     {
-        var result = _validator.Validate(null, new WeatherOptions { Models = ["ecmwf_ifs025_ensemble_mean", "ecmwf_ifs025_ensemble_mean"] });
+        var result = _validator.Validate(null, new ForecastOptions { Models = ["ecmwf_ifs025_ensemble_mean", "ecmwf_ifs025_ensemble_mean"] });
 
-        Assert.Equal("Weather.Models contains 'ecmwf_ifs025_ensemble_mean' more than once.", ValidationAssert.SingleFailure(result));
+        Assert.Equal("Forecast.Models contains 'ecmwf_ifs025_ensemble_mean' more than once.", ValidationAssert.SingleFailure(result));
     }
 
     [Fact]
     public void Should_reject_an_unknown_model_naming_it()
     {
-        var result = _validator.Validate(null, new WeatherOptions { Models = ["ecmwf_ifs025_ensemble_mean", "gfs_ensemble"] });
+        var result = _validator.Validate(null, new ForecastOptions { Models = ["ecmwf_ifs025_ensemble_mean", "gfs_ensemble"] });
 
-        Assert.Contains("Weather.Models entry 'gfs_ensemble' is not a known model", ValidationAssert.SingleFailure(result));
+        Assert.Contains("Forecast.Models entry 'gfs_ensemble' is not a known model", ValidationAssert.SingleFailure(result));
     }
 
     [Fact]
     public void Should_reject_the_legacy_model_key_pointing_to_models()
     {
-        var result = _validator.Validate(null, new WeatherOptions { Model = "ecmwf_ifs025_ensemble_mean" });
+        var result = _validator.Validate(null, new ForecastOptions { Model = "ecmwf_ifs025_ensemble_mean" });
 
-        Assert.Contains("Njord:Weather:Models", ValidationAssert.SingleFailure(result));
+        Assert.Contains("Njord:Forecast:Models", ValidationAssert.SingleFailure(result));
     }
 
     [Fact]
     public void Should_accept_all_catalog_models()
     {
-        var result = _validator.Validate(null, new WeatherOptions { Models = [.. WeatherModelCatalog.All.Select(m => m.Id)] });
+        var result = _validator.Validate(null, new ForecastOptions { Models = [.. WeatherModelCatalog.All.Select(m => m.Id)] });
 
         Assert.True(result.Succeeded);
     }
@@ -149,7 +149,7 @@ public sealed class OpenMeteoOptionsValidatorTests
     public void Should_accept_the_default_options()
     {
         Assert.Multiple(
-            () => Assert.True(_validator.Validate(null, new WeatherOptions()).Succeeded),
+            () => Assert.True(_validator.Validate(null, new ForecastOptions()).Succeeded),
             () => Assert.True(_validator.Validate(null, new AirQualityOptions()).Succeeded),
             () => Assert.True(_validator.Validate(null, new FloodOptions()).Succeeded),
             () => Assert.True(_validator.Validate(null, new MarineOptions()).Succeeded),

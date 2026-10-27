@@ -1,6 +1,6 @@
 using Njord.Core.Domain;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Tests.Shared;
@@ -23,13 +23,13 @@ public sealed class AlertScenario
     public static AlertScenario Create()
     {
         var rules = FeatureServices.AllFeatureRules()
-            .OfType<FeatureRule<WeatherInput>>()
-            .Where(rule => rule.Descriptor is { Output: OutputKind.Alert, Category: FeatureCategory.Weather })
+            .OfType<FeatureRule<ForecastInput>>()
+            .Where(rule => rule.Descriptor is { Output: OutputKind.Alert, Category: FeatureCategory.Forecast })
             .ToList();
 
         var analyses = Locations.Select(location =>
         {
-            var forecast = new LocationForecast(new Location(location, 0, 0), Weather(location));
+            var forecast = new LocationForecast(new Location(location, 0, 0), Forecast(location));
             var result = rules
                 .Select(rule => FeatureRunner.Run(rule, Now, forecast))
                 .OfType<AlertFeatureResult>()
@@ -44,8 +44,8 @@ public sealed class AlertScenario
     public LocationAnalysis For(string location) =>
         Analyses.Single(a => a.Location == location);
 
-    public static DomainForecast<WeatherPoint> Weather(string location) =>
-        WeatherForecastBuilder.ForLocation(location)
+    public static DomainForecast<ForecastPoint> Forecast(string location) =>
+        ForecastPointBuilder.ForLocation(location)
             .Starting(Now)
             .WithHours(49)
             .Shape(location == Lucerne ? LucernePoint : BernPoint)
@@ -53,7 +53,7 @@ public sealed class AlertScenario
 
     private static bool IsDay(int hour) => (Now.Hour + hour) % 24 is >= 6 and <= 19;
 
-    private static WeatherPoint LucernePoint(int h, WeatherPoint point)
+    private static ForecastPoint LucernePoint(int h, ForecastPoint point)
     {
         var day = IsDay(h);
         var fog = h is >= 10 and <= 13;
@@ -91,7 +91,7 @@ public sealed class AlertScenario
         };
     }
 
-    private static WeatherPoint BernPoint(int h, WeatherPoint point)
+    private static ForecastPoint BernPoint(int h, ForecastPoint point)
     {
         var day = IsDay(h);
         var temperature = day ? 20.0 : 18.0;

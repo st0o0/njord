@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.ClearSkyUv;
 using Njord.Forecast;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -20,7 +20,7 @@ public sealed class ClearSkyUvAlertTests
     {
         var rule = new ClearSkyUvAlert(Opts(new ClearSkyUvConfig { Enabled = true }));
         var weather = Uniform(p => p with { UvIndexClearSky = uvClearSky, IsDay = isDay });
-        var result = Run(rule, Now, WeatherOnly(weather));
+        var result = Run(rule, Now, ForecastOnly(weather));
         return result is null
             ? AlertSeverity.None
             : Assert.IsAssignableFrom<AlertFeatureResult>(result).Severity;
@@ -39,7 +39,7 @@ public sealed class ClearSkyUvAlertTests
     {
         var rule = new ClearSkyUvAlert(Opts(new ClearSkyUvConfig { Enabled = true }));
         var weather = Uniform(p => p with { UvIndexClearSky = 12.0, IsDay = 0.0 });
-        var result = Run(rule, Now, WeatherOnly(weather));
+        var result = Run(rule, Now, ForecastOnly(weather));
         Assert.Null(result);
     }
 
@@ -48,7 +48,7 @@ public sealed class ClearSkyUvAlertTests
     {
         var rule = new ClearSkyUvAlert(Opts(new ClearSkyUvConfig { Enabled = true }));
         var weather = Uniform(p => p with { UvIndexClearSky = 9.0, IsDay = 1.0 });
-        var result = Run(rule, Now, WeatherOnly(weather));
+        var result = Run(rule, Now, ForecastOnly(weather));
         var alert = Assert.IsType<ClearSkyUvAlertResult>(result);
         Assert.Equal(ConfidenceLevel.Medium, alert.Level);
     }
@@ -58,7 +58,7 @@ public sealed class ClearSkyUvAlertTests
     {
         var rule = new ClearSkyUvAlert(Opts(new ClearSkyUvConfig { Enabled = true }));
         var weather = Uniform(p => p with { UvIndexClearSky = 9.0, IsDay = 1.0 });
-        var result = Run(rule, Now, WeatherOnly(weather));
+        var result = Run(rule, Now, ForecastOnly(weather));
         Assert.NotNull(result);
     }
 }

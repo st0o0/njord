@@ -1,30 +1,30 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.Shared;
-using Njord.Forecast.Weather;
+using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.Visibility;
 
-public sealed class VisibilityAlert(IOptions<VisibilityConfig> config) : FeatureRule<WeatherInput>
+public sealed class VisibilityAlert(IOptions<VisibilityConfig> config) : FeatureRule<ForecastInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
-        FeatureCategory.Weather,
+        FeatureCategory.Forecast,
         Name: "Visibility",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Visibility));
+        new DomainRequirements(Forecast: ForecastParams.Visibility));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override ForecastInput? Project(LocationForecast forecast) =>
+        forecast.Forecast is { } w ? new(w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
         var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Min);
-        var window = ctx.Current.Weather.NextHoursInclusive(ctx.Now);
+        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
         if (window.LowestBy(p => p.Visibility) is not { Visibility: { } low } lowest)
         {
             return null;
