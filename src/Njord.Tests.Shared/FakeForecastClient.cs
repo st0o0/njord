@@ -5,7 +5,7 @@ using Njord.Forecast.Weather;
 
 namespace Njord.Tests.Shared;
 
-public sealed class FakeWeatherClient : IDomainClient
+public sealed class FakeForecastClient : IDomainClient
 {
     public DomainKind Domain => DomainKind.Weather;
 
@@ -14,8 +14,6 @@ public sealed class FakeWeatherClient : IDomainClient
     public bool Fails { get; set; }
 
     public bool Throws { get; set; }
-
-    public ImmutableArray<string> ModelIds { get; set; } = [];
 
     private volatile TaskCompletionSource _release = CompletedRelease();
     private int _calls;
@@ -33,7 +31,7 @@ public sealed class FakeWeatherClient : IDomainClient
 
         if (Throws)
         {
-            throw new InvalidOperationException("simulated weather fetch fault");
+            throw new InvalidOperationException("simulated forecast fetch fault");
         }
 
         if (Fails)
@@ -56,12 +54,7 @@ public sealed class FakeWeatherClient : IDomainClient
             UvIndex: 3.0);
 
         var forecast = new DomainForecast<WeatherPoint>(DomainKind.Weather, now, TimeResolution.Hourly, [point]);
-        var models = ModelIds.IsDefaultOrEmpty
-            ? ImmutableDictionary<string, IDomainForecast>.Empty
-            : ModelIds.ToImmutableDictionary(
-                id => id,
-                id => (IDomainForecast)(forecast with { Points = [point with { Temperature = 10.0 + id.Length }] }));
-        return new FetchSuccess(forecast) { Models = models };
+        return new FetchSuccess(forecast);
     }
 
     private static TaskCompletionSource CompletedRelease()

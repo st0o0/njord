@@ -7,21 +7,21 @@ using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.WindChill;
 
-public sealed class WindChillAlert(IOptions<WindChillConfig> config) : FeatureRule<WeatherInput>
+public sealed class WindChillAlert(IOptions<WindChillConfig> config) : FeatureRule<WeatherEnsembleInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
         Name: "WindChill",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.ApparentTemperature | WeatherParams.EnsembleStdDev));
+        new DomainRequirements(Weather: WeatherParams.ApparentTemperature, Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
+        forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
     {
         var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Min);
         if (ctx.Current.Weather.NextHoursInclusive(ctx.Now).LowestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } low } coldest)
@@ -44,7 +44,8 @@ public sealed class WindChillAlert(IOptions<WindChillConfig> config) : FeatureRu
         };
 
         var rounded = Math.Round(low, 1);
-        var level = ConfidenceThresholds.Default.LevelFor(coldest.EnsembleStdDev);
+        var spread = ctx.Current.Ensemble.Points.SpreadAt(coldest.ValidFrom);
+        var level = ConfidenceThresholds.Default.LevelFor(spread?.TemperatureSpread);
         return new WindChillAlertResult(
             ctx.Location, severity, level.ToConfidence(), rounded, effectiveThreshold,
             PeakValue: null, HoursUntil: coldest.HoursFrom(ctx.Now), DurationHours: null, Level: level,

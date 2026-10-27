@@ -20,6 +20,8 @@ internal static class PipelineEventMappingExtensions
         DomainKind.Marine => new PipelineEvent.MarineDataReceived(received.Location, Typed<MarinePoint>(received)),
         DomainKind.Seasonal => new PipelineEvent.SeasonalDataReceived(received.Location, Typed<SeasonalPoint>(received)),
         DomainKind.Satellite => new PipelineEvent.SatelliteDataReceived(received.Location, Typed<SatelliteRadiationPoint>(received)),
+        DomainKind.Ensemble when received.ModelId is not null => new PipelineEvent.WeatherDataReceived(received.Location, Typed<WeatherPoint>(received), received.ModelId),
+        DomainKind.Ensemble => new PipelineEvent.EnsembleDataReceived(received.Location, Typed<EnsemblePoint>(received)),
         _ => throw new ArgumentOutOfRangeException(nameof(received), received.Domain, null),
     };
 

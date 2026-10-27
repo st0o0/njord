@@ -20,7 +20,9 @@ public readonly record struct DomainRequirements(
     SeasonalParams Seasonal = default,
     SeasonalParams OptionalSeasonal = default,
     SatelliteParams Satellite = default,
-    SatelliteParams OptionalSatellite = default)
+    SatelliteParams OptionalSatellite = default,
+    EnsembleParams Ensemble = default,
+    EnsembleParams OptionalEnsemble = default)
 {
     public WeatherParams AllWeather => Weather | OptionalWeather;
 
@@ -34,6 +36,8 @@ public readonly record struct DomainRequirements(
 
     public SatelliteParams AllSatellite => Satellite | OptionalSatellite;
 
+    public EnsembleParams AllEnsemble => Ensemble | OptionalEnsemble;
+
     public static DomainRequirements operator |(DomainRequirements a, DomainRequirements b) => new(
         a.Weather | b.Weather,
         a.AirQuality | b.AirQuality,
@@ -46,7 +50,9 @@ public readonly record struct DomainRequirements(
         a.Seasonal | b.Seasonal,
         a.OptionalSeasonal | b.OptionalSeasonal,
         a.Satellite | b.Satellite,
-        a.OptionalSatellite | b.OptionalSatellite);
+        a.OptionalSatellite | b.OptionalSatellite,
+        a.Ensemble | b.Ensemble,
+        a.OptionalEnsemble | b.OptionalEnsemble);
 
     public bool Requires(DomainKind domain) => domain switch
     {
@@ -56,6 +62,7 @@ public readonly record struct DomainRequirements(
         DomainKind.Marine => AllMarine != default,
         DomainKind.Seasonal => AllSeasonal != default,
         DomainKind.Satellite => AllSatellite != default,
+        DomainKind.Ensemble => AllEnsemble != default,
         _ => false,
     };
 }

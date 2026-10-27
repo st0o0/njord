@@ -134,4 +134,34 @@ public sealed class DomainRequirementsTests
             new DomainRequirements(Weather: WeatherParams.Temperature),
             new DomainRequirements(Weather: WeatherParams.Temperature));
     }
+
+    [Fact]
+    public void Should_union_ensemble_params_with_the_or_operator()
+    {
+        var left = new DomainRequirements(Ensemble: EnsembleParams.TemperatureSpread);
+        var right = new DomainRequirements(Ensemble: EnsembleParams.Models);
+
+        var union = left | right;
+
+        Assert.Equal(EnsembleParams.TemperatureSpread | EnsembleParams.Models, union.Ensemble);
+    }
+
+    [Fact]
+    public void Should_require_ensemble_domain_when_ensemble_params_set()
+    {
+        Assert.Multiple(
+            () => Assert.True(new DomainRequirements(Ensemble: EnsembleParams.TemperatureSpread).Requires(DomainKind.Ensemble)),
+            () => Assert.True(new DomainRequirements(OptionalEnsemble: EnsembleParams.Models).Requires(DomainKind.Ensemble)),
+            () => Assert.False(default(DomainRequirements).Requires(DomainKind.Ensemble)));
+    }
+
+    [Fact]
+    public void Should_expose_all_ensemble_from_required_and_optional()
+    {
+        var requirements = new DomainRequirements(
+            Ensemble: EnsembleParams.TemperatureSpread,
+            OptionalEnsemble: EnsembleParams.PrecipitationSpread);
+
+        Assert.Equal(EnsembleParams.TemperatureSpread | EnsembleParams.PrecipitationSpread, requirements.AllEnsemble);
+    }
 }

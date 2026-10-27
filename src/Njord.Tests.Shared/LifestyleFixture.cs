@@ -29,4 +29,7 @@ public static class LifestyleFixture
         new(Lucerne, weather, air);
 
     public static LocationForecast WeatherOnly(DomainForecast<WeatherPoint> weather) => new(Lucerne, weather);
+
+    public static LocationForecast WeatherWithEnsemble(DomainForecast<WeatherPoint> weather, DomainForecast<EnsemblePoint> ensemble) =>
+        new(Lucerne, weather, Ensemble: ensemble);
 }

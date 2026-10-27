@@ -14,7 +14,7 @@ public sealed class VisibilityAlert(IOptions<VisibilityConfig> config) : Feature
         FeatureCategory.Weather,
         Name: "Visibility",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Visibility | WeatherParams.EnsembleStdDev));
+        new DomainRequirements(Weather: WeatherParams.Visibility));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -38,7 +38,7 @@ public sealed class VisibilityAlert(IOptions<VisibilityConfig> config) : Feature
         }
 
         var rounded = Math.Round(low, 0);
-        var level = ConfidenceThresholds.Default.LevelFor(lowest.EnsembleStdDev);
+        var level = ConfidenceLevel.Medium;
         return new VisibilityAlertResult(
             ctx.Location, severity, level.ToConfidence(), rounded, effectiveThreshold,
             PeakValue: null, HoursUntil: lowest.HoursFrom(ctx.Now), DurationHours: null, Level: level,

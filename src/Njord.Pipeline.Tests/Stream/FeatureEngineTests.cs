@@ -263,6 +263,7 @@ public sealed class FeatureEngineTests
     {
         var engine = Engine(new FrostAlert(Options.Create(new FrostConfig())));
 
+        engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Ensemble(Start)));
         var events = engine.Process(
             DomainData.Received(DomainData.Lucerne, DomainData.Weather(Start, 48, (_, p) => p with { Temperature = -6.0 })));
 
@@ -270,6 +271,52 @@ public sealed class FeatureEngineTests
         Assert.IsType<PipelineEvent.WeatherDataReceived>(events[0]);
         var frost = Assert.IsType<FrostAlertResult>(events[1]);
         Assert.Equal(AlertSeverity.Orange, frost.Severity);
+    }
+
+    private sealed class EnsembleProbeRule : FeatureRule<WeatherEnsembleInput>
+    {
+        public List<WeatherEnsembleInput> Calls { get; } = [];
+
+        public override FeatureDescriptor Descriptor { get; } =
+            new(OutputKind.Alert, FeatureCategory.Weather, "EnsembleProbe", true,
+                new DomainRequirements(Weather: WeatherParams.Temperature, Ensemble: EnsembleParams.TemperatureSpread));
+
+        public override bool Enabled => true;
+
+        protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
+            forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
+
+        protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
+        {
+            Calls.Add(ctx.Current);
+            return new ProbeResult(ctx.Location);
+        }
+    }
+
+    [Fact]
+    public void A_rule_requiring_ensemble_waits_for_both_weather_and_ensemble()
+    {
+        var rule = new EnsembleProbeRule();
+        var engine = Engine(rule);
+
+        engine.Process(Weather(DomainData.Lucerne, 10.0));
+        Assert.Empty(rule.Calls);
+
+        engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Ensemble(Start)));
+        Assert.Single(rule.Calls);
+    }
+
+    [Fact]
+    public void Ensemble_data_populates_location_forecast()
+    {
+        var rule = new EnsembleProbeRule();
+        var engine = Engine(rule);
+
+        engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Ensemble(Start, temperatureSpread: 2.5)));
+        engine.Process(Weather(DomainData.Lucerne, 10.0));
+
+        var call = Assert.Single(rule.Calls);
+        Assert.Equal(2.5, call.Ensemble.Points[0].TemperatureSpread);
     }
 
     [Fact]

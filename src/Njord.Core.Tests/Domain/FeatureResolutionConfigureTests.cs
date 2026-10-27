@@ -17,7 +17,7 @@ public sealed class FeatureResolutionConfigureTests
     }
 
     private static readonly StubRule Frost = new("Frost", FeatureCategory.Weather, true,
-        new(Weather: WeatherParams.Temperature | WeatherParams.WindGusts));
+        new(Weather: WeatherParams.Temperature | WeatherParams.WindGusts, Ensemble: EnsembleParams.TemperatureSpread));
 
     private static readonly StubRule Pollen = new("Pollen", FeatureCategory.AirQuality, true,
         new(AirQuality: AirQualityParams.BirchPollen));
@@ -47,7 +47,7 @@ public sealed class FeatureResolutionConfigureTests
 
         FeatureResolution.Configure(options, [Frost, Pollen], new WeatherOptions());
 
-        Assert.Equal([DomainKind.Weather, DomainKind.AirQuality], options.Domains.Order().ToList());
+        Assert.Equal([DomainKind.Weather, DomainKind.AirQuality, DomainKind.Ensemble], options.Domains.Order().ToList());
     }
 
     [Fact]
@@ -105,5 +105,48 @@ public sealed class FeatureResolutionConfigureTests
         FeatureResolution.Configure(options, [Frost], new WeatherOptions());
 
         Assert.False(options.Requirements.Requires(DomainKind.AirQuality));
+    }
+
+    [Fact]
+    public void Ensemble_domain_is_required_when_features_need_spread()
+    {
+        var options = new FeatureRequirementsOptions();
+
+        FeatureResolution.Configure(options, [Frost], new WeatherOptions());
+
+        Assert.True(options.Requirements.Requires(DomainKind.Ensemble));
+        Assert.Contains(DomainKind.Ensemble, options.Domains);
+    }
+
+    [Fact]
+    public void Ensemble_models_use_primary_only_when_no_comparison()
+    {
+        var options = new FeatureRequirementsOptions();
+
+        FeatureResolution.Configure(options, [Frost], new WeatherOptions { Models = ThreeModels });
+
+        Assert.Single(options.EnsembleModels);
+        Assert.Equal("model_a", options.EnsembleModels[0]);
+    }
+
+    [Fact]
+    public void Ensemble_models_include_all_when_comparison_enabled()
+    {
+        var options = new FeatureRequirementsOptions();
+
+        FeatureResolution.Configure(options, [Frost, Comparison(true)],
+            new WeatherOptions { Models = ThreeModels });
+
+        Assert.Equal(3, options.EnsembleModels.Length);
+    }
+
+    [Fact]
+    public void Ensemble_models_empty_when_no_ensemble_features()
+    {
+        var options = new FeatureRequirementsOptions();
+
+        FeatureResolution.Configure(options, [Pollen], new WeatherOptions());
+
+        Assert.True(options.EnsembleModels.IsDefaultOrEmpty);
     }
 }

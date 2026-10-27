@@ -61,6 +61,16 @@ public sealed class PipelineEventMappingsTests
     }
 
     [Fact]
+    public void Ensemble_data_maps_to_an_ensemble_data_event()
+    {
+        var forecast = DomainData.Ensemble(Start);
+
+        var mapped = new DomainDataReceived(Lucerne, DomainKind.Ensemble, forecast).ToPipelineEvent();
+
+        Assert.Same(forecast, Assert.IsType<PipelineEvent.EnsembleDataReceived>(mapped).Forecast);
+    }
+
+    [Fact]
     public void Data_of_the_wrong_type_for_its_domain_is_rejected()
     {
         var received = new DomainDataReceived(Lucerne, DomainKind.Marine, DomainData.Flood(Start));

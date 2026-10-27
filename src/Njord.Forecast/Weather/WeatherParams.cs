@@ -15,7 +15,6 @@ public enum WeatherParams : long
     Humidity = 1L << 8,
     DewPoint = 1L << 9,
     UvIndex = 1L << 10,
-    EnsembleStdDev = 1L << 11,
     WindGusts = 1L << 12,
     Visibility = 1L << 13,
     Cape = 1L << 14,
@@ -34,6 +33,4 @@ public enum WeatherParams : long
     SnowDepth = 1L << 27,
     WetBulbTemperature = 1L << 28,
     SnowfallHeight = 1L << 29,
-    PrecipitationSpread = 1L << 30,
-    WindSpeedSpread = 1L << 31,
 }

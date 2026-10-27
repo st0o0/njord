@@ -16,7 +16,7 @@ services:
       - Njord__Locations__0__Latitude=47.0502
       - Njord__Locations__0__Longitude=8.3093
 
-      # ── Weather ────────────────────────────────────────────────
+      # ── Weather (primary: deterministic Forecast API, best_match) ─
       - Njord__Weather__ForecastDays=4
 
       # ── Enrichments (all enabled for E2E) ──────────────────────
@@ -55,8 +55,10 @@ services:
       - Njord__Features__Flood__FloodTimeline__Enabled=true
       - Njord__Features__Marine__Swimming__Enabled=true
       - Njord__Features__Marine__Surf__Enabled=true
+      # ── Ensemble (comparison models for ModelComparison) ────────
       - Njord__Weather__Models__0=ecmwf_ifs025_ensemble_mean
       - Njord__Weather__Models__1=ecmwf_aifs025_ensemble_mean
+      - Njord__Weather__Models__2=ukmo_global_ensemble_mean_20km
       - Njord__Features__Weather__ModelComparison__Enabled=true
       - Njord__Features__Insight__SeasonalOutlook__Enabled=true
 

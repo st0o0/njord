@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -12,33 +11,23 @@ using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo.Weather;
 
-public sealed class WeatherClient : IDomainClient
+public sealed class ForecastClient : IDomainClient
 {
-    private const int MaxForecastDays = 35;
+    private const int MaxForecastDays = 16;
+    private const string BestMatch = "best_match";
 
     private readonly HttpClient _httpClient;
     private readonly SolarYieldOptions _solar;
     private readonly IReadOnlyList<string> _variables;
     private readonly int _forecastDays;
-    private readonly ImmutableArray<string> _modelIds;
-    private readonly string _primaryModel;
 
-    public WeatherClient(HttpClient httpClient, IOptions<WeatherOptions> options, IOptions<SolarYieldOptions> solar, IOptions<FeatureRequirementsOptions> requirements, ILogger<WeatherClient> logger)
+    public ForecastClient(HttpClient httpClient, IOptions<WeatherOptions> options, IOptions<SolarYieldOptions> solar, IOptions<FeatureRequirementsOptions> requirements, ILogger<ForecastClient> logger)
     {
         _httpClient = httpClient;
-        var resolved = requirements.Value;
-        _modelIds = resolved.WeatherModels;
-        _primaryModel = resolved.PrimaryWeatherModel;
-        var ignored = options.Value.EffectiveModels.Except(_modelIds).ToArray();
-        if (ignored.Length > 0)
-        {
-            logger.LogWarning("Weather models ignored because no enabled feature uses them: {Models}", string.Join(", ", ignored));
-        }
-
         _solar = solar.Value;
-        _variables = resolved.Requirements.AllWeather.ToApiNames();
+        _variables = requirements.Value.Requirements.AllWeather.ToApiNames();
         _forecastDays = Math.Min(options.Value.ForecastDays, MaxForecastDays);
-        CallWeight = Core.Polling.CallWeight.Of(_variables.Count, _forecastDays) * _modelIds.Length;
+        CallWeight = Core.Polling.CallWeight.Of(_variables.Count, _forecastDays);
     }
 
     public DomainKind Domain => DomainKind.Weather;
@@ -50,7 +39,6 @@ public sealed class WeatherClient : IDomainClient
         var query = new List<(string, string)>
         {
             (ClientRequest.Hourly, ClientRequest.List(_variables)),
-            (ClientRequest.Models, ClientRequest.List(_modelIds)),
             (ClientRequest.WindSpeedUnit, ClientRequest.MetersPerSecond),
         };
         if (_variables.Contains(WeatherApiVariable.GlobalTiltedIrradiance.ToApiName()))
@@ -60,24 +48,20 @@ public sealed class WeatherClient : IDomainClient
         }
 
         query.Add((ClientRequest.ForecastDays, ClientRequest.Number(_forecastDays)));
-        var uri = ClientRequest.Uri(OpenMeteoEndpoints.WeatherPath, latitude, longitude, [.. query]);
+        var uri = ClientRequest.Uri(OpenMeteoEndpoints.ForecastPath, latitude, longitude, [.. query]);
         return ClientRequest.ExecuteResultAsync(
             () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.WeatherResponse, cancellationToken),
-            response => ToSuccess(response.ToModelForecasts(now, _primaryModel)),
+            response => ToSuccess(response.ToModelForecasts(now, BestMatch)),
             cancellationToken);
     }
 
-    private FetchResult ToSuccess(ImmutableDictionary<string, DomainForecast<WeatherPoint>> forecasts)
+    private static FetchResult ToSuccess(System.Collections.Immutable.ImmutableDictionary<string, DomainForecast<WeatherPoint>> forecasts)
     {
-        // The primary model leads; when it returned nothing the first remaining model does not stand in for it.
-        if (!forecasts.TryGetValue(_primaryModel, out var primary))
+        if (!forecasts.TryGetValue(BestMatch, out var primary))
         {
             return new FetchEmpty();
         }
 
-        return new FetchSuccess(primary)
-        {
-            Models = forecasts.ToImmutableDictionary(kv => kv.Key, IDomainForecast (kv) => kv.Value),
-        };
+        return new FetchSuccess(primary);
     }
 }

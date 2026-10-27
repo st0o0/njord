@@ -39,6 +39,7 @@ enum Domain {
   DOMAIN_MARINE = 5;
   DOMAIN_SEASONAL = 6;
   DOMAIN_SATELLITE = 7;
+  DOMAIN_ENSEMBLE = 8;
 }
 
 message GetDomainDataRequest {
@@ -69,6 +70,7 @@ message DomainDataUpdate {
     MarineData marine = 14;
     SatelliteData satellite = 15;
     SeasonalData seasonal = 16;
+    EnsembleData ensemble = 17;
   }
 }
 
@@ -89,7 +91,7 @@ message WeatherSample {
   double humidity = 10;
   double dew_point = 11;
   double uv_index = 12;
-  optional double ensemble_std_dev = 13;
+  reserved 13;
   optional double wind_gusts = 14;
   optional double visibility = 15;
   optional double cape = 16;
@@ -184,6 +186,17 @@ message MarineSample {
   optional double swell_wave_direction = 12;
   optional double swell_wave_peak_period = 13;
   optional double sea_level_height_msl = 14;
+}
+
+message EnsembleData {
+  repeated EnsembleSample points = 1;
+}
+
+message EnsembleSample {
+  google.protobuf.Timestamp valid_at = 1;
+  optional double temperature_spread = 2;
+  optional double precipitation_spread = 3;
+  optional double wind_speed_spread = 4;
 }
 
 // ═══════════════════════════════════════

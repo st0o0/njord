@@ -7,21 +7,21 @@ using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.Thunderstorm;
 
-public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : FeatureRule<WeatherInput>
+public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : FeatureRule<WeatherEnsembleInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
         Name: "Thunderstorm",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Cape | WeatherParams.Precipitation | WeatherParams.WindGusts | WeatherParams.EnsembleStdDev));
+        new DomainRequirements(Weather: WeatherParams.Cape | WeatherParams.Precipitation | WeatherParams.WindGusts, Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
+        forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
     {
         var evaluable = ctx.Current.Weather.NextHoursInclusive(ctx.Now).Where(p => p.Cape is not null && p.WindGusts is not null).ToList();
         if (evaluable.Count == 0)
@@ -50,7 +50,8 @@ public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : Fea
 
         var peak = (meetAll.Count > 0 ? meetAll : evaluable).HighestBy(p => p.Cape);
         var maxCape = evaluable.Max(p => p.Cape) ?? 0.0;
-        var level = ConfidenceThresholds.Default.LevelFor(peak?.EnsembleStdDev);
+        var spread = peak is not null ? ctx.Current.Ensemble.Points.SpreadAt(peak.ValidFrom) : null;
+        var level = ConfidenceThresholds.Default.LevelFor(spread?.TemperatureSpread);
         return new ThunderstormAlertResult(
             ctx.Location, severity, level.ToConfidence(), Math.Round(maxCape, 0), config.Value.CapeThreshold,
             PeakValue: null, HoursUntil: meetAll.Count > 0 ? meetAll[0].HoursFrom(ctx.Now) : null, DurationHours: null, Level: level);

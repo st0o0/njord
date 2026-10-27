@@ -23,7 +23,7 @@ public static class DomainData
         Humidity: 60.0,
         DewPoint: 5.0,
         UvIndex: 0.0,
-        EnsembleStdDev: 0.5,
+
         WindGusts: 4.0,
         Visibility: 20000.0,
         Cape: 0.0,
@@ -52,4 +52,13 @@ public static class DomainData
 
     public static DomainDataReceived Received(Location location, DomainForecast<FloodPoint> forecast) =>
         new(location, DomainKind.Flood, forecast);
+
+    public static DomainForecast<EnsemblePoint> Ensemble(
+        DateTimeOffset start, int hours = 48, double temperatureSpread = 1.0) =>
+        new(DomainKind.Ensemble, start, TimeResolution.Hourly,
+            [.. Enumerable.Range(0, hours).Select(h =>
+                new EnsemblePoint(start.AddHours(h), temperatureSpread, 0.3, 0.5))]);
+
+    public static DomainDataReceived Received(Location location, DomainForecast<EnsemblePoint> forecast) =>
+        new(location, DomainKind.Ensemble, forecast);
 }

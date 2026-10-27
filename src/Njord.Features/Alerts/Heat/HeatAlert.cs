@@ -7,21 +7,21 @@ using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.Heat;
 
-public sealed class HeatAlert(IOptions<HeatConfig> config) : FeatureRule<WeatherInput>
+public sealed class HeatAlert(IOptions<HeatConfig> config) : FeatureRule<WeatherEnsembleInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
         Name: "Heat",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.ApparentTemperature | WeatherParams.EnsembleStdDev));
+        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.ApparentTemperature, Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
+        forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
     {
         var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Max);
         var window = ctx.Current.Weather.NextHoursInclusive(ctx.Now);
@@ -42,7 +42,8 @@ public sealed class HeatAlert(IOptions<HeatConfig> config) : FeatureRule<Weather
         }
 
         var rounded = Math.Round(max, 1);
-        var level = ConfidenceThresholds.Default.LevelFor(peak.EnsembleStdDev);
+        var spread = ctx.Current.Ensemble.Points.SpreadAt(peak.ValidFrom);
+        var level = ConfidenceThresholds.Default.LevelFor(spread?.TemperatureSpread);
         return new HeatAlertResult(
             ctx.Location, severity, level.ToConfidence(), rounded, effectiveThreshold,
             PeakValue: null, HoursUntil: peak.HoursFrom(ctx.Now), DurationHours: null, Level: level,

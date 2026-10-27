@@ -3,8 +3,8 @@
 ## Project
 
 njord - Multi-domain weather intelligence for Home Assistant. A .NET service (Docker container)
-on Akka.NET + Akka.Streams: polls the Open-Meteo APIs (weather ensemble, air quality, flood,
-marine) per location, evaluates feature rules on the data, and serves it to Home Assistant
+on Akka.NET + Akka.Streams: polls the Open-Meteo APIs (weather forecast, ensemble, air quality,
+flood, flood, marine) per location, evaluates feature rules on the data, and serves it to Home Assistant
 over gRPC (the ha-njord integration).
 
 ## Solution structure
@@ -31,7 +31,7 @@ src/
     Configuration/      #   IConfigSection, NjordOptions (with FindLocation), LocationOptions, WeatherOptions, FloodOptions,
                         #   PollingOptions, Health/HealthOptions, AddNjordOptions (+ validators)
     Polling/            #   CallWeight, RequestBudget (free-tier constants, DailyLimit), FetchTimeouts
-  Njord.OpenMeteo/      # (-> Core) folders per domain: Weather/, AirQuality/, Flood/, Marine/, Seasonal/, Satellite/
+  Njord.OpenMeteo/      # (-> Core) folders per domain: Weather/, Ensemble/, AirQuality/, Flood/, Marine/, Seasonal/, Satellite/
                         #   (client, API variable enum, response DTO, mapping extensions per domain),
                         #   Gateway/ (OpenMeteoGateway, stream-based dispatch), Budget/ (GatewayBudgetGate),
                         #   Http/ (ClientRequest, OpenMeteoEndpoints, OpenMeteoJsonContext),
@@ -109,7 +109,7 @@ SINGLETONS (Cluster Singleton)
 ├─ PollManager (non-persistent, BackoffOnFailure, IWithTimers)    [Polling]
 │  └─ one target per location; StartPolling/StopPolling, poll states + health from reports
 ├─ OpenMeteoGateway (non-persistent)                              [OpenMeteo]
-│  └─ GatewayBudgetGate -> typed clients: Weather, AirQuality, Flood, Marine, Seasonal, SatelliteRadiation
+│  └─ GatewayBudgetGate -> typed clients: Forecast, Ensemble, AirQuality, Flood, Marine, Seasonal, SatelliteRadiation
 ├─ ForecastPipeline (non-persistent)                              [Pipeline]
 │  └─ MergeHub<DomainDataReceived> -> FeatureEngine -> IFeatureRule[] -> BroadcastHub<PipelineEvent>
 ├─ BudgetTracker (persistent)                                     [Budget]
@@ -122,16 +122,20 @@ SHARD REGIONS (Sharded Entity)
 
 ## Decisions
 
-- **Ensemble default.** The weather request goes to `v1/ensemble`; `Njord:Weather:Models` (default
-  `ecmwf_ifs025_ensemble_mean`, first = primary; ids from `WeatherModelCatalog`) selects the ensemble-mean models,
-  there are no horizon or parameter settings. Models beyond the first only take effect with the
-  `Weather:ModelComparison` feature (`FeatureRequirementsOptions.WeatherModels` / `PrimaryWeatherModel`); rules run on the primary model only and
-  the weather call weight is multiplied by the effective model count. The requested variables follow the enabled features: the `Requirements` of all
-  enabled features are OR-ed (`FeatureResolution.Configure` fills `FeatureRequirementsOptions`, consumers take `IOptions<FeatureRequirementsOptions>`) and mapped to API names by
-  `ParamMappings.ToApiNames()`; the clients only build the URL. `FeatureEngine` skips a rule whose
-  required fields are missing from the stream (`LocationForecast.HasFields`). `BudgetGuard` uses the same
-  resolved requirements and models (call weight computed inline): Weather costs `ceil(variables / 10) * ceil(forecastDays / 14) * modelCount` calls per cycle,
-  every other required domain 1.
+- **Forecast + Ensemble split.** Primary weather comes from the deterministic Forecast API
+  (`api.open-meteo.com/v1/forecast`, `ForecastClient`, `DomainKind.Weather`) using best_match
+  (automatic high-resolution model blending, 1-9 km). Ensemble spread and comparison models come
+  from the Ensemble Mean API (`ensemble-api.open-meteo.com/v1/ensemble`, `EnsembleClient`,
+  `DomainKind.Ensemble`). `Njord:Weather:Models` (default `ecmwf_ifs025_ensemble_mean`; ids from
+  `WeatherModelCatalog`) configures the ensemble-mean models for comparison. The requested variables
+  follow the enabled features: the `Requirements` of all enabled features are OR-ed
+  (`FeatureResolution.Configure` fills `FeatureRequirementsOptions`, consumers take
+  `IOptions<FeatureRequirementsOptions>`) and mapped to API names by `ParamMappings.ToApiNames()`;
+  the clients only build the URL. `FeatureEngine` skips a rule whose required fields are missing
+  from the stream (`LocationForecast.HasFields`). `BudgetGuard` uses the same resolved requirements:
+  Weather (Forecast API) costs `ceil(variables / 10) * ceil(forecastDays / 14)` calls per cycle
+  (no model multiplier), Ensemble costs `ceil(variables / 10) * ceil(forecastDays / 14) * modelCount`
+  (spread-only: 1 call), every other required domain 1.
 - **Per-domain forecast days.** `Njord:AirQuality` (5, max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92,
   max 210) next to `Njord:Weather`.
 - **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Category>:<Name>` (37 features; categories see
@@ -140,13 +144,14 @@ SHARD REGIONS (Sharded Entity)
   `Ice`, `WindChill`, `Visibility`, `TropicalNight`, `Humidity`), `Lifestyle:Commute`, `AirQuality:Pollen`,
   `AirQuality:Pm25`; everything else is off. The entity set follows locations x enabled features.
 - **Per-domain discovery.** Every domain of a location learns its own cycle and polls independently.
-- **Domains:** `Weather`, `AirQuality`, `Flood`, `Marine`, `Seasonal`, `Satellite` (`DomainKind`); the gateway fetches all of them.
+- **Domains:** `Weather`, `Ensemble`, `AirQuality`, `Flood`, `Marine`, `Seasonal`, `Satellite` (`DomainKind`); the gateway fetches all of them.
 - **Explicit coordinates.** A location is `Name`, `Latitude` and `Longitude`, all required (`NjordOptionsValidator`).
 - **Free tier assumed** (non-commercial): budget defaults to 300k/month, 600/min, optional
   `Polling:BudgetOverride`. Startup validates projected usage (`BudgetGuard`: locations x required
   domains x poll cycles x call weight) against 80 % of the monthly budget.
 - **Any change to polling needs a budget estimate** against 300k/month, 10k/day, and politeness toward
-  a free service. Weather weighs `ceil(variables / 10)` calls (4 standard and with solar); others 1.
+  a free service. Weather (Forecast API) weighs `ceil(variables / 10) * ceil(forecastDays / 14)` calls;
+  Ensemble weighs `ceil(variables / 10) * ceil(forecastDays / 14) * modelCount` (spread-only: 1); others 1.
 - **Seasonal is a normal domain** (`DomainKind.Seasonal`, `SeasonalPoint`, `TimeResolution.Monthly`): the gateway fetches
   `seasonal-api.open-meteo.com` for `SeasonalOutlook`, the PollWorker learns its roughly daily cycle, `BudgetGuard`
   counts it as 30 calls/month/location instead of once per poll cycle. The API delivers ensemble-mean

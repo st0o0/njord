@@ -13,7 +13,6 @@ public sealed record WeatherPoint(
     double? Humidity = null,
     double? DewPoint = null,
     double? UvIndex = null,
-    double? EnsembleStdDev = null,
     double? WindGusts = null,
     double? Visibility = null,
     double? Cape = null,
@@ -31,9 +30,7 @@ public sealed record WeatherPoint(
     double? GlobalTiltedIrradiance = null,
     double? SnowDepth = null,
     double? WetBulbTemperature = null,
-    double? SnowfallHeight = null,
-    double? PrecipitationSpread = null,
-    double? WindSpeedSpread = null) : IHasValidTime
+    double? SnowfallHeight = null) : IHasValidTime
 {
     private static readonly WeatherParams[] Flags =
         [.. Enum.GetValues<WeatherParams>().Where(p => p != WeatherParams.None)];
@@ -54,7 +51,6 @@ public sealed record WeatherPoint(
         WeatherParams.Humidity => Humidity is not null,
         WeatherParams.DewPoint => DewPoint is not null,
         WeatherParams.UvIndex => UvIndex is not null,
-        WeatherParams.EnsembleStdDev => EnsembleStdDev is not null,
         WeatherParams.WindGusts => WindGusts is not null,
         WeatherParams.Visibility => Visibility is not null,
         WeatherParams.Cape => Cape is not null,
@@ -73,8 +69,6 @@ public sealed record WeatherPoint(
         WeatherParams.SnowDepth => SnowDepth is not null,
         WeatherParams.WetBulbTemperature => WetBulbTemperature is not null,
         WeatherParams.SnowfallHeight => SnowfallHeight is not null,
-        WeatherParams.PrecipitationSpread => PrecipitationSpread is not null,
-        WeatherParams.WindSpeedSpread => WindSpeedSpread is not null,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

@@ -145,7 +145,6 @@ internal static class WeatherResponseMappingExtensions
                 Humidity: At(h.Humidity, i),
                 DewPoint: At(h.DewPoint, i),
                 UvIndex: At(h.UvIndex, i),
-                EnsembleStdDev: At(h.EnsembleStdDev, i),
                 WindGusts: At(h.WindGusts, i),
                 Visibility: At(h.Visibility, i),
                 Cape: At(h.Cape, i),
@@ -163,9 +162,7 @@ internal static class WeatherResponseMappingExtensions
                 GlobalTiltedIrradiance: At(h.GlobalTiltedIrradiance, i),
                 SnowDepth: At(h.SnowDepth, i),
                 WetBulbTemperature: At(h.WetBulbTemperature, i),
-                SnowfallHeight: At(h.SnowfallHeight, i),
-                PrecipitationSpread: At(h.PrecipitationSpread, i),
-                WindSpeedSpread: At(h.WindSpeedSpread, i));
+                SnowfallHeight: At(h.SnowfallHeight, i));
         }
 
         return new DomainForecast<WeatherPoint>(

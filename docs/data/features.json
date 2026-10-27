@@ -7,11 +7,14 @@
     "description": "Frost warning from the forecast low",
     "enabledByDefault": true,
     "domains": [
-      "Weather"
+      "Weather",
+      "Ensemble"
     ],
     "weatherParams": [
-      "Temperature",
-      "EnsembleStdDev"
+      "Temperature"
+    ],
+    "ensembleParams": [
+      "TemperatureSpread"
     ],
     "options": [
       {
@@ -33,12 +36,15 @@
     "description": "Heat warning from air and apparent temperature",
     "enabledByDefault": true,
     "domains": [
-      "Weather"
+      "Weather",
+      "Ensemble"
     ],
     "weatherParams": [
       "Temperature",
-      "ApparentTemperature",
-      "EnsembleStdDev"
+      "ApparentTemperature"
+    ],
+    "ensembleParams": [
+      "TemperatureSpread"
     ],
     "options": [
       {
@@ -60,11 +66,14 @@
     "description": "Storm warning from wind gusts",
     "enabledByDefault": true,
     "domains": [
-      "Weather"
+      "Weather",
+      "Ensemble"
     ],
     "weatherParams": [
-      "EnsembleStdDev",
       "WindGusts"
+    ],
+    "ensembleParams": [
+      "TemperatureSpread"
     ],
     "options": [
       {
@@ -86,11 +95,14 @@
     "description": "Heavy rain warning from hourly precipitation",
     "enabledByDefault": true,
     "domains": [
-      "Weather"
+      "Weather",
+      "Ensemble"
     ],
     "weatherParams": [
-      "Precipitation",
-      "EnsembleStdDev"
+      "Precipitation"
+    ],
+    "ensembleParams": [
+      "TemperatureSpread"
     ],
     "options": [
       {
@@ -110,13 +122,10 @@
     "name": "Uv",
     "category": "Weather",
     "output": "Alert",
-    "description": "UV warning from the peak UV index. Not delivered by the default ensemble model ecmwf_ifs025_ensemble_mean.",
+    "description": "UV warning from the peak UV index",
     "enabledByDefault": true,
     "domains": [
       "Weather"
-    ],
-    "weatherParams": [
-      "EnsembleStdDev"
     ],
     "optionalWeatherParams": [
       "UvIndex"
@@ -136,8 +145,7 @@
       "Temperature",
       "WindSpeed",
       "Humidity",
-      "DewPoint",
-      "EnsembleStdDev"
+      "DewPoint"
     ],
     "options": [
       {
@@ -155,12 +163,15 @@
     "description": "Snow warning from snowfall and freezing level",
     "enabledByDefault": true,
     "domains": [
-      "Weather"
+      "Weather",
+      "Ensemble"
     ],
     "weatherParams": [
-      "EnsembleStdDev",
       "Snowfall",
       "FreezingLevelHeight"
+    ],
+    "ensembleParams": [
+      "TemperatureSpread"
     ]
   },
   {
@@ -174,8 +185,7 @@
       "Weather"
     ],
     "weatherParams": [
-      "Pressure",
-      "EnsembleStdDev"
+      "Pressure"
     ],
     "options": [
       {
@@ -198,13 +208,16 @@
     "description": "Thunderstorm warning from CAPE, precipitation and gusts",
     "enabledByDefault": true,
     "domains": [
-      "Weather"
+      "Weather",
+      "Ensemble"
     ],
     "weatherParams": [
       "Precipitation",
-      "EnsembleStdDev",
       "WindGusts",
       "Cape"
+    ],
+    "ensembleParams": [
+      "TemperatureSpread"
     ],
     "options": [
       {
@@ -232,12 +245,15 @@
     "description": "Black ice warning from freezing temperatures with rain",
     "enabledByDefault": true,
     "domains": [
-      "Weather"
+      "Weather",
+      "Ensemble"
     ],
     "weatherParams": [
       "Temperature",
-      "Precipitation",
-      "EnsembleStdDev"
+      "Precipitation"
+    ],
+    "ensembleParams": [
+      "TemperatureSpread"
     ],
     "optionalWeatherParams": [
       "Rain",
@@ -259,11 +275,14 @@
     "description": "Wind chill warning from apparent temperature",
     "enabledByDefault": true,
     "domains": [
-      "Weather"
+      "Weather",
+      "Ensemble"
     ],
     "weatherParams": [
-      "ApparentTemperature",
-      "EnsembleStdDev"
+      "ApparentTemperature"
+    ],
+    "ensembleParams": [
+      "TemperatureSpread"
     ],
     "options": [
       {
@@ -282,13 +301,12 @@
     "name": "Visibility",
     "category": "Weather",
     "output": "Alert",
-    "description": "Low visibility warning. Not delivered by the default ensemble model ecmwf_ifs025_ensemble_mean.",
+    "description": "Low visibility warning",
     "enabledByDefault": true,
     "domains": [
       "Weather"
     ],
     "weatherParams": [
-      "EnsembleStdDev",
       "Visibility"
     ],
     "options": [
@@ -311,12 +329,15 @@
     "description": "Tropical night warning from the night time low",
     "enabledByDefault": true,
     "domains": [
-      "Weather"
+      "Weather",
+      "Ensemble"
     ],
     "weatherParams": [
       "Temperature",
-      "EnsembleStdDev",
       "IsDay"
+    ],
+    "ensembleParams": [
+      "TemperatureSpread"
     ],
     "options": [
       {
@@ -342,7 +363,6 @@
     ],
     "weatherParams": [
       "DewPoint",
-      "EnsembleStdDev",
       "IsDay"
     ],
     "options": [
@@ -601,10 +621,10 @@
     "description": "Trend of the ensemble forecast confidence",
     "enabledByDefault": false,
     "domains": [
-      "Weather"
+      "Ensemble"
     ],
-    "weatherParams": [
-      "EnsembleStdDev"
+    "ensembleParams": [
+      "TemperatureSpread"
     ]
   },
   {
@@ -628,14 +648,13 @@
     "name": "ModelComparison",
     "category": "Weather",
     "output": "Forecast",
-    "description": "Daily temperature and precipitation of every configured weather model side by side",
+    "description": "Daily temperature and precipitation of every configured ensemble model side by side",
     "enabledByDefault": false,
     "domains": [
-      "Weather"
+      "Ensemble"
     ],
-    "weatherParams": [
-      "Temperature",
-      "Precipitation"
+    "ensembleParams": [
+      "Models"
     ]
   },
   {

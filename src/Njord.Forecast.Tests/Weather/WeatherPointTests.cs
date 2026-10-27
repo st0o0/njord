@@ -23,14 +23,14 @@ public sealed class WeatherPointTests
     }
 
     [Fact]
-    public void Should_report_true_for_each_new_ensemble_field_when_it_has_a_value()
+    public void Should_report_true_for_each_extended_field_when_it_has_a_value()
     {
         var point = new WeatherPoint(At, GlobalTiltedIrradiance: 1, SnowDepth: 2, WetBulbTemperature: 3,
-            SnowfallHeight: 4, PrecipitationSpread: 5, WindSpeedSpread: 6);
+            SnowfallHeight: 4);
 
         Assert.Multiple(
             () => Assert.True(point.HasFields(WeatherParams.GlobalTiltedIrradiance | WeatherParams.SnowDepth | WeatherParams.WetBulbTemperature)),
-            () => Assert.True(point.HasFields(WeatherParams.SnowfallHeight | WeatherParams.PrecipitationSpread | WeatherParams.WindSpeedSpread)),
+            () => Assert.True(point.HasFields(WeatherParams.SnowfallHeight)),
             () => Assert.False(new WeatherPoint(At).HasFields(WeatherParams.GlobalTiltedIrradiance)));
     }
 

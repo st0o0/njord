@@ -8,4 +8,5 @@ public enum DomainKind
     Marine,
     Seasonal,
     Satellite,
+    Ensemble,
 }

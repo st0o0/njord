@@ -1,6 +1,6 @@
 import featureData from '../../../data/features.json'
 
-export const DOMAINS = ['Weather', 'AirQuality', 'Flood', 'Marine', 'Seasonal', 'Satellite'] as const
+export const DOMAINS = ['Weather', 'Ensemble', 'AirQuality', 'Flood', 'Marine', 'Seasonal', 'Satellite'] as const
 
 export type DomainName = (typeof DOMAINS)[number]
 
@@ -26,6 +26,7 @@ export interface FeatureEntry {
   weatherParams?: string[]
   optionalWeatherParams?: string[]
   airQualityParams?: string[]
+  ensembleParams?: string[]
   options?: FeatureOption[]
 }
 

@@ -45,5 +45,8 @@ public static class FeatureResolution
             static rule => rule.Descriptor.Name == ComparisonFeatureName);
         options.WeatherModels = [.. comparison
             ? weather.EffectiveModels : [weather.PrimaryModel]];
+        options.EnsembleModels = options.Requirements.Requires(DomainKind.Ensemble)
+            ? [.. comparison ? weather.EffectiveModels : [weather.PrimaryModel]]
+            : [];
     }
 }

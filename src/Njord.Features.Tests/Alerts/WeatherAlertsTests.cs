@@ -37,6 +37,14 @@ public sealed class WeatherAlertsTests
             : Assert.IsAssignableFrom<AlertFeatureResult>(result).Severity;
     }
 
+    private static AlertSeverity Severity(FeatureRule<WeatherEnsembleInput> rule, DomainForecast<WeatherPoint> weather)
+    {
+        var result = Run(rule, Now, WeatherWithEnsemble(weather, EnsembleDay()));
+        return result is null
+            ? AlertSeverity.None
+            : Assert.IsAssignableFrom<AlertFeatureResult>(result).Severity;
+    }
+
     [Theory]
     [InlineData(0.1, AlertSeverity.None)]
     [InlineData(0.0, AlertSeverity.Yellow)]
@@ -157,7 +165,7 @@ public sealed class WeatherAlertsTests
     public void A_cold_forecast_produces_an_orange_frost_alert_for_the_location()
     {
         var frost = Assert.IsType<FrostAlertResult>(
-            Run(new FrostAlert(Opts(new FrostConfig())), Now, WeatherOnly(Uniform(p => p with { Temperature = -6.0 }))));
+            Run(new FrostAlert(Opts(new FrostConfig())), Now, WeatherWithEnsemble(Uniform(p => p with { Temperature = -6.0 }), EnsembleDay())));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Orange, frost.Severity),
@@ -171,14 +179,21 @@ public sealed class WeatherAlertsTests
     }
 
     [Fact]
+    public void Missing_ensemble_produces_no_alert_for_ensemble_requiring_alerts()
+    {
+        Assert.Null(Run(new FrostAlert(Opts(new FrostConfig())), Now, WeatherOnly(Uniform(p => p with { Temperature = -6.0 }))));
+    }
+
+    [Fact]
     public void Independent_features_alert_independently_on_the_same_forecast()
     {
-        var forecast = WeatherOnly(Hourly(48, (h, p) => h switch
+        var weather = Hourly(48, (h, p) => h switch
         {
             2 => p with { Temperature = -6.0, ApparentTemperature = -6.0 },
             3 => p with { Temperature = 40.0, ApparentTemperature = 40.0 },
             _ => p,
-        }));
+        });
+        var forecast = WeatherWithEnsemble(weather, EnsembleHourly(48));
 
         Assert.Multiple(
             () => Assert.IsType<FrostAlertResult>(Run(new FrostAlert(Opts(new FrostConfig())), Now, forecast)),

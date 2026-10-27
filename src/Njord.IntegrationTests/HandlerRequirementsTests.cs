@@ -15,7 +15,6 @@ public sealed class HandlerRequirementsTests
     [InlineData("CommuteSafety")]
     [InlineData("ApproachingFront")]
     [InlineData("BbqScore")]
-    [InlineData("ConfidenceTrend")]
     [InlineData("Gardening")]
     [InlineData("LaundryScore")]
     [InlineData("NightVentilation")]
@@ -47,10 +46,10 @@ public sealed class HandlerRequirementsTests
     }
 
     [Fact]
-    public void Should_declare_only_the_params_the_confidence_trend_reads()
+    public void Should_declare_only_the_ensemble_params_the_confidence_trend_reads()
     {
         Assert.Equal(
-            new DomainRequirements(Weather: WeatherParams.EnsembleStdDev),
+            new DomainRequirements(Ensemble: EnsembleParams.TemperatureSpread),
             Features["ConfidenceTrend"].Descriptor.Requirements);
     }
 

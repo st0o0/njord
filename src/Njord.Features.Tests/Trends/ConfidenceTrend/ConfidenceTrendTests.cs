@@ -12,8 +12,8 @@ public sealed class ConfidenceTrendTests
 {
     private static ConfidenceTrend Feature() => new(Options.Create(new ConfidenceTrendConfig { Enabled = true }));
 
-    private static LocationForecast WithStdDev(double value) =>
-        WeatherOnly(Uniform(p => p with { EnsembleStdDev = value }));
+    private static LocationForecast WithSpread(double value) =>
+        new(Lucerne, Ensemble: EnsembleDay(value));
 
     [Theory]
     [InlineData(1.0, 2.0, ConfidenceTrendDirection.Converging)]
@@ -22,7 +22,7 @@ public sealed class ConfidenceTrendTests
     public void The_change_in_ensemble_spread_is_classified(double current, double previous, ConfidenceTrendDirection direction)
     {
         var trend = Assert.IsType<ConfidenceTrendResult>(
-            Run(Feature(), Now, WithStdDev(previous), WithStdDev(current)));
+            Run(Feature(), Now, WithSpread(previous), WithSpread(current)));
 
         Assert.Multiple(
             () => Assert.Equal(direction, trend.Direction),
@@ -34,12 +34,12 @@ public sealed class ConfidenceTrendTests
     [Fact]
     public void Nothing_is_reported_without_a_previous_cycle()
     {
-        Assert.Null(Run(Feature(), Now, WithStdDev(1.0)));
+        Assert.Null(Run(Feature(), Now, WithSpread(1.0)));
     }
 
     [Fact]
     public void Nothing_is_reported_without_ensemble_data()
     {
-        Assert.Null(Run(Feature(), Now, WeatherOnly(Day()), WeatherOnly(Day())));
+        Assert.Null(Run(Feature(), Now, new LocationForecast(Lucerne), new LocationForecast(Lucerne)));
     }
 }

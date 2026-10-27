@@ -12,12 +12,13 @@ namespace Njord.OpenMeteo.Tests;
 
 public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
 {
-    private readonly FakeWeatherClient _weather = new();
+    private readonly FakeForecastClient _weather = new();
     private readonly FakeAirQualityClient _airQuality = new();
     private readonly FakeFloodClient _flood = new();
     private readonly FakeMarineClient _marine = new();
     private readonly FakeSeasonalClient _seasonal = new();
     private readonly FakeSatelliteRadiationClient _satellite = new();
+    private readonly FakeEnsembleClient _ensemble = new();
     private readonly SwitchableBudgetProvider _budget = new();
     private Akka.TestKit.TestProbe _apiCalls = null!;
     private Akka.TestKit.TestProbe _region = null!;
@@ -33,7 +34,7 @@ public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
 
     private IActorRef StartGateway()
     {
-        IReadOnlyDictionary<DomainKind, IDomainClient> clients = new IDomainClient[] { _weather, _airQuality, _flood, _marine, _seasonal, _satellite }
+        IReadOnlyDictionary<DomainKind, IDomainClient> clients = new IDomainClient[] { _weather, _airQuality, _flood, _marine, _seasonal, _satellite, _ensemble }
             .ToDictionary(c => c.Domain);
         return Sys.ActorOf(
             Props.Create(() => new OpenMeteoGateway(clients, TimeProvider.System, _budget, FetchTimeouts.Default)),

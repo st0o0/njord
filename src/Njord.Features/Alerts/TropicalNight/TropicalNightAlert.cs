@@ -7,21 +7,21 @@ using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.TropicalNight;
 
-public sealed class TropicalNightAlert(IOptions<TropicalNightConfig> config) : FeatureRule<WeatherInput>
+public sealed class TropicalNightAlert(IOptions<TropicalNightConfig> config) : FeatureRule<WeatherEnsembleInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
         Name: "TropicalNight",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.IsDay | WeatherParams.EnsembleStdDev));
+        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.IsDay, Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
+        forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
     {
         var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Max);
         var night = ctx.Current.Weather.NextHoursInclusive(ctx.Now).Where(p => p is { IsDay: <= 0.5, Temperature: not null }).ToList();
@@ -43,7 +43,8 @@ public sealed class TropicalNightAlert(IOptions<TropicalNightConfig> config) : F
         }
 
         var rounded = Math.Round(nightLow, 1);
-        var level = ConfidenceThresholds.Default.LevelFor(coldest.EnsembleStdDev);
+        var spread = ctx.Current.Ensemble.Points.SpreadAt(coldest.ValidFrom);
+        var level = ConfidenceThresholds.Default.LevelFor(spread?.TemperatureSpread);
         return new TropicalNightAlertResult(
             ctx.Location, severity, level.ToConfidence(), rounded, effectiveThreshold,
             PeakValue: null, HoursUntil: night[0].HoursFrom(ctx.Now), DurationHours: null, Level: level,

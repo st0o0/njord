@@ -26,8 +26,6 @@ public enum WeatherApiVariable
     DewPoint,
     [JsonStringEnumMemberName("uv_index")]
     UvIndex,
-    [JsonStringEnumMemberName("temperature_2m_spread")]
-    EnsembleStdDev,
     [JsonStringEnumMemberName("wind_gusts_10m")]
     WindGusts,
     [JsonStringEnumMemberName("visibility")]
@@ -64,8 +62,4 @@ public enum WeatherApiVariable
     WetBulbTemperature,
     [JsonStringEnumMemberName("snowfall_height")]
     SnowfallHeight,
-    [JsonStringEnumMemberName("precipitation_spread")]
-    PrecipitationSpread,
-    [JsonStringEnumMemberName("wind_speed_10m_spread")]
-    WindSpeedSpread,
 }

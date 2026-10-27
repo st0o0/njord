@@ -16,15 +16,22 @@ public sealed class PollingOptionsValidatorTests
     private static PollingOptionsValidator ValidatorFor(params (string Key, string Value)[] scope) =>
         ValidatorWith(null, scope);
 
-    private static PollingOptionsValidator ValidatorWith(ImmutableArray<string>? models, params (string Key, string Value)[] scope) =>
-        new(new ConfigurationBuilder()
+    private static PollingOptionsValidator ValidatorWith(ImmutableArray<string>? ensembleModels, params (string Key, string Value)[] scope)
+    {
+        var hasEnsemble = ensembleModels is { Length: > 0 };
+        return new(new ConfigurationBuilder()
             .AddInMemoryCollection(scope.ToDictionary(s => s.Key, s => (string?)s.Value))
             .Build(),
             Options.Create(new FeatureRequirementsOptions
             {
-                Requirements = new DomainRequirements(Weather: WeatherParams.Temperature, AirQuality: AirQualityParams.Pm25),
-                WeatherModels = models ?? ["ecmwf_ifs025_ensemble_mean"],
+                Requirements = new DomainRequirements(
+                    Weather: WeatherParams.Temperature,
+                    AirQuality: AirQualityParams.Pm25,
+                    Ensemble: hasEnsemble ? EnsembleParams.TemperatureSpread | EnsembleParams.Models : EnsembleParams.None),
+                WeatherModels = ["ecmwf_ifs025_ensemble_mean"],
+                EnsembleModels = ensembleModels ?? [],
             }));
+    }
 
     [Theory]
     [InlineData("00:00:00")]
@@ -73,7 +80,7 @@ public sealed class PollingOptionsValidatorTests
     }
 
     [Fact]
-    public void Should_count_every_weather_model_of_the_fetch_plan()
+    public void Should_count_ensemble_models_in_the_budget_projection()
     {
         var options = new PollingOptions { BudgetOverride = new RequestBudget(2_500, 600) };
         (string, string)[] scope =

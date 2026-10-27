@@ -16,7 +16,7 @@ public sealed class PressureDropAlert(IOptions<PressureDropConfig> config) : Fea
         FeatureCategory.Weather,
         Name: "PressureDrop",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Pressure | WeatherParams.EnsembleStdDev));
+        new DomainRequirements(Weather: WeatherParams.Pressure));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -48,7 +48,7 @@ public sealed class PressureDropAlert(IOptions<PressureDropConfig> config) : Fea
         }
 
         var rounded = Math.Round(maxDrop, 1);
-        var level = ConfidenceThresholds.Default.LevelFor(endPoint?.EnsembleStdDev);
+        var level = ConfidenceLevel.Medium;
         return new PressureDropAlertResult(
             ctx.Location, severity, level.ToConfidence(), rounded, maxDrop >= severeThreshold ? severeThreshold : dropThreshold,
             PeakValue: null, HoursUntil: null, DurationHours: null, Level: level,

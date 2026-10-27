@@ -14,7 +14,7 @@ public sealed class HumidityAlert(IOptions<HumidityConfig> config) : FeatureRule
         FeatureCategory.Weather,
         Name: "Humidity",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.DewPoint | WeatherParams.IsDay | WeatherParams.EnsembleStdDev));
+        new DomainRequirements(Weather: WeatherParams.DewPoint | WeatherParams.IsDay));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -45,7 +45,7 @@ public sealed class HumidityAlert(IOptions<HumidityConfig> config) : FeatureRule
         };
 
         var rounded = Math.Round(dewPoint, 1);
-        var level = ConfidenceThresholds.Default.LevelFor(muggiest.EnsembleStdDev);
+        var level = ConfidenceLevel.Medium;
         return new HumidityAlertResult(
             ctx.Location, severity, level.ToConfidence(), rounded, effectiveThreshold,
             PeakValue: null, HoursUntil: muggiest.HoursFrom(ctx.Now), DurationHours: null, Level: level,

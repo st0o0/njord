@@ -17,7 +17,6 @@ public static class WeatherApiVariableMappingExtensions
         WeatherParams.Humidity => WeatherApiVariable.Humidity,
         WeatherParams.DewPoint => WeatherApiVariable.DewPoint,
         WeatherParams.UvIndex => WeatherApiVariable.UvIndex,
-        WeatherParams.EnsembleStdDev => WeatherApiVariable.EnsembleStdDev,
         WeatherParams.WindGusts => WeatherApiVariable.WindGusts,
         WeatherParams.Visibility => WeatherApiVariable.Visibility,
         WeatherParams.Cape => WeatherApiVariable.Cape,
@@ -36,8 +35,6 @@ public static class WeatherApiVariableMappingExtensions
         WeatherParams.SnowDepth => WeatherApiVariable.SnowDepth,
         WeatherParams.WetBulbTemperature => WeatherApiVariable.WetBulbTemperature,
         WeatherParams.SnowfallHeight => WeatherApiVariable.SnowfallHeight,
-        WeatherParams.PrecipitationSpread => WeatherApiVariable.PrecipitationSpread,
-        WeatherParams.WindSpeedSpread => WeatherApiVariable.WindSpeedSpread,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 

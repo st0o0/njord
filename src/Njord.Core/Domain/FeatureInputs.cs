@@ -11,10 +11,12 @@ namespace Njord.Core.Domain;
 
 public readonly record struct ModelComparisonInput(DomainForecast<WeatherPoint> Weather, ImmutableDictionary<string, DomainForecast<WeatherPoint>> Models);
 public readonly record struct WeatherInput(DomainForecast<WeatherPoint> Weather);
+public readonly record struct WeatherEnsembleInput(DomainForecast<WeatherPoint> Weather, DomainForecast<EnsemblePoint> Ensemble);
 public readonly record struct AqInput(DomainForecast<AirQualityPoint> AirQuality);
 public readonly record struct WeatherAqInput(DomainForecast<WeatherPoint> Weather, DomainForecast<AirQualityPoint> AirQuality);
 public readonly record struct WeatherSolarInput(DomainForecast<WeatherPoint> Weather, DomainForecast<SatelliteRadiationPoint> Satellite);
 public readonly record struct FloodWeatherInput(DomainForecast<FloodPoint> Flood, DomainForecast<WeatherPoint> Weather);
 public readonly record struct FloodMarineWeatherInput(DomainForecast<FloodPoint> Flood, DomainForecast<MarinePoint> Marine, DomainForecast<WeatherPoint> Weather);
 public readonly record struct MarineWeatherInput(DomainForecast<MarinePoint> Marine, DomainForecast<WeatherPoint> Weather);
+public readonly record struct EnsembleInput(DomainForecast<EnsemblePoint> Ensemble);
 public readonly record struct SeasonalInput(DomainForecast<SeasonalPoint> Seasonal);

@@ -20,12 +20,13 @@ namespace Njord.OpenMeteo.Tests;
 public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
 {
     private readonly FakeTimeProvider _time = new FakeTimeProvider(TestTimeConstants.PipelineEpoch);
-    private readonly FakeWeatherClient _weather = new();
+    private readonly FakeForecastClient _weather = new();
     private readonly FakeAirQualityClient _airQuality = new();
     private readonly FakeFloodClient _flood = new();
     private readonly FakeMarineClient _marine = new();
     private readonly FakeSeasonalClient _seasonal = new();
     private readonly FakeSatelliteRadiationClient _satellite = new();
+    private readonly FakeEnsembleClient _ensemble = new();
     private Akka.TestKit.TestProbe _attached = null!;
     private Akka.TestKit.TestProbe _forecasts = null!;
     private Akka.TestKit.TestProbe _region = null!;
@@ -50,7 +51,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
     }
 
     private IReadOnlyDictionary<DomainKind, IDomainClient> Clients(params DomainKind[] without) =>
-        new IDomainClient[] { _weather, _airQuality, _flood, _marine, _seasonal, _satellite }
+        new IDomainClient[] { _weather, _airQuality, _flood, _marine, _seasonal, _satellite, _ensemble }
             .Where(c => !without.Contains(c.Domain))
             .ToDictionary(c => c.Domain);
 
@@ -244,20 +245,20 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 30000)]
-    public async Task A_multi_model_weather_fetch_offers_every_model_before_the_primary_forecast()
+    public async Task A_multi_model_ensemble_fetch_offers_every_model_before_the_primary_forecast()
     {
         var ct = TestContext.Current.CancellationToken;
-        _weather.ModelIds = ["ukmo", "ecmwf"];
+        _ensemble.ModelIds = ["ukmo", "ecmwf"];
         await _attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
 
-        Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Weather));
+        Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Ensemble));
         var completed = await _region.ExpectMsgAsync<FetchDomainCompleted>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         var first = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         var second = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         var primary = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TimeSpan.FromSeconds(5), cancellationToken: ct);
 
         Assert.Multiple(
-            () => Assert.Equal(DomainKind.Weather, completed.Domain),
+            () => Assert.Equal(DomainKind.Ensemble, completed.Domain),
             () => Assert.Equal(["ecmwf", "ukmo"], new[] { first.ModelId, second.ModelId }.Order()),
             () => Assert.Null(primary.ModelId),
             () => Assert.Equal(primary.Data.GetHashCode(), completed.Hash));

@@ -7,21 +7,21 @@ using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.HeavyRain;
 
-public sealed class HeavyRainAlert(IOptions<HeavyRainConfig> config) : FeatureRule<WeatherInput>
+public sealed class HeavyRainAlert(IOptions<HeavyRainConfig> config) : FeatureRule<WeatherEnsembleInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
         Name: "HeavyRain",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Precipitation | WeatherParams.EnsembleStdDev));
+        new DomainRequirements(Weather: WeatherParams.Precipitation, Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
+        forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
     {
         var window = ctx.Current.Weather.NextHoursInclusive(ctx.Now);
         if (window.HighestBy(p => p.Precipitation) is not { Precipitation: { } peakPrecipitation } wettest)
@@ -51,7 +51,8 @@ public sealed class HeavyRainAlert(IOptions<HeavyRainConfig> config) : FeatureRu
 
         var triggerValue = hourlyExceeds ? Math.Round(Math.Max(0.0, peakPrecipitation), 1) : Math.Round(dailySum, 1);
         var threshold = hourlyExceeds ? hourlyThreshold : dailyThreshold;
-        var level = ConfidenceThresholds.Default.LevelFor(wettest.EnsembleStdDev);
+        var spread = ctx.Current.Ensemble.Points.SpreadAt(wettest.ValidFrom);
+        var level = ConfidenceThresholds.Default.LevelFor(spread?.TemperatureSpread);
         return new HeavyRainAlertResult(
             ctx.Location, severity, level.ToConfidence(), triggerValue, threshold,
             PeakValue: null, HoursUntil: hourlyExceeds ? wettest.HoursFrom(ctx.Now) : null, DurationHours: null, Level: level,

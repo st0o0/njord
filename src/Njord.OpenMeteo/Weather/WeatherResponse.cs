@@ -16,7 +16,6 @@ public sealed record WeatherHourlyData(
     [property: JsonPropertyName("relative_humidity_2m")] double?[]? Humidity = null,
     [property: JsonPropertyName("dew_point_2m")] double?[]? DewPoint = null,
     [property: JsonPropertyName("uv_index")] double?[]? UvIndex = null,
-    [property: JsonPropertyName("temperature_2m_spread")] double?[]? EnsembleStdDev = null,
     [property: JsonPropertyName("wind_gusts_10m")] double?[]? WindGusts = null,
     [property: JsonPropertyName("visibility")] double?[]? Visibility = null,
     [property: JsonPropertyName("cape")] double?[]? Cape = null,
@@ -34,9 +33,7 @@ public sealed record WeatherHourlyData(
     [property: JsonPropertyName("global_tilted_irradiance")] double?[]? GlobalTiltedIrradiance = null,
     [property: JsonPropertyName("snow_depth")] double?[]? SnowDepth = null,
     [property: JsonPropertyName("wet_bulb_temperature_2m")] double?[]? WetBulbTemperature = null,
-    [property: JsonPropertyName("snowfall_height")] double?[]? SnowfallHeight = null,
-    [property: JsonPropertyName("precipitation_spread")] double?[]? PrecipitationSpread = null,
-    [property: JsonPropertyName("wind_speed_10m_spread")] double?[]? WindSpeedSpread = null);
+    [property: JsonPropertyName("snowfall_height")] double?[]? SnowfallHeight = null);
 
 public sealed record WeatherResponse(
     [property: JsonPropertyName("latitude")] double Latitude,

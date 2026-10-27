@@ -6,7 +6,7 @@ using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Trends.ConfidenceTrend;
 
-public sealed class ConfidenceTrend(IOptions<ConfidenceTrendConfig> config) : FeatureRule<WeatherInput>
+public sealed class ConfidenceTrend(IOptions<ConfidenceTrendConfig> config) : FeatureRule<EnsembleInput>
 {
     public const double ChangeThreshold = 0.20;
 
@@ -15,25 +15,25 @@ public sealed class ConfidenceTrend(IOptions<ConfidenceTrendConfig> config) : Fe
         FeatureCategory.Insight,
         Name: "ConfidenceTrend",
         DefaultEnabled: false,
-        new DomainRequirements(Weather: WeatherParams.EnsembleStdDev),
+        new DomainRequirements(Ensemble: EnsembleParams.TemperatureSpread),
         PollDepth: 1);
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override EnsembleInput? Project(LocationForecast forecast) =>
+        forecast.Ensemble is { } e ? new(e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<EnsembleInput> ctx)
     {
         if (ctx.History.Count < 2)
         {
             return null;
         }
 
-        var latest = ctx.Current.Weather;
-        var before = ctx.History[1].Weather;
+        var latest = ctx.Current.Ensemble;
+        var before = ctx.History[1].Ensemble;
 
-        if (AverageStdDev(latest, ctx.Now) is not { } currentAverage || AverageStdDev(before, ctx.Now) is not { } previousAverage)
+        if (AverageSpread(latest, ctx.Now) is not { } currentAverage || AverageSpread(before, ctx.Now) is not { } previousAverage)
         {
             return null;
         }
@@ -48,11 +48,11 @@ public sealed class ConfidenceTrend(IOptions<ConfidenceTrendConfig> config) : Fe
         return new ConfidenceTrendResult(ctx.Location, direction, Math.Round(currentAverage - previousAverage, 2), Math.Round(currentAverage, 2), Math.Round(previousAverage, 2));
     }
 
-    private static double? AverageStdDev(DomainForecast<WeatherPoint> forecast, DateTimeOffset now)
+    private static double? AverageSpread(DomainForecast<EnsemblePoint> forecast, DateTimeOffset now)
     {
         var values = forecast.NextHours(now)
-            .Where(p => p.EnsembleStdDev.HasValue)
-            .Select(p => p.EnsembleStdDev!.Value)
+            .Where(p => p.TemperatureSpread.HasValue)
+            .Select(p => p.TemperatureSpread!.Value)
             .ToList();
         return values.Count == 0 ? null : values.Average();
     }

@@ -21,6 +21,7 @@ internal static class DomainDataProtoMappingExtensions
         PipelineEvent.MarineDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Marine = e.Forecast.ToMarineData() }),
         PipelineEvent.SeasonalDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Seasonal = e.Forecast.ToSeasonalData() }),
         PipelineEvent.SatelliteDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Satellite = e.Forecast.ToSatelliteData() }),
+        PipelineEvent.EnsembleDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Ensemble = e.Forecast.ToEnsembleData() }),
         _ => null,
     };
 
@@ -35,6 +36,7 @@ internal static class DomainDataProtoMappingExtensions
         PipelineEvent.MarineDataReceived => DomainKind.Marine,
         PipelineEvent.SeasonalDataReceived => DomainKind.Seasonal,
         PipelineEvent.SatelliteDataReceived => DomainKind.Satellite,
+        PipelineEvent.EnsembleDataReceived => DomainKind.Ensemble,
         _ => null,
     };
 
@@ -46,6 +48,7 @@ internal static class DomainDataProtoMappingExtensions
         PipelineEvent.MarineDataReceived e => e.Location,
         PipelineEvent.SeasonalDataReceived e => e.Location,
         PipelineEvent.SatelliteDataReceived e => e.Location,
+        PipelineEvent.EnsembleDataReceived e => e.Location,
         _ => null,
     };
 
@@ -99,6 +102,22 @@ internal static class DomainDataProtoMappingExtensions
         return data;
     }
 
+    private static EnsembleData ToEnsembleData(this DomainForecast<EnsemblePoint> forecast)
+    {
+        var data = new EnsembleData();
+        data.Points.AddRange(forecast.Points.Select(p => p.ToProto()));
+        return data;
+    }
+
+    public static EnsembleSample ToProto(this EnsemblePoint p)
+    {
+        var sample = new EnsembleSample { ValidAt = p.ValidFrom.ToTimestamp() };
+        if (p.TemperatureSpread is { } temp) { sample.TemperatureSpread = temp; }
+        if (p.PrecipitationSpread is { } precip) { sample.PrecipitationSpread = precip; }
+        if (p.WindSpeedSpread is { } wind) { sample.WindSpeedSpread = wind; }
+        return sample;
+    }
+
     public static WeatherSample ToProto(this WeatherPoint p)
     {
         var sample = new WeatherSample
@@ -116,7 +135,7 @@ internal static class DomainDataProtoMappingExtensions
         if (p.Humidity is { } humidity) { sample.Humidity = humidity; }
         if (p.DewPoint is { } dewPoint) { sample.DewPoint = dewPoint; }
         if (p.UvIndex is { } uvIndex) { sample.UvIndex = uvIndex; }
-        if (p.EnsembleStdDev is { } stdDev) { sample.EnsembleStdDev = stdDev; }
+
         if (p.WindGusts is { } gusts) { sample.WindGusts = gusts; }
         if (p.Visibility is { } visibility) { sample.Visibility = visibility; }
         if (p.Cape is { } cape) { sample.Cape = cape; }

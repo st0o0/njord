@@ -14,8 +14,7 @@ public sealed class UvAlert(IOptions<UvConfig> config) : FeatureRule<WeatherInpu
         FeatureCategory.Weather,
         Name: "Uv",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.EnsembleStdDev,
-            OptionalWeather: WeatherParams.UvIndex));
+        new DomainRequirements(Weather: WeatherParams.UvIndex));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -44,7 +43,7 @@ public sealed class UvAlert(IOptions<UvConfig> config) : FeatureRule<WeatherInpu
         }
 
         var rounded = Math.Round(uvIndex, 1);
-        var confidence = ConfidenceThresholds.Default.LevelFor(peak.EnsembleStdDev);
+        var confidence = ConfidenceLevel.Medium;
         return new UvAlertResult(
             ctx.Location, severity, confidence.ToConfidence(), rounded, uvThreshold,
             PeakValue: null, HoursUntil: peak.HoursFrom(ctx.Now), DurationHours: null, Level: confidence,

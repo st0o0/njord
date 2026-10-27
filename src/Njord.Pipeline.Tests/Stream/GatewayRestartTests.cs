@@ -25,12 +25,13 @@ public sealed class GatewayRestartTests : Akka.Hosting.TestKit.TestKit
     private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
 
     private readonly FakeTimeProvider _time = new FakeTimeProvider(TestTimeConstants.PipelineEpoch);
-    private readonly FakeWeatherClient _weather = new();
+    private readonly FakeForecastClient _weather = new();
     private readonly FakeAirQualityClient _airQuality = new();
     private readonly FakeFloodClient _flood = new();
     private readonly FakeMarineClient _marine = new();
     private readonly FakeSeasonalClient _seasonal = new();
     private readonly FakeSatelliteRadiationClient _satellite = new();
+    private readonly FakeEnsembleClient _ensemble = new();
     private readonly FaultyOnceBudgetProvider _budget = new();
 
     [Fact(Timeout = 30000)]
@@ -108,6 +109,7 @@ public sealed class GatewayRestartTests : Akka.Hosting.TestKit.TestKit
             [DomainKind.Marine] = _marine,
             [DomainKind.Seasonal] = _seasonal,
             [DomainKind.Satellite] = _satellite,
+            [DomainKind.Ensemble] = _ensemble,
         };
         return Sys.ActorOf(
             Props.Create(() => new OpenMeteoGateway(clients, _time, _budget, FetchTimeouts.Default)),

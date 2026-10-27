@@ -5,6 +5,7 @@ using Njord.Grpc.V2;
 using Njord.Messages.Budget;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
+using Njord.Forecast.Weather;
 using Njord.Tests.Shared;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
@@ -127,6 +128,26 @@ public sealed class ProtoMappingsTests
     }
 
     [Fact]
+    public void Ensemble_events_map_to_a_domain_data_update_with_spread_fields()
+    {
+        var points = new[] { new EnsemblePoint(Anchor, 1.5, 0.3, 2.1) };
+        var forecast = new DomainForecast<EnsemblePoint>(DomainKind.Ensemble, Anchor, TimeResolution.Hourly, [.. points]);
+        var evt = new PipelineEvent.EnsembleDataReceived(DomainData.Lucerne, forecast);
+
+        var update = evt.ToDomainDataUpdate();
+
+        Assert.NotNull(update);
+        Assert.Multiple(
+            () => Assert.Equal("Lucerne", update.Location),
+            () => Assert.Equal(Domain.Ensemble, update.Domain),
+            () => Assert.Equal(DomainDataUpdate.DataOneofCase.Ensemble, update.DataCase),
+            () => Assert.Equal(1, update.Ensemble.Points.Count),
+            () => Assert.Equal(1.5, update.Ensemble.Points[0].TemperatureSpread),
+            () => Assert.Equal(0.3, update.Ensemble.Points[0].PrecipitationSpread),
+            () => Assert.Equal(2.1, update.Ensemble.Points[0].WindSpeedSpread));
+    }
+
+    [Fact]
     public void Events_without_an_enrichment_have_no_enrichment_event()
     {
         var weather = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 1));
@@ -140,6 +161,7 @@ public sealed class ProtoMappingsTests
     [InlineData(DomainKind.Flood, Domain.Flood)]
     [InlineData(DomainKind.Marine, Domain.Marine)]
     [InlineData(DomainKind.Satellite, Domain.Satellite)]
+    [InlineData(DomainKind.Ensemble, Domain.Ensemble)]
     public void Domain_kinds_map_to_their_proto_domain_and_back(DomainKind kind, Domain expected)
     {
         Assert.Multiple(

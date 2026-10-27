@@ -1,4 +1,4 @@
-import { requiredDomains, weatherVariableCount, type NjordConfig } from './types'
+import { FEATURES, requiredDomains, weatherVariableCount, type NjordConfig } from './types'
 
 const MINUTES_PER_DAY = 24 * 60
 const DAYS_PER_MONTH = 30
@@ -30,7 +30,7 @@ export function computeBudget(config: NjordConfig): BudgetResult {
   const cyclesPerMonth = cyclesPerDay * DAYS_PER_MONTH
 
   const domains = requiredDomains(config.features)
-  const apiCallWeight = weatherWeight(config, config.features)
+  const apiCallWeight = weatherWeight(config, config.features) + ensembleWeight(config, config.features)
   const domainCallsPerCycle = domains.filter(d => d !== 'Seasonal').length * config.locations.length
   const callsPerCycle = config.locations.length * callsPerLocationCycle(config, config.features)
 
@@ -55,21 +55,40 @@ export function computeBudget(config: NjordConfig): BudgetResult {
   }
 }
 
-function effectiveModelCount(config: NjordConfig, features: Record<string, boolean>): number {
-  return features['Weather:ModelComparison'] ? Math.max(1, config.weather.models.filter(Boolean).length) : 1
-}
-
 function weatherWeight(config: NjordConfig, features: Record<string, boolean>): number {
   return requiredDomains(features).includes('Weather')
-    ? Math.ceil(weatherVariableCount(features) / 10) * Math.ceil(config.weather.forecastDays / 14) * effectiveModelCount(config, features)
+    ? Math.ceil(weatherVariableCount(features) / 10) * Math.ceil(config.weather.forecastDays / 14)
     : 0
+}
+
+function ensembleSpreadVarCount(features: Record<string, boolean>): number {
+  const params = new Set<string>()
+  for (const f of FEATURES) {
+    if (!features[f.key]) continue
+    f.ensembleParams?.forEach(p => { if (p !== 'Models') params.add(p) })
+  }
+  return params.size
+}
+
+function ensembleNeedsModels(features: Record<string, boolean>): boolean {
+  return FEATURES.some(f => features[f.key] && f.ensembleParams?.includes('Models'))
+}
+
+function ensembleWeight(config: NjordConfig, features: Record<string, boolean>): number {
+  const domains = requiredDomains(features)
+  if (!domains.includes('Ensemble')) return 0
+  const modelCount = Math.max(1, config.weather.models.filter(Boolean).length)
+  if (ensembleNeedsModels(features)) {
+    return Math.ceil(weatherVariableCount(features) / 10) * Math.ceil(config.weather.forecastDays / 14) * modelCount
+  }
+  return Math.ceil(ensembleSpreadVarCount(features) / 10) * Math.ceil(config.weather.forecastDays / 14)
 }
 
 function callsPerLocationCycle(config: NjordConfig, features: Record<string, boolean>): number {
   const domains = requiredDomains(features)
-  const otherDomains = domains.filter(d => d !== 'Weather' && d !== 'Seasonal').length
+  const otherDomains = domains.filter(d => d !== 'Weather' && d !== 'Ensemble' && d !== 'Seasonal').length
   const floodExtraWeight = domains.includes('Flood') && config.flood.includeEnsemble ? FLOOD_ENSEMBLE_WEIGHT - 1 : 0
-  return weatherWeight(config, features) + otherDomains + floodExtraWeight
+  return weatherWeight(config, features) + ensembleWeight(config, features) + otherDomains + floodExtraWeight
 }
 
 // Marginal calls per day and location of enabling a feature (or saved by disabling it) given the other enabled

@@ -8,6 +8,7 @@ using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Marine;
 using Njord.OpenMeteo.Satellite;
 using Njord.OpenMeteo.Seasonal;
+using Njord.OpenMeteo.Ensemble;
 using Njord.OpenMeteo.Weather;
 
 namespace Njord.OpenMeteo.Tests.Mapping;
@@ -26,7 +27,6 @@ public sealed class ParamsMappingsTests
     [InlineData(WeatherParams.Humidity, "relative_humidity_2m")]
     [InlineData(WeatherParams.DewPoint, "dew_point_2m")]
     [InlineData(WeatherParams.UvIndex, "uv_index")]
-    [InlineData(WeatherParams.EnsembleStdDev, "temperature_2m_spread")]
     [InlineData(WeatherParams.WindGusts, "wind_gusts_10m")]
     [InlineData(WeatherParams.Visibility, "visibility")]
     [InlineData(WeatherParams.Cape, "cape")]
@@ -45,8 +45,6 @@ public sealed class ParamsMappingsTests
     [InlineData(WeatherParams.SnowDepth, "snow_depth")]
     [InlineData(WeatherParams.WetBulbTemperature, "wet_bulb_temperature_2m")]
     [InlineData(WeatherParams.SnowfallHeight, "snowfall_height")]
-    [InlineData(WeatherParams.PrecipitationSpread, "precipitation_spread")]
-    [InlineData(WeatherParams.WindSpeedSpread, "wind_speed_10m_spread")]
     public void Should_map_each_weather_flag_to_its_api_name(WeatherParams param, string expected) =>
         Assert.Equal([expected], param.ToApiNames());
 
@@ -97,6 +95,13 @@ public sealed class ParamsMappingsTests
     [InlineData(MarineParams.SwellWavePeakPeriod, "swell_wave_peak_period")]
     [InlineData(MarineParams.SeaLevelHeight, "sea_level_height_msl")]
     public void Should_map_each_marine_flag_to_its_api_name(MarineParams param, string expected) =>
+        Assert.Equal([expected], param.ToApiNames());
+
+    [Theory]
+    [InlineData(EnsembleParams.TemperatureSpread, "temperature_2m_spread")]
+    [InlineData(EnsembleParams.PrecipitationSpread, "precipitation_spread")]
+    [InlineData(EnsembleParams.WindSpeedSpread, "wind_speed_10m_spread")]
+    public void Should_map_each_ensemble_flag_to_its_api_name(EnsembleParams param, string expected) =>
         Assert.Equal([expected], param.ToApiNames());
 
     [Fact]

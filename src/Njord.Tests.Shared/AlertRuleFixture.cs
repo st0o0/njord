@@ -39,4 +39,14 @@ public static class AlertRuleFixture
     public static DomainForecast<WeatherPoint> Uniform(Func<WeatherPoint, WeatherPoint> change) => Day((_, point) => change(point));
 
     public static DomainForecast<WeatherPoint> Empty() => Hourly(0);
+
+    public static DomainForecast<EnsemblePoint> EnsembleHourly(int hours, double spread = 1.5)
+    {
+        var points = Enumerable.Range(0, hours)
+            .Select(hour => new EnsemblePoint(Now.AddHours(hour), spread, spread, spread))
+            .ToImmutableArray();
+        return new DomainForecast<EnsemblePoint>(DomainKind.Ensemble, Now, TimeResolution.Hourly, points);
+    }
+
+    public static DomainForecast<EnsemblePoint> EnsembleDay(double spread = 1.5) => EnsembleHourly(24, spread);
 }

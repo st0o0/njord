@@ -37,6 +37,7 @@ public sealed class ForecastPipelineSettingsTests : Akka.Hosting.TestKit.TestKit
         // The mild forecast is far below these thresholds; the default thresholds (0, -5, -15) never alert.
         var (queue, alerts) = await StartAsync(ct, new FrostConfig { Thresholds = [60, 55, 50] });
 
+        await queue.OfferAsync(DomainData.Received(DomainData.Lucerne, DomainData.Ensemble(Start)), ct);
         await queue.OfferAsync(DomainData.Received(DomainData.Lucerne, DomainData.Weather(Start)), ct);
 
         var frost = await alerts.FishForMessageAsync(

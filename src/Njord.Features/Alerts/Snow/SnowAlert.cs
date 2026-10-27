@@ -7,21 +7,21 @@ using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.Snow;
 
-public sealed class SnowAlert(IOptions<SnowConfig> config) : FeatureRule<WeatherInput>
+public sealed class SnowAlert(IOptions<SnowConfig> config) : FeatureRule<WeatherEnsembleInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
         Name: "Snow",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Snowfall | WeatherParams.FreezingLevelHeight | WeatherParams.EnsembleStdDev));
+        new DomainRequirements(Weather: WeatherParams.Snowfall | WeatherParams.FreezingLevelHeight, Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override WeatherInput? Project(LocationForecast forecast) =>
-        forecast.Weather is { } w ? new(w) : null;
+    protected override WeatherEnsembleInput? Project(LocationForecast forecast) =>
+        forecast is { Weather: { } w, Ensemble: { } e } ? new(w, e) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<WeatherEnsembleInput> ctx)
     {
         var window = ctx.Current.Weather.NextHoursInclusive(ctx.Now);
         if (!window.Any(p => p.Snowfall is not null))
@@ -48,7 +48,8 @@ public sealed class SnowAlert(IOptions<SnowConfig> config) : FeatureRule<Weather
 
         var roundedSum = Math.Round(totalSum, 1);
         var freezingLevel = freezingLevels.Count > 0 ? (double?)Math.Round(Median(freezingLevels), 0) : null;
-        var level = ConfidenceThresholds.Default.LevelFor(snowiest?.EnsembleStdDev);
+        var spread = snowiest is not null ? ctx.Current.Ensemble.Points.SpreadAt(snowiest.ValidFrom) : null;
+        var level = ConfidenceThresholds.Default.LevelFor(spread?.TemperatureSpread);
         return new SnowAlertResult(
             ctx.Location, severity, level.ToConfidence(), roundedSum, snowThreshold,
             PeakValue: null, HoursUntil: null, DurationHours: null, Level: level,

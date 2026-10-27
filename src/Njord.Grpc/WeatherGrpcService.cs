@@ -127,7 +127,6 @@ public sealed class WeatherGrpcService(
             .RunWith(Sink.Ignore<EnrichmentEvent?>(), mat);
     }
 
-    // Empty or the primary model queries the primary; any other id must be an effective model of the location.
     private static string? ResolveModel(GetDomainDataRequest request, DomainKind domain, CatalogLocation location, string primary)
     {
         if (string.IsNullOrEmpty(request.Model) || (domain == DomainKind.Weather && request.Model == primary))

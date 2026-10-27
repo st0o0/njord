@@ -17,10 +17,14 @@ public sealed class BudgetGuardTests
         Locations = [.. Enumerable.Range(0, locations).Select(i => new LocationOptions { Name = $"L{i}" })],
     };
 
-    private static FeatureRequirementsOptions Requirements(DomainRequirements requirements, ImmutableArray<string>? models = null) => new()
+    private static FeatureRequirementsOptions Requirements(
+        DomainRequirements requirements,
+        ImmutableArray<string>? models = null,
+        ImmutableArray<string>? ensembleModels = null) => new()
     {
         Requirements = requirements,
         WeatherModels = models ?? ["ecmwf_ifs025_ensemble_mean"],
+        EnsembleModels = ensembleModels ?? [],
     };
 
     private static FeatureRequirementsOptions Resolved(WeatherParams weather = WeatherParams.Temperature, ImmutableArray<string>? models = null) =>
@@ -50,15 +54,10 @@ public sealed class BudgetGuardTests
     }
 
     [Fact]
-    public void Should_multiply_the_weather_weight_by_the_model_count()
+    public void Should_not_multiply_weather_weight_by_model_count()
     {
-        // weather weight 1 x 3 models + air quality 1 = 4 calls x 720 cycles = 2880 calls; 3000 budget -> guard 2400.
-        var message = Violation(Scope(), WithMonthlyBudget(3_000), Resolved(models: ThreeModels));
-
-        Assert.NotNull(message);
-        Assert.Contains("Projected API usage of 2880", message);
-        Assert.Contains("weight 3", message);
-        Assert.Null(Violation(Scope(), WithMonthlyBudget(3_000), Resolved()));
+        // weather weight 1 (no model multiplier) + air quality 1 = 2 calls x 720 = 1440; 3000 budget -> within guard.
+        Assert.Null(Violation(Scope(), WithMonthlyBudget(3_000), Resolved(models: ThreeModels)));
     }
 
     [Fact]
@@ -99,6 +98,39 @@ public sealed class BudgetGuardTests
         Assert.Multiple(
             () => Assert.Null(Violation(Scope(), polling, resolved, new FloodOptions())),
             () => Assert.NotNull(Violation(Scope(), polling, resolved, new FloodOptions { IncludeEnsemble = true })));
+    }
+
+    [Fact]
+    public void Should_charge_ensemble_spread_as_one_call_per_cycle()
+    {
+        // weather 1 + ensemble spread 1 = 2 calls x 720 = 1440; 1800 budget -> guard 1440, exactly at limit.
+        var resolved = Requirements(
+            new DomainRequirements(Weather: WeatherParams.Temperature, Ensemble: EnsembleParams.TemperatureSpread),
+            ensembleModels: ["ecmwf_ifs025_ensemble_mean"]);
+
+        Assert.Null(Violation(Scope(), WithMonthlyBudget(1_800), resolved));
+    }
+
+    [Fact]
+    public void Should_charge_ensemble_models_with_full_variable_weight()
+    {
+        // weather 1 + ensemble (1 var_weight x 3 models) = 4 calls x 720 = 2880; 3000 budget -> guard 2400, exceeds.
+        var resolved = Requirements(
+            new DomainRequirements(
+                Weather: WeatherParams.Temperature,
+                Ensemble: EnsembleParams.TemperatureSpread | EnsembleParams.Models),
+            ensembleModels: ThreeModels);
+
+        Assert.NotNull(Violation(Scope(), WithMonthlyBudget(3_000), resolved));
+    }
+
+    [Fact]
+    public void Should_charge_nothing_for_ensemble_when_not_required()
+    {
+        var resolved = Requirements(new DomainRequirements(Weather: WeatherParams.Temperature));
+
+        // weather 1 call x 720 = 720; 1000 budget -> within guard.
+        Assert.Null(Violation(Scope(), WithMonthlyBudget(1_000), resolved));
     }
 
     [Fact]

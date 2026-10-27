@@ -13,7 +13,7 @@ public sealed class FogAlert(IOptions<FogConfig> config) : FeatureRule<WeatherIn
         FeatureCategory.Weather,
         Name: "Fog",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.DewPoint | WeatherParams.WindSpeed | WeatherParams.Humidity | WeatherParams.EnsembleStdDev));
+        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.DewPoint | WeatherParams.WindSpeed | WeatherParams.Humidity));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -39,7 +39,7 @@ public sealed class FogAlert(IOptions<FogConfig> config) : FeatureRule<WeatherIn
         }
 
         var first = fogPoints[0];
-        var level = ConfidenceThresholds.Default.LevelFor(first.EnsembleStdDev);
+        var level = ConfidenceLevel.Medium;
         return new FogAlertResult(
             ctx.Location, severity, level.ToConfidence(), fogHours, 1,
             PeakValue: null, HoursUntil: first.HoursFrom(ctx.Now), DurationHours: fogHours, Level: level,

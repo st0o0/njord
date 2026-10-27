@@ -12,6 +12,7 @@ internal static class DomainKindMappingExtensions
         DomainKind.Marine => "marine",
         DomainKind.Seasonal => "seasonal",
         DomainKind.Satellite => "satellite",
+        DomainKind.Ensemble => "ensemble",
         _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null),
     };
 }

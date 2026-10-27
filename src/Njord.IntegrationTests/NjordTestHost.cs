@@ -18,7 +18,7 @@ public sealed class NjordTestHost : IAsyncDisposable
 {
     private readonly GrpcChannel _channel;
 
-    private NjordTestHost(WebApplication app, FakeWeatherClient weather, FakeAirQualityClient airQuality, FakeFloodClient flood, FakeMarineClient marine, string dataDirectory)
+    private NjordTestHost(WebApplication app, FakeForecastClient weather, FakeAirQualityClient airQuality, FakeFloodClient flood, FakeMarineClient marine, string dataDirectory)
     {
         App = app;
         Weather = weather;
@@ -32,7 +32,7 @@ public sealed class NjordTestHost : IAsyncDisposable
 
     public WebApplication App { get; }
 
-    public FakeWeatherClient Weather { get; }
+    public FakeForecastClient Weather { get; }
 
     public FakeAirQualityClient AirQuality { get; }
 
@@ -75,7 +75,8 @@ public sealed class NjordTestHost : IAsyncDisposable
         builder.Configuration.AddJsonFile(AppSettingsDefaults.ShippedPath, optional: false, reloadOnChange: false);
         builder.Configuration.AddInMemoryCollection(settings);
 
-        var weather = new FakeWeatherClient { ModelIds = [.. weatherModelIds ?? []] };
+        var weather = new FakeForecastClient();
+        var ensemble = new FakeEnsembleClient { ModelIds = [.. weatherModelIds ?? []] };
         var airQuality = new FakeAirQualityClient();
         var flood = new FakeFloodClient();
         var marine = new FakeMarineClient();
@@ -88,6 +89,7 @@ public sealed class NjordTestHost : IAsyncDisposable
                 b.Services.AddSingleton<IReadOnlyDictionary<DomainKind, IDomainClient>>(new Dictionary<DomainKind, IDomainClient>
                 {
                     [DomainKind.Weather] = weather,
+                    [DomainKind.Ensemble] = ensemble,
                     [DomainKind.AirQuality] = airQuality,
                     [DomainKind.Flood] = flood,
                     [DomainKind.Marine] = marine,

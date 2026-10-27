@@ -16,13 +16,12 @@ public sealed class WeatherModelResponseTests
     [Fact]
     public void A_single_model_response_with_plain_keys_is_keyed_by_the_requested_model()
     {
-        var forecasts = Parse(OpenMeteoFixtures.WeatherWithSpread).ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
+        var forecasts = Parse(OpenMeteoFixtures.WeatherSingleModel).ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
 
         var forecast = Assert.Single(forecasts);
         Assert.Multiple(
             () => Assert.Equal("ecmwf_ifs025_ensemble_mean", forecast.Key),
-            () => Assert.Equal(20.5, forecast.Value.Points[0].Temperature),
-            () => Assert.Equal(1.7, forecast.Value.Points[0].EnsembleStdDev));
+            () => Assert.Equal(20.5, forecast.Value.Points[0].Temperature));
     }
 
     [Fact]
@@ -35,7 +34,6 @@ public sealed class WeatherModelResponseTests
         Assert.Multiple(
             () => Assert.Equal(2, forecasts.Count),
             () => Assert.Equal(20.5, forecasts["ecmwf_ifs025_ensemble_mean"].Points[0].Temperature),
-            () => Assert.Equal(1.5, forecasts["ecmwf_ifs025_ensemble_mean"].Points[0].EnsembleStdDev),
             () => Assert.Equal(19.5, forecasts["ecmwf_aifs025_ensemble_mean"].Points[0].Temperature));
     }
 

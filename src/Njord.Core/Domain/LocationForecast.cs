@@ -17,6 +17,7 @@ public sealed record LocationForecast(
     DomainForecast<MarinePoint>? Marine = null,
     DomainForecast<SeasonalPoint>? Seasonal = null,
     DomainForecast<SatelliteRadiationPoint>? Satellite = null,
+    DomainForecast<EnsemblePoint>? Ensemble = null,
     ImmutableDictionary<string, DomainForecast<WeatherPoint>>? ModelWeather = null)
 {
     public ImmutableDictionary<string, DomainForecast<WeatherPoint>> Models => ModelWeather ?? ImmutableDictionary<string, DomainForecast<WeatherPoint>>.Empty;
@@ -32,6 +33,7 @@ public sealed record LocationForecast(
         DomainKind.Marine => this with { Marine = Cast<MarinePoint>(domain, forecast) },
         DomainKind.Seasonal => this with { Seasonal = Cast<SeasonalPoint>(domain, forecast) },
         DomainKind.Satellite => this with { Satellite = Cast<SatelliteRadiationPoint>(domain, forecast) },
+        DomainKind.Ensemble => this with { Ensemble = Cast<EnsemblePoint>(domain, forecast) },
         _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null)
     };
 
@@ -43,6 +45,7 @@ public sealed record LocationForecast(
         DomainKind.Marine => Marine,
         DomainKind.Seasonal => Seasonal,
         DomainKind.Satellite => Satellite,
+        DomainKind.Ensemble => Ensemble,
         _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null)
     };
 
@@ -52,7 +55,8 @@ public sealed record LocationForecast(
         && HasFields(Flood, required.Flood, static (point, param) => point.HasFields(param))
         && HasFields(Marine, required.Marine, static (point, param) => point.HasFields(param))
         && HasFields(Seasonal, required.Seasonal, static (point, param) => point.HasFields(param))
-        && HasFields(Satellite, required.Satellite, static (point, param) => point.HasFields(param));
+        && HasFields(Satellite, required.Satellite, static (point, param) => point.HasFields(param))
+        && HasFields(Ensemble, required.Ensemble, static (point, param) => point.HasFields(param));
 
     private static bool HasFields<TPoint, TParam>(DomainForecast<TPoint>? forecast, TParam required, Func<TPoint, TParam, bool> check)
         where TPoint : IHasValidTime
