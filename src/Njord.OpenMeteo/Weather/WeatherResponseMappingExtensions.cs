@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
+using Njord.OpenMeteo.Ensemble;
 using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Mapping;
 using static Njord.OpenMeteo.Mapping.SeriesAccess;
@@ -16,7 +17,9 @@ internal static class WeatherResponseMappingExtensions
     private const string MemberPrefix = "member";
 
     private static readonly FrozenSet<string> KnownNames =
-        ApiVariableNames.For<WeatherApiVariable>().Values.ToFrozenSet();
+        ApiVariableNames.For<WeatherApiVariable>().Values
+            .Concat(ApiVariableNames.For<EnsembleApiVariable>().Values)
+            .ToFrozenSet();
 
     private static readonly string[] BaseNames = [.. KnownNames.OrderByDescending(n => n.Length)];
 
