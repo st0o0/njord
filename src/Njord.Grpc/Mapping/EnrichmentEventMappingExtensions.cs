@@ -153,6 +153,48 @@ internal static class EnrichmentEventMappingExtensions
             UpdatedAt = now.ToTimestamp(),
             SnowDepthWatch = r.ToProto(),
         },
+        ShowerAlertResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            Shower = r.ToProto(),
+        },
+        SmogRiskAlertResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            SmogRisk = r.ToProto(),
+        },
+        SoilMoistureResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            SoilMoisture = r.ToProto(),
+        },
+        EvapotranspirationResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            Evapotranspiration = r.ToProto(),
+        },
+        RagweedPollenResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            RagweedPollen = r.ToProto(),
+        },
+        GranularAqiResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            GranularAqi = r.ToProto(),
+        },
+        OceanCurrentsResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            OceanCurrents = r.ToProto(),
+        },
         BbqScoreResult r => new EnrichmentEvent
         {
             Location = r.Location.Name,

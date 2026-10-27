@@ -34,7 +34,18 @@ public sealed record WeatherHourlyData(
     [property: JsonPropertyName("snow_depth")] double?[]? SnowDepth = null,
     [property: JsonPropertyName("wet_bulb_temperature_2m")] double?[]? WetBulbTemperature = null,
     [property: JsonPropertyName("snowfall_height")] double?[]? SnowfallHeight = null,
-    [property: JsonPropertyName("uv_index_clear_sky")] double?[]? UvIndexClearSky = null);
+    [property: JsonPropertyName("uv_index_clear_sky")] double?[]? UvIndexClearSky = null,
+    [property: JsonPropertyName("showers")] double?[]? Showers = null,
+    [property: JsonPropertyName("soil_moisture_0_to_1cm")] double?[]? SoilMoisture0To1cm = null,
+    [property: JsonPropertyName("soil_moisture_1_to_3cm")] double?[]? SoilMoisture1To3cm = null,
+    [property: JsonPropertyName("et0_fao_evapotranspiration")] double?[]? Evapotranspiration = null,
+    [property: JsonPropertyName("vapour_pressure_deficit")] double?[]? VapourPressureDeficit = null,
+    [property: JsonPropertyName("boundary_layer_height")] double?[]? BoundaryLayerHeight = null,
+    [property: JsonPropertyName("cloud_cover_low")] double?[]? CloudCoverLow = null,
+    [property: JsonPropertyName("cloud_cover_mid")] double?[]? CloudCoverMid = null,
+    [property: JsonPropertyName("cloud_cover_high")] double?[]? CloudCoverHigh = null,
+    [property: JsonPropertyName("convective_inhibition")] double?[]? ConvectiveInhibition = null,
+    [property: JsonPropertyName("lifted_index")] double?[]? LiftedIndex = null);
 
 public sealed record WeatherResponse(
     [property: JsonPropertyName("latitude")] double Latitude,

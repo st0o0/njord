@@ -36,7 +36,14 @@ internal static class AirQualityResponseMappingExtensions
                 OlivePollen: At(h.OlivePollen, i),
                 UsAqi: At(h.UsAqi, i),
                 UvIndex: At(h.UvIndex, i),
-                UvIndexClearSky: At(h.UvIndexClearSky, i));
+                UvIndexClearSky: At(h.UvIndexClearSky, i),
+                RagweedPollen: At(h.RagweedPollen, i),
+                EuropeanAqiPm25: At(h.EuropeanAqiPm25, i),
+                EuropeanAqiPm10: At(h.EuropeanAqiPm10, i),
+                EuropeanAqiNitrogenDioxide: At(h.EuropeanAqiNitrogenDioxide, i),
+                EuropeanAqiOzone: At(h.EuropeanAqiOzone, i),
+                EuropeanAqiSulphurDioxide: At(h.EuropeanAqiSulphurDioxide, i),
+                AerosolOpticalDepth: At(h.AerosolOpticalDepth, i));
         }
 
         return new DomainForecast<AirQualityPoint>(

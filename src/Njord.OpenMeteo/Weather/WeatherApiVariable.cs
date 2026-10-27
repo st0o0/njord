@@ -65,4 +65,27 @@ public enum WeatherApiVariable
 
     [JsonStringEnumMemberName("uv_index_clear_sky")]
     UvIndexClearSky,
+
+    [JsonStringEnumMemberName("showers")]
+    Showers,
+    [JsonStringEnumMemberName("soil_moisture_0_to_1cm")]
+    SoilMoisture0To1cm,
+    [JsonStringEnumMemberName("soil_moisture_1_to_3cm")]
+    SoilMoisture1To3cm,
+    [JsonStringEnumMemberName("et0_fao_evapotranspiration")]
+    Evapotranspiration,
+    [JsonStringEnumMemberName("vapour_pressure_deficit")]
+    VapourPressureDeficit,
+    [JsonStringEnumMemberName("boundary_layer_height")]
+    BoundaryLayerHeight,
+    [JsonStringEnumMemberName("cloud_cover_low")]
+    CloudCoverLow,
+    [JsonStringEnumMemberName("cloud_cover_mid")]
+    CloudCoverMid,
+    [JsonStringEnumMemberName("cloud_cover_high")]
+    CloudCoverHigh,
+    [JsonStringEnumMemberName("convective_inhibition")]
+    ConvectiveInhibition,
+    [JsonStringEnumMemberName("lifted_index")]
+    LiftedIndex,
 }

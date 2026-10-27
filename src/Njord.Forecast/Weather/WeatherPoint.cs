@@ -31,7 +31,18 @@ public sealed record WeatherPoint(
     double? SnowDepth = null,
     double? WetBulbTemperature = null,
     double? SnowfallHeight = null,
-    double? UvIndexClearSky = null) : IHasValidTime
+    double? UvIndexClearSky = null,
+    double? Showers = null,
+    double? SoilMoisture0To1cm = null,
+    double? SoilMoisture1To3cm = null,
+    double? Evapotranspiration = null,
+    double? VapourPressureDeficit = null,
+    double? BoundaryLayerHeight = null,
+    double? CloudCoverLow = null,
+    double? CloudCoverMid = null,
+    double? CloudCoverHigh = null,
+    double? ConvectiveInhibition = null,
+    double? LiftedIndex = null) : IHasValidTime
 {
     private static readonly WeatherParams[] Flags =
         [.. Enum.GetValues<WeatherParams>().Where(p => p != WeatherParams.None)];
@@ -71,6 +82,17 @@ public sealed record WeatherPoint(
         WeatherParams.WetBulbTemperature => WetBulbTemperature is not null,
         WeatherParams.SnowfallHeight => SnowfallHeight is not null,
         WeatherParams.UvIndexClearSky => UvIndexClearSky is not null,
+        WeatherParams.Showers => Showers is not null,
+        WeatherParams.SoilMoisture0To1cm => SoilMoisture0To1cm is not null,
+        WeatherParams.SoilMoisture1To3cm => SoilMoisture1To3cm is not null,
+        WeatherParams.Evapotranspiration => Evapotranspiration is not null,
+        WeatherParams.VapourPressureDeficit => VapourPressureDeficit is not null,
+        WeatherParams.BoundaryLayerHeight => BoundaryLayerHeight is not null,
+        WeatherParams.CloudCoverLow => CloudCoverLow is not null,
+        WeatherParams.CloudCoverMid => CloudCoverMid is not null,
+        WeatherParams.CloudCoverHigh => CloudCoverHigh is not null,
+        WeatherParams.ConvectiveInhibition => ConvectiveInhibition is not null,
+        WeatherParams.LiftedIndex => LiftedIndex is not null,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

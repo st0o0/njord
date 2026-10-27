@@ -159,6 +159,77 @@ internal static class FeatureResultMappingExtensions
         };
     }
 
+    public static V2.SoilMoistureCondition ToProto(this SoilMoistureResult r)
+    {
+        return new V2.SoilMoistureCondition
+        {
+            Condition = new V2.ConditionData(),
+            Level = r.Level switch
+            {
+                SoilMoistureLevel.Dry => V2.SoilMoistureLevel.Dry,
+                SoilMoistureLevel.Optimal => V2.SoilMoistureLevel.Optimal,
+                SoilMoistureLevel.Wet => V2.SoilMoistureLevel.Wet,
+                _ => V2.SoilMoistureLevel.Unspecified,
+            },
+            Moisture = r.Moisture,
+        };
+    }
+
+    public static V2.EvapotranspirationCondition ToProto(this EvapotranspirationResult r)
+    {
+        return new V2.EvapotranspirationCondition
+        {
+            Condition = new V2.ConditionData(),
+            Level = r.Level switch
+            {
+                EvapotranspirationLevel.Low => V2.EvapotranspirationLevel.Low,
+                EvapotranspirationLevel.Moderate => V2.EvapotranspirationLevel.Moderate,
+                EvapotranspirationLevel.High => V2.EvapotranspirationLevel.High,
+                _ => V2.EvapotranspirationLevel.Unspecified,
+            },
+            DailyMm = r.DailyMm,
+        };
+    }
+
+    public static V2.RagweedPollenCondition ToProto(this RagweedPollenResult r)
+    {
+        return new V2.RagweedPollenCondition
+        {
+            Condition = new V2.ConditionData(),
+            PeakValue = r.PeakValue,
+        };
+    }
+
+    public static V2.GranularAqiCondition ToProto(this GranularAqiResult r)
+    {
+        var proto = new V2.GranularAqiCondition { Condition = new V2.ConditionData() };
+        if (r.Pm25Aqi is { } pm25) { proto.Pm25Aqi = pm25; }
+        if (r.Pm10Aqi is { } pm10) { proto.Pm10Aqi = pm10; }
+        if (r.No2Aqi is { } no2) { proto.No2Aqi = no2; }
+        if (r.OzoneAqi is { } ozone) { proto.OzoneAqi = ozone; }
+        if (r.So2Aqi is { } so2) { proto.So2Aqi = so2; }
+        return proto;
+    }
+
+    public static V2.OceanCurrentsCondition ToProto(this OceanCurrentsResult r)
+    {
+        var proto = new V2.OceanCurrentsCondition
+        {
+            Condition = new V2.ConditionData(),
+            Strength = r.Strength switch
+            {
+                CurrentStrength.Weak => V2.CurrentStrength.Weak,
+                CurrentStrength.Moderate => V2.CurrentStrength.Moderate,
+                CurrentStrength.Strong => V2.CurrentStrength.Strong,
+                CurrentStrength.VeryStrong => V2.CurrentStrength.VeryStrong,
+                _ => V2.CurrentStrength.Unspecified,
+            },
+            PeakVelocityKmh = r.PeakVelocityKmh,
+        };
+        if (r.Direction is { } dir) { proto.Direction = dir; }
+        return proto;
+    }
+
     public static V2.ApproachingFront ToProto(this ApproachingFrontResult r)
     {
         return new V2.ApproachingFront

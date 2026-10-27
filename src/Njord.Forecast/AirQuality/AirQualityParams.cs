@@ -21,4 +21,11 @@ public enum AirQualityParams
     UsAqi = 1 << 14,
     UvIndex = 1 << 15,
     UvIndexClearSky = 1 << 16,
+    RagweedPollen = 1 << 17,
+    EuropeanAqiPm25 = 1 << 18,
+    EuropeanAqiPm10 = 1 << 19,
+    EuropeanAqiNitrogenDioxide = 1 << 20,
+    EuropeanAqiOzone = 1 << 21,
+    EuropeanAqiSulphurDioxide = 1 << 22,
+    AerosolOpticalDepth = 1 << 23,
 }

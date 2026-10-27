@@ -17,4 +17,6 @@ public enum MarineParams
     SwellWaveDirection = 1 << 10,
     SwellWavePeakPeriod = 1 << 11,
     SeaLevelHeight = 1 << 12,
+    OceanCurrentVelocity = 1 << 13,
+    OceanCurrentDirection = 1 << 14,
 }

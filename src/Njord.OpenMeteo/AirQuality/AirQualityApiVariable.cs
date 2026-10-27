@@ -38,4 +38,19 @@ public enum AirQualityApiVariable
     UvIndex,
     [JsonStringEnumMemberName("uv_index_clear_sky")]
     UvIndexClearSky,
+
+    [JsonStringEnumMemberName("ragweed_pollen")]
+    RagweedPollen,
+    [JsonStringEnumMemberName("european_aqi_pm2_5")]
+    EuropeanAqiPm25,
+    [JsonStringEnumMemberName("european_aqi_pm10")]
+    EuropeanAqiPm10,
+    [JsonStringEnumMemberName("european_aqi_nitrogen_dioxide")]
+    EuropeanAqiNitrogenDioxide,
+    [JsonStringEnumMemberName("european_aqi_ozone")]
+    EuropeanAqiOzone,
+    [JsonStringEnumMemberName("european_aqi_sulphur_dioxide")]
+    EuropeanAqiSulphurDioxide,
+    [JsonStringEnumMemberName("aerosol_optical_depth")]
+    AerosolOpticalDepth,
 }

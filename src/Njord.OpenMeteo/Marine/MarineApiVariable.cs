@@ -30,4 +30,8 @@ public enum MarineApiVariable
     SwellWavePeakPeriod,
     [JsonStringEnumMemberName("sea_level_height_msl")]
     SeaLevelHeight,
+    [JsonStringEnumMemberName("ocean_current_velocity")]
+    OceanCurrentVelocity,
+    [JsonStringEnumMemberName("ocean_current_direction")]
+    OceanCurrentDirection,
 }

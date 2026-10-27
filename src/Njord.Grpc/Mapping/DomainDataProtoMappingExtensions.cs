@@ -144,6 +144,18 @@ internal static class DomainDataProtoMappingExtensions
         if (p.SoilTemperature is { } soil) { sample.SoilTemperature = soil; }
         if (p.FreezingLevelHeight is { } freezing) { sample.FreezingLevelHeight = freezing; }
         if (p.IsDay is { } isDay) { sample.IsDay = isDay > 0.5; }
+        if (p.UvIndexClearSky is { } uvClearSkyW) { sample.UvIndexClearSky = uvClearSkyW; }
+        if (p.Showers is { } showers) { sample.Showers = showers; }
+        if (p.SoilMoisture0To1cm is { } soilMoisture01) { sample.SoilMoisture0To1Cm = soilMoisture01; }
+        if (p.SoilMoisture1To3cm is { } soilMoisture13) { sample.SoilMoisture1To3Cm = soilMoisture13; }
+        if (p.Evapotranspiration is { } et0) { sample.Evapotranspiration = et0; }
+        if (p.VapourPressureDeficit is { } vpd) { sample.VapourPressureDeficit = vpd; }
+        if (p.BoundaryLayerHeight is { } blh) { sample.BoundaryLayerHeight = blh; }
+        if (p.CloudCoverLow is { } ccLow) { sample.CloudCoverLow = ccLow; }
+        if (p.CloudCoverMid is { } ccMid) { sample.CloudCoverMid = ccMid; }
+        if (p.CloudCoverHigh is { } ccHigh) { sample.CloudCoverHigh = ccHigh; }
+        if (p.ConvectiveInhibition is { } cin) { sample.ConvectiveInhibition = cin; }
+        if (p.LiftedIndex is { } li) { sample.LiftedIndex = li; }
         return sample;
     }
 
@@ -168,6 +180,13 @@ internal static class DomainDataProtoMappingExtensions
         if (p.UsAqi is { } usAqi) { sample.UsAqi = usAqi; }
         if (p.UvIndex is { } uvIndex) { sample.UvIndex = uvIndex; }
         if (p.UvIndexClearSky is { } uvClearSky) { sample.UvIndexClearSky = uvClearSky; }
+        if (p.RagweedPollen is { } ragweed) { sample.RagweedPollen = ragweed; }
+        if (p.EuropeanAqiPm25 is { } eaqiPm25) { sample.EuropeanAqiPm25 = eaqiPm25; }
+        if (p.EuropeanAqiPm10 is { } eaqiPm10) { sample.EuropeanAqiPm10 = eaqiPm10; }
+        if (p.EuropeanAqiNitrogenDioxide is { } eaqiNo2) { sample.EuropeanAqiNitrogenDioxide = eaqiNo2; }
+        if (p.EuropeanAqiOzone is { } eaqiO3) { sample.EuropeanAqiOzone = eaqiO3; }
+        if (p.EuropeanAqiSulphurDioxide is { } eaqiSo2) { sample.EuropeanAqiSulphurDioxide = eaqiSo2; }
+        if (p.AerosolOpticalDepth is { } aod) { sample.AerosolOpticalDepth = aod; }
         return sample;
     }
 
@@ -226,6 +245,8 @@ internal static class DomainDataProtoMappingExtensions
         if (p.SwellWaveDirection is { } swellWaveDirection) { sample.SwellWaveDirection = swellWaveDirection; }
         if (p.SwellWavePeakPeriod is { } swellWavePeakPeriod) { sample.SwellWavePeakPeriod = swellWavePeakPeriod; }
         if (p.SeaLevelHeight is { } seaLevelHeight) { sample.SeaLevelHeightMsl = seaLevelHeight; }
+        if (p.OceanCurrentVelocity is { } currentVelocity) { sample.OceanCurrentVelocity = currentVelocity; }
+        if (p.OceanCurrentDirection is { } currentDirection) { sample.OceanCurrentDirection = currentDirection; }
         return sample;
     }
 }

@@ -166,7 +166,18 @@ internal static class WeatherResponseMappingExtensions
                 SnowDepth: At(h.SnowDepth, i),
                 WetBulbTemperature: At(h.WetBulbTemperature, i),
                 SnowfallHeight: At(h.SnowfallHeight, i),
-                UvIndexClearSky: At(h.UvIndexClearSky, i));
+                UvIndexClearSky: At(h.UvIndexClearSky, i),
+                Showers: At(h.Showers, i),
+                SoilMoisture0To1cm: At(h.SoilMoisture0To1cm, i),
+                SoilMoisture1To3cm: At(h.SoilMoisture1To3cm, i),
+                Evapotranspiration: At(h.Evapotranspiration, i),
+                VapourPressureDeficit: At(h.VapourPressureDeficit, i),
+                BoundaryLayerHeight: At(h.BoundaryLayerHeight, i),
+                CloudCoverLow: At(h.CloudCoverLow, i),
+                CloudCoverMid: At(h.CloudCoverMid, i),
+                CloudCoverHigh: At(h.CloudCoverHigh, i),
+                ConvectiveInhibition: At(h.ConvectiveInhibition, i),
+                LiftedIndex: At(h.LiftedIndex, i));
         }
 
         return new DomainForecast<WeatherPoint>(

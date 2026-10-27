@@ -51,3 +51,19 @@ public sealed record ModelComparisonResult(Location Location, ImmutableArray<Mod
 public enum SnowDepthLevel { None, Light, Moderate, Heavy, Extreme }
 
 public sealed record SnowDepthWatchResult(Location Location, SnowDepthLevel Level, double DepthCm) : ConditionFeatureResult(Location);
+
+public enum SoilMoistureLevel { Dry, Optimal, Wet }
+
+public sealed record SoilMoistureResult(Location Location, SoilMoistureLevel Level, double Moisture) : ConditionFeatureResult(Location);
+
+public enum EvapotranspirationLevel { Low, Moderate, High }
+
+public sealed record EvapotranspirationResult(Location Location, EvapotranspirationLevel Level, double DailyMm) : ConditionFeatureResult(Location);
+
+public sealed record RagweedPollenResult(Location Location, double PeakValue) : ConditionFeatureResult(Location);
+
+public sealed record GranularAqiResult(Location Location, double? Pm25Aqi, double? Pm10Aqi, double? No2Aqi, double? OzoneAqi, double? So2Aqi) : ConditionFeatureResult(Location);
+
+public enum CurrentStrength { Weak, Moderate, Strong, VeryStrong }
+
+public sealed record OceanCurrentsResult(Location Location, CurrentStrength Strength, double PeakVelocityKmh, double? Direction) : ConditionFeatureResult(Location);

@@ -868,5 +868,98 @@
         "default": 50
       }
     ]
+  },
+  {
+    "key": "Weather:Shower",
+    "name": "Shower",
+    "category": "Weather",
+    "output": "Alert",
+    "description": "Convective shower warning",
+    "enabledByDefault": false,
+    "domains": ["Weather", "Ensemble"],
+    "weatherParams": ["Showers"],
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [
+      { "name": "WindowHours", "type": "number", "default": 6 },
+      { "name": "Thresholds", "type": "numberArray", "default": [3, 5, 10] }
+    ]
+  },
+  {
+    "key": "AirQuality:SmogRisk",
+    "name": "SmogRisk",
+    "category": "AirQuality",
+    "output": "Alert",
+    "description": "Smog risk from low boundary layer and high PM2.5",
+    "enabledByDefault": false,
+    "domains": ["Weather", "AirQuality"],
+    "weatherParams": ["BoundaryLayerHeight"],
+    "airQualityParams": ["Pm25"],
+    "options": [
+      { "name": "BoundaryLayerThresholdM", "type": "number", "default": 500 },
+      { "name": "Pm25ThresholdUgm3", "type": "number", "default": 25.0 }
+    ]
+  },
+  {
+    "key": "Lifestyle:SoilMoisture",
+    "name": "SoilMoisture",
+    "category": "Lifestyle",
+    "output": "Condition",
+    "description": "Soil moisture status for gardening",
+    "enabledByDefault": false,
+    "domains": ["Weather"],
+    "weatherParams": ["SoilMoisture0To1cm"],
+    "options": [
+      { "name": "DryThreshold", "type": "number", "default": 0.15 },
+      { "name": "WetThreshold", "type": "number", "default": 0.35 }
+    ]
+  },
+  {
+    "key": "Lifestyle:Evapotranspiration",
+    "name": "Evapotranspiration",
+    "category": "Lifestyle",
+    "output": "Condition",
+    "description": "Daily evapotranspiration for irrigation guidance",
+    "enabledByDefault": false,
+    "domains": ["Weather"],
+    "weatherParams": ["Evapotranspiration"],
+    "options": [
+      { "name": "LowMm", "type": "number", "default": 2.0 },
+      { "name": "HighMm", "type": "number", "default": 5.0 }
+    ]
+  },
+  {
+    "key": "AirQuality:RagweedPollen",
+    "name": "RagweedPollen",
+    "category": "AirQuality",
+    "output": "Condition",
+    "description": "Ragweed pollen sensor",
+    "enabledByDefault": false,
+    "domains": ["AirQuality"],
+    "airQualityParams": ["RagweedPollen"],
+    "options": []
+  },
+  {
+    "key": "AirQuality:GranularAqi",
+    "name": "GranularAqi",
+    "category": "AirQuality",
+    "output": "Condition",
+    "description": "Per-pollutant European AQI sub-indices",
+    "enabledByDefault": false,
+    "domains": ["AirQuality"],
+    "airQualityParams": ["EuropeanAqiPm25", "EuropeanAqiPm10", "EuropeanAqiNitrogenDioxide", "EuropeanAqiOzone", "EuropeanAqiSulphurDioxide"],
+    "options": []
+  },
+  {
+    "key": "Marine:OceanCurrents",
+    "name": "OceanCurrents",
+    "category": "Marine",
+    "output": "Condition",
+    "description": "Ocean current velocity and direction",
+    "enabledByDefault": false,
+    "domains": ["Marine"],
+    "marineParams": ["OceanCurrentVelocity", "OceanCurrentDirection"],
+    "options": [
+      { "name": "StrongCurrentThresholdKmh", "type": "number", "default": 3.0 }
+    ]
   }
 ]

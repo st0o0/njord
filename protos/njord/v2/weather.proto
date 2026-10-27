@@ -100,6 +100,18 @@ message WeatherSample {
   optional double soil_temperature = 19;
   optional double freezing_level_height = 20;
   optional bool is_day = 21;
+  optional double uv_index_clear_sky = 22;
+  optional double showers = 23;
+  optional double soil_moisture_0_to_1cm = 24;
+  optional double soil_moisture_1_to_3cm = 25;
+  optional double evapotranspiration = 26;
+  optional double vapour_pressure_deficit = 27;
+  optional double boundary_layer_height = 28;
+  optional double cloud_cover_low = 29;
+  optional double cloud_cover_mid = 30;
+  optional double cloud_cover_high = 31;
+  optional double convective_inhibition = 32;
+  optional double lifted_index = 33;
 }
 
 message AirQualityData {
@@ -123,6 +135,13 @@ message AirQualitySample {
   optional double us_aqi = 14;
   optional double uv_index = 15;
   optional double uv_index_clear_sky = 16;
+  optional double ragweed_pollen = 17;
+  optional double european_aqi_pm25 = 18;
+  optional double european_aqi_pm10 = 19;
+  optional double european_aqi_nitrogen_dioxide = 20;
+  optional double european_aqi_ozone = 21;
+  optional double european_aqi_sulphur_dioxide = 22;
+  optional double aerosol_optical_depth = 23;
 }
 
 message FloodData {
@@ -186,6 +205,8 @@ message MarineSample {
   optional double swell_wave_direction = 12;
   optional double swell_wave_peak_period = 13;
   optional double sea_level_height_msl = 14;
+  optional double ocean_current_velocity = 15;
+  optional double ocean_current_direction = 16;
 }
 
 message EnsembleData {
@@ -250,6 +271,13 @@ message EnrichmentEvent {
     WetBulbDangerAlert wet_bulb_danger = 41;
     ClearSkyUvAlert clear_sky_uv = 42;
     SnowDepthWatchCondition snow_depth_watch = 69;
+    ShowerAlert shower = 43;
+    SmogRiskAlert smog_risk = 44;
+    SoilMoistureCondition soil_moisture = 70;
+    EvapotranspirationCondition evapotranspiration = 71;
+    RagweedPollenCondition ragweed_pollen = 72;
+    GranularAqiCondition granular_aqi = 73;
+    OceanCurrentsCondition ocean_currents = 74;
     Bbq bbq = 50;
     Laundry laundry = 51;
     Outdoor outdoor = 52;
@@ -522,6 +550,72 @@ message SnowDepthWatchCondition {
   ConditionData condition = 1;
   SnowDepthLevel level = 2;
   double depth_cm = 3;
+}
+
+message ShowerAlert {
+  AlertData alert = 1;
+  double peak_intensity = 2;
+}
+
+message SmogRiskAlert {
+  AlertData alert = 1;
+  double boundary_layer_height = 2;
+  double pm25 = 3;
+}
+
+enum SoilMoistureLevel {
+  SOIL_MOISTURE_LEVEL_UNSPECIFIED = 0;
+  SOIL_MOISTURE_LEVEL_DRY = 1;
+  SOIL_MOISTURE_LEVEL_OPTIMAL = 2;
+  SOIL_MOISTURE_LEVEL_WET = 3;
+}
+
+message SoilMoistureCondition {
+  ConditionData condition = 1;
+  SoilMoistureLevel level = 2;
+  double moisture = 3;
+}
+
+enum EvapotranspirationLevel {
+  EVAPOTRANSPIRATION_LEVEL_UNSPECIFIED = 0;
+  EVAPOTRANSPIRATION_LEVEL_LOW = 1;
+  EVAPOTRANSPIRATION_LEVEL_MODERATE = 2;
+  EVAPOTRANSPIRATION_LEVEL_HIGH = 3;
+}
+
+message EvapotranspirationCondition {
+  ConditionData condition = 1;
+  EvapotranspirationLevel level = 2;
+  double daily_mm = 3;
+}
+
+message RagweedPollenCondition {
+  ConditionData condition = 1;
+  double peak_value = 2;
+}
+
+message GranularAqiCondition {
+  ConditionData condition = 1;
+  optional double pm25_aqi = 2;
+  optional double pm10_aqi = 3;
+  optional double no2_aqi = 4;
+  optional double ozone_aqi = 5;
+  optional double so2_aqi = 6;
+}
+
+enum CurrentStrength {
+  CURRENT_STRENGTH_UNSPECIFIED = 0;
+  CURRENT_STRENGTH_WEAK = 1;
+  CURRENT_STRENGTH_MODERATE = 2;
+  CURRENT_STRENGTH_STRONG = 3;
+  CURRENT_STRENGTH_VERY_STRONG = 4;
+}
+
+message OceanCurrentsCondition {
+  ConditionData condition = 1;
+  CurrentStrength strength = 2;
+  double peak_velocity_kmh = 3;
+  optional double direction = 4;
 }
 
 message Bbq {

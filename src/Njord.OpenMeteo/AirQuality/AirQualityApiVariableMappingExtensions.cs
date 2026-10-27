@@ -23,6 +23,13 @@ public static class AirQualityApiVariableMappingExtensions
         AirQualityParams.UsAqi => AirQualityApiVariable.UsAqi,
         AirQualityParams.UvIndex => AirQualityApiVariable.UvIndex,
         AirQualityParams.UvIndexClearSky => AirQualityApiVariable.UvIndexClearSky,
+        AirQualityParams.RagweedPollen => AirQualityApiVariable.RagweedPollen,
+        AirQualityParams.EuropeanAqiPm25 => AirQualityApiVariable.EuropeanAqiPm25,
+        AirQualityParams.EuropeanAqiPm10 => AirQualityApiVariable.EuropeanAqiPm10,
+        AirQualityParams.EuropeanAqiNitrogenDioxide => AirQualityApiVariable.EuropeanAqiNitrogenDioxide,
+        AirQualityParams.EuropeanAqiOzone => AirQualityApiVariable.EuropeanAqiOzone,
+        AirQualityParams.EuropeanAqiSulphurDioxide => AirQualityApiVariable.EuropeanAqiSulphurDioxide,
+        AirQualityParams.AerosolOpticalDepth => AirQualityApiVariable.AerosolOpticalDepth,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 

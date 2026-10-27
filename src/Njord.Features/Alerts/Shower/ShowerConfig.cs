@@ -1,0 +1,13 @@
+using Njord.Core.Configuration;
+
+namespace Njord.Features.Alerts.Shower;
+
+public sealed class ShowerConfig : IConfigSection
+{
+    private const string SectionName = "Njord:Features:Weather:Shower";
+    static string IConfigSection.SectionName => SectionName;
+    public bool Enabled { get; set; }
+    public int WindowHours { get; set; } = 6;
+    public double[]? Thresholds { get; set; }
+    public double[] EffectiveThresholds => Thresholds ?? [3, 5, 10];
+}

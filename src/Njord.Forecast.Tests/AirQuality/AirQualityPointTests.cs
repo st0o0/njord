@@ -50,7 +50,7 @@ public sealed class AirQualityPointTests
     public void Should_report_true_for_every_single_flag_when_all_fields_have_values()
     {
         var point = new AirQualityPoint(
-            At, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+            At, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
 
         Assert.All(
             Enum.GetValues<AirQualityParams>().Where(p => p != AirQualityParams.None),

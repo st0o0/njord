@@ -32,7 +32,9 @@ internal static class MarineResponseMappingExtensions
                 SwellWavePeriod: At(h.SwellWavePeriod, i),
                 SwellWaveDirection: At(h.SwellWaveDirection, i),
                 SwellWavePeakPeriod: At(h.SwellWavePeakPeriod, i),
-                SeaLevelHeight: At(h.SeaLevelHeight, i));
+                SeaLevelHeight: At(h.SeaLevelHeight, i),
+                OceanCurrentVelocity: At(h.OceanCurrentVelocity, i),
+                OceanCurrentDirection: At(h.OceanCurrentDirection, i));
         }
 
         return new DomainForecast<MarinePoint>(

@@ -258,4 +258,23 @@ internal static class AlertResultMappingExtensions
             PeakClearSkyUv = r.PeakClearSkyUv,
         };
     }
+
+    public static V2.ShowerAlert ToProto(this ShowerAlertResult r)
+    {
+        return new V2.ShowerAlert
+        {
+            Alert = r.ToData(),
+            PeakIntensity = r.PeakIntensity,
+        };
+    }
+
+    public static V2.SmogRiskAlert ToProto(this SmogRiskAlertResult r)
+    {
+        return new V2.SmogRiskAlert
+        {
+            Alert = r.ToData(),
+            BoundaryLayerHeight = r.BoundaryLayerHeight,
+            Pm25 = r.Pm25,
+        };
+    }
 }

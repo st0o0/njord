@@ -207,12 +207,12 @@ public sealed class WeatherAlertsTests
     }
 
     [Fact]
-    public void The_sixteen_weather_alerts_are_alert_features_of_the_weather_category()
+    public void The_seventeen_weather_alerts_are_alert_features_of_the_weather_category()
     {
         var alerts = FeatureServices.AllFeatureRules()
             .Where(rule => rule.Descriptor is { Output: OutputKind.Alert, Category: FeatureCategory.Weather })
             .ToList();
 
-        Assert.Equal(16, alerts.Count);
+        Assert.Equal(17, alerts.Count);
     }
 }

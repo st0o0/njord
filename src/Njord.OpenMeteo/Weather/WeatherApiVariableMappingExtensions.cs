@@ -36,6 +36,17 @@ public static class WeatherApiVariableMappingExtensions
         WeatherParams.WetBulbTemperature => WeatherApiVariable.WetBulbTemperature,
         WeatherParams.SnowfallHeight => WeatherApiVariable.SnowfallHeight,
         WeatherParams.UvIndexClearSky => WeatherApiVariable.UvIndexClearSky,
+        WeatherParams.Showers => WeatherApiVariable.Showers,
+        WeatherParams.SoilMoisture0To1cm => WeatherApiVariable.SoilMoisture0To1cm,
+        WeatherParams.SoilMoisture1To3cm => WeatherApiVariable.SoilMoisture1To3cm,
+        WeatherParams.Evapotranspiration => WeatherApiVariable.Evapotranspiration,
+        WeatherParams.VapourPressureDeficit => WeatherApiVariable.VapourPressureDeficit,
+        WeatherParams.BoundaryLayerHeight => WeatherApiVariable.BoundaryLayerHeight,
+        WeatherParams.CloudCoverLow => WeatherApiVariable.CloudCoverLow,
+        WeatherParams.CloudCoverMid => WeatherApiVariable.CloudCoverMid,
+        WeatherParams.CloudCoverHigh => WeatherApiVariable.CloudCoverHigh,
+        WeatherParams.ConvectiveInhibition => WeatherApiVariable.ConvectiveInhibition,
+        WeatherParams.LiftedIndex => WeatherApiVariable.LiftedIndex,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 

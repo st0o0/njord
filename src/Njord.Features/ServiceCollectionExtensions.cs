@@ -15,6 +15,8 @@ using Njord.Features.Alerts.Pm25;
 using Njord.Features.Alerts.Pollen;
 using Njord.Features.Alerts.PressureDrop;
 using Njord.Features.Alerts.RainProbability;
+using Njord.Features.Alerts.Shower;
+using Njord.Features.Alerts.SmogRisk;
 using Njord.Features.Alerts.Snow;
 using Njord.Features.Alerts.Storm;
 using Njord.Features.Alerts.SwimmingConditions;
@@ -26,13 +28,18 @@ using Njord.Features.Alerts.WetBulbDanger;
 using Njord.Features.Alerts.WindChill;
 using Njord.Features.Conditions.ApproachingFront;
 using Njord.Features.Conditions.CommuteSafety;
+using Njord.Features.Conditions.Evapotranspiration;
 using Njord.Features.Conditions.ExerciseAdvisory;
 using Njord.Features.Conditions.FloodTimeline;
 using Njord.Features.Conditions.Gardening;
+using Njord.Features.Conditions.GranularAqi;
 using Njord.Features.Conditions.NightVentilation;
+using Njord.Features.Conditions.OceanCurrents;
 using Njord.Features.Conditions.PollenTrend;
+using Njord.Features.Conditions.RagweedPollen;
 using Njord.Features.Conditions.SatelliteRadiation;
 using Njord.Features.Conditions.SnowDepthWatch;
+using Njord.Features.Conditions.SoilMoisture;
 using Njord.Features.Conditions.SolarYield;
 using Njord.Features.Conditions.SurfConditions;
 using Njord.Features.Conditions.VentilationWindow;
@@ -73,6 +80,8 @@ public static class ServiceCollectionExtensions
         services.AddNjordOptions<WetBulbDangerConfig>();
         services.AddNjordOptions<WindChillConfig, WindChillConfigValidator>();
         services.AddNjordOptions<ClearSkyUvConfig>();
+        services.AddNjordOptions<ShowerConfig>();
+        services.AddNjordOptions<SmogRiskConfig>();
         services.AddSingleton<IFeatureRule, DustAlert>();
         services.AddSingleton<IFeatureRule, FloodRainAlert>();
         services.AddSingleton<IFeatureRule, FloodRiskAlert>();
@@ -96,6 +105,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFeatureRule, WetBulbDangerAlert>();
         services.AddSingleton<IFeatureRule, WindChillAlert>();
         services.AddSingleton<IFeatureRule, ClearSkyUvAlert>();
+        services.AddSingleton<IFeatureRule, ShowerAlert>();
+        services.AddSingleton<IFeatureRule, SmogRiskAlert>();
 
         // Scores
         services.AddNjordOptions<BbqConfig>();
@@ -106,6 +117,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFeatureRule, OutdoorScore>();
 
         // Conditions
+        services.AddNjordOptions<EvapotranspirationConfig>();
+        services.AddNjordOptions<GranularAqiConfig>();
+        services.AddNjordOptions<OceanCurrentsConfig>();
+        services.AddNjordOptions<RagweedPollenConfig>();
+        services.AddNjordOptions<SoilMoistureConfig>();
         services.AddNjordOptions<SurfConditionsConfig>();
         services.AddNjordOptions<ApproachingFrontConfig>();
         services.AddNjordOptions<PollenTrendConfig>();
@@ -118,6 +134,11 @@ public static class ServiceCollectionExtensions
         services.AddNjordOptions<GardeningConfig>();
         services.AddNjordOptions<NightVentilationConfig>();
         services.AddNjordOptions<VentilationWindowConfig>();
+        services.AddSingleton<IFeatureRule, Evapotranspiration>();
+        services.AddSingleton<IFeatureRule, GranularAqi>();
+        services.AddSingleton<IFeatureRule, OceanCurrents>();
+        services.AddSingleton<IFeatureRule, RagweedPollen>();
+        services.AddSingleton<IFeatureRule, SoilMoisture>();
         services.AddSingleton<IFeatureRule, SurfConditions>();
         services.AddSingleton<IFeatureRule, ApproachingFront>();
         services.AddSingleton<IFeatureRule, PollenTrend>();
