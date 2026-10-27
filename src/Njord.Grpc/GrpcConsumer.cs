@@ -14,6 +14,8 @@ namespace Njord.Grpc;
 public sealed class GrpcConsumer : ReceiveActor
 {
     private const int StreamClientBufferSize = 256;
+    private static readonly TimeSpan KeepAliveInterval = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan ClientIdleTimeout = TimeSpan.FromSeconds(90);
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private IMaterializer _mat = null!;
@@ -100,7 +102,10 @@ public sealed class GrpcConsumer : ReceiveActor
 
         Source.From(snapshot)
             .Concat(_clientHubSource)
-            .Buffer(StreamClientBufferSize, OverflowStrategy.DropHead)
+            .KeepAlive<PipelineEvent, PipelineEvent, NotUsed>(KeepAliveInterval, () => PipelineEvent.Heartbeat.Instance)
+            .Buffer(StreamClientBufferSize, OverflowStrategy.Backpressure)
+            .IdleTimeout(ClientIdleTimeout)
+            .Where(e => e is not PipelineEvent.Heartbeat)
             .RunWith(StreamRefs.SourceRef<PipelineEvent>(), _mat)
             .PipeTo(Sender, Self,
                 sr => new RequestGrpcStreamCompleted(msg.RequestId, sr),

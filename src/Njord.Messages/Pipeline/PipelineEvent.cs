@@ -34,4 +34,9 @@ public abstract record PipelineEvent
     public sealed record SatelliteDataReceived(
         Location Location,
         DomainForecast<SatelliteRadiationPoint> Forecast) : PipelineEvent;
+
+    public sealed record Heartbeat : PipelineEvent
+    {
+        public static readonly Heartbeat Instance = new();
+    }
 }

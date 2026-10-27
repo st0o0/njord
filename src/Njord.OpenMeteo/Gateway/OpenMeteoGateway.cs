@@ -172,8 +172,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
                     return new FetchAttempt(gated.Request, null, null, ex);
                 }
             })
-            // Replies go to the poll region with a plain Tell: Sink.ActorRef would also send its completion or failure marker there, which the shard extractor cannot route.
-            .AlsoToMaterialized(ReplySink(pollRegion), Keep.Left)
+            .Via(Flow.Create<FetchAttempt>().WireTap(ReplySink(pollRegion)))
             .Where(attempt => attempt.Result is FetchSuccess)
             // Per-model data first so the primary forecast is evaluated with all models merged in.
             .SelectMany(attempt =>

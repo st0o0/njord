@@ -30,19 +30,19 @@ The budget gate SHALL be a `BudgetGateStage` custom `GraphStage` in the stream, 
 - **THEN** the element SHALL be parked and delayed until tokens are available, never rejected with `FetchDomainRejected`
 
 ### Requirement: Pipeline offer as internal stream branch
-The gateway SHALL offer successful fetch results to the pipeline through an internal stream
-branch (not a separate actor message). The pipeline delivery SHALL NOT block or slow the
-reply to the requester.
+The gateway SHALL offer successful fetch results to the pipeline through a `WireTap` side-sink (not `AlsoTo`). The reply sink SHALL NOT propagate backpressure to the main pipeline data path. If the reply sink is temporarily slow, copies SHALL be dropped rather than blocking the pipeline delivery.
 
 #### Scenario: Successful fetch offers to pipeline
 - **WHEN** a client returns `FetchSuccess`
-- **THEN** the gateway SHALL offer the forecast data to the pipeline and reply
-  `FetchDomainCompleted` to the requester
+- **THEN** the gateway SHALL offer the forecast data to the pipeline and reply `FetchDomainCompleted` to the requester
 
 #### Scenario: Pipeline unavailability does not fail the fetch
 - **WHEN** the pipeline sink is not yet connected
-- **THEN** the gateway SHALL still reply to the requester; the pipeline offer SHALL be
-  dropped with a logged warning
+- **THEN** the gateway SHALL still reply to the requester; the pipeline offer SHALL be dropped with a logged warning
+
+#### Scenario: Reply sink backpressure does not slow the pipeline
+- **WHEN** the reply sink is temporarily slower than the main stream
+- **THEN** reply copies SHALL be dropped and the pipeline data path SHALL continue unimpeded
 
 ### Requirement: Pending request tracking
 The gateway SHALL track in-flight requests by a monotonic request id to correlate stream

@@ -100,6 +100,33 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
             () => Assert.Contains(alert, replayed));
     }
 
+    [Fact(Timeout = 30000)]
+    public async Task Heartbeat_events_are_filtered_out_of_the_stream()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (consumer, pipeline) = await StartAsync();
+        var weather = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2));
+
+        await pipeline.OfferAsync(weather, ct);
+        await AwaitAssertAsync(async () =>
+        {
+            var q = await consumer.Ask<DomainDataResponse>(
+                new QueryDomainData(DomainData.Lucerne, DomainKind.Weather), AskTimeout, ct);
+            Assert.IsType<DomainDataResult>(q);
+        }, TimeSpan.FromSeconds(5), cancellationToken: ct);
+
+        var response = await consumer.Ask<RequestGrpcStreamResponse>(new RequestGrpcStream(1), AskTimeout, ct);
+        var completed = Assert.IsType<RequestGrpcStreamCompleted>(response);
+
+        var events = await completed.SourceRef.Source
+            .Take(1)
+            .RunWith(Sink.Seq<PipelineEvent>(), Sys.Materializer())
+            .WaitAsync(TimeSpan.FromSeconds(5), ct);
+
+        Assert.Single(events);
+        Assert.IsNotType<PipelineEvent.Heartbeat>(events[0]);
+    }
+
     private async Task<(IActorRef Consumer, ISourceQueueWithComplete<PipelineEvent> Pipeline)> StartAsync()
     {
         var ready = new TaskCompletionSource<TestPipeline>(TaskCreationOptions.RunContinuationsAsynchronously);
