@@ -141,9 +141,9 @@ After S3 completes, spawn three subagents in a single message.
 
 1. 20 alert binary_sensors exist matching `*_alert`
 2. Each has `state` ∈ {"on", "off"}
-3. `severity` attribute is present only on alerts in state "on", with a value ∈ {"yellow", "orange", "red"}
-4. `frost_alert` and `heat_alert` exist (core weather alerts)
-5. `pollen_alert` and `pm2_5_alert` exist (AQ alerts)
+3. At least one alert from each category exists: frost, heat, storm, uv, pollen
+4. `event.lucerne_weather_alert` exists with `event_types` including alert lifecycle events
+5. Alert severity is delivered via the event entity data (not as a binary_sensor attribute)
 
 ---
 
@@ -153,7 +153,7 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 1. `GetDomainData` with location "Lucerne" and domain `DOMAIN_WEATHER` (domain is required) → response has the oneof `weather` non-empty
 2. `GetDomainData` with domain filter `DOMAIN_AIR_QUALITY` → response has the oneof `airQuality`
-3. Start `StreamDomainData` in the background (`timeout 120 grpcurl ... &`), then `TriggerPoll` via OpsService, then wait for the background stream to capture at least 1 update. The BroadcastHub is live-forward-only and does not replay past data, so the stream must be connected before the poll emits.
+3. Open `StreamDomainData` (no TriggerPoll needed) — the stream replays cached domain data immediately via `Source.From(snapshot).Concat(liveHub)`. Expect data within seconds.
 4. Domain data update contains `location` field matching "Lucerne"
 5. Weather data has `temperature`, `wind_speed`, `precipitation` fields (`precipitation` may be omitted when 0)
 6. Note: Marine returns NotFound for inland locations by design
@@ -164,18 +164,18 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 1. `GetEnrichments` with location "Lucerne" → has an `events[]` list
 2. `events[]` has at least 1 entry; the feature is the oneof case (e.g. `fog`) and the alert severity is at `<case>.alert.severity`
-3. Start `StreamEnrichments` in the background, then `TriggerPoll` via OpsService, then wait for the background stream to capture at least 1 event. Same reason as S8.3: the BroadcastHub is live-forward-only.
+3. Open `StreamEnrichments` (no TriggerPoll needed) — the stream replays cached enrichment events immediately. Expect data within seconds.
 4. Event has a feature oneof case set (`type_name` no longer exists)
 
 ---
 
 ## S10 — gRPC: GetCatalog + GetStatus + TriggerPoll (Haiku #3)
 
-1. `GetCatalog` on `njord.v2.WeatherService` → has at least 1 location named "Lucerne"
+1. `GetCatalog` on `njord.v2.WeatherService` → has at least 1 location named "Lucerne" and lists weather models
 2. `GetStatus` → `budget` has `monthly_used` ≥ 0 and `monthly_limit` > 0
-3. `GetStatus` → `activeEnrichments` lists every enabled feature; poll state is reported per location (target phase and cycle)
-4. `TriggerPoll` with location "Lucerne" → `triggeredCount` ≥ 1
-5. After trigger: `GetStatus` shows incremented usage
+3. `GetStatus` → `activeEnrichments` count ≥ 37 (all enabled features); poll state is reported per location
+4. `TriggerPoll` → `triggeredCount` ≥ 1
+5. After trigger: `GetStatus` shows incremented `monthlyUsed`
 
 ---
 
