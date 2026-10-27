@@ -255,6 +255,45 @@ public sealed record FloodRainAlertResult(
     ConfidenceLevel Level) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
     HoursUntil, DurationHours, Level);
 
+public sealed record RainProbabilityAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double PeakProbability) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record WetBulbDangerAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double PeakWetBulb) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record ClearSkyUvAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double PeakClearSkyUv) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
 public sealed record SwimmingConditionsAlertResult(
     Location Location,
     AlertSeverity Severity,

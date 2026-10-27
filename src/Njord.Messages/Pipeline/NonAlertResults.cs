@@ -47,3 +47,7 @@ public sealed record ModelDayValues(string ModelId, double? MaxTemperature, doub
 public sealed record ModelComparisonDay(DateOnly Date, ImmutableArray<ModelDayValues> Models);
 
 public sealed record ModelComparisonResult(Location Location, ImmutableArray<ModelComparisonDay> Days) : ForecastFeatureResult(Location);
+
+public enum SnowDepthLevel { None, Light, Moderate, Heavy, Extreme }
+
+public sealed record SnowDepthWatchResult(Location Location, SnowDepthLevel Level, double DepthCm) : ConditionFeatureResult(Location);

@@ -13,10 +13,10 @@ using Njord.Forecast.Weather;
 using Njord.Messages.Forecast;
 using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Configuration;
+using Njord.OpenMeteo.Ensemble;
 using Njord.OpenMeteo.Flood;
 using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Marine;
-using Njord.OpenMeteo.Ensemble;
 using Njord.OpenMeteo.Weather;
 using Njord.Tests.Shared;
 

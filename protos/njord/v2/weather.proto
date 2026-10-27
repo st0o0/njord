@@ -246,6 +246,10 @@ message EnrichmentEvent {
     FloodRiskAlert flood_risk = 37;
     FloodRainAlert flood_rain = 38;
     SwimmingConditionsAlert swimming_conditions = 39;
+    RainProbabilityAlert rain_probability = 40;
+    WetBulbDangerAlert wet_bulb_danger = 41;
+    ClearSkyUvAlert clear_sky_uv = 42;
+    SnowDepthWatchCondition snow_depth_watch = 69;
     Bbq bbq = 50;
     Laundry laundry = 51;
     Outdoor outdoor = 52;
@@ -489,6 +493,35 @@ message FloodRainAlert {
 
 message SwimmingConditionsAlert {
   AlertData alert = 1;
+}
+
+message RainProbabilityAlert {
+  AlertData alert = 1;
+  double peak_probability = 2;
+}
+
+message WetBulbDangerAlert {
+  AlertData alert = 1;
+  double peak_wet_bulb = 2;
+}
+
+message ClearSkyUvAlert {
+  AlertData alert = 1;
+  double peak_clear_sky_uv = 2;
+}
+
+enum SnowDepthLevel {
+  SNOW_DEPTH_LEVEL_UNSPECIFIED = 0;
+  SNOW_DEPTH_LEVEL_LIGHT = 1;
+  SNOW_DEPTH_LEVEL_MODERATE = 2;
+  SNOW_DEPTH_LEVEL_HEAVY = 3;
+  SNOW_DEPTH_LEVEL_EXTREME = 4;
+}
+
+message SnowDepthWatchCondition {
+  ConditionData condition = 1;
+  SnowDepthLevel level = 2;
+  double depth_cm = 3;
 }
 
 message Bbq {

@@ -62,4 +62,7 @@ public enum WeatherApiVariable
     WetBulbTemperature,
     [JsonStringEnumMemberName("snowfall_height")]
     SnowfallHeight,
+
+    [JsonStringEnumMemberName("uv_index_clear_sky")]
+    UvIndexClearSky,
 }

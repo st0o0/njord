@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Features.Alerts.ClearSkyUv;
 using Njord.Features.Alerts.Dust;
 using Njord.Features.Alerts.FloodRain;
 using Njord.Features.Alerts.FloodRisk;
@@ -13,6 +14,7 @@ using Njord.Features.Alerts.Ice;
 using Njord.Features.Alerts.Pm25;
 using Njord.Features.Alerts.Pollen;
 using Njord.Features.Alerts.PressureDrop;
+using Njord.Features.Alerts.RainProbability;
 using Njord.Features.Alerts.Snow;
 using Njord.Features.Alerts.Storm;
 using Njord.Features.Alerts.SwimmingConditions;
@@ -20,6 +22,7 @@ using Njord.Features.Alerts.Thunderstorm;
 using Njord.Features.Alerts.TropicalNight;
 using Njord.Features.Alerts.Uv;
 using Njord.Features.Alerts.Visibility;
+using Njord.Features.Alerts.WetBulbDanger;
 using Njord.Features.Alerts.WindChill;
 using Njord.Features.Conditions.ApproachingFront;
 using Njord.Features.Conditions.CommuteSafety;
@@ -29,6 +32,7 @@ using Njord.Features.Conditions.Gardening;
 using Njord.Features.Conditions.NightVentilation;
 using Njord.Features.Conditions.PollenTrend;
 using Njord.Features.Conditions.SatelliteRadiation;
+using Njord.Features.Conditions.SnowDepthWatch;
 using Njord.Features.Conditions.SolarYield;
 using Njord.Features.Conditions.SurfConditions;
 using Njord.Features.Conditions.VentilationWindow;
@@ -58,6 +62,7 @@ public static class ServiceCollectionExtensions
         services.AddNjordOptions<Pm25Config>();
         services.AddNjordOptions<PollenConfig>();
         services.AddNjordOptions<PressureDropConfig>();
+        services.AddNjordOptions<RainProbabilityConfig>();
         services.AddNjordOptions<SnowConfig>();
         services.AddNjordOptions<StormConfig, StormConfigValidator>();
         services.AddNjordOptions<SwimmingConditionsConfig>();
@@ -65,7 +70,9 @@ public static class ServiceCollectionExtensions
         services.AddNjordOptions<TropicalNightConfig, TropicalNightConfigValidator>();
         services.AddNjordOptions<UvConfig>();
         services.AddNjordOptions<VisibilityConfig, VisibilityConfigValidator>();
+        services.AddNjordOptions<WetBulbDangerConfig>();
         services.AddNjordOptions<WindChillConfig, WindChillConfigValidator>();
+        services.AddNjordOptions<ClearSkyUvConfig>();
         services.AddSingleton<IFeatureRule, DustAlert>();
         services.AddSingleton<IFeatureRule, FloodRainAlert>();
         services.AddSingleton<IFeatureRule, FloodRiskAlert>();
@@ -78,6 +85,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFeatureRule, Pm25Alert>();
         services.AddSingleton<IFeatureRule, PollenAlert>();
         services.AddSingleton<IFeatureRule, PressureDropAlert>();
+        services.AddSingleton<IFeatureRule, RainProbabilityAlert>();
         services.AddSingleton<IFeatureRule, SnowAlert>();
         services.AddSingleton<IFeatureRule, StormAlert>();
         services.AddSingleton<IFeatureRule, SwimmingConditionsAlert>();
@@ -85,7 +93,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFeatureRule, TropicalNightAlert>();
         services.AddSingleton<IFeatureRule, UvAlert>();
         services.AddSingleton<IFeatureRule, VisibilityAlert>();
+        services.AddSingleton<IFeatureRule, WetBulbDangerAlert>();
         services.AddSingleton<IFeatureRule, WindChillAlert>();
+        services.AddSingleton<IFeatureRule, ClearSkyUvAlert>();
 
         // Scores
         services.AddNjordOptions<BbqConfig>();
@@ -100,6 +110,7 @@ public static class ServiceCollectionExtensions
         services.AddNjordOptions<ApproachingFrontConfig>();
         services.AddNjordOptions<PollenTrendConfig>();
         services.AddNjordOptions<SatelliteRadiationConfig>();
+        services.AddNjordOptions<SnowDepthWatchConfig>();
         services.AddNjordOptions<SolarYieldConfig>();
         services.AddNjordOptions<CommuteSafetyConfig>();
         services.AddNjordOptions<ExerciseAdvisoryConfig>();
@@ -111,6 +122,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFeatureRule, ApproachingFront>();
         services.AddSingleton<IFeatureRule, PollenTrend>();
         services.AddSingleton<IFeatureRule, SatelliteRadiation>();
+        services.AddSingleton<IFeatureRule, SnowDepthWatch>();
         services.AddSingleton<IFeatureRule, SolarYield>();
         services.AddSingleton<IFeatureRule, CommuteSafety>();
         services.AddSingleton<IFeatureRule, ExerciseAdvisory>();

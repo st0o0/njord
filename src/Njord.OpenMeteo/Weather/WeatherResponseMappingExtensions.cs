@@ -165,7 +165,8 @@ internal static class WeatherResponseMappingExtensions
                 GlobalTiltedIrradiance: At(h.GlobalTiltedIrradiance, i),
                 SnowDepth: At(h.SnowDepth, i),
                 WetBulbTemperature: At(h.WetBulbTemperature, i),
-                SnowfallHeight: At(h.SnowfallHeight, i));
+                SnowfallHeight: At(h.SnowfallHeight, i),
+                UvIndexClearSky: At(h.UvIndexClearSky, i));
         }
 
         return new DomainForecast<WeatherPoint>(

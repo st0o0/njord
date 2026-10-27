@@ -35,6 +35,7 @@ public static class WeatherApiVariableMappingExtensions
         WeatherParams.SnowDepth => WeatherApiVariable.SnowDepth,
         WeatherParams.WetBulbTemperature => WeatherApiVariable.WetBulbTemperature,
         WeatherParams.SnowfallHeight => WeatherApiVariable.SnowfallHeight,
+        WeatherParams.UvIndexClearSky => WeatherApiVariable.UvIndexClearSky,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 

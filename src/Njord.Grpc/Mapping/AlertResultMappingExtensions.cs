@@ -231,4 +231,31 @@ internal static class AlertResultMappingExtensions
             Alert = r.ToData(),
         };
     }
+
+    public static V2.RainProbabilityAlert ToProto(this RainProbabilityAlertResult r)
+    {
+        return new V2.RainProbabilityAlert
+        {
+            Alert = r.ToData(),
+            PeakProbability = r.PeakProbability,
+        };
+    }
+
+    public static V2.WetBulbDangerAlert ToProto(this WetBulbDangerAlertResult r)
+    {
+        return new V2.WetBulbDangerAlert
+        {
+            Alert = r.ToData(),
+            PeakWetBulb = r.PeakWetBulb,
+        };
+    }
+
+    public static V2.ClearSkyUvAlert ToProto(this ClearSkyUvAlertResult r)
+    {
+        return new V2.ClearSkyUvAlert
+        {
+            Alert = r.ToData(),
+            PeakClearSkyUv = r.PeakClearSkyUv,
+        };
+    }
 }

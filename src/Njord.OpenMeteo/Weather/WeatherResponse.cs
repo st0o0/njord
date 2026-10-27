@@ -33,7 +33,8 @@ public sealed record WeatherHourlyData(
     [property: JsonPropertyName("global_tilted_irradiance")] double?[]? GlobalTiltedIrradiance = null,
     [property: JsonPropertyName("snow_depth")] double?[]? SnowDepth = null,
     [property: JsonPropertyName("wet_bulb_temperature_2m")] double?[]? WetBulbTemperature = null,
-    [property: JsonPropertyName("snowfall_height")] double?[]? SnowfallHeight = null);
+    [property: JsonPropertyName("snowfall_height")] double?[]? SnowfallHeight = null,
+    [property: JsonPropertyName("uv_index_clear_sky")] double?[]? UvIndexClearSky = null);
 
 public sealed record WeatherResponse(
     [property: JsonPropertyName("latitude")] double Latitude,

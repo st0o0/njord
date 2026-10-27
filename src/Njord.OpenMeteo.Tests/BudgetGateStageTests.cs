@@ -33,7 +33,7 @@ public sealed class BudgetGateStageTests : Akka.Hosting.TestKit.TestKit
             .ToMaterialized(Sink.Seq<int>(), Keep.Both)
             .Run(Sys.Materializer());
 
-        await queue.OfferAsync(42);
+        await queue.OfferAsync(42, TestContext.Current.CancellationToken);
         queue.Complete();
         var result = await sink.WaitAsync(TimeSpan.FromSeconds(5), ct);
 
@@ -55,8 +55,8 @@ public sealed class BudgetGateStageTests : Akka.Hosting.TestKit.TestKit
             .ToMaterialized(Sink.Seq<int>(), Keep.Both)
             .Run(Sys.Materializer());
 
-        await queue.OfferAsync(1);
-        await queue.OfferAsync(2);
+        await queue.OfferAsync(1, TestContext.Current.CancellationToken);
+        await queue.OfferAsync(2, TestContext.Current.CancellationToken);
         queue.Complete();
 
         var result = await sink.WaitAsync(TimeSpan.FromSeconds(5), ct);
@@ -81,9 +81,9 @@ public sealed class BudgetGateStageTests : Akka.Hosting.TestKit.TestKit
             .ToMaterialized(Sink.Seq<int>(), Keep.Both)
             .Run(Sys.Materializer());
 
-        await queue.OfferAsync(10);
-        await queue.OfferAsync(20);
-        await queue.OfferAsync(30);
+        await queue.OfferAsync(10, TestContext.Current.CancellationToken);
+        await queue.OfferAsync(20, TestContext.Current.CancellationToken);
+        await queue.OfferAsync(30, TestContext.Current.CancellationToken);
         queue.Complete();
 
         var result = await sink.WaitAsync(TimeSpan.FromSeconds(10), ct);
@@ -105,13 +105,13 @@ public sealed class BudgetGateStageTests : Akka.Hosting.TestKit.TestKit
             .ToMaterialized(Sink.Seq<int>(), Keep.Both)
             .Run(Sys.Materializer());
 
-        await queue.OfferAsync(1);
+        await queue.OfferAsync(1, TestContext.Current.CancellationToken);
         await tracker.ExpectMsgAsync<RecordApiCall>(cancellationToken: ct);
 
         rate.CostPerMinute = 60000;
         rate.MaxBurst = 18;
 
-        await queue.OfferAsync(2);
+        await queue.OfferAsync(2, TestContext.Current.CancellationToken);
         queue.Complete();
 
         var result = await sink.WaitAsync(TimeSpan.FromSeconds(8), ct);
@@ -132,8 +132,8 @@ public sealed class BudgetGateStageTests : Akka.Hosting.TestKit.TestKit
             .ToMaterialized(Sink.Seq<int>(), Keep.Both)
             .Run(Sys.Materializer());
 
-        await queue.OfferAsync(1);
-        await queue.OfferAsync(2);
+        await queue.OfferAsync(1, TestContext.Current.CancellationToken);
+        await queue.OfferAsync(2, TestContext.Current.CancellationToken);
         queue.Complete();
 
         var result = await sink.WaitAsync(TimeSpan.FromSeconds(5), ct);

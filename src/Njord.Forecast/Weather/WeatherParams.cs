@@ -33,4 +33,5 @@ public enum WeatherParams : long
     SnowDepth = 1L << 27,
     WetBulbTemperature = 1L << 28,
     SnowfallHeight = 1L << 29,
+    UvIndexClearSky = 1L << 32,
 }

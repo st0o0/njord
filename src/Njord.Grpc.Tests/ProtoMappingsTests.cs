@@ -1,11 +1,11 @@
 using Google.Protobuf.WellKnownTypes;
 using Njord.Forecast;
+using Njord.Forecast.Weather;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Messages.Budget;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
-using Njord.Forecast.Weather;
 using Njord.Tests.Shared;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
@@ -141,7 +141,7 @@ public sealed class ProtoMappingsTests
             () => Assert.Equal("Lucerne", update.Location),
             () => Assert.Equal(Domain.Ensemble, update.Domain),
             () => Assert.Equal(DomainDataUpdate.DataOneofCase.Ensemble, update.DataCase),
-            () => Assert.Equal(1, update.Ensemble.Points.Count),
+            () => Assert.Single(update.Ensemble.Points),
             () => Assert.Equal(1.5, update.Ensemble.Points[0].TemperatureSpread),
             () => Assert.Equal(0.3, update.Ensemble.Points[0].PrecipitationSpread),
             () => Assert.Equal(2.1, update.Ensemble.Points[0].WindSpeedSpread));

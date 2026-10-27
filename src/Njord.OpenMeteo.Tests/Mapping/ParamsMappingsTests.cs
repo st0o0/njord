@@ -3,12 +3,12 @@ using Njord.Forecast.Flood;
 using Njord.Forecast.Marine;
 using Njord.Forecast.Weather;
 using Njord.OpenMeteo.AirQuality;
+using Njord.OpenMeteo.Ensemble;
 using Njord.OpenMeteo.Flood;
 using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Marine;
 using Njord.OpenMeteo.Satellite;
 using Njord.OpenMeteo.Seasonal;
-using Njord.OpenMeteo.Ensemble;
 using Njord.OpenMeteo.Weather;
 
 namespace Njord.OpenMeteo.Tests.Mapping;
@@ -45,6 +45,7 @@ public sealed class ParamsMappingsTests
     [InlineData(WeatherParams.SnowDepth, "snow_depth")]
     [InlineData(WeatherParams.WetBulbTemperature, "wet_bulb_temperature_2m")]
     [InlineData(WeatherParams.SnowfallHeight, "snowfall_height")]
+    [InlineData(WeatherParams.UvIndexClearSky, "uv_index_clear_sky")]
     public void Should_map_each_weather_flag_to_its_api_name(WeatherParams param, string expected) =>
         Assert.Equal([expected], param.ToApiNames());
 

@@ -21,11 +21,11 @@ public sealed class BudgetGuardTests
         DomainRequirements requirements,
         ImmutableArray<string>? models = null,
         ImmutableArray<string>? ensembleModels = null) => new()
-    {
-        Requirements = requirements,
-        WeatherModels = models ?? ["ecmwf_ifs025_ensemble_mean"],
-        EnsembleModels = ensembleModels ?? [],
-    };
+        {
+            Requirements = requirements,
+            WeatherModels = models ?? ["ecmwf_ifs025_ensemble_mean"],
+            EnsembleModels = ensembleModels ?? [],
+        };
 
     private static FeatureRequirementsOptions Resolved(WeatherParams weather = WeatherParams.Temperature, ImmutableArray<string>? models = null) =>
         Requirements(new DomainRequirements(Weather: weather, AirQuality: AirQualityParams.Pm25), models);

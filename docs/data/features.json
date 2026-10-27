@@ -755,5 +755,118 @@
     "optionalWeatherParams": [
       "WindDirection"
     ]
+  },
+  {
+    "key": "Weather:RainProbability",
+    "name": "RainProbability",
+    "category": "Weather",
+    "output": "Alert",
+    "description": "Rain probability alert from forecast precipitation probability",
+    "enabledByDefault": true,
+    "domains": [
+      "Weather",
+      "Ensemble"
+    ],
+    "weatherParams": [
+      "PrecipitationProbability"
+    ],
+    "ensembleParams": [
+      "TemperatureSpread"
+    ],
+    "options": [
+      {
+        "name": "WindowHours",
+        "type": "number",
+        "default": 6
+      },
+      {
+        "name": "Thresholds",
+        "type": "numberArray",
+        "default": [50, 70, 90]
+      }
+    ]
+  },
+  {
+    "key": "Weather:WetBulbDanger",
+    "name": "WetBulbDanger",
+    "category": "Weather",
+    "output": "Alert",
+    "description": "Wet-bulb temperature danger alert for heat stroke risk",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather",
+      "Ensemble"
+    ],
+    "weatherParams": [
+      "WetBulbTemperature"
+    ],
+    "ensembleParams": [
+      "TemperatureSpread"
+    ],
+    "options": [
+      {
+        "name": "Thresholds",
+        "type": "numberArray",
+        "default": [26, 28, 32]
+      }
+    ]
+  },
+  {
+    "key": "Lifestyle:ClearSkyUv",
+    "name": "ClearSkyUv",
+    "category": "Lifestyle",
+    "output": "Alert",
+    "description": "Clear-sky UV alert for UV danger under intermittent clouds",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "UvIndexClearSky",
+      "IsDay"
+    ],
+    "options": [
+      {
+        "name": "Thresholds",
+        "type": "numberArray",
+        "default": [6, 8, 10]
+      }
+    ]
+  },
+  {
+    "key": "Weather:SnowDepthWatch",
+    "name": "SnowDepthWatch",
+    "category": "Weather",
+    "output": "Condition",
+    "description": "Snow depth condition reporting accumulation status",
+    "enabledByDefault": false,
+    "domains": [
+      "Weather"
+    ],
+    "weatherParams": [
+      "SnowDepth"
+    ],
+    "options": [
+      {
+        "name": "LightThreshold",
+        "type": "number",
+        "default": 2
+      },
+      {
+        "name": "ModerateThreshold",
+        "type": "number",
+        "default": 10
+      },
+      {
+        "name": "HeavyThreshold",
+        "type": "number",
+        "default": 25
+      },
+      {
+        "name": "ExtremeThreshold",
+        "type": "number",
+        "default": 50
+      }
+    ]
   }
 ]

@@ -142,6 +142,23 @@ internal static class FeatureResultMappingExtensions
         return proto;
     }
 
+    public static V2.SnowDepthWatchCondition ToProto(this SnowDepthWatchResult r)
+    {
+        return new V2.SnowDepthWatchCondition
+        {
+            Condition = new V2.ConditionData(),
+            Level = r.Level switch
+            {
+                SnowDepthLevel.Light => V2.SnowDepthLevel.Light,
+                SnowDepthLevel.Moderate => V2.SnowDepthLevel.Moderate,
+                SnowDepthLevel.Heavy => V2.SnowDepthLevel.Heavy,
+                SnowDepthLevel.Extreme => V2.SnowDepthLevel.Extreme,
+                _ => V2.SnowDepthLevel.Unspecified,
+            },
+            DepthCm = r.DepthCm,
+        };
+    }
+
     public static V2.ApproachingFront ToProto(this ApproachingFrontResult r)
     {
         return new V2.ApproachingFront
