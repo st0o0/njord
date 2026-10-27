@@ -12,6 +12,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Njord.Core\Njord.Core.csproj" />
+        <ProjectReference Include="..\Njord.Messages\Njord.Messages.csproj" />
         <ProjectReference Include="..\Njord.OpenMeteo\Njord.OpenMeteo.csproj" />
         <ProjectReference Include="..\Njord.Features\Njord.Features.csproj" />
         <ProjectReference Include="..\Njord\Njord.csproj" />

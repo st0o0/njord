@@ -1,11 +1,11 @@
+using Njord.Core;
+using Njord.Core.AirQuality;
 using Njord.Core.Domain;
-using Njord.Forecast;
-using Njord.Forecast.AirQuality;
-using Njord.Forecast.Flood;
-using Njord.Forecast.Forecast;
-using Njord.Forecast.Marine;
-using Njord.Forecast.Seasonal;
-using Njord.Forecast.Solar;
+using Njord.Core.Flood;
+using Njord.Core.Forecast;
+using Njord.Core.Marine;
+using Njord.Core.Seasonal;
+using Njord.Core.Solar;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Pipeline;

@@ -2,9 +2,9 @@ using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
+using Njord.Core;
 using Njord.Core.Domain;
-using Njord.Forecast;
-using Njord.Messages.Forecast;
+using Njord.Core.Domain;
 
 namespace Njord.OpenMeteo.Http;
 

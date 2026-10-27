@@ -1,4 +1,4 @@
-using Njord.Forecast;
+using Njord.Core;
 
 namespace Njord.Messages.Config;
 

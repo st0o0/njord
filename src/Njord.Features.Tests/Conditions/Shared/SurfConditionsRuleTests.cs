@@ -1,7 +1,7 @@
+using Njord.Core;
+using Njord.Core.Forecast;
+using Njord.Core.Marine;
 using Njord.Features.Conditions.Shared;
-using Njord.Forecast;
-using Njord.Forecast.Forecast;
-using Njord.Forecast.Marine;
 using static Njord.Tests.Shared.MarineFixtures;
 
 namespace Njord.Features.Tests.Conditions;

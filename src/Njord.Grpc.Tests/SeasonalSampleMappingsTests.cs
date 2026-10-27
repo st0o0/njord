@@ -1,4 +1,4 @@
-using Njord.Forecast.Seasonal;
+using Njord.Core.Seasonal;
 using Njord.Grpc.Mapping;
 
 namespace Njord.Grpc.Tests;

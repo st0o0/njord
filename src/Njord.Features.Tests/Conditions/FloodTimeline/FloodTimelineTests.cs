@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
+using Njord.Core.Flood;
 using Njord.Features.Conditions.FloodTimeline;
-using Njord.Forecast.Flood;
 using Njord.Messages.Pipeline;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;

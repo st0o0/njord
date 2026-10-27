@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Forecast.Flood;
+using Njord.Core.Flood;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.FloodTimeline;

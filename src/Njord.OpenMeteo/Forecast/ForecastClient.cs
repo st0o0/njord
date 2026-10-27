@@ -1,10 +1,10 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
-using Njord.Forecast;
-using Njord.Forecast.Forecast;
+using Njord.Core.Forecast;
 using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Mapping;

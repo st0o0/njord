@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
+using Njord.Core;
 using Njord.Core.Configuration;
-using Njord.Forecast;
-using Njord.Forecast.Forecast;
+using Njord.Core.Forecast;
 
 namespace Njord.Core.Domain;
 

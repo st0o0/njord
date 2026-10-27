@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Forecast.Forecast;
+using Njord.Core.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Forecasts.GrowingDegree;

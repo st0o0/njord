@@ -8,7 +8,6 @@ namespace Njord.Architecture.Tests;
 
 public sealed class ArchitectureTests
 {
-    private static readonly Assembly ForecastAssembly = typeof(Forecast.AssemblyMarker).Assembly;
     private static readonly Assembly MessagesAssembly = typeof(Messages.AssemblyMarker).Assembly;
     private static readonly Assembly PersistenceAssembly = typeof(Persistence.AssemblyMarker).Assembly;
     private static readonly Assembly CoreAssembly = typeof(Core.AssemblyMarker).Assembly;
@@ -22,7 +21,6 @@ public sealed class ArchitectureTests
     private static readonly ArchUnitNET.Domain.Architecture Architecture =
         new ArchLoader()
             .LoadAssemblies(
-                ForecastAssembly,
                 MessagesAssembly,
                 PersistenceAssembly,
                 CoreAssembly,
@@ -37,7 +35,6 @@ public sealed class ArchitectureTests
     private static IObjectProvider<IType> InAssembly(Assembly assembly)
         => Types().That().ResideInAssembly(assembly);
 
-    private static readonly IObjectProvider<IType> ForecastLayer = InAssembly(ForecastAssembly);
     private static readonly IObjectProvider<IType> MessagesLayer = InAssembly(MessagesAssembly);
     private static readonly IObjectProvider<IType> PersistenceLayer = InAssembly(PersistenceAssembly);
     private static readonly IObjectProvider<IType> CoreLayer = InAssembly(CoreAssembly);
@@ -49,27 +46,10 @@ public sealed class ArchitectureTests
     private static readonly IObjectProvider<IType> GrpcLayer = InAssembly(GrpcAssembly);
 
     [Fact]
-    public void Forecast_should_not_depend_on_any_project()
-    {
-        Types().That().Are(ForecastLayer)
-            .Should().NotDependOnAnyTypesThat().Are(MessagesLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PersistenceLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(CoreLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(OpenMeteoLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(BudgetLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PollingLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PipelineLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(FeaturesLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(GrpcLayer)
-            .Check(Architecture);
-    }
-
-    [Fact]
-    public void Messages_should_not_depend_on_layers_above_forecast()
+    public void Messages_should_not_depend_on_layers_above_core()
     {
         Types().That().Are(MessagesLayer)
             .Should().NotDependOnAnyTypesThat().Are(PersistenceLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(CoreLayer)
             .AndShould().NotDependOnAnyTypesThat().Are(OpenMeteoLayer)
             .AndShould().NotDependOnAnyTypesThat().Are(BudgetLayer)
             .AndShould().NotDependOnAnyTypesThat().Are(PollingLayer)
@@ -83,8 +63,7 @@ public sealed class ArchitectureTests
     public void Persistence_should_not_depend_on_any_project()
     {
         Types().That().Are(PersistenceLayer)
-            .Should().NotDependOnAnyTypesThat().Are(ForecastLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(MessagesLayer)
+            .Should().NotDependOnAnyTypesThat().Are(MessagesLayer)
             .AndShould().NotDependOnAnyTypesThat().Are(CoreLayer)
             .AndShould().NotDependOnAnyTypesThat().Are(OpenMeteoLayer)
             .AndShould().NotDependOnAnyTypesThat().Are(BudgetLayer)
@@ -96,10 +75,11 @@ public sealed class ArchitectureTests
     }
 
     [Fact]
-    public void Core_should_not_depend_on_feature_libraries()
+    public void Core_should_not_depend_on_messages_or_feature_libraries()
     {
         Types().That().Are(CoreLayer)
-            .Should().NotDependOnAnyTypesThat().Are(OpenMeteoLayer)
+            .Should().NotDependOnAnyTypesThat().Are(MessagesLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(OpenMeteoLayer)
             .AndShould().NotDependOnAnyTypesThat().Are(BudgetLayer)
             .AndShould().NotDependOnAnyTypesThat().Are(PollingLayer)
             .AndShould().NotDependOnAnyTypesThat().Are(PipelineLayer)
@@ -220,7 +200,7 @@ public sealed class ArchitectureTests
     {
         var allLayers = new[]
         {
-            ForecastLayer, MessagesLayer, PersistenceLayer, CoreLayer, OpenMeteoLayer,
+            MessagesLayer, PersistenceLayer, CoreLayer, OpenMeteoLayer,
             BudgetLayer, PollingLayer, PipelineLayer, FeaturesLayer
         };
 

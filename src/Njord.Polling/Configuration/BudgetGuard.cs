@@ -1,9 +1,9 @@
 using System.Numerics;
+using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Core.Forecast;
 using Njord.Core.Polling;
-using Njord.Forecast;
-using Njord.Forecast.Forecast;
 
 namespace Njord.Polling.Configuration;
 

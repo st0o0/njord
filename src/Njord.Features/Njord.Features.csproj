@@ -6,6 +6,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Njord.Core\Njord.Core.csproj" />
+        <ProjectReference Include="..\Njord.Messages\Njord.Messages.csproj" />
     </ItemGroup>
 
     <ItemGroup>

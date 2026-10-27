@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Options;
+using Njord.Core;
 using Njord.Core.Domain;
+using Njord.Core.Forecast;
 using Njord.Features.Alerts.Fog;
 using Njord.Features.Alerts.Frost;
 using Njord.Features.Alerts.Heat;
@@ -14,8 +16,6 @@ using Njord.Features.Alerts.TropicalNight;
 using Njord.Features.Alerts.Uv;
 using Njord.Features.Alerts.Visibility;
 using Njord.Features.Alerts.WindChill;
-using Njord.Forecast;
-using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;

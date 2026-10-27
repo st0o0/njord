@@ -1,8 +1,8 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Text.Json;
-using Njord.Forecast;
-using Njord.Forecast.Forecast;
+using Njord.Core;
+using Njord.Core.Forecast;
 using Njord.OpenMeteo.Forecast;
 
 namespace Njord.OpenMeteo.Ensemble;

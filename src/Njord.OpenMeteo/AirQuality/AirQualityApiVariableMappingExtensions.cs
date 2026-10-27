@@ -1,4 +1,4 @@
-using Njord.Forecast.AirQuality;
+using Njord.Core.AirQuality;
 
 namespace Njord.OpenMeteo.AirQuality;
 

@@ -1,9 +1,9 @@
-using Njord.Forecast.AirQuality;
-using Njord.Forecast.Flood;
-using Njord.Forecast.Forecast;
-using Njord.Forecast.Marine;
-using Njord.Forecast.Seasonal;
-using Njord.Forecast.Solar;
+using Njord.Core.AirQuality;
+using Njord.Core.Flood;
+using Njord.Core.Forecast;
+using Njord.Core.Marine;
+using Njord.Core.Seasonal;
+using Njord.Core.Solar;
 using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Flood;
 using Njord.OpenMeteo.Forecast;

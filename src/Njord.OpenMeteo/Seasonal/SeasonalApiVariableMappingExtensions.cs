@@ -1,4 +1,4 @@
-using Njord.Forecast.Seasonal;
+using Njord.Core.Seasonal;
 
 namespace Njord.OpenMeteo.Seasonal;
 

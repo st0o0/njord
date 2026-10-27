@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Options;
+using Njord.Core;
 using Njord.Core.Domain;
+using Njord.Core.Seasonal;
 using Njord.Features.Forecasts.SeasonalOutlook;
-using Njord.Forecast;
-using Njord.Forecast.Seasonal;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using static Njord.Tests.Shared.AlertRuleFixture;

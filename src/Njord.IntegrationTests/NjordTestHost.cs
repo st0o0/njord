@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Njord.Core;
 using Njord.Core.Domain;
-using Njord.Forecast;
 using Njord.Tests.Shared;
 
 namespace Njord.IntegrationTests;

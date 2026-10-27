@@ -1,6 +1,6 @@
+using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
-using Njord.Forecast;
 using Njord.Messages.Config;
 
 namespace Njord.Grpc.Mapping;

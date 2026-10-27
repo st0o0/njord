@@ -1,8 +1,8 @@
 using System.Text.Json;
-using Njord.Forecast;
-using Njord.Forecast.AirQuality;
-using Njord.Forecast.Forecast;
-using Njord.Forecast.Marine;
+using Njord.Core;
+using Njord.Core.AirQuality;
+using Njord.Core.Forecast;
+using Njord.Core.Marine;
 using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Flood;
 using Njord.OpenMeteo.Forecast;

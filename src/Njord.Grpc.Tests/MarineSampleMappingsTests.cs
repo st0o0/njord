@@ -1,4 +1,4 @@
-using Njord.Forecast.Marine;
+using Njord.Core.Marine;
 using Njord.Grpc.Mapping;
 
 namespace Njord.Grpc.Tests;

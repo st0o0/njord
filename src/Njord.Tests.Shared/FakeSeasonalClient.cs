@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
+using Njord.Core;
 using Njord.Core.Domain;
-using Njord.Forecast;
-using Njord.Forecast.Seasonal;
+using Njord.Core.Seasonal;
 
 namespace Njord.Tests.Shared;
 

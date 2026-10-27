@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
+using Njord.Core;
 using Njord.Core.Domain;
-using Njord.Forecast;
-using Njord.Forecast.Solar;
+using Njord.Core.Solar;
 using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Mapping;

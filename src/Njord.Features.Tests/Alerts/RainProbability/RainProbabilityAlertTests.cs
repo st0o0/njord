@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Options;
+using Njord.Core;
 using Njord.Core.Domain;
+using Njord.Core.Forecast;
 using Njord.Features.Alerts.RainProbability;
-using Njord.Forecast;
-using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;

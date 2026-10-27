@@ -1,6 +1,6 @@
+using Njord.Core;
 using Njord.Core.Domain;
-using Njord.Forecast;
-using Njord.Forecast.Marine;
+using Njord.Core.Marine;
 
 namespace Njord.Tests.Shared;
 

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
+using Njord.Core;
+using Njord.Core.Solar;
 using Njord.Features.Conditions.SatelliteRadiation;
-using Njord.Forecast;
-using Njord.Forecast.Solar;
 using Njord.Messages.Pipeline;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;

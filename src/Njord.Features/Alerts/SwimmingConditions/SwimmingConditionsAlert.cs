@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Forecast.Marine;
+using Njord.Core.Marine;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 

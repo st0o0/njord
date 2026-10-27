@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
-using Njord.Forecast;
-using Njord.Forecast.Forecast;
+using Njord.Core;
+using Njord.Core.Forecast;
 
 namespace Njord.Tests.Shared;
 

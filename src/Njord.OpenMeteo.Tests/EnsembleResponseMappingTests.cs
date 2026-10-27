@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Njord.Forecast.Forecast;
+using Njord.Core.Forecast;
 using Njord.OpenMeteo.Ensemble;
 using Njord.OpenMeteo.Forecast;
 using Njord.OpenMeteo.Http;

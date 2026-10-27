@@ -1,11 +1,11 @@
 using System.Collections.Immutable;
+using Njord.Core.AirQuality;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Core.Forecast;
 using Njord.Core.Polling;
-using Njord.Forecast.AirQuality;
-using Njord.Forecast.Forecast;
-using Njord.Forecast.Seasonal;
-using Njord.Forecast.Solar;
+using Njord.Core.Seasonal;
+using Njord.Core.Solar;
 using Njord.Polling.Configuration;
 
 namespace Njord.Polling.Tests;
@@ -91,7 +91,7 @@ public sealed class BudgetGuardTests
     public void Should_weigh_the_flood_ensemble_into_the_projection()
     {
         var resolved = Requirements(new DomainRequirements(
-            Forecast: ForecastParams.Temperature, Flood: Forecast.Flood.FloodParams.Discharge));
+            Forecast: ForecastParams.Temperature, Flood: Njord.Core.Flood.FloodParams.Discharge));
         var polling = WithMonthlyBudget(2_000);
 
         // plain: (1 + 1) x 720 = 1440 <= 1600; ensemble: (1 + 5) x 720 = 4320.

@@ -1,4 +1,4 @@
-using Njord.Forecast.Flood;
+using Njord.Core.Flood;
 
 namespace Njord.OpenMeteo.Flood;
 

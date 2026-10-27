@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Options;
+using Njord.Core;
 using Njord.Core.Domain;
+using Njord.Core.Forecast;
+using Njord.Core.Marine;
 using Njord.Features.Conditions.SurfConditions;
-using Njord.Forecast;
-using Njord.Forecast.Forecast;
-using Njord.Forecast.Marine;
 using Njord.Messages.Pipeline;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.MarineFixtures;

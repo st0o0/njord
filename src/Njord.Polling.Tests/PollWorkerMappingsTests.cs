@@ -1,5 +1,5 @@
 using Newtonsoft.Json;
-using Njord.Forecast;
+using Njord.Core;
 using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Polling;
 using static Njord.Polling.Tests.PollStateFixture;

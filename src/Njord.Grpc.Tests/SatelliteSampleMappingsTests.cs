@@ -1,4 +1,4 @@
-using Njord.Forecast.Solar;
+using Njord.Core.Solar;
 using Njord.Grpc.Mapping;
 
 namespace Njord.Grpc.Tests;

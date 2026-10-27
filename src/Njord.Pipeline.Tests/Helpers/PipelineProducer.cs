@@ -36,7 +36,7 @@ public static class PipelineProducer
         var completed = output as RequestPipelineOutputCompleted
             ?? throw new InvalidOperationException($"Pipeline answered {output} instead of a SourceRef");
         completed.SourceRef.Source
-            .RunWith(Sink.ActorRef<Njord.Messages.Pipeline.PipelineEvent>(probe, ConsumerCompleted.Instance, ex => new ConsumerFailed(ex)),
+            .RunWith(Sink.ActorRef<PipelineEvent>(probe, ConsumerCompleted.Instance, ex => new ConsumerFailed(ex)),
                 system.Materializer());
         return probe;
     }

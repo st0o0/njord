@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Options;
+using Njord.Core.AirQuality;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.Dust;
 using Njord.Features.Alerts.Pm25;
 using Njord.Features.Alerts.Pollen;
-using Njord.Forecast.AirQuality;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using static Njord.Tests.Shared.AirQualityFixture;

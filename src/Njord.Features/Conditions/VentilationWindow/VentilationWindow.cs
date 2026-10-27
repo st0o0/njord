@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Options;
+using Njord.Core;
+using Njord.Core.AirQuality;
 using Njord.Core.Domain;
+using Njord.Core.Forecast;
 using Njord.Features.Shared;
-using Njord.Forecast;
-using Njord.Forecast.AirQuality;
-using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.VentilationWindow;

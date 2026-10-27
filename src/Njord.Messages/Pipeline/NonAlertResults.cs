@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using Njord.Forecast;
+using Njord.Core;
 using Njord.Messages.Alerts;
 
 namespace Njord.Messages.Pipeline;

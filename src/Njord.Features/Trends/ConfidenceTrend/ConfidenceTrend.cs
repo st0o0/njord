@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
+using Njord.Core;
 using Njord.Core.Domain;
-using Njord.Forecast;
-using Njord.Forecast.Forecast;
+using Njord.Core.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Trends.ConfidenceTrend;

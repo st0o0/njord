@@ -1,5 +1,6 @@
-using Njord.Forecast;
-using Njord.Forecast.Seasonal;
+using Njord.Core;
+using Njord.Core.Domain;
+using Njord.Core.Seasonal;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;

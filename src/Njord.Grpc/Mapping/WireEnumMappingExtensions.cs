@@ -1,4 +1,4 @@
-using Njord.Forecast;
+using Njord.Core;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;

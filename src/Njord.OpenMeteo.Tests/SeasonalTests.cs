@@ -1,8 +1,8 @@
 using System.Net;
 using Microsoft.Extensions.Options;
+using Njord.Core;
 using Njord.Core.Domain;
-using Njord.Forecast;
-using Njord.Forecast.Seasonal;
+using Njord.Core.Seasonal;
 using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Seasonal;

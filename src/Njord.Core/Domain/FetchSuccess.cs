@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using Njord.Forecast;
+using Njord.Core;
 
 namespace Njord.Core.Domain;
 

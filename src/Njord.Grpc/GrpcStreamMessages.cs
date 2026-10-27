@@ -1,4 +1,5 @@
 using Akka.Streams;
+using Njord.Core.Domain;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Grpc;

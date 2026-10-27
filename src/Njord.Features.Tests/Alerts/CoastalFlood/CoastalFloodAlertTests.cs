@@ -1,10 +1,10 @@
 using System.Collections.Immutable;
 using Microsoft.Extensions.Options;
+using Njord.Core;
 using Njord.Core.Domain;
+using Njord.Core.Forecast;
+using Njord.Core.Marine;
 using Njord.Features.Alerts.CoastalFlood;
-using Njord.Forecast;
-using Njord.Forecast.Forecast;
-using Njord.Forecast.Marine;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
+using Njord.Core.AirQuality;
 using Njord.Core.Domain;
-using Njord.Forecast.AirQuality;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.GranularAqi;

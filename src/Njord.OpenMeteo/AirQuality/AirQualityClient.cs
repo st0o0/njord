@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
+using Njord.Core;
+using Njord.Core.AirQuality;
 using Njord.Core.Domain;
-using Njord.Forecast;
-using Njord.Forecast.AirQuality;
 using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Mapping;

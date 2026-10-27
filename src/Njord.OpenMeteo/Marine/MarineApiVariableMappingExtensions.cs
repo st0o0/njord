@@ -1,4 +1,4 @@
-using Njord.Forecast.Marine;
+using Njord.Core.Marine;
 
 namespace Njord.OpenMeteo.Marine;
 

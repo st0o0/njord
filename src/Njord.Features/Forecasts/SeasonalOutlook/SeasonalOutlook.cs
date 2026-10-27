@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Forecast.Seasonal;
+using Njord.Core.Seasonal;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 

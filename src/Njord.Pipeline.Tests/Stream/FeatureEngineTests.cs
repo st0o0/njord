@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Core;
 using Njord.Core.Domain;
+using Njord.Core.Flood;
+using Njord.Core.Forecast;
 using Njord.Features.Alerts.Frost;
-using Njord.Forecast;
-using Njord.Forecast.Flood;
-using Njord.Forecast.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;

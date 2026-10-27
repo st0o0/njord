@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
+using Njord.Core.Solar;
 using Njord.Features.Conditions.Shared;
-using Njord.Forecast.Solar;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.SatelliteRadiation;

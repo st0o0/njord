@@ -5,6 +5,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core;
 using Njord.Core.Actors;
+using Njord.Core.Domain;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Servus.Akka;

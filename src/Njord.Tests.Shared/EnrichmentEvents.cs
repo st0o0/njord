@@ -1,4 +1,4 @@
-using Njord.Forecast;
+using Njord.Core;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 

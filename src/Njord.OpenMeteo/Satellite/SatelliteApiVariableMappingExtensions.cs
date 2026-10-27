@@ -1,4 +1,4 @@
-using Njord.Forecast.Solar;
+using Njord.Core.Solar;
 
 namespace Njord.OpenMeteo.Satellite;
 

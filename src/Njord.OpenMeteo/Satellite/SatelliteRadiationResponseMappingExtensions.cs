@@ -1,5 +1,5 @@
-using Njord.Forecast;
-using Njord.Forecast.Solar;
+using Njord.Core;
+using Njord.Core.Solar;
 using Njord.OpenMeteo.Mapping;
 using static Njord.OpenMeteo.Mapping.SeriesAccess;
 

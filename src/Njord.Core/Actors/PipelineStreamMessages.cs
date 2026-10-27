@@ -1,5 +1,5 @@
 using Akka.Streams;
-using Njord.Messages.Pipeline;
+using Njord.Core.Domain;
 
 namespace Njord.Core.Actors;
 

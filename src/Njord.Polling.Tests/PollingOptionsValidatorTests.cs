@@ -1,11 +1,11 @@
 using System.Collections.Immutable;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Njord.Core.AirQuality;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Core.Forecast;
 using Njord.Core.Polling;
-using Njord.Forecast.AirQuality;
-using Njord.Forecast.Forecast;
 using Njord.Polling.Configuration;
 using Njord.Tests.Shared;
 

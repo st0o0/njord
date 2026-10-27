@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
+using Njord.Core.Forecast;
 using Njord.Features.Conditions.ElevatedWind;
-using Njord.Forecast.Forecast;
 using Njord.Messages.Pipeline;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
