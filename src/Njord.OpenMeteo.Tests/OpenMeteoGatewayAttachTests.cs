@@ -1,6 +1,5 @@
 using Akka.Actor;
 using Akka.Hosting;
-using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
@@ -13,7 +12,6 @@ namespace Njord.OpenMeteo.Tests;
 
 public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
 {
-    private readonly FakeTimeProvider _time = new FakeTimeProvider(TestTimeConstants.PipelineEpoch);
     private readonly FakeWeatherClient _weather = new();
     private readonly FakeAirQualityClient _airQuality = new();
     private readonly FakeFloodClient _flood = new();
@@ -38,7 +36,7 @@ public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
         IReadOnlyDictionary<DomainKind, IDomainClient> clients = new IDomainClient[] { _weather, _airQuality, _flood, _marine, _seasonal, _satellite }
             .ToDictionary(c => c.Domain);
         return Sys.ActorOf(
-            Props.Create(() => new OpenMeteoGateway(clients, _time, _budget, FetchTimeouts.Default)),
+            Props.Create(() => new OpenMeteoGateway(clients, TimeProvider.System, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }
 
@@ -106,8 +104,8 @@ public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (_, attached, _) = RegisterPipeline();
-        _budget.CostPerMinute = 1;
-        _budget.MaxBurst = 1;
+        _budget.CostPerMinute = 6000;
+        _budget.MaxBurst = 2;
         _weather.CallWeight = 2;
         var gateway = StartGateway();
         await attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
@@ -119,12 +117,12 @@ public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 30000)]
-    public async Task Throttle_shapes_consecutive_heavy_requests_without_rejection()
+    public async Task Budget_gate_delays_consecutive_heavy_requests_without_rejection()
     {
         var ct = TestContext.Current.CancellationToken;
         var (_, attached, _) = RegisterPipeline();
-        _budget.CostPerMinute = 600;
-        _budget.MaxBurst = 40;
+        _budget.CostPerMinute = 6000;
+        _budget.MaxBurst = 18;
         _weather.CallWeight = 18;
         var gateway = StartGateway();
         await attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);

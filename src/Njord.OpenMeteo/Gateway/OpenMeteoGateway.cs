@@ -56,9 +56,8 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
     private readonly IReadOnlyDictionary<DomainKind, IDomainClient> _clients;
     private readonly TimeProvider _timeProvider;
-    private readonly FetchTimeouts _timeouts;
-    private readonly IGatewayBudgetGate _gate;
     private readonly IBudgetProvider _budgetProvider;
+    private readonly FetchTimeouts _timeouts;
     private readonly int _maxCallWeight;
     private readonly IActorRef _pollRegion;
     private readonly CancellationTokenSource _stopped = new();
@@ -75,11 +74,10 @@ public sealed class OpenMeteoGateway : ReceiveActor
     {
         _clients = clients;
         _timeProvider = timeProvider;
-        _timeouts = timeouts;
         _budgetProvider = budgetProvider;
+        _timeouts = timeouts;
         _pollRegion = Context.GetActor<IPollRegion>();
         _maxCallWeight = clients.Count > 0 ? clients.Values.Max(c => c.CallWeight) : 1;
-        _gate = new GatewayBudgetGate(budgetProvider, Context.GetActor<IBudgetTracker>(), timeProvider, _maxCallWeight);
 
         Receive<FetchDomain>(OnFetchDomain);
         Receive<Offered>(OnOffered);
@@ -129,28 +127,19 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private void OnSinkCompleted(RequestForecastSinkCompleted msg)
     {
         var clients = _clients;
-        var gate = _gate;
         var timeProvider = _timeProvider;
         var stopped = _stopped.Token;
         var pollRegion = _pollRegion;
-        var rate = _budgetProvider.GetCurrentRate();
-        var throttleBurst = Math.Max(rate.MaxBurst, _maxCallWeight);
+        var trackerActor = Context.GetActor<IBudgetTracker>();
 
         _requestQueue = Source.Queue<FetchDomain>(QueueSize, OverflowStrategy.DropNew)
             .Select(request => new ResolvedRequest(request, clients.GetValueOrDefault(request.Domain)))
-            .Throttle(rate.CostPerMinute, TimeSpan.FromMinutes(1), throttleBurst,
-                resolved => resolved.Client?.CallWeight ?? 1, ThrottleMode.Shaping)
-            .Select(resolved =>
-            {
-                if (resolved.Client is null)
-                {
-                    return new GatedRequest(resolved.Request, null, FetchRejectionReason.PipelineUnavailable);
-                }
-
-                return gate.TryAcquire(resolved.Client.CallWeight)
-                    ? new GatedRequest(resolved.Request, resolved.Client, null)
-                    : new GatedRequest(resolved.Request, null, FetchRejectionReason.Budget);
-            })
+            .Via(new BudgetGateStage<ResolvedRequest>(
+                _budgetProvider, trackerActor, timeProvider,
+                r => r.Client?.CallWeight ?? 1, _maxCallWeight))
+            .Select(resolved => resolved.Client is null
+                ? new GatedRequest(resolved.Request, null, FetchRejectionReason.PipelineUnavailable)
+                : new GatedRequest(resolved.Request, resolved.Client, null))
             .SelectAsyncUnordered(MaxConcurrentFetches, async gated =>
             {
                 if (gated.Rejection is { } rejection)

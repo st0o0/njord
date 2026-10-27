@@ -4,37 +4,34 @@
 
 Budget-aware throttling of the `OpenMeteoGateway` fetch stream: an `IBudgetProvider` supplies the current request rate, `GatewayBudgetGate` encapsulates the token bucket and usage tracking, and `GatewayThrottleStage` shapes fetch targets by delegating to the gate.
 ## Requirements
-### Requirement: The gateway budget gate encapsulates the token bucket and usage tracking
-`IGatewayBudgetGate` SHALL expose `TryAcquire(int weight)`. Its implementation `GatewayBudgetGate`, created by `OpenMeteoGateway` with the `IBudgetProvider`, the `IBudgetTracker` actor ref and the `TimeProvider`, SHALL keep the token bucket in memory, refill it from the elapsed time, and refresh its rate from `IBudgetProvider` at most every 5 seconds. After each successful acquisition it SHALL send `RecordApiCall(weight)` to the `BudgetTracker` via fire-and-forget `Tell`. The `MaxBurst` SHALL be at least `max(client.CallWeight)` across all registered domain clients so that a single high-weight fetch can always be admitted when the bucket is full. There SHALL be no generic `IBudgetGate<T>` and no `WeightedBudgetGate`.
+### Requirement: BudgetGateStage is a custom GraphStage that shapes and accounts fetch requests
+`BudgetGateStage<T>` SHALL be an `internal sealed` class extending `GraphStage<FlowShape<T, T>>` with a `TimerGraphStageLogic`. It SHALL take an `IBudgetProvider`, an `IActorRef` for the budget tracker, a `TimeProvider`, a `Func<T, int>` cost function, and a `maxCallWeight` floor for the burst. Its token bucket SHALL use `TimeProvider.GetUtcNow()` for time, not `DateTime.Now`. A periodic timer SHALL refresh the rate from `IBudgetProvider` every 5 seconds. The `MaxBurst` SHALL be at least `maxCallWeight`. After each successful acquisition the stage SHALL send `RecordApiCall(weight)` to the budget tracker via fire-and-forget `Tell`. The stage SHALL never reject an element -- it SHALL park elements and retry via `ScheduleOnce` until tokens are available.
 
-#### Scenario: Gate acquires immediately when tokens available
-- **WHEN** the token bucket holds enough tokens for the weight
-- **THEN** `TryAcquire` returns true and sends `RecordApiCall` to the budget tracker
+#### Scenario: Element passes immediately when tokens available
+- **WHEN** the token bucket holds enough tokens for the element's cost
+- **THEN** the stage pushes the element downstream immediately and sends `RecordApiCall`
 
-#### Scenario: Gate rejects when tokens insufficient
-- **WHEN** the token bucket does not hold enough tokens
-- **THEN** `TryAcquire` returns false and sends no `RecordApiCall`
+#### Scenario: Element is parked when tokens insufficient
+- **WHEN** the token bucket does not hold enough tokens for the element's cost
+- **THEN** the stage parks the element and schedules a retry timer for the estimated delay
 
-#### Scenario: Gate adapts to rate changes
-- **WHEN** `IBudgetProvider` returns a new rate
-- **THEN** `TryAcquire` uses the new rate after the next 5-second refresh
+#### Scenario: Parked element is released when tokens refill
+- **WHEN** the retry timer fires and the token bucket has been refilled by elapsed time
+- **THEN** the stage pushes the parked element downstream and sends `RecordApiCall`
+
+#### Scenario: Retry reschedules when tokens still insufficient
+- **WHEN** the retry timer fires but the token bucket still does not hold enough tokens
+- **THEN** the stage reschedules the retry timer with a new delay estimate
+
+#### Scenario: Rate refresh updates the token rate periodically
+- **WHEN** the 5-second periodic refresh timer fires
+- **THEN** the stage reads `IBudgetProvider.GetCurrentRate()` and updates its internal rate and max burst
+
+#### Scenario: Upstream completion drains the parked element
+- **WHEN** upstream completes while an element is parked
+- **THEN** the stage waits for the parked element to be released, then completes
 
 #### Scenario: MaxBurst accommodates the heaviest domain client
 - **WHEN** the heaviest domain client has CallWeight=18 and the base burst formula yields 16
 - **THEN** `MaxBurst` SHALL be 18, not 16
-
-### Requirement: Native cost-based throttle shapes fetch requests before the budget gate
-The gateway stream SHALL include a `Throttle` stage (Akka.Streams built-in, `ThrottleMode.Shaping`) positioned between `Source.Queue` and the budget gate `Select`. The throttle SHALL use cost-based weighting where each element's cost equals the domain client's `CallWeight`. The rate SHALL match the budget provider's `CostPerMinute` and the `maximumBurst` SHALL be at least `max(client.CallWeight)` across all registered domain clients. When the rate budget is exceeded the throttle SHALL delay (backpressure) elements instead of dropping or rejecting them.
-
-#### Scenario: Light domains pass without delay
-- **WHEN** AirQuality, Flood, Marine, Seasonal and Satellite fetches (weight=1 each) arrive and the token rate supports them
-- **THEN** the throttle emits them without measurable delay
-
-#### Scenario: Heavy Weather fetch is delayed instead of rejected
-- **WHEN** a Weather fetch with CallWeight=18 arrives immediately after lighter domains consumed available tokens
-- **THEN** the throttle delays it until sufficient cost budget accumulates, then emits it to the gate
-
-#### Scenario: Burst of multi-location Weather fetches is serialized
-- **WHEN** 3 locations each send a Weather fetch (weight=18) simultaneously at startup
-- **THEN** the throttle admits them one at a time as cost budget refills, with no hard rejections
 
