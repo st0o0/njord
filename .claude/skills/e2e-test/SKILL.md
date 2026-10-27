@@ -1,6 +1,6 @@
 ---
 name: e2e-test
-description: Run the agent-orchestrated E2E test against a real Docker stack (njord + Home Assistant with ha-njord). Executes ~66 test steps across 16 sections with 3 parallel Haiku subagents. Covers gRPC API (8 RPCs), 6 domain data types, 21 alert types, entity validation, error handling, multi-cycle budget tracking, and teardown. Produces a PASS/FAIL results document.
+description: Run the agent-orchestrated E2E test against a real Docker stack (njord + Home Assistant with ha-njord). Executes ~66 test steps across 16 sections with 3 parallel Haiku subagents. Covers gRPC API (8 RPCs), 6 domain data types, 20 alert types, entity validation, error handling, multi-cycle budget tracking, and teardown. Produces a PASS/FAIL results document.
 ---
 
 # E2E Test — njord + ha-njord
@@ -46,8 +46,8 @@ Add njord integration via HA API:
 ### S3 — Entity Registration
 
 Poll `/api/states` until `weather.lucerne` appears (timeout 120s).
-Expect ~36 entities: 2 weather (primary + one per secondary model), 7 AQ sensors, 1 flood sensor,
-21 alert binary_sensors, 4 server sensors, 2 stream sensors, 1 event, 1 button.
+Expect ~45 entities: 2 weather, 7 AQ sensors, 1 flood sensor, ~7 lifestyle sensors,
+20 alert binary_sensors, 2 lifestyle binary_sensors, 4 server sensors, 2 stream sensors, 1 event, 1 button.
 
 ### Parallel Block — Spawn 3 Haiku Subagents
 
@@ -86,7 +86,7 @@ Write results to `e2e/results/<timestamp>-e2e.md` with:
 - **Model comparison** — one weather entity per location plus one per secondary model (ModelComparison)
 - **No consensus/derived/trends/indices** — replaced by alert + lifestyle enrichments
 - **6 domains** (Weather, AQ, Flood, Marine, Seasonal, Satellite)
-- **21 alert types** instead of 14
+- **20 alert types** instead of 14
 - **Feature-driven config** — feature toggles derive polled domains
 - **Explicit coordinates** — every location carries latitude and longitude
 - **~66 steps** instead of ~148 (simpler, more focused)

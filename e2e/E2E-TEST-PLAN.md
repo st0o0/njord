@@ -2,7 +2,7 @@
 
 Agent-orchestrated end-to-end test against a real Docker stack.
 gRPC + REST. Real Open-Meteo API. 6 domains (Weather, AirQuality, Flood, Marine, Seasonal, Satellite),
-21 alert types, lifestyle features, multi-model weather comparison.
+20 alert types, lifestyle features, multi-model weather comparison.
 
 ## Section Index
 
@@ -53,12 +53,14 @@ Derived from config: 1 location, all features enabled.
 | weather | 2 | `weather.lucerne`, one per secondary model | HA weather entities (primary + comparison model) |
 | sensor (AQ) | 7 | `lucerne_pm2_5`, `lucerne_pm10`, `lucerne_ozone`, `lucerne_birch_pollen`, `lucerne_grass_pollen`, `lucerne_alder_pollen`, `lucerne_mugwort_pollen` | Air quality |
 | sensor (flood) | 1 | `lucerne_river_discharge` | River discharge m³/s |
+| sensor (lifestyle) | ~7 | `lucerne_commute_safety`, `lucerne_exercise`, `lucerne_model_temperature_spread`, `lucerne_seasonal_temperature_anomaly`, `lucerne_solar_yield`, ... | Varies by data availability; Marine-dependent sensors absent for inland |
 | sensor (server) | 4 | `server_monthly_usage`, `server_daily_usage`, `server_version`, `server_uptime` | Diagnostics |
-| binary_sensor (alerts) | 21 | `lucerne_{frost,heat,...}` alert binary sensors | on when severity > none |
+| binary_sensor (alerts) | 20 | `lucerne_{frost,heat,...}` alert binary sensors | on when severity > none |
+| binary_sensor (lifestyle) | 2 | `lucerne_planting_safe`, `lucerne_ventilation_window` | Condition binary sensors |
 | binary_sensor (streams) | 2 | `server_domain_data_stream`, `server_enrichment_stream` | Connectivity |
 | event | 1 | `lucerne_weather_alert` | Alert event entity |
 | button | 1 | `server_trigger_poll` | Manual poll trigger |
-| **Total** | **~36** | | Entity ids follow HA device + name naming; unique ids are the contract |
+| **Total** | **~45** | | Entity ids follow HA device + name naming; unique ids are the contract. Count varies by data availability (Marine fails for inland). |
 
 ---
 
@@ -95,7 +97,7 @@ Try claude-in-chrome first, API fallback if extension unavailable.
 ## S3 — Entity Registration
 
 1. Poll `/api/states` until weather entity appears (5s interval, 120s timeout)
-2. Count entities matching `njord` platform: expect ~36
+2. Count entities matching `njord` platform: expect ~45
 3. Verify `weather.lucerne` exists with state ∈ HA condition list
 4. Verify at least 1 AQ sensor exists (pattern: `sensor.lucerne_pm*`)
 5. Verify at least 1 alert binary_sensor exists (pattern: `binary_sensor.lucerne_*_alert`)
@@ -137,7 +139,7 @@ After S3 completes, spawn three subagents in a single message.
 
 ## S7 — Alert Binary Sensors (Haiku #2)
 
-1. 21 alert binary_sensors exist matching `*_alert`
+1. 20 alert binary_sensors exist matching `*_alert`
 2. Each has `state` ∈ {"on", "off"}
 3. `severity` attribute is present only on alerts in state "on", with a value ∈ {"yellow", "orange", "red"}
 4. `frost_alert` and `heat_alert` exist (core weather alerts)
@@ -151,7 +153,7 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 1. `GetDomainData` with location "Lucerne" and domain `DOMAIN_WEATHER` (domain is required) → response has the oneof `weather` non-empty
 2. `GetDomainData` with domain filter `DOMAIN_AIR_QUALITY` → response has the oneof `airQuality`
-3. `StreamDomainData` → receives at least 1 update within 120s
+3. Start `StreamDomainData` in the background (`timeout 120 grpcurl ... &`), then `TriggerPoll` via OpsService, then wait for the background stream to capture at least 1 update. The BroadcastHub is live-forward-only and does not replay past data, so the stream must be connected before the poll emits.
 4. Domain data update contains `location` field matching "Lucerne"
 5. Weather data has `temperature`, `wind_speed`, `precipitation` fields (`precipitation` may be omitted when 0)
 6. Note: Marine returns NotFound for inland locations by design
@@ -162,7 +164,7 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 1. `GetEnrichments` with location "Lucerne" → has an `events[]` list
 2. `events[]` has at least 1 entry; the feature is the oneof case (e.g. `fog`) and the alert severity is at `<case>.alert.severity`
-3. `StreamEnrichments` → receives at least 1 event within 120s
+3. Start `StreamEnrichments` in the background, then `TriggerPoll` via OpsService, then wait for the background stream to capture at least 1 event. Same reason as S8.3: the BroadcastHub is live-forward-only.
 4. Event has a feature oneof case set (`type_name` no longer exists)
 
 ---
@@ -179,9 +181,9 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 ## S11 — Server + Diagnostics Entities (Haiku #3)
 
-1. `sensor.server_monthly_usage` has numeric state (a percentage)
+1. `sensor.server_monthly_usage` has numeric state (a percentage, `suggested_display_precision=1`; rounds to 0.0 early in the test since 23/300000 = 0.008%)
 2. `sensor.server_version` state has a non-empty state (`0.0.0-dev` in local builds)
-3. `sensor.server_uptime` has numeric state (hours)
+3. `sensor.server_uptime` has numeric state (hours, `suggested_display_precision=1`; rounds to 0.0 for the first ~6 minutes)
 4. `button.server_trigger_poll` exists
 
 ---
