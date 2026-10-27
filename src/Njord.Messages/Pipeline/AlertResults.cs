@@ -332,3 +332,43 @@ public sealed record SmogRiskAlertResult(
     double BoundaryLayerHeight,
     double Pm25) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
     HoursUntil, DurationHours, Level);
+
+public sealed record FireRiskAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double RiskScore) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record PollenBlastAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double PeakPollen) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record CoastalFloodAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double SeaLevelDeviation,
+    double? MaxWaveHeight) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);

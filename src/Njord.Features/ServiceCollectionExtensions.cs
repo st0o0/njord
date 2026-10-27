@@ -16,6 +16,9 @@ using Njord.Features.Alerts.Pollen;
 using Njord.Features.Alerts.PressureDrop;
 using Njord.Features.Alerts.RainProbability;
 using Njord.Features.Alerts.Shower;
+using Njord.Features.Alerts.CoastalFlood;
+using Njord.Features.Alerts.FireRisk;
+using Njord.Features.Alerts.PollenBlast;
 using Njord.Features.Alerts.SmogRisk;
 using Njord.Features.Alerts.Snow;
 using Njord.Features.Alerts.Storm;
@@ -43,6 +46,7 @@ using Njord.Features.Conditions.SoilMoisture;
 using Njord.Features.Conditions.SolarYield;
 using Njord.Features.Conditions.SurfConditions;
 using Njord.Features.Conditions.VentilationWindow;
+using Njord.Features.Forecasts.GrowingDegree;
 using Njord.Features.Forecasts.ModelComparison;
 using Njord.Features.Forecasts.SeasonalOutlook;
 using Njord.Features.Scores.Bbq;
@@ -82,6 +86,9 @@ public static class ServiceCollectionExtensions
         services.AddNjordOptions<ClearSkyUvConfig>();
         services.AddNjordOptions<ShowerConfig>();
         services.AddNjordOptions<SmogRiskConfig>();
+        services.AddNjordOptions<FireRiskConfig>();
+        services.AddNjordOptions<PollenBlastConfig>();
+        services.AddNjordOptions<CoastalFloodConfig>();
         services.AddSingleton<IFeatureRule, DustAlert>();
         services.AddSingleton<IFeatureRule, FloodRainAlert>();
         services.AddSingleton<IFeatureRule, FloodRiskAlert>();
@@ -107,6 +114,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFeatureRule, ClearSkyUvAlert>();
         services.AddSingleton<IFeatureRule, ShowerAlert>();
         services.AddSingleton<IFeatureRule, SmogRiskAlert>();
+        services.AddSingleton<IFeatureRule, FireRiskAlert>();
+        services.AddSingleton<IFeatureRule, PollenBlastAlert>();
+        services.AddSingleton<IFeatureRule, CoastalFloodAlert>();
 
         // Scores
         services.AddNjordOptions<BbqConfig>();
@@ -161,6 +171,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFeatureRule, SeasonalOutlook>();
         services.AddNjordOptions<ModelComparisonConfig>();
         services.AddSingleton<IFeatureRule, ModelComparison>();
+        services.AddNjordOptions<GrowingDegreeConfig>();
+        services.AddSingleton<IFeatureRule, GrowingDegree>();
 
         return services;
     }

@@ -277,4 +277,37 @@ internal static class AlertResultMappingExtensions
             Pm25 = r.Pm25,
         };
     }
+
+    public static V2.FireRiskAlert ToProto(this FireRiskAlertResult r)
+    {
+        return new V2.FireRiskAlert
+        {
+            Alert = r.ToData(),
+            RiskScore = r.RiskScore,
+        };
+    }
+
+    public static V2.PollenBlastAlert ToProto(this PollenBlastAlertResult r)
+    {
+        return new V2.PollenBlastAlert
+        {
+            Alert = r.ToData(),
+            PeakPollen = r.PeakPollen,
+        };
+    }
+
+    public static V2.CoastalFloodAlert ToProto(this CoastalFloodAlertResult r)
+    {
+        var proto = new V2.CoastalFloodAlert
+        {
+            Alert = r.ToData(),
+            SeaLevelDeviation = r.SeaLevelDeviation,
+        };
+        if (r.MaxWaveHeight is { } wh)
+        {
+            proto.MaxWaveHeight = wh;
+        }
+
+        return proto;
+    }
 }

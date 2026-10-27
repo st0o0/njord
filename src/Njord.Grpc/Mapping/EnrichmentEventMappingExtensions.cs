@@ -165,6 +165,24 @@ internal static class EnrichmentEventMappingExtensions
             UpdatedAt = now.ToTimestamp(),
             SmogRisk = r.ToProto(),
         },
+        FireRiskAlertResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            FireRisk = r.ToProto(),
+        },
+        PollenBlastAlertResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            PollenBlast = r.ToProto(),
+        },
+        CoastalFloodAlertResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            CoastalFlood = r.ToProto(),
+        },
         SoilMoistureResult r => new EnrichmentEvent
         {
             Location = r.Location.Name,
@@ -296,6 +314,12 @@ internal static class EnrichmentEventMappingExtensions
             Location = r.Location.Name,
             UpdatedAt = now.ToTimestamp(),
             ModelComparison = r.ToProto(),
+        },
+        GrowingDegreeResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            GrowingDegree = r.ToProto(),
         },
         FeatureResult r => throw new ArgumentOutOfRangeException(nameof(pipelineEvent), r.GetType().Name, "Unmapped feature result"),
         _ => null,

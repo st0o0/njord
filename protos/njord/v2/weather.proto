@@ -273,6 +273,9 @@ message EnrichmentEvent {
     SnowDepthWatchCondition snow_depth_watch = 69;
     ShowerAlert shower = 43;
     SmogRiskAlert smog_risk = 44;
+    FireRiskAlert fire_risk = 45;
+    PollenBlastAlert pollen_blast = 46;
+    CoastalFloodAlert coastal_flood = 47;
     SoilMoistureCondition soil_moisture = 70;
     EvapotranspirationCondition evapotranspiration = 71;
     RagweedPollenCondition ragweed_pollen = 72;
@@ -295,6 +298,7 @@ message EnrichmentEvent {
     PollenTrend pollen_trend = 81;
     SeasonalOutlook seasonal_outlook = 90;
     ModelComparison model_comparison = 91;
+    GrowingDegreeForecast growing_degree = 92;
   }
 }
 
@@ -563,6 +567,22 @@ message SmogRiskAlert {
   double pm25 = 3;
 }
 
+message FireRiskAlert {
+  AlertData alert = 1;
+  double risk_score = 2;
+}
+
+message PollenBlastAlert {
+  AlertData alert = 1;
+  double peak_pollen = 2;
+}
+
+message CoastalFloodAlert {
+  AlertData alert = 1;
+  double sea_level_deviation = 2;
+  optional double max_wave_height = 3;
+}
+
 enum SoilMoistureLevel {
   SOIL_MOISTURE_LEVEL_UNSPECIFIED = 0;
   SOIL_MOISTURE_LEVEL_DRY = 1;
@@ -746,4 +766,17 @@ message ModelComparisonDay {
 message ModelComparison {
   ForecastData forecast = 1;
   repeated ModelComparisonDay days = 2;
+}
+
+message GrowingDegreeDayEntry {
+  int32 year = 1;
+  int32 month = 2;
+  int32 day = 3;
+  double gdd = 4;
+}
+
+message GrowingDegreeForecast {
+  ForecastData forecast = 1;
+  repeated GrowingDegreeDayEntry days = 2;
+  double cumulative_gdd = 3;
 }

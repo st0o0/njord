@@ -1,0 +1,111 @@
+using Microsoft.Extensions.Options;
+using Njord.Core.Domain;
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Weather;
+using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
+
+namespace Njord.Features.Alerts.PollenBlast;
+
+public sealed class PollenBlastAlert(IOptions<PollenBlastConfig> config) : FeatureRule<WeatherAqInput>
+{
+    public override FeatureDescriptor Descriptor { get; } = new(
+        OutputKind.Alert,
+        FeatureCategory.AirQuality,
+        Name: "PollenBlast",
+        DefaultEnabled: false,
+        new DomainRequirements(
+            Weather: WeatherParams.Temperature | WeatherParams.WindSpeed | WeatherParams.Precipitation,
+            AirQuality: AirQualityParams.GrassPollen | AirQualityParams.BirchPollen),
+        PollDepth: 8);
+
+    public override bool Enabled => config.Value.Enabled;
+
+    protected override WeatherAqInput? Project(LocationForecast forecast) =>
+        forecast is { Weather: { } w, AirQuality: { } aq } ? new(w, aq) : null;
+
+    protected override PipelineEvent? Evaluate(FeatureContext<WeatherAqInput> ctx)
+    {
+        var cfg = config.Value;
+        if (ctx.History.Count < 3)
+        {
+            return null;
+        }
+
+        var hadRain = false;
+        for (var i = ctx.History.Count - 1; i >= 1; i--)
+        {
+            var past = ctx.History[i];
+            if (past.Weather.Points.Any(p => p.Precipitation is > 0 && p.Precipitation.Value >= cfg.PrecipitationThreshold))
+            {
+                hadRain = true;
+                break;
+            }
+        }
+
+        if (!hadRain)
+        {
+            return null;
+        }
+
+        var currentWeather = ctx.Current.Weather.NextHoursInclusive(ctx.Now, 12);
+        var isDry = currentWeather.All(p => p.Precipitation is null or < 0.1);
+        var isWarm = currentWeather.Any(p => p.Temperature >= cfg.TemperatureThreshold);
+        var isWindy = currentWeather.Any(p => p.WindSpeed >= cfg.WindSpeedThreshold);
+
+        if (!isDry || !isWarm || !isWindy)
+        {
+            return null;
+        }
+
+        var currentAq = ctx.Current.AirQuality.NextHoursInclusive(ctx.Now, 12);
+        var currentPollen = MaxPollen(currentAq);
+
+        double? previousPollen = null;
+        if (ctx.History.Count >= 2)
+        {
+            var prevAq = ctx.History[1].AirQuality;
+            if (prevAq is not null)
+            {
+                previousPollen = MaxPollen(prevAq.NextHoursInclusive(ctx.Now, 12));
+            }
+        }
+
+        if (currentPollen <= 0 || (previousPollen is not null && currentPollen - previousPollen.Value < cfg.PollenDelta))
+        {
+            return null;
+        }
+
+        var severity = currentPollen switch
+        {
+            >= 100 => AlertSeverity.Red,
+            >= 50 => AlertSeverity.Orange,
+            _ => AlertSeverity.Yellow,
+        };
+
+        return new PollenBlastAlertResult(
+            ctx.Location, severity, ConfidenceLevel.Medium.ToConfidence(),
+            Math.Round(currentPollen, 1), cfg.PollenDelta,
+            PeakValue: null, HoursUntil: null, DurationHours: null, Level: ConfidenceLevel.Medium,
+            PeakPollen: Math.Round(currentPollen, 1));
+    }
+
+    private static double MaxPollen(IReadOnlyList<AirQualityPoint> points)
+    {
+        double max = 0;
+        foreach (var p in points)
+        {
+            if (p.BirchPollen is { } b && b > max)
+            {
+                max = b;
+            }
+
+            if (p.GrassPollen is { } g && g > max)
+            {
+                max = g;
+            }
+        }
+
+        return max;
+    }
+}

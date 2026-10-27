@@ -21,3 +21,4 @@ public readonly record struct MarineInput(DomainForecast<MarinePoint> Marine);
 public readonly record struct MarineWeatherInput(DomainForecast<MarinePoint> Marine, DomainForecast<WeatherPoint> Weather);
 public readonly record struct EnsembleInput(DomainForecast<EnsemblePoint> Ensemble);
 public readonly record struct SeasonalInput(DomainForecast<SeasonalPoint> Seasonal);
+public readonly record struct MarineWeatherEnsembleInput(DomainForecast<MarinePoint> Marine, DomainForecast<WeatherPoint> Weather, DomainForecast<EnsemblePoint> Ensemble);

@@ -961,5 +961,69 @@
     "options": [
       { "name": "StrongCurrentThresholdKmh", "type": "number", "default": 3.0 }
     ]
+  },
+  {
+    "key": "Lifestyle:FireRisk",
+    "name": "FireRisk",
+    "category": "Lifestyle",
+    "output": "Alert",
+    "description": "Wildfire risk index from temperature, humidity, wind, soil moisture, and dry spell",
+    "enabledByDefault": false,
+    "domains": ["Weather", "Ensemble"],
+    "weatherParams": ["Temperature", "Humidity", "WindSpeed", "SoilMoisture0To1cm", "Precipitation"],
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [
+      { "name": "TemperatureThreshold", "type": "number", "default": 30.0 },
+      { "name": "HumidityThreshold", "type": "number", "default": 30.0 },
+      { "name": "WindSpeedThreshold", "type": "number", "default": 5.6 },
+      { "name": "SoilMoistureThreshold", "type": "number", "default": 0.10 },
+      { "name": "DryHours", "type": "number", "default": 48 }
+    ]
+  },
+  {
+    "key": "AirQuality:PollenBlast",
+    "name": "PollenBlast",
+    "category": "AirQuality",
+    "output": "Alert",
+    "description": "Pollen explosion prediction after rain-to-dry weather transition",
+    "enabledByDefault": false,
+    "domains": ["Weather", "AirQuality"],
+    "weatherParams": ["Temperature", "WindSpeed", "Precipitation"],
+    "airQualityParams": ["GrassPollen", "BirchPollen"],
+    "options": [
+      { "name": "TemperatureThreshold", "type": "number", "default": 15.0 },
+      { "name": "WindSpeedThreshold", "type": "number", "default": 1.4 },
+      { "name": "PollenDelta", "type": "number", "default": 10.0 }
+    ]
+  },
+  {
+    "key": "Lifestyle:GrowingDegree",
+    "name": "GrowingDegree",
+    "category": "Lifestyle",
+    "output": "Forecast",
+    "description": "Growing Degree Days accumulation for agricultural planning",
+    "enabledByDefault": false,
+    "domains": ["Weather"],
+    "weatherParams": ["Temperature"],
+    "options": [
+      { "name": "BaseTemperature", "type": "number", "default": 5.0 }
+    ]
+  },
+  {
+    "key": "Marine:CoastalFlood",
+    "name": "CoastalFlood",
+    "category": "Marine",
+    "output": "Alert",
+    "description": "Storm surge risk from sea level deviation, wave height, and onshore wind",
+    "enabledByDefault": false,
+    "domains": ["Marine", "Weather", "Ensemble"],
+    "marineParams": ["SeaLevelHeight", "WaveHeight", "WaveDirection"],
+    "weatherParams": ["WindSpeed", "WindDirection"],
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [
+      { "name": "SeaLevelThresholdM", "type": "number", "default": 0.3 },
+      { "name": "WaveHeightThresholdM", "type": "number", "default": 1.5 },
+      { "name": "WindSpeedThreshold", "type": "number", "default": 4.2 }
+    ]
   }
 ]

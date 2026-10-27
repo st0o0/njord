@@ -336,4 +336,19 @@ internal static class FeatureResultMappingExtensions
         proto.Days.AddRange(r.Days.Select(day => day.ToProto()));
         return proto;
     }
+
+    public static V2.GrowingDegreeDayEntry ToProto(this GrowingDegreeDay day) => new()
+    {
+        Year = day.Date.Year,
+        Month = day.Date.Month,
+        Day = day.Date.Day,
+        Gdd = day.Gdd,
+    };
+
+    public static V2.GrowingDegreeForecast ToProto(this GrowingDegreeResult r)
+    {
+        var proto = new V2.GrowingDegreeForecast { Forecast = new V2.ForecastData(), CumulativeGdd = r.CumulativeGdd };
+        proto.Days.AddRange(r.Days.Select(day => day.ToProto()));
+        return proto;
+    }
 }

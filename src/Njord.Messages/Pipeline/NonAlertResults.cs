@@ -48,6 +48,10 @@ public sealed record ModelComparisonDay(DateOnly Date, ImmutableArray<ModelDayVa
 
 public sealed record ModelComparisonResult(Location Location, ImmutableArray<ModelComparisonDay> Days) : ForecastFeatureResult(Location);
 
+public sealed record GrowingDegreeDay(DateOnly Date, double Gdd);
+
+public sealed record GrowingDegreeResult(Location Location, ImmutableArray<GrowingDegreeDay> Days, double CumulativeGdd) : ForecastFeatureResult(Location);
+
 public enum SnowDepthLevel { None, Light, Moderate, Heavy, Extreme }
 
 public sealed record SnowDepthWatchResult(Location Location, SnowDepthLevel Level, double DepthCm) : ConditionFeatureResult(Location);

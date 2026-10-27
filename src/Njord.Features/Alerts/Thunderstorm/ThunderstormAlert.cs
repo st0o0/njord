@@ -14,7 +14,10 @@ public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : Fea
         FeatureCategory.Weather,
         Name: "Thunderstorm",
         DefaultEnabled: true,
-        new DomainRequirements(Weather: WeatherParams.Cape | WeatherParams.Precipitation | WeatherParams.WindGusts, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(
+            Weather: WeatherParams.Cape | WeatherParams.Precipitation | WeatherParams.WindGusts,
+            OptionalWeather: WeatherParams.ConvectiveInhibition | WeatherParams.LiftedIndex,
+            Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -49,11 +52,43 @@ public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : Fea
         }
 
         var peak = (meetAll.Count > 0 ? meetAll : evaluable).HighestBy(p => p.Cape);
+        severity = ApplyStabilityModifier(severity, peak, config.Value);
+
         var maxCape = evaluable.Max(p => p.Cape) ?? 0.0;
         var spread = peak is not null ? ctx.Current.Ensemble.Points.SpreadAt(peak.ValidFrom) : null;
         var level = ConfidenceThresholds.Default.LevelFor(spread?.TemperatureSpread);
         return new ThunderstormAlertResult(
             ctx.Location, severity, level.ToConfidence(), Math.Round(maxCape, 0), config.Value.CapeThreshold,
             PeakValue: null, HoursUntil: meetAll.Count > 0 ? meetAll[0].HoursFrom(ctx.Now) : null, DurationHours: null, Level: level);
+    }
+
+    private static AlertSeverity ApplyStabilityModifier(AlertSeverity severity, WeatherPoint? peak, ThunderstormConfig cfg)
+    {
+        if (peak is not { ConvectiveInhibition: { } cin, LiftedIndex: { } li })
+        {
+            return severity;
+        }
+
+        if (cin < cfg.CinThreshold && li < cfg.LiftedIndexThreshold)
+        {
+            return severity switch
+            {
+                AlertSeverity.Yellow => AlertSeverity.Orange,
+                AlertSeverity.Orange => AlertSeverity.Red,
+                _ => severity,
+            };
+        }
+
+        if (cin > 0)
+        {
+            return severity switch
+            {
+                AlertSeverity.Red => AlertSeverity.Orange,
+                AlertSeverity.Orange => AlertSeverity.Yellow,
+                _ => severity,
+            };
+        }
+
+        return severity;
     }
 }
