@@ -35,6 +35,7 @@ using Njord.Features.Conditions.Evapotranspiration;
 using Njord.Features.Conditions.ExerciseAdvisory;
 using Njord.Features.Conditions.FloodTimeline;
 using Njord.Features.Conditions.Gardening;
+using Njord.Features.Conditions.ElevatedWind;
 using Njord.Features.Conditions.GranularAqi;
 using Njord.Features.Conditions.NightVentilation;
 using Njord.Features.Conditions.OceanCurrents;
@@ -127,6 +128,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFeatureRule, OutdoorScore>();
 
         // Conditions
+        services.AddNjordOptions<ElevatedWindConfig>();
         services.AddNjordOptions<EvapotranspirationConfig>();
         services.AddNjordOptions<GranularAqiConfig>();
         services.AddNjordOptions<OceanCurrentsConfig>();
@@ -144,6 +146,7 @@ public static class ServiceCollectionExtensions
         services.AddNjordOptions<GardeningConfig>();
         services.AddNjordOptions<NightVentilationConfig>();
         services.AddNjordOptions<VentilationWindowConfig>();
+        services.AddSingleton<IFeatureRule, Features.Conditions.ElevatedWind.ElevatedWind>();
         services.AddSingleton<IFeatureRule, Evapotranspiration>();
         services.AddSingleton<IFeatureRule, GranularAqi>();
         services.AddSingleton<IFeatureRule, OceanCurrents>();

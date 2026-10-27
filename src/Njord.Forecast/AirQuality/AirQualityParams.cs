@@ -1,7 +1,7 @@
 namespace Njord.Forecast.AirQuality;
 
 [Flags]
-public enum AirQualityParams
+public enum AirQualityParams : long
 {
     None = 0,
     Pm25 = 1 << 0,
@@ -28,4 +28,12 @@ public enum AirQualityParams
     EuropeanAqiOzone = 1 << 21,
     EuropeanAqiSulphurDioxide = 1 << 22,
     AerosolOpticalDepth = 1 << 23,
+    CarbonDioxide = 1 << 24,
+    Methane = 1 << 25,
+    UsAqiPm25 = 1 << 26,
+    UsAqiPm10 = 1 << 27,
+    UsAqiNitrogenDioxide = 1 << 28,
+    UsAqiOzone = 1 << 29,
+    UsAqiSulphurDioxide = 1 << 30,
+    UsAqiCarbonMonoxide = 1L << 31,
 }

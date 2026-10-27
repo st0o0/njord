@@ -53,4 +53,20 @@ public enum AirQualityApiVariable
     EuropeanAqiSulphurDioxide,
     [JsonStringEnumMemberName("aerosol_optical_depth")]
     AerosolOpticalDepth,
+    [JsonStringEnumMemberName("carbon_dioxide")]
+    CarbonDioxide,
+    [JsonStringEnumMemberName("methane")]
+    Methane,
+    [JsonStringEnumMemberName("us_aqi_pm2_5")]
+    UsAqiPm25,
+    [JsonStringEnumMemberName("us_aqi_pm10")]
+    UsAqiPm10,
+    [JsonStringEnumMemberName("us_aqi_nitrogen_dioxide")]
+    UsAqiNitrogenDioxide,
+    [JsonStringEnumMemberName("us_aqi_ozone")]
+    UsAqiOzone,
+    [JsonStringEnumMemberName("us_aqi_sulphur_dioxide")]
+    UsAqiSulphurDioxide,
+    [JsonStringEnumMemberName("us_aqi_carbon_monoxide")]
+    UsAqiCarbonMonoxide,
 }

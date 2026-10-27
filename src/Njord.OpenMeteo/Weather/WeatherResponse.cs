@@ -45,7 +45,14 @@ public sealed record WeatherHourlyData(
     [property: JsonPropertyName("cloud_cover_mid")] double?[]? CloudCoverMid = null,
     [property: JsonPropertyName("cloud_cover_high")] double?[]? CloudCoverHigh = null,
     [property: JsonPropertyName("convective_inhibition")] double?[]? ConvectiveInhibition = null,
-    [property: JsonPropertyName("lifted_index")] double?[]? LiftedIndex = null);
+    [property: JsonPropertyName("lifted_index")] double?[]? LiftedIndex = null,
+    [property: JsonPropertyName("surface_pressure")] double?[]? SurfacePressure = null,
+    [property: JsonPropertyName("wind_speed_80m")] double?[]? WindSpeed80m = null,
+    [property: JsonPropertyName("wind_direction_80m")] double?[]? WindDirection80m = null,
+    [property: JsonPropertyName("wind_speed_120m")] double?[]? WindSpeed120m = null,
+    [property: JsonPropertyName("wind_direction_120m")] double?[]? WindDirection120m = null,
+    [property: JsonPropertyName("temperature_80m")] double?[]? Temperature80m = null,
+    [property: JsonPropertyName("temperature_120m")] double?[]? Temperature120m = null);
 
 public sealed record WeatherResponse(
     [property: JsonPropertyName("latitude")] double Latitude,

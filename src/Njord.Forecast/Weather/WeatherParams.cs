@@ -45,4 +45,11 @@ public enum WeatherParams : long
     CloudCoverHigh = 1L << 41,
     ConvectiveInhibition = 1L << 42,
     LiftedIndex = 1L << 43,
+    SurfacePressure = 1L << 44,
+    WindSpeed80m = 1L << 45,
+    WindDirection80m = 1L << 46,
+    WindSpeed120m = 1L << 47,
+    WindDirection120m = 1L << 48,
+    Temperature80m = 1L << 49,
+    Temperature120m = 1L << 50,
 }

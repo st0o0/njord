@@ -1025,5 +1025,16 @@
       { "name": "WaveHeightThresholdM", "type": "number", "default": 1.5 },
       { "name": "WindSpeedThreshold", "type": "number", "default": 4.2 }
     ]
+  },
+  {
+    "key": "Energy:ElevatedWind",
+    "name": "ElevatedWind",
+    "category": "Energy",
+    "output": "Condition",
+    "description": "80m and 120m hub-height wind speed and direction for wind energy monitoring",
+    "enabledByDefault": false,
+    "domains": ["Weather"],
+    "weatherParams": ["WindSpeed80m", "WindDirection80m", "WindSpeed120m", "WindDirection120m"],
+    "options": []
   }
 ]

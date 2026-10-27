@@ -30,6 +30,14 @@ public static class AirQualityApiVariableMappingExtensions
         AirQualityParams.EuropeanAqiOzone => AirQualityApiVariable.EuropeanAqiOzone,
         AirQualityParams.EuropeanAqiSulphurDioxide => AirQualityApiVariable.EuropeanAqiSulphurDioxide,
         AirQualityParams.AerosolOpticalDepth => AirQualityApiVariable.AerosolOpticalDepth,
+        AirQualityParams.CarbonDioxide => AirQualityApiVariable.CarbonDioxide,
+        AirQualityParams.Methane => AirQualityApiVariable.Methane,
+        AirQualityParams.UsAqiPm25 => AirQualityApiVariable.UsAqiPm25,
+        AirQualityParams.UsAqiPm10 => AirQualityApiVariable.UsAqiPm10,
+        AirQualityParams.UsAqiNitrogenDioxide => AirQualityApiVariable.UsAqiNitrogenDioxide,
+        AirQualityParams.UsAqiOzone => AirQualityApiVariable.UsAqiOzone,
+        AirQualityParams.UsAqiSulphurDioxide => AirQualityApiVariable.UsAqiSulphurDioxide,
+        AirQualityParams.UsAqiCarbonMonoxide => AirQualityApiVariable.UsAqiCarbonMonoxide,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 

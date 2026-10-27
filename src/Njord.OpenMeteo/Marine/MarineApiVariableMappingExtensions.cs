@@ -21,6 +21,13 @@ public static class MarineApiVariableMappingExtensions
         MarineParams.SeaLevelHeight => MarineApiVariable.SeaLevelHeight,
         MarineParams.OceanCurrentVelocity => MarineApiVariable.OceanCurrentVelocity,
         MarineParams.OceanCurrentDirection => MarineApiVariable.OceanCurrentDirection,
+        MarineParams.SecondarySwellWaveHeight => MarineApiVariable.SecondarySwellWaveHeight,
+        MarineParams.SecondarySwellWaveDirection => MarineApiVariable.SecondarySwellWaveDirection,
+        MarineParams.SecondarySwellWavePeriod => MarineApiVariable.SecondarySwellWavePeriod,
+        MarineParams.TertiarySwellWaveHeight => MarineApiVariable.TertiarySwellWaveHeight,
+        MarineParams.TertiarySwellWaveDirection => MarineApiVariable.TertiarySwellWaveDirection,
+        MarineParams.TertiarySwellWavePeriod => MarineApiVariable.TertiarySwellWavePeriod,
+        MarineParams.InvertBarometerHeight => MarineApiVariable.InvertBarometerHeight,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 

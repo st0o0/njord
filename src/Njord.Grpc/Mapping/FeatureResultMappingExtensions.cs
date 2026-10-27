@@ -230,6 +230,19 @@ internal static class FeatureResultMappingExtensions
         return proto;
     }
 
+    public static V2.ElevatedWindCondition ToProto(this ElevatedWindResult r)
+    {
+        var proto = new V2.ElevatedWindCondition
+        {
+            Condition = new V2.ConditionData(),
+            Speed80M = r.Speed80m,
+            Direction80M = r.Direction80m,
+        };
+        if (r.Speed120m is { } s120) { proto.Speed120M = s120; }
+        if (r.Direction120m is { } d120) { proto.Direction120M = d120; }
+        return proto;
+    }
+
     public static V2.ApproachingFront ToProto(this ApproachingFrontResult r)
     {
         return new V2.ApproachingFront

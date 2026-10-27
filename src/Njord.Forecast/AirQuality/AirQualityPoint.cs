@@ -25,7 +25,15 @@ public sealed record AirQualityPoint(
     double? EuropeanAqiNitrogenDioxide = null,
     double? EuropeanAqiOzone = null,
     double? EuropeanAqiSulphurDioxide = null,
-    double? AerosolOpticalDepth = null) : IHasValidTime
+    double? AerosolOpticalDepth = null,
+    double? CarbonDioxide = null,
+    double? Methane = null,
+    double? UsAqiPm25 = null,
+    double? UsAqiPm10 = null,
+    double? UsAqiNitrogenDioxide = null,
+    double? UsAqiOzone = null,
+    double? UsAqiSulphurDioxide = null,
+    double? UsAqiCarbonMonoxide = null) : IHasValidTime
 {
     private static readonly AirQualityParams[] Flags =
         [.. Enum.GetValues<AirQualityParams>().Where(p => p != AirQualityParams.None)];
@@ -59,6 +67,14 @@ public sealed record AirQualityPoint(
         AirQualityParams.EuropeanAqiOzone => EuropeanAqiOzone is not null,
         AirQualityParams.EuropeanAqiSulphurDioxide => EuropeanAqiSulphurDioxide is not null,
         AirQualityParams.AerosolOpticalDepth => AerosolOpticalDepth is not null,
+        AirQualityParams.CarbonDioxide => CarbonDioxide is not null,
+        AirQualityParams.Methane => Methane is not null,
+        AirQualityParams.UsAqiPm25 => UsAqiPm25 is not null,
+        AirQualityParams.UsAqiPm10 => UsAqiPm10 is not null,
+        AirQualityParams.UsAqiNitrogenDioxide => UsAqiNitrogenDioxide is not null,
+        AirQualityParams.UsAqiOzone => UsAqiOzone is not null,
+        AirQualityParams.UsAqiSulphurDioxide => UsAqiSulphurDioxide is not null,
+        AirQualityParams.UsAqiCarbonMonoxide => UsAqiCarbonMonoxide is not null,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

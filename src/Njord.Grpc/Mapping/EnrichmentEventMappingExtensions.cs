@@ -213,6 +213,12 @@ internal static class EnrichmentEventMappingExtensions
             UpdatedAt = now.ToTimestamp(),
             OceanCurrents = r.ToProto(),
         },
+        ElevatedWindResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            ElevatedWind = r.ToProto(),
+        },
         BbqScoreResult r => new EnrichmentEvent
         {
             Location = r.Location.Name,

@@ -43,7 +43,15 @@ internal static class AirQualityResponseMappingExtensions
                 EuropeanAqiNitrogenDioxide: At(h.EuropeanAqiNitrogenDioxide, i),
                 EuropeanAqiOzone: At(h.EuropeanAqiOzone, i),
                 EuropeanAqiSulphurDioxide: At(h.EuropeanAqiSulphurDioxide, i),
-                AerosolOpticalDepth: At(h.AerosolOpticalDepth, i));
+                AerosolOpticalDepth: At(h.AerosolOpticalDepth, i),
+                CarbonDioxide: At(h.CarbonDioxide, i),
+                Methane: At(h.Methane, i),
+                UsAqiPm25: At(h.UsAqiPm25, i),
+                UsAqiPm10: At(h.UsAqiPm10, i),
+                UsAqiNitrogenDioxide: At(h.UsAqiNitrogenDioxide, i),
+                UsAqiOzone: At(h.UsAqiOzone, i),
+                UsAqiSulphurDioxide: At(h.UsAqiSulphurDioxide, i),
+                UsAqiCarbonMonoxide: At(h.UsAqiCarbonMonoxide, i));
         }
 
         return new DomainForecast<AirQualityPoint>(

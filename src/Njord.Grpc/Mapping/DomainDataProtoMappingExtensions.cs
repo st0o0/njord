@@ -156,6 +156,13 @@ internal static class DomainDataProtoMappingExtensions
         if (p.CloudCoverHigh is { } ccHigh) { sample.CloudCoverHigh = ccHigh; }
         if (p.ConvectiveInhibition is { } cin) { sample.ConvectiveInhibition = cin; }
         if (p.LiftedIndex is { } li) { sample.LiftedIndex = li; }
+        if (p.SurfacePressure is { } sp) { sample.SurfacePressure = sp; }
+        if (p.WindSpeed80m is { } ws80) { sample.WindSpeed80M = ws80; }
+        if (p.WindDirection80m is { } wd80) { sample.WindDirection80M = wd80; }
+        if (p.WindSpeed120m is { } ws120) { sample.WindSpeed120M = ws120; }
+        if (p.WindDirection120m is { } wd120) { sample.WindDirection120M = wd120; }
+        if (p.Temperature80m is { } t80) { sample.Temperature80M = t80; }
+        if (p.Temperature120m is { } t120) { sample.Temperature120M = t120; }
         return sample;
     }
 
@@ -187,6 +194,14 @@ internal static class DomainDataProtoMappingExtensions
         if (p.EuropeanAqiOzone is { } eaqiO3) { sample.EuropeanAqiOzone = eaqiO3; }
         if (p.EuropeanAqiSulphurDioxide is { } eaqiSo2) { sample.EuropeanAqiSulphurDioxide = eaqiSo2; }
         if (p.AerosolOpticalDepth is { } aod) { sample.AerosolOpticalDepth = aod; }
+        if (p.CarbonDioxide is { } co2) { sample.CarbonDioxide = co2; }
+        if (p.Methane is { } ch4) { sample.Methane = ch4; }
+        if (p.UsAqiPm25 is { } usAqiPm25) { sample.UsAqiPm25 = usAqiPm25; }
+        if (p.UsAqiPm10 is { } usAqiPm10) { sample.UsAqiPm10 = usAqiPm10; }
+        if (p.UsAqiNitrogenDioxide is { } usAqiNo2) { sample.UsAqiNitrogenDioxide = usAqiNo2; }
+        if (p.UsAqiOzone is { } usAqiO3) { sample.UsAqiOzone = usAqiO3; }
+        if (p.UsAqiSulphurDioxide is { } usAqiSo2) { sample.UsAqiSulphurDioxide = usAqiSo2; }
+        if (p.UsAqiCarbonMonoxide is { } usAqiCo) { sample.UsAqiCarbonMonoxide = usAqiCo; }
         return sample;
     }
 
@@ -247,6 +262,13 @@ internal static class DomainDataProtoMappingExtensions
         if (p.SeaLevelHeight is { } seaLevelHeight) { sample.SeaLevelHeightMsl = seaLevelHeight; }
         if (p.OceanCurrentVelocity is { } currentVelocity) { sample.OceanCurrentVelocity = currentVelocity; }
         if (p.OceanCurrentDirection is { } currentDirection) { sample.OceanCurrentDirection = currentDirection; }
+        if (p.SecondarySwellWaveHeight is { } ssHeight) { sample.SecondarySwellWaveHeight = ssHeight; }
+        if (p.SecondarySwellWaveDirection is { } ssDir) { sample.SecondarySwellWaveDirection = ssDir; }
+        if (p.SecondarySwellWavePeriod is { } ssPeriod) { sample.SecondarySwellWavePeriod = ssPeriod; }
+        if (p.TertiarySwellWaveHeight is { } tsHeight) { sample.TertiarySwellWaveHeight = tsHeight; }
+        if (p.TertiarySwellWaveDirection is { } tsDir) { sample.TertiarySwellWaveDirection = tsDir; }
+        if (p.TertiarySwellWavePeriod is { } tsPeriod) { sample.TertiarySwellWavePeriod = tsPeriod; }
+        if (p.InvertBarometerHeight is { } ibh) { sample.InvertBarometerHeight = ibh; }
         return sample;
     }
 }

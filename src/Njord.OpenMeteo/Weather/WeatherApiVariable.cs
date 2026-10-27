@@ -88,4 +88,18 @@ public enum WeatherApiVariable
     ConvectiveInhibition,
     [JsonStringEnumMemberName("lifted_index")]
     LiftedIndex,
+    [JsonStringEnumMemberName("surface_pressure")]
+    SurfacePressure,
+    [JsonStringEnumMemberName("wind_speed_80m")]
+    WindSpeed80m,
+    [JsonStringEnumMemberName("wind_direction_80m")]
+    WindDirection80m,
+    [JsonStringEnumMemberName("wind_speed_120m")]
+    WindSpeed120m,
+    [JsonStringEnumMemberName("wind_direction_120m")]
+    WindDirection120m,
+    [JsonStringEnumMemberName("temperature_80m")]
+    Temperature80m,
+    [JsonStringEnumMemberName("temperature_120m")]
+    Temperature120m,
 }

@@ -18,7 +18,14 @@ public sealed record MarineHourlyData(
     [property: JsonPropertyName("swell_wave_period")] double?[]? SwellWavePeriod = null,
     [property: JsonPropertyName("swell_wave_direction")] double?[]? SwellWaveDirection = null,
     [property: JsonPropertyName("swell_wave_peak_period")] double?[]? SwellWavePeakPeriod = null,
-    [property: JsonPropertyName("sea_level_height_msl")] double?[]? SeaLevelHeight = null);
+    [property: JsonPropertyName("sea_level_height_msl")] double?[]? SeaLevelHeight = null,
+    [property: JsonPropertyName("secondary_swell_wave_height")] double?[]? SecondarySwellWaveHeight = null,
+    [property: JsonPropertyName("secondary_swell_wave_direction")] double?[]? SecondarySwellWaveDirection = null,
+    [property: JsonPropertyName("secondary_swell_wave_period")] double?[]? SecondarySwellWavePeriod = null,
+    [property: JsonPropertyName("tertiary_swell_wave_height")] double?[]? TertiarySwellWaveHeight = null,
+    [property: JsonPropertyName("tertiary_swell_wave_direction")] double?[]? TertiarySwellWaveDirection = null,
+    [property: JsonPropertyName("tertiary_swell_wave_period")] double?[]? TertiarySwellWavePeriod = null,
+    [property: JsonPropertyName("invert_barometer_height")] double?[]? InvertBarometerHeight = null);
 
 public sealed record MarineResponse(
     [property: JsonPropertyName("latitude")] double Latitude,

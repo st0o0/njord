@@ -112,6 +112,13 @@ message WeatherSample {
   optional double cloud_cover_high = 31;
   optional double convective_inhibition = 32;
   optional double lifted_index = 33;
+  optional double surface_pressure = 34;
+  optional double wind_speed_80m = 35;
+  optional double wind_direction_80m = 36;
+  optional double wind_speed_120m = 37;
+  optional double wind_direction_120m = 38;
+  optional double temperature_80m = 39;
+  optional double temperature_120m = 40;
 }
 
 message AirQualityData {
@@ -142,6 +149,14 @@ message AirQualitySample {
   optional double european_aqi_ozone = 21;
   optional double european_aqi_sulphur_dioxide = 22;
   optional double aerosol_optical_depth = 23;
+  optional double carbon_dioxide = 24;
+  optional double methane = 25;
+  optional double us_aqi_pm25 = 26;
+  optional double us_aqi_pm10 = 27;
+  optional double us_aqi_nitrogen_dioxide = 28;
+  optional double us_aqi_ozone = 29;
+  optional double us_aqi_sulphur_dioxide = 30;
+  optional double us_aqi_carbon_monoxide = 31;
 }
 
 message FloodData {
@@ -207,6 +222,13 @@ message MarineSample {
   optional double sea_level_height_msl = 14;
   optional double ocean_current_velocity = 15;
   optional double ocean_current_direction = 16;
+  optional double secondary_swell_wave_height = 17;
+  optional double secondary_swell_wave_direction = 18;
+  optional double secondary_swell_wave_period = 19;
+  optional double tertiary_swell_wave_height = 20;
+  optional double tertiary_swell_wave_direction = 21;
+  optional double tertiary_swell_wave_period = 22;
+  optional double invert_barometer_height = 23;
 }
 
 message EnsembleData {
@@ -281,6 +303,7 @@ message EnrichmentEvent {
     RagweedPollenCondition ragweed_pollen = 72;
     GranularAqiCondition granular_aqi = 73;
     OceanCurrentsCondition ocean_currents = 74;
+    ElevatedWindCondition elevated_wind = 75;
     Bbq bbq = 50;
     Laundry laundry = 51;
     Outdoor outdoor = 52;
@@ -636,6 +659,14 @@ message OceanCurrentsCondition {
   CurrentStrength strength = 2;
   double peak_velocity_kmh = 3;
   optional double direction = 4;
+}
+
+message ElevatedWindCondition {
+  ConditionData condition = 1;
+  double speed_80m = 2;
+  double direction_80m = 3;
+  optional double speed_120m = 4;
+  optional double direction_120m = 5;
 }
 
 message Bbq {

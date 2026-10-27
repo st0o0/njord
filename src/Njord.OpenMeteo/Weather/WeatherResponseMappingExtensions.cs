@@ -177,6 +177,13 @@ internal static class WeatherResponseMappingExtensions
                 CloudCoverMid: At(h.CloudCoverMid, i),
                 CloudCoverHigh: At(h.CloudCoverHigh, i),
                 ConvectiveInhibition: At(h.ConvectiveInhibition, i),
+                SurfacePressure: At(h.SurfacePressure, i),
+                WindSpeed80m: At(h.WindSpeed80m, i),
+                WindDirection80m: At(h.WindDirection80m, i),
+                WindSpeed120m: At(h.WindSpeed120m, i),
+                WindDirection120m: At(h.WindDirection120m, i),
+                Temperature80m: At(h.Temperature80m, i),
+                Temperature120m: At(h.Temperature120m, i),
                 LiftedIndex: At(h.LiftedIndex, i));
         }
 

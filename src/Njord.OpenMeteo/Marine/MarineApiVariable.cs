@@ -34,4 +34,18 @@ public enum MarineApiVariable
     OceanCurrentVelocity,
     [JsonStringEnumMemberName("ocean_current_direction")]
     OceanCurrentDirection,
+    [JsonStringEnumMemberName("secondary_swell_wave_height")]
+    SecondarySwellWaveHeight,
+    [JsonStringEnumMemberName("secondary_swell_wave_direction")]
+    SecondarySwellWaveDirection,
+    [JsonStringEnumMemberName("secondary_swell_wave_period")]
+    SecondarySwellWavePeriod,
+    [JsonStringEnumMemberName("tertiary_swell_wave_height")]
+    TertiarySwellWaveHeight,
+    [JsonStringEnumMemberName("tertiary_swell_wave_direction")]
+    TertiarySwellWaveDirection,
+    [JsonStringEnumMemberName("tertiary_swell_wave_period")]
+    TertiarySwellWavePeriod,
+    [JsonStringEnumMemberName("invert_barometer_height")]
+    InvertBarometerHeight,
 }

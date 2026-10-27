@@ -27,7 +27,15 @@ public sealed record AirQualityHourlyData(
     [property: JsonPropertyName("european_aqi_nitrogen_dioxide")] double?[]? EuropeanAqiNitrogenDioxide = null,
     [property: JsonPropertyName("european_aqi_ozone")] double?[]? EuropeanAqiOzone = null,
     [property: JsonPropertyName("european_aqi_sulphur_dioxide")] double?[]? EuropeanAqiSulphurDioxide = null,
-    [property: JsonPropertyName("aerosol_optical_depth")] double?[]? AerosolOpticalDepth = null);
+    [property: JsonPropertyName("aerosol_optical_depth")] double?[]? AerosolOpticalDepth = null,
+    [property: JsonPropertyName("carbon_dioxide")] double?[]? CarbonDioxide = null,
+    [property: JsonPropertyName("methane")] double?[]? Methane = null,
+    [property: JsonPropertyName("us_aqi_pm2_5")] double?[]? UsAqiPm25 = null,
+    [property: JsonPropertyName("us_aqi_pm10")] double?[]? UsAqiPm10 = null,
+    [property: JsonPropertyName("us_aqi_nitrogen_dioxide")] double?[]? UsAqiNitrogenDioxide = null,
+    [property: JsonPropertyName("us_aqi_ozone")] double?[]? UsAqiOzone = null,
+    [property: JsonPropertyName("us_aqi_sulphur_dioxide")] double?[]? UsAqiSulphurDioxide = null,
+    [property: JsonPropertyName("us_aqi_carbon_monoxide")] double?[]? UsAqiCarbonMonoxide = null);
 
 public sealed record AirQualityResponse(
     [property: JsonPropertyName("latitude")] double Latitude,
