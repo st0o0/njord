@@ -9,29 +9,36 @@ over gRPC (the ha-njord integration).
 
 ## Solution structure
 
-12 production projects, one test project each (except Host), plus `Njord.Tests.Shared`.
+10 production projects, one test project each (except Host), plus `Njord.Tests.Shared`.
 
 ```
 src/
   Njord.slnx
-  Njord.Forecast/       # Vocabulary, no Njord refs; folders Forecast/ (DomainKind, Location, DomainForecast<T>),
-                        #   Weather/ AirQuality/ Flood/ Marine/ Solar/ (XxxPoint + [Flags] XxxParam enums,
-                        #   Point.HasFields(param)), Horizon/
-  Njord.Messages/       # Akka-free contracts (-> Forecast): PipelineEvent, Fetch*/Poll*/Query* messages,
-                        #   Alerts/, Budget/, Config/, Forecast/, Pipeline/ (FeatureResult, OutputKind)
-  Njord.Persistence/    # Extend-only records, no Njord refs: Events/Budget, Events/Polling
-  Njord.Core/           # (-> Forecast, Messages, Persistence)
+  Njord.Core/           # (-> Persistence) foundation: vocabulary, domain logic, actor infrastructure
+    DomainKind.cs       #   Forecast, Ensemble, AirQuality, Flood, Marine, Seasonal, Satellite
+    Location.cs         #   Location record (Name, Latitude, Longitude)
+    Forecast/           #   ForecastPoint, ForecastParams, EnsemblePoint, EnsembleParams, DomainForecast<T>
+    AirQuality/         #   AirQualityPoint, AirQualityParams
+    Flood/              #   FloodPoint, FloodParams
+    Marine/             #   MarinePoint, MarineParams
+    Seasonal/           #   SeasonalPoint, SeasonalParams
+    Solar/              #   SatelliteRadiationPoint, SatelliteParams
+    Horizon/            #   Horizon, HorizonKind
     ActorKeys.cs        #   marker interfaces for every resolvable actor
     Actors/             #   IActorRegistration, StreamSupervision, Forecast/Pipeline stream handshakes shared across
                         #   libraries (actor plumbing used by one library lives there: ShardMessageExtractor in
                         #   Polling, GrpcStreamMessages in Grpc)
     Domain/             #   IFeatureRule, FeatureRule<TInput>, FeatureDescriptor, FeatureCategory, FeatureContext,
                         #   FeatureInputs (typed inputs), FeatureResolution, FeatureRequirementsOptions, DomainRequirements,
-                        #   LocationForecast, RingBuffer, ForecastQueries, DomainDataReceived
-    Configuration/      #   IConfigSection, NjordOptions (with FindLocation), LocationOptions, WeatherOptions, FloodOptions,
+                        #   LocationForecast, RingBuffer, ForecastQueries, DomainDataReceived,
+                        #   PipelineEvent, FeatureResult, OutputKind, PollFailureReason
+    Configuration/      #   IConfigSection, NjordOptions (with FindLocation), LocationOptions, ForecastOptions, FloodOptions,
                         #   PollingOptions, Health/HealthOptions, AddNjordOptions (+ validators)
     Polling/            #   CallWeight, RequestBudget (free-tier constants, DailyLimit), FetchTimeouts
-  Njord.OpenMeteo/      # (-> Core) folders per domain: Weather/, Ensemble/, AirQuality/, Flood/, Marine/, Seasonal/, Satellite/
+  Njord.Messages/       # Akka-free contracts (-> Core): Fetch*/Poll*/Query* messages,
+                        #   Alerts/, Budget/, Config/
+  Njord.Persistence/    # Extend-only records, no Njord refs: Events/Budget, Events/Polling
+  Njord.OpenMeteo/      # (-> Core) folders per domain: Forecast/, Ensemble/, AirQuality/, Flood/, Marine/, Seasonal/, Satellite/
                         #   (client, API variable enum, response DTO, mapping extensions per domain),
                         #   Gateway/ (OpenMeteoGateway, stream-based dispatch), Budget/ (GatewayBudgetGate),
                         #   Http/ (ClientRequest, OpenMeteoEndpoints, OpenMeteoJsonContext),
@@ -46,7 +53,7 @@ src/
   Njord.Grpc/           # WeatherGrpcService, OpsGrpcService, ActorAsk, GrpcConsumer, Mapping/
   Njord/                # Host: Program.cs, NjordHost, Configuration/ (setup containers, PersistenceOptions), Health/
 
-  Njord.Forecast.Tests/ Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
+  Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
   Njord.OpenMeteo.Tests/ Njord.Budget.Tests/ Njord.Pipeline.Tests/ Njord.Polling.Tests/
   Njord.Features.Tests/ Njord.Grpc.Tests/
   Njord.IntegrationTests/       # whole host via NjordHost + TestServer
@@ -56,9 +63,10 @@ protos/njord/v2/                # gRPC contracts: weather.proto, ops.proto, comm
 docs/                           # VitePress site incl. the Config Builder (docs/.vitepress/theme/builder)
 ```
 
-Reference direction: Forecast <- Messages; Forecast/Messages/Persistence <- Core <- feature libraries
-(OpenMeteo, Budget, Polling, Pipeline, Features, Grpc) <- Host. Feature
-libraries reference only `Njord.Core` (and below), never each other, never the Host; they reach each
+Reference direction: Persistence <- Core <- Messages <- feature libraries
+(OpenMeteo, Budget, Polling, Pipeline, Features, Grpc) <- Host. Core is the foundation (vocabulary +
+domain logic + actor infra); Messages is Akka-free and references only Core. Feature
+libraries reference `Njord.Core` and `Njord.Messages`, never each other, never the Host; they reach each
 other's actors through the markers in `ActorKeys.cs`. Registration stays central in the Host.
 
 ## Architecture guardrails
@@ -157,7 +165,7 @@ SHARD REGIONS (Sharded Entity)
   counts it as 30 calls/month/location instead of once per poll cycle. The API delivers ensemble-mean
   `temperature_2m_anomaly` (K) and `precipitation_anomaly` (mm; `SeasonalOutlook` converts to % of the normal
   month with `precipitation_mean`); confidence follows the lead time. `Njord:Seasonal:ForecastMonths` (3) limits the months kept.
-- **Satellite is a normal domain** (`DomainKind.Satellite`, `SatelliteRadiationPoint` in `Njord.Forecast/Solar`): the gateway
+- **Satellite is a normal domain** (`DomainKind.Satellite`, `SatelliteRadiationPoint` in `Njord.Core/Solar`): the gateway
   fetches `satellite-api.open-meteo.com/v1/archive` (GHI, direct, diffuse, DNI, GTI; tilt/azimuth from `SolarYieldOptions`,
   `Njord:Satellite:PastHours`) for `SatelliteRadiation` (off by default, about 720 calls/month/location, counted per poll
   cycle by `BudgetGuard`). `SolarIrradianceBlend` takes satellite GTI up to the newest observation (ignored when
@@ -324,7 +332,7 @@ Defaults are property initializers.
 | Section | Class | Content |
 |---------|-------|---------|
 | `Njord` | `NjordOptions` | `Locations` (`Name`, `Latitude`, `Longitude`, all required) |
-| `Njord:Weather` | `WeatherOptions` | `ForecastDays` (4, 1..16), `Models` (`ecmwf_ifs025_ensemble_mean`; known ids in `WeatherModelCatalog`) |
+| `Njord:Forecast` | `ForecastOptions` | `ForecastDays` (4, 1..16), `Models` (`ecmwf_ifs025_ensemble_mean`; known ids in `WeatherModelCatalog`) |
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..8) |
 | `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..6) |
