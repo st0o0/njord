@@ -16,11 +16,14 @@ internal sealed class GatewayBudgetGate : IGatewayBudgetGate
     private DateTimeOffset _lastRefill;
     private DateTimeOffset _lastRefresh;
 
-    public GatewayBudgetGate(IBudgetProvider provider, IActorRef trackerActor, TimeProvider timeProvider)
+    private readonly int _minBurst;
+
+    public GatewayBudgetGate(IBudgetProvider provider, IActorRef trackerActor, TimeProvider timeProvider, int maxCallWeight = 1)
     {
         _provider = provider;
         _trackerActor = trackerActor;
         _timeProvider = timeProvider;
+        _minBurst = Math.Max(maxCallWeight, 1);
         ApplyRate(provider.GetCurrentRate());
         _tokens = _maxBurst;
         _lastRefill = timeProvider.GetUtcNow();
@@ -42,24 +45,10 @@ internal sealed class GatewayBudgetGate : IGatewayBudgetGate
         return true;
     }
 
-    public TimeSpan EstimateDelay(int weight)
-    {
-        var deficit = weight - _tokens;
-        if (deficit <= 0)
-        {
-            return TimeSpan.Zero;
-        }
-
-        var delay = TimeSpan.FromSeconds(deficit / _tokensPerSecond);
-        return delay < TimeSpan.FromMilliseconds(10)
-            ? TimeSpan.FromMilliseconds(10)
-            : delay;
-    }
-
     private void ApplyRate(BudgetRate rate)
     {
         _tokensPerSecond = rate.CostPerMinute / 60.0;
-        _maxBurst = rate.MaxBurst;
+        _maxBurst = Math.Max(rate.MaxBurst, _minBurst);
     }
 
     private void Refill()

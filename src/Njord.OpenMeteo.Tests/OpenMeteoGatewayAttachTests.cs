@@ -102,7 +102,7 @@ public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 30000)]
-    public async Task An_exhausted_budget_rejects_the_request_without_fetching_or_recording()
+    public async Task A_high_weight_request_succeeds_when_burst_is_raised_to_call_weight()
     {
         var ct = TestContext.Current.CancellationToken;
         var (_, attached, _) = RegisterPipeline();
@@ -114,10 +114,28 @@ public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
 
         gateway.Tell(Fetch());
 
-        var rejected = await _region.ExpectMsgAsync<FetchDomainRejected>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-        Assert.Multiple(
-            () => Assert.Equal(FetchRejectionReason.Budget, rejected.Reason),
-            () => Assert.Equal(0, _weather.Calls));
-        await _apiCalls.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), ct);
+        var completed = await _region.ExpectMsgAsync<FetchDomainCompleted>(TimeSpan.FromSeconds(5), cancellationToken: ct);
+        Assert.Equal(DomainKind.Weather, completed.Domain);
+    }
+
+    [Fact(Timeout = 30000)]
+    public async Task Throttle_shapes_consecutive_heavy_requests_without_rejection()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (_, attached, _) = RegisterPipeline();
+        _budget.CostPerMinute = 600;
+        _budget.MaxBurst = 40;
+        _weather.CallWeight = 18;
+        var gateway = StartGateway();
+        await attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
+
+        gateway.Tell(Fetch());
+        gateway.Tell(Fetch());
+
+        var first = await _region.ExpectMsgAsync<FetchDomainCompleted>(TimeSpan.FromSeconds(5), cancellationToken: ct);
+        Assert.Equal(DomainKind.Weather, first.Domain);
+
+        var second = await _region.ExpectMsgAsync<FetchDomainCompleted>(TimeSpan.FromSeconds(10), cancellationToken: ct);
+        Assert.Equal(DomainKind.Weather, second.Domain);
     }
 }

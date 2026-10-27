@@ -14,10 +14,10 @@ public sealed class GatewayBudgetGateTests : Akka.Hosting.TestKit.TestKit
     private readonly FakeTimeProvider _time = new FakeTimeProvider(TestTimeConstants.PipelineEpoch);
     private readonly SwitchableBudgetProvider _rate = new() { CostPerMinute = 60, MaxBurst = 16 };
 
-    private (GatewayBudgetGate Gate, TestProbe Tracker) CreateGate()
+    private (GatewayBudgetGate Gate, TestProbe Tracker) CreateGate(int maxCallWeight = 1)
     {
         var tracker = CreateTestProbe();
-        return (new GatewayBudgetGate(_rate, tracker.Ref, _time), tracker);
+        return (new GatewayBudgetGate(_rate, tracker.Ref, _time, maxCallWeight), tracker);
     }
 
     [Fact(Timeout = 30000)]
@@ -59,11 +59,10 @@ public sealed class GatewayBudgetGateTests : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact]
-    public void The_estimated_delay_is_the_token_deficit_over_the_refill_rate()
+    public void Max_burst_is_raised_to_max_call_weight_when_base_burst_is_lower()
     {
-        var (gate, _) = CreateGate();
-        Assert.True(gate.TryAcquire(16));
+        var (gate, _) = CreateGate(maxCallWeight: 18);
 
-        Assert.Equal(TimeSpan.FromSeconds(3), gate.EstimateDelay(3));
+        Assert.True(gate.TryAcquire(18));
     }
 }

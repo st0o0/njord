@@ -52,10 +52,14 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
     private sealed record FetchAttempt(FetchDomain Request, FetchResult? Result, FetchRejectionReason? Rejection, Exception? Error);
 
+    private sealed record ResolvedRequest(FetchDomain Request, IDomainClient? Client);
+
     private readonly IReadOnlyDictionary<DomainKind, IDomainClient> _clients;
     private readonly TimeProvider _timeProvider;
     private readonly FetchTimeouts _timeouts;
     private readonly IGatewayBudgetGate _gate;
+    private readonly IBudgetProvider _budgetProvider;
+    private readonly int _maxCallWeight;
     private readonly IActorRef _pollRegion;
     private readonly CancellationTokenSource _stopped = new();
     private readonly long _attachId = Interlocked.Increment(ref AttachCounter);
@@ -72,8 +76,10 @@ public sealed class OpenMeteoGateway : ReceiveActor
         _clients = clients;
         _timeProvider = timeProvider;
         _timeouts = timeouts;
+        _budgetProvider = budgetProvider;
         _pollRegion = Context.GetActor<IPollRegion>();
-        _gate = new GatewayBudgetGate(budgetProvider, Context.GetActor<IBudgetTracker>(), timeProvider);
+        _maxCallWeight = clients.Count > 0 ? clients.Values.Max(c => c.CallWeight) : 1;
+        _gate = new GatewayBudgetGate(budgetProvider, Context.GetActor<IBudgetTracker>(), timeProvider, _maxCallWeight);
 
         Receive<FetchDomain>(OnFetchDomain);
         Receive<Offered>(OnOffered);
@@ -127,18 +133,23 @@ public sealed class OpenMeteoGateway : ReceiveActor
         var timeProvider = _timeProvider;
         var stopped = _stopped.Token;
         var pollRegion = _pollRegion;
+        var rate = _budgetProvider.GetCurrentRate();
+        var throttleBurst = Math.Max(rate.MaxBurst, _maxCallWeight);
 
         _requestQueue = Source.Queue<FetchDomain>(QueueSize, OverflowStrategy.DropNew)
-            .Select(request =>
+            .Select(request => new ResolvedRequest(request, clients.GetValueOrDefault(request.Domain)))
+            .Throttle(rate.CostPerMinute, TimeSpan.FromMinutes(1), throttleBurst,
+                resolved => resolved.Client?.CallWeight ?? 1, ThrottleMode.Shaping)
+            .Select(resolved =>
             {
-                if (!clients.TryGetValue(request.Domain, out var client))
+                if (resolved.Client is null)
                 {
-                    return new GatedRequest(request, null, FetchRejectionReason.PipelineUnavailable);
+                    return new GatedRequest(resolved.Request, null, FetchRejectionReason.PipelineUnavailable);
                 }
 
-                return gate.TryAcquire(client.CallWeight)
-                    ? new GatedRequest(request, client, null)
-                    : new GatedRequest(request, null, FetchRejectionReason.Budget);
+                return gate.TryAcquire(resolved.Client.CallWeight)
+                    ? new GatedRequest(resolved.Request, resolved.Client, null)
+                    : new GatedRequest(resolved.Request, null, FetchRejectionReason.Budget);
             })
             .SelectAsyncUnordered(MaxConcurrentFetches, async gated =>
             {
