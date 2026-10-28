@@ -434,6 +434,31 @@ public sealed class EnrichmentEventMappingsTests
     }
 
     [Fact]
+    public void Heat_pump_cop_maps_to_the_heat_pump_cop_case()
+    {
+        var evt = Map(new HeatPumpCopConditionResult(Lucerne, 4.2, "ideal", 4.8, 14));
+
+        Assert.Equal(Case.HeatPumpCop, evt.FeatureCase);
+        Assert.Multiple(
+            () => Assert.Equal(4.2, evt.HeatPumpCop.Cop),
+            () => Assert.Equal("ideal", evt.HeatPumpCop.Recommendation),
+            () => Assert.Equal(4.8, evt.HeatPumpCop.BestCop),
+            () => Assert.Equal(14, evt.HeatPumpCop.BestHour));
+    }
+
+    [Fact]
+    public void Solar_battery_strategy_maps_to_the_solar_battery_strategy_case()
+    {
+        var evt = Map(new SolarBatteryStrategyConditionResult(Lucerne, "feed_in", 12.5, 20.1));
+
+        Assert.Equal(Case.SolarBatteryStrategy, evt.FeatureCase);
+        Assert.Multiple(
+            () => Assert.Equal("feed_in", evt.SolarBatteryStrategy.Strategy),
+            () => Assert.Equal(12.5, evt.SolarBatteryStrategy.TodayKwh),
+            () => Assert.Equal(20.1, evt.SolarBatteryStrategy.TomorrowKwhEstimate));
+    }
+
+    [Fact]
     public void Solar_yield_maps_to_the_solar_yield_case()
     {
         var evt = Map(new SolarYieldResult(Lucerne, 4.2, 13));

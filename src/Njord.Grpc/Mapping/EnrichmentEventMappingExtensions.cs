@@ -310,6 +310,18 @@ internal static class EnrichmentEventMappingExtensions
             UpdatedAt = now.ToTimestamp(),
             FloodTimeline = r.ToProto(),
         },
+        HeatPumpCopConditionResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            HeatPumpCop = r.ToProto(),
+        },
+        SolarBatteryStrategyConditionResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            SolarBatteryStrategy = r.ToProto(),
+        },
         SolarYieldResult r => new EnrichmentEvent
         {
             Location = r.Location.Name,

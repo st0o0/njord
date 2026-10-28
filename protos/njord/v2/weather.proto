@@ -305,6 +305,8 @@ message EnrichmentEvent {
     GranularAqiCondition granular_aqi = 73;
     OceanCurrentsCondition ocean_currents = 74;
     ElevatedWindCondition elevated_wind = 75;
+    HeatPumpCopCondition heat_pump_cop = 76;
+    SolarBatteryStrategyCondition solar_battery_strategy = 77;
     Bbq bbq = 50;
     Laundry laundry = 51;
     Outdoor outdoor = 52;
@@ -780,6 +782,21 @@ message FloodTimeline {
   google.protobuf.Timestamp peak_time = 3;
   double peak_discharge = 4;
   int32 days_above_warning = 5;
+}
+
+message HeatPumpCopCondition {
+  ConditionData condition = 1;
+  double cop = 2;
+  string recommendation = 3;
+  double best_cop = 4;
+  int32 best_hour = 5;
+}
+
+message SolarBatteryStrategyCondition {
+  ConditionData condition = 1;
+  string strategy = 2;
+  double today_kwh = 3;
+  double tomorrow_kwh_estimate = 4;
 }
 
 message SolarYield {

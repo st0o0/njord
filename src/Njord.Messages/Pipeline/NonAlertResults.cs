@@ -24,6 +24,10 @@ public sealed record GardeningResult(Location Location, GardeningAdvice Advice, 
 
 public sealed record FloodTimelineResult(Location Location, FloodStatus Status, DateTimeOffset PeakTime, double PeakDischarge, int DaysAboveWarning) : ConditionFeatureResult(Location);
 
+public sealed record HeatPumpCopConditionResult(Location Location, double Cop, string Recommendation, double BestCop, int BestHour) : ConditionFeatureResult(Location);
+
+public sealed record SolarBatteryStrategyConditionResult(Location Location, string Strategy, double TodayKwh, double TomorrowKwhEstimate) : ConditionFeatureResult(Location);
+
 public sealed record SolarYieldResult(Location Location, double KwhPerKwp, int PeakHour) : ConditionFeatureResult(Location);
 
 public sealed record SatelliteRadiationResult(Location Location, DateTimeOffset ObservedAt, double Gti, double? Ghi, double? BlendedKwhPerSquareMeter) : ConditionFeatureResult(Location);

@@ -704,6 +704,34 @@
     "domains": ["Satellite"]
   },
   {
+    "key": "Energy:HeatPumpCop",
+    "name": "HeatPumpCop",
+    "category": "Energy",
+    "output": "Condition",
+    "description": "Estimates the heat pump coefficient of performance from the outside temperature",
+    "longDescription": "Computes COP = 6.81 - 0.121 x (target flow temperature - outside temperature), clamped to 1.0, for the current hour and finds the best hour of the forecast window. Recommends ideal (above 4.0), normal (2.5 to 4.0), inefficient (1.5 to 2.5) or avoid (below 1.5).",
+    "entities": ["sensor.{location}_heat_pump_cop"],
+    "automationExample": "Heat the buffer tank in the hour with the best COP",
+    "enabledByDefault": false,
+    "domains": ["Forecast"],
+    "weatherParams": ["Temperature", "Humidity"],
+    "options": [{ "name": "TargetTemperature", "type": "number", "default": 35 }, { "name": "ForecastHours", "type": "number", "default": 24 }]
+  },
+  {
+    "key": "Energy:SolarBatteryStrategy",
+    "name": "SolarBatteryStrategy",
+    "category": "Energy",
+    "output": "Condition",
+    "description": "Recommends how to use the home battery from today's measured and tomorrow's forecast solar yield",
+    "longDescription": "Compares today's yield (satellite tilted irradiance so far) with tomorrow's forecast yield. Recommends feed_in when tomorrow is much sunnier and today has a surplus, charge_battery when tomorrow is much cloudier and today has a surplus, conserve when tomorrow is much sunnier and today is low, otherwise normal. A surplus means today's yield reaches the battery capacity.",
+    "entities": ["sensor.{location}_solar_battery_strategy"],
+    "automationExample": "Switch the inverter to grid feed-in when the strategy is feed_in",
+    "enabledByDefault": false,
+    "domains": ["Forecast", "Satellite"],
+    "weatherParams": ["ShortwaveRadiation"],
+    "options": [{ "name": "PeakKw", "type": "number", "default": 5 }, { "name": "BatteryCapacityKwh", "type": "number", "default": 10 }, { "name": "SystemEfficiency", "type": "number", "default": 0.85 }]
+  },
+  {
     "key": "Energy:ElevatedWind",
     "name": "ElevatedWind",
     "category": "Energy",

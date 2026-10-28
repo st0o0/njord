@@ -146,6 +146,29 @@ internal static class FeatureResultMappingExtensions
         };
     }
 
+    public static V2.HeatPumpCopCondition ToProto(this HeatPumpCopConditionResult r)
+    {
+        return new V2.HeatPumpCopCondition
+        {
+            Condition = new V2.ConditionData(),
+            Cop = r.Cop,
+            Recommendation = r.Recommendation,
+            BestCop = r.BestCop,
+            BestHour = r.BestHour,
+        };
+    }
+
+    public static V2.SolarBatteryStrategyCondition ToProto(this SolarBatteryStrategyConditionResult r)
+    {
+        return new V2.SolarBatteryStrategyCondition
+        {
+            Condition = new V2.ConditionData(),
+            Strategy = r.Strategy,
+            TodayKwh = r.TodayKwh,
+            TomorrowKwhEstimate = r.TomorrowKwhEstimate,
+        };
+    }
+
     public static V2.SolarYield ToProto(this SolarYieldResult r)
     {
         return new V2.SolarYield
