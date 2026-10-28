@@ -3,12 +3,12 @@
 Alerts, scores, conditions, trends and forecasts are all features. Each feature is a rule that declares the domains it reads and is evaluated only when one of them has new data. A feature is switched with `Njord:Features:<Category>:<Name>:Enabled` and carries its own options (thresholds) in the same section; see [Features and domains](./#features-and-domains).
 
 ::: tip Detailed feature documentation
-For full descriptions, configuration examples, and automation ideas for all 58 features, see the [Features reference](/features/).
+For full descriptions, configuration examples, and automation ideas for all 66 features, see the [Features reference](/features/).
 :::
 
 | Alert group | Domains | Rules |
 |-------------|---------|-------|
-| Weather alerts | Forecast (+ Ensemble for 9 alerts) | 20 alerts (below) |
+| Weather alerts | Forecast (+ Ensemble for 9 alerts) | 22 alerts (below) |
 | Air quality alerts | Air Quality (+ Forecast for SmogRisk, PollenBlast) | Pollen, PM2.5, Dust, SmogRisk, PollenBlast |
 | Flood alerts | Flood (+ Forecast for FloodRain) | FloodRisk, FloodRain |
 | Marine alerts | Marine (+ Forecast for CoastalFlood) | Swimming, CoastalFlood |

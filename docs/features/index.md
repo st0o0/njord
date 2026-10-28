@@ -1,6 +1,6 @@
 # Features
 
-njord evaluates 58 features across seven categories. Each feature polls one or more weather domains, evaluates a rule against the forecast data, and delivers the result to Home Assistant as an entity.
+njord evaluates 66 features across seven categories. Each feature polls one or more weather domains, evaluates a rule against the forecast data, and delivers the result to Home Assistant as an entity.
 
 Features are toggled with a single environment variable:
 
@@ -14,13 +14,13 @@ Use the [Config Builder](/builder) to pick features and preview the API budget.
 
 | Category | What it covers | Features |
 |----------|---------------|----------|
-| [Weather Alerts](./weather-alerts) | Dangerous weather conditions | 20 alerts |
-| [Air Quality](./air-quality) | Pollen, particulates, smog | 7 features |
-| [Lifestyle](./lifestyle) | Daily life decisions | 12 features |
-| [Energy](./energy) | Solar and wind energy | 3 features |
+| [Weather Alerts](./weather-alerts) | Dangerous weather conditions | 22 alerts |
+| [Air Quality](./air-quality) | Pollen, particulates, smog | 10 features |
+| [Lifestyle](./lifestyle) | Daily life decisions | 17 features |
+| [Energy](./energy) | Solar and wind energy | 5 features |
 | [Flood](./flood) | River discharge and flood risk | 3 features |
 | [Marine](./marine) | Waves, currents, coastal hazards | 3 features |
-| [Insights](./insights) | Trends, forecasts, model comparison | 5 features |
+| [Insights](./insights) | Trends, forecasts, model comparison | 8 features |
 
 ## Feature Reference
 
@@ -50,6 +50,8 @@ Every feature creates one or more Home Assistant entities. The table below shows
 | Shower | Off | Warns about sudden convective showers | Forecast, Ensemble |
 | FireRisk | Off | Warns about wildfire risk conditions | Forecast, Ensemble |
 | CoastalFlood | Off | Warns about storm surge risk | Marine, Forecast, Ensemble |
+| CompoundHeatStress | Off | Compound heat and air quality stress | Forecast, AirQuality |
+| MigraineRisk | Off | Weather-triggered migraine risk from pressure and temperature changes | Forecast |
 
 ### Air Quality
 
@@ -62,6 +64,8 @@ Every feature creates one or more Home Assistant entities. The table below shows
 | SmogRisk | Off | Warns when low mixing layer traps pollution | Forecast, AirQuality |
 | RagweedPollen | Off | Ragweed pollen concentration sensor | AirQuality |
 | GranularAqi | Off | Per-pollutant European AQI sub-indices | AirQuality |
+| AllergySeverity | Off | Combined allergy severity score with weather amplifiers | Forecast, AirQuality |
+| AsthmaRisk | Off | Asthma risk score from PM2.5, ozone, pollen and weather | Forecast, AirQuality |
 
 ### Lifestyle
 
@@ -79,6 +83,10 @@ Every feature creates one or more Home Assistant entities. The table below shows
 | Evapotranspiration | Off | Guides daily irrigation needs | Forecast |
 | SnowDepthWatch | Off | Reports snow accumulation depth | Forecast |
 | ElevatedWind | Off | Reports hub-height wind for wind energy | Forecast |
+| SleepQuality | Off | Sleep condition score for the coming night | Forecast, AirQuality |
+| SprayWindow | Off | Optimal spray windows based on wind, rain, temperature | Forecast |
+| IrrigationNeed | Off | Irrigation advice from evapotranspiration and soil moisture | Forecast |
+| FrostDepth | Off | Frost penetration depth estimate | Forecast |
 
 ### Energy
 
@@ -87,6 +95,8 @@ Every feature creates one or more Home Assistant entities. The table below shows
 | SolarYield | Off | Forecasts solar panel energy output | Forecast |
 | SatelliteRadiation | Off | Blends satellite observations with forecast | Satellite |
 | ElevatedWind | Off | 80 m and 120 m wind data for wind turbines | Forecast |
+| HeatPumpCop | Off | Heat pump COP estimate from outdoor temperature | Forecast |
+| SolarBatteryStrategy | Off | Battery charge vs feed-in strategy based on solar forecast | Forecast, Satellite |
 
 ### Flood
 
@@ -113,6 +123,9 @@ Every feature creates one or more Home Assistant entities. The table below shows
 | SeasonalOutlook | Off | Monthly temperature and precipitation outlook | Seasonal |
 | FrontApproaching | Off | Detects approaching weather fronts | Forecast |
 | GrowingDegree | Off | Accumulates growing degree days for farming | Forecast |
+| InversionDetection | Off | Temperature inversion detection using multi-level data | Forecast |
+| AtmosphericStability | Off | Convective potential from CAPE, CIN and Lifted Index | Forecast |
+| CloudCeiling | Off | Cloud base height estimate from layer cloud cover | Forecast |
 
 ## How Features Work
 

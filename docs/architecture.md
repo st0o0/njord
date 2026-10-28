@@ -22,14 +22,14 @@ Each poll cycle fetches the domains that the enabled [features](/configuration/#
 | **Seasonal** | Seasonal | Monthly temperature and precipitation anomalies for the next 3-6 months |
 | **Satellite** | Satellite Archive | Observed solar irradiance (GHI, direct, diffuse, DNI, tilted) for blending with the forecast |
 
-Forecast and Ensemble are separate domains that poll independently. The Forecast domain delivers the primary forecast values; the Ensemble domain delivers uncertainty data and optional model comparison. Features that need confidence (9 of the 20 weather alerts) declare Ensemble in their requirements; features that don't need it use a fixed Medium confidence.
+Forecast and Ensemble are separate domains that poll independently. The Forecast domain delivers the primary forecast values; the Ensemble domain delivers uncertainty data and optional model comparison. Features that need confidence (9 of the 22 weather alerts) declare Ensemble in their requirements; features that don't need it use a fixed Medium confidence.
 
 ## Three-zone design (7 domains)
 
 <likec4-view view-id="internals"></likec4-view>
 
 - **Ingest**: `OpenMeteoGateway` routes each domain request to its client (`ForecastClient`, `EnsembleClient`, `AirQualityClient`, `FloodClient`, `MarineClient`, `SeasonalClient`, `SatelliteRadiationClient`) and rate-limits against the budget. Clients build requests and parse responses. They know nothing about gRPC or Home Assistant.
-- **Domain**: `PollManager`, one `PollWorker` per location (cluster sharding), `ForecastPipeline` with the `FeatureEngine`, `BudgetTracker` and the 58 feature rules (`Njord.Features`).
+- **Domain**: `PollManager`, one `PollWorker` per location (cluster sharding), `ForecastPipeline` with the `FeatureEngine`, `BudgetTracker` and the 66 feature rules (`Njord.Features`).
 - **Consumers**: `GrpcConsumer` behind the gRPC API. They attach to the pipeline via SourceRef and know nothing about Open-Meteo.
 
 Ingest and consumers never reference each other; all data flows through the domain model.
@@ -53,7 +53,7 @@ A feature rule declares its required domains and fields in a `FeatureDescriptor`
 
 | Group | Domains | Rules |
 |-------|---------|-------|
-| Weather alerts | Forecast (+ Ensemble for confidence) | 20 alerts: frost, heat, storm, heavy rain, UV, fog, snow, pressure drop, thunderstorm, ice, wind chill, visibility, tropical night, humidity, rain probability, wet-bulb danger, clear-sky UV, shower, snow depth, fire risk |
+| Weather alerts | Forecast (+ Ensemble for confidence) | 22 alerts: frost, heat, storm, heavy rain, UV, fog, snow, pressure drop, thunderstorm, ice, wind chill, visibility, tropical night, humidity, rain probability, wet-bulb danger, clear-sky UV, shower, snow depth, fire risk, compound heat stress, migraine risk |
 | Air quality alerts | Air Quality (+ Forecast for SmogRisk) | Pollen, PM2.5, Dust, SmogRisk, PollenBlast |
 | Flood alerts | Flood (+ Forecast for FloodRain) | FloodRisk, FloodRain |
 | Marine alerts | Marine (+ Forecast for CoastalFlood) | Swimming, CoastalFlood |
@@ -61,7 +61,7 @@ A feature rule declares its required domains and fields in a `FeatureDescriptor`
 | Conditions | Various | SoilMoisture, Evapotranspiration, Gardening, Ventilation, NightVentilation, SurfConditions, OceanCurrents, SnowDepthWatch, PollenTrend, ElevatedWind |
 | Trends and forecasts | Various | ConfidenceTrend, FrontApproaching, ModelComparison, SeasonalOutlook, GrowingDegree, SolarYield, SatelliteRadiation |
 
-58 feature rules across 8 categories. Every feature result reaches gRPC consumers as an `EnrichmentEvent` whose `feature` oneof case identifies the result type.
+66 feature rules across 7 categories. Every feature result reaches gRPC consumers as an `EnrichmentEvent` whose `feature` oneof case identifies the result type.
 
 ## gRPC services
 

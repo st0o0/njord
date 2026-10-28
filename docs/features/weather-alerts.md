@@ -1,6 +1,6 @@
 # Weather Alerts
 
-njord includes 20 weather alert features. Each creates a `binary_sensor` in Home Assistant that turns **on** when the condition is detected, and carries severity, confidence, and timing attributes. Alerts fire on the deterministic forecast from the Forecast API and optionally use the Ensemble API for confidence.
+njord includes 22 weather alert features. Each creates a `binary_sensor` in Home Assistant that turns **on** when the condition is detected, and carries severity, confidence, and timing attributes. Alerts fire on the deterministic forecast from the Forecast API and optionally use the Ensemble API for confidence.
 
 ## How Weather Alerts Work
 
