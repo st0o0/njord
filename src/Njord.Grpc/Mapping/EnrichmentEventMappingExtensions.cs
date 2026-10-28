@@ -322,6 +322,24 @@ internal static class EnrichmentEventMappingExtensions
             UpdatedAt = now.ToTimestamp(),
             SolarBatteryStrategy = r.ToProto(),
         },
+        IrrigationNeedConditionResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            IrrigationNeed = r.ToProto(),
+        },
+        FrostDepthConditionResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            FrostDepth = r.ToProto(),
+        },
+        SprayWindowScoreResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            SprayWindow = r.ToProto(),
+        },
         SolarYieldResult r => new EnrichmentEvent
         {
             Location = r.Location.Name,

@@ -146,7 +146,7 @@ SHARD REGIONS (Sharded Entity)
   (spread-only: 1 call), every other required domain 1.
 - **Per-domain forecast days.** `Njord:AirQuality` (5, max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92,
   max 210) next to `Njord:Weather`.
-- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Category>:<Name>` (60 features; categories see
+- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Category>:<Name>` (63 features; categories see
   `docs/data/features.json`; env `Njord__Features__<Category>__<Name>__Enabled`). 18 are on by default: the 14
   weather alerts (`Weather:Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`, `PressureDrop`, `Thunderstorm`,
   `Ice`, `WindChill`, `Visibility`, `TropicalNight`, `Humidity`), `Lifestyle:Commute`, `AirQuality:Pollen`,

@@ -169,6 +169,38 @@ internal static class FeatureResultMappingExtensions
         };
     }
 
+    public static V2.IrrigationNeedCondition ToProto(this IrrigationNeedConditionResult r)
+    {
+        return new V2.IrrigationNeedCondition
+        {
+            Condition = new V2.ConditionData(),
+            Advice = r.Advice,
+            SoilMoisturePercent = r.SoilMoisturePercent,
+            RainExpectedMm = r.RainExpectedMm,
+            EtMm = r.EtMm,
+        };
+    }
+
+    public static V2.FrostDepthCondition ToProto(this FrostDepthConditionResult r)
+    {
+        return new V2.FrostDepthCondition
+        {
+            Condition = new V2.ConditionData(),
+            DepthCm = r.DepthCm,
+            Risk = r.Risk,
+            SnowInsulationCm = r.SnowInsulationCm,
+            SoilTemperatureC = r.SoilTemperatureC,
+        };
+    }
+
+    public static V2.SprayWindowScore ToProto(this SprayWindowScoreResult r)
+    {
+        return new V2.SprayWindowScore
+        {
+            Score = r.ToData(),
+        };
+    }
+
     public static V2.SolarYield ToProto(this SolarYieldResult r)
     {
         return new V2.SolarYield

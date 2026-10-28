@@ -489,6 +489,48 @@
     "optionalWeatherParams": ["SunshineDuration"]
   },
   {
+    "key": "Lifestyle:IrrigationNeed",
+    "name": "IrrigationNeed",
+    "category": "Lifestyle",
+    "output": "Condition",
+    "description": "Advises whether the garden needs watering from evapotranspiration, soil moisture and expected rain",
+    "longDescription": "Compares the evapotranspiration of the next 24 hours with the probability-weighted rain and the current soil moisture. Advises skip when more than 5 mm of likely rain is coming, soil_wet when the soil is above the wet threshold, water when evapotranspiration exceeds the expected rain and the soil is dry, and reduce when some rain is expected.",
+    "entities": ["sensor.{location}_irrigation_need"],
+    "automationExample": "Start the irrigation system when the advice is water",
+    "enabledByDefault": false,
+    "domains": ["Forecast"],
+    "weatherParams": ["Evapotranspiration", "SoilMoisture0To1cm", "VapourPressureDeficit", "Rain", "PrecipitationProbability", "Temperature"],
+    "options": [{ "name": "WetThresholdPercent", "type": "number", "default": 60 }, { "name": "DryThresholdPercent", "type": "number", "default": 25 }]
+  },
+  {
+    "key": "Lifestyle:FrostDepth",
+    "name": "FrostDepth",
+    "category": "Lifestyle",
+    "output": "Condition",
+    "description": "Estimates how deep the ground frost reaches over the next 48 hours",
+    "longDescription": "Uses a simplified Stefan model, depth = 2.4 x sqrt(freezing degree hours), reduced by snow insulation and increased by wind (capped at 1.5x). Reports none, surface (under 5 cm), shallow (5 to 15 cm), moderate (15 to 30 cm) or deep (over 30 cm, or within 80 percent of the configured pipe depth).",
+    "entities": ["sensor.{location}_frost_depth"],
+    "automationExample": "Notify to drain outdoor pipes when the frost depth risk is deep",
+    "enabledByDefault": false,
+    "domains": ["Forecast"],
+    "weatherParams": ["Temperature", "SoilTemperature", "SnowDepth", "WindSpeed"],
+    "options": [{ "name": "PipeDepthCm", "type": "number", "default": 60 }]
+  },
+  {
+    "key": "Lifestyle:SprayWindow",
+    "name": "SprayWindow",
+    "category": "Lifestyle",
+    "output": "Score",
+    "description": "Finds the best windows for spraying crops or plants",
+    "longDescription": "Scores each hour for spraying: wind at or below the limit (40 points) and no rain or rain probability of 20 percent or more within the rain-free hours (30 points) are mandatory, temperature within the range (20 points) and humidity of 40 to 80 percent (10 points) scale down outside their range. Returns the best windows of the next 24 hours.",
+    "entities": ["sensor.{location}_spray_window"],
+    "automationExample": "Notify when a calm, dry spraying window starts",
+    "enabledByDefault": false,
+    "domains": ["Forecast"],
+    "weatherParams": ["WindSpeed", "Rain", "PrecipitationProbability", "Temperature", "Humidity"],
+    "options": [{ "name": "MaxWindSpeed", "type": "number", "default": 3 }, { "name": "RainFreeHours", "type": "number", "default": 4 }, { "name": "MinTemp", "type": "number", "default": 10 }, { "name": "MaxTemp", "type": "number", "default": 25 }, { "name": "MinWindowScore", "type": "number", "default": 80 }, { "name": "MinWindowHours", "type": "number", "default": 2 }, { "name": "MaxWindows", "type": "number", "default": 3 }]
+  },
+  {
     "key": "Lifestyle:Outdoor",
     "name": "Outdoor",
     "category": "Lifestyle",

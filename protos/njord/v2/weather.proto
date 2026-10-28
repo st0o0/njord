@@ -307,6 +307,8 @@ message EnrichmentEvent {
     ElevatedWindCondition elevated_wind = 75;
     HeatPumpCopCondition heat_pump_cop = 76;
     SolarBatteryStrategyCondition solar_battery_strategy = 77;
+    IrrigationNeedCondition irrigation_need = 78;
+    FrostDepthCondition frost_depth = 79;
     Bbq bbq = 50;
     Laundry laundry = 51;
     Outdoor outdoor = 52;
@@ -315,6 +317,7 @@ message EnrichmentEvent {
     MigraineRiskAlert migraine_risk = 55;
     SleepQualityScore sleep_quality = 56;
     AsthmaRiskScore asthma_risk = 57;
+    SprayWindowScore spray_window = 58;
     CommuteSafety commute_safety = 60;
     VentilationWindow ventilation_window = 61;
     NightVentilation night_ventilation = 62;
@@ -733,6 +736,10 @@ message Laundry {
   ScoreData score = 1;
 }
 
+message SprayWindowScore {
+  ScoreData score = 1;
+}
+
 message Outdoor {
   ScoreData score = 1;
 }
@@ -797,6 +804,22 @@ message SolarBatteryStrategyCondition {
   string strategy = 2;
   double today_kwh = 3;
   double tomorrow_kwh_estimate = 4;
+}
+
+message IrrigationNeedCondition {
+  ConditionData condition = 1;
+  string advice = 2;
+  double soil_moisture_percent = 3;
+  double rain_expected_mm = 4;
+  double et_mm = 5;
+}
+
+message FrostDepthCondition {
+  ConditionData condition = 1;
+  double depth_cm = 2;
+  string risk = 3;
+  double snow_insulation_cm = 4;
+  double soil_temperature_c = 5;
 }
 
 message SolarYield {

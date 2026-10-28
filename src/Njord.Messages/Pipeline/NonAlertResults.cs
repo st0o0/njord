@@ -5,6 +5,7 @@ using Njord.Messages.Alerts;
 namespace Njord.Messages.Pipeline;
 
 public sealed record BbqScoreResult(Location Location, int Score, DateTimeOffset BestStart, int BestHours) : ScoreFeatureResult(Location, Score, BestStart, BestHours);
+public sealed record SprayWindowScoreResult(Location Location, int Score, DateTimeOffset BestStart, int BestHours) : ScoreFeatureResult(Location, Score, BestStart, BestHours);
 public sealed record LaundryScoreResult(Location Location, int Score, DateTimeOffset BestStart, int BestHours) : ScoreFeatureResult(Location, Score, BestStart, BestHours);
 public sealed record AllergySeverityScoreResult(Location Location, int Score, DateTimeOffset BestStart, int BestHours) : ScoreFeatureResult(Location, Score, BestStart, BestHours);
 public sealed record SleepQualityScoreResult(Location Location, int Score, DateTimeOffset BestStart, int BestHours) : ScoreFeatureResult(Location, Score, BestStart, BestHours);
@@ -27,6 +28,10 @@ public sealed record FloodTimelineResult(Location Location, FloodStatus Status, 
 public sealed record HeatPumpCopConditionResult(Location Location, double Cop, string Recommendation, double BestCop, int BestHour) : ConditionFeatureResult(Location);
 
 public sealed record SolarBatteryStrategyConditionResult(Location Location, string Strategy, double TodayKwh, double TomorrowKwhEstimate) : ConditionFeatureResult(Location);
+
+public sealed record IrrigationNeedConditionResult(Location Location, string Advice, double SoilMoisturePercent, double RainExpectedMm, double EtMm) : ConditionFeatureResult(Location);
+
+public sealed record FrostDepthConditionResult(Location Location, double DepthCm, string Risk, double SnowInsulationCm, double SoilTemperatureC) : ConditionFeatureResult(Location);
 
 public sealed record SolarYieldResult(Location Location, double KwhPerKwp, int PeakHour) : ConditionFeatureResult(Location);
 

@@ -447,6 +447,41 @@ public sealed class EnrichmentEventMappingsTests
     }
 
     [Fact]
+    public void Irrigation_need_maps_to_the_irrigation_need_case()
+    {
+        var evt = Map(new IrrigationNeedConditionResult(Lucerne, "water", 18.5, 0.4, 3.2));
+
+        Assert.Equal(Case.IrrigationNeed, evt.FeatureCase);
+        Assert.Multiple(
+            () => Assert.Equal("water", evt.IrrigationNeed.Advice),
+            () => Assert.Equal(18.5, evt.IrrigationNeed.SoilMoisturePercent),
+            () => Assert.Equal(0.4, evt.IrrigationNeed.RainExpectedMm),
+            () => Assert.Equal(3.2, evt.IrrigationNeed.EtMm));
+    }
+
+    [Fact]
+    public void Frost_depth_maps_to_the_frost_depth_case()
+    {
+        var evt = Map(new FrostDepthConditionResult(Lucerne, 22.5, "moderate", 4.0, -1.5));
+
+        Assert.Equal(Case.FrostDepth, evt.FeatureCase);
+        Assert.Multiple(
+            () => Assert.Equal(22.5, evt.FrostDepth.DepthCm),
+            () => Assert.Equal("moderate", evt.FrostDepth.Risk),
+            () => Assert.Equal(4.0, evt.FrostDepth.SnowInsulationCm),
+            () => Assert.Equal(-1.5, evt.FrostDepth.SoilTemperatureC));
+    }
+
+    [Fact]
+    public void Spray_window_scores_map_to_the_spray_window_case()
+    {
+        var evt = Map(new SprayWindowScoreResult(Lucerne, 90, Anchor, 3));
+
+        Assert.Equal(Case.SprayWindow, evt.FeatureCase);
+        AssertScore(evt.SprayWindow.Score, 90);
+    }
+
+    [Fact]
     public void Solar_battery_strategy_maps_to_the_solar_battery_strategy_case()
     {
         var evt = Map(new SolarBatteryStrategyConditionResult(Lucerne, "feed_in", 12.5, 20.1));
