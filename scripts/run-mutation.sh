@@ -38,7 +38,7 @@ run_stryker() {
     (
       cd "$root/src/$tests"
       dotnet tool restore --tool-manifest "$root/.config/dotnet-tools.json" >/dev/null
-      dotnet dotnet-stryker $args
+      dotnet stryker $args
     )
   else
     MSYS_NO_PATHCONV=1 docker run --rm -v "$(cd "$root" && (pwd -W 2>/dev/null || pwd)):/repo" -w "/repo/src/$tests" \
