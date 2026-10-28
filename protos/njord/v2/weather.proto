@@ -340,10 +340,39 @@ message AlertData {
   ConfidenceLevel confidence_level = 8;
 }
 
+enum LimitingKind {
+  LIMITING_KIND_UNSPECIFIED = 0;
+  LIMITING_KIND_RAIN = 1;
+  LIMITING_KIND_UV = 2;
+  LIMITING_KIND_WIND = 3;
+  LIMITING_KIND_TEMPERATURE_HIGH = 4;
+  LIMITING_KIND_TEMPERATURE_LOW = 5;
+  LIMITING_KIND_HUMIDITY = 6;
+  LIMITING_KIND_POLLEN = 7;
+  LIMITING_KIND_AIR_QUALITY = 8;
+  LIMITING_KIND_VISIBILITY = 9;
+  LIMITING_KIND_THUNDERSTORM = 10;
+  LIMITING_KIND_DARKNESS = 11;
+}
+
+message LimitingFactor {
+  LimitingKind kind = 1;
+  google.protobuf.Timestamp from = 2;
+  double value = 3;
+}
+
+message TimeWindow {
+  google.protobuf.Timestamp start = 1;
+  google.protobuf.Timestamp end = 2;
+  int32 score = 3;
+  LimitingFactor limiting = 4;
+}
+
 message ScoreData {
   int32 score = 1;
   google.protobuf.Timestamp best_start = 2;
   int32 best_hours = 3;
+  repeated TimeWindow windows = 4;
 }
 
 message ConditionData {}

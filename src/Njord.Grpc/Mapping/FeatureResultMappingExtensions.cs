@@ -5,12 +5,21 @@ namespace Njord.Grpc.Mapping;
 
 internal static class FeatureResultMappingExtensions
 {
-    public static V2.ScoreData ToData(this ScoreFeatureResult r) => new()
+    public static V2.ScoreData ToData(this ScoreFeatureResult r)
     {
-        Score = r.Score,
-        BestStart = r.BestStart.ToTimestamp(),
-        BestHours = r.BestHours,
-    };
+        var data = new V2.ScoreData
+        {
+            Score = r.Score,
+            BestStart = r.BestStart.ToTimestamp(),
+            BestHours = r.BestHours,
+        };
+        foreach (var window in r.Windows)
+        {
+            data.Windows.Add(window.ToProto());
+        }
+
+        return data;
+    }
 
     public static V2.Bbq ToProto(this BbqScoreResult r)
     {

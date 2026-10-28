@@ -19,7 +19,10 @@ public abstract record ScoreFeatureResult(
     Location Location,
     int Score,
     DateTimeOffset BestStart,
-    int BestHours) : FeatureResult(Location);
+    int BestHours) : FeatureResult(Location)
+{
+    public IReadOnlyList<ActivityWindow> Windows { get; init; } = [];
+}
 
 public abstract record ConditionFeatureResult(Location Location) : FeatureResult(Location);
 

@@ -33,15 +33,20 @@ public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<F
         }
 
         var scores = hours.Select(ScoreHour).ToList();
+        var windows = WindowScanner.Scan(
+            [.. hours.Select((hour, i) => new HourlyScore(hour.ValidFrom, scores[i]))],
+            config.Value.MinWindowScore,
+            config.Value.MinWindowHours,
+            config.Value.MaxWindows);
         var (start, length) = Scoring.LongestRun([.. scores.Select(score => score >= GoodHourScore)]);
         if (length == 0)
         {
             var bestIndex = scores.IndexOf(scores.Max());
-            return new LaundryScoreResult(ctx.Location, (int)Math.Round(scores[bestIndex]), hours[bestIndex].ValidFrom, 0);
+            return new LaundryScoreResult(ctx.Location, (int)Math.Round(scores[bestIndex]), hours[bestIndex].ValidFrom, 0) { Windows = windows };
         }
 
         var windowScore = scores.Skip(start).Take(length).Average();
-        return new LaundryScoreResult(ctx.Location, (int)Math.Round(windowScore), hours[start].ValidFrom, length);
+        return new LaundryScoreResult(ctx.Location, (int)Math.Round(windowScore), hours[start].ValidFrom, length) { Windows = windows };
     }
 
     private static double ScoreHour(ForecastPoint point)
