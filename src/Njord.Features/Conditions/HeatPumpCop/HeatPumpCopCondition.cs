@@ -7,10 +7,6 @@ namespace Njord.Features.Conditions.HeatPumpCop;
 
 public sealed class HeatPumpCopCondition(IOptions<HeatPumpCopConfig> config) : FeatureRule<ForecastInput>
 {
-    public const string Ideal = "ideal";
-    public const string Normal = "normal";
-    public const string Inefficient = "inefficient";
-    public const string Avoid = "avoid";
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
@@ -49,11 +45,11 @@ public sealed class HeatPumpCopCondition(IOptions<HeatPumpCopConfig> config) : F
     public static double CopAt(double targetTemperature, double outsideTemperature) =>
         Math.Max(1.0, 6.81 - 0.121 * (targetTemperature - outsideTemperature));
 
-    public static string Recommend(double cop) => cop switch
+    public static HeatPumpRecommendation Recommend(double cop) => cop switch
     {
-        > 4.0 => Ideal,
-        >= 2.5 => Normal,
-        >= 1.5 => Inefficient,
-        _ => Avoid,
+        > 4.0 => HeatPumpRecommendation.Ideal,
+        >= 2.5 => HeatPumpRecommendation.Normal,
+        >= 1.5 => HeatPumpRecommendation.Inefficient,
+        _ => HeatPumpRecommendation.Avoid,
     };
 }

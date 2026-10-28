@@ -25,19 +25,19 @@ public sealed record GardeningResult(Location Location, GardeningAdvice Advice, 
 
 public sealed record FloodTimelineResult(Location Location, FloodStatus Status, DateTimeOffset PeakTime, double PeakDischarge, int DaysAboveWarning) : ConditionFeatureResult(Location);
 
-public sealed record HeatPumpCopConditionResult(Location Location, double Cop, string Recommendation, double BestCop, int BestHour) : ConditionFeatureResult(Location);
+public sealed record HeatPumpCopConditionResult(Location Location, double Cop, HeatPumpRecommendation Recommendation, double BestCop, int BestHour) : ConditionFeatureResult(Location);
 
-public sealed record SolarBatteryStrategyConditionResult(Location Location, string Strategy, double TodayKwh, double TomorrowKwhEstimate) : ConditionFeatureResult(Location);
+public sealed record SolarBatteryStrategyConditionResult(Location Location, BatteryStrategy Strategy, double TodayKwh, double TomorrowKwhEstimate) : ConditionFeatureResult(Location);
 
-public sealed record IrrigationNeedConditionResult(Location Location, string Advice, double SoilMoisturePercent, double RainExpectedMm, double EtMm) : ConditionFeatureResult(Location);
+public sealed record IrrigationNeedConditionResult(Location Location, IrrigationAdvice Advice, double SoilMoisturePercent, double RainExpectedMm, double EtMm) : ConditionFeatureResult(Location);
 
-public sealed record FrostDepthConditionResult(Location Location, double DepthCm, string Risk, double SnowInsulationCm, double SoilTemperatureC) : ConditionFeatureResult(Location);
+public sealed record FrostDepthConditionResult(Location Location, double DepthCm, FrostDepthRisk Risk, double SnowInsulationCm, double SoilTemperatureC) : ConditionFeatureResult(Location);
 
-public sealed record InversionDetectionConditionResult(Location Location, string Strength, string InversionType, double TemperatureDifferenceC, double BoundaryLayerHeightM) : ConditionFeatureResult(Location);
+public sealed record InversionDetectionConditionResult(Location Location, InversionStrength Strength, InversionType InversionType, double TemperatureDifferenceC, double BoundaryLayerHeightM) : ConditionFeatureResult(Location);
 
-public sealed record AtmosphericStabilityConditionResult(Location Location, string StabilityClass, double CapeJPerKg, double CinJPerKg, double LiftedIndex) : ConditionFeatureResult(Location);
+public sealed record AtmosphericStabilityConditionResult(Location Location, StabilityClass StabilityClass, double CapeJPerKg, double CinJPerKg, double LiftedIndex) : ConditionFeatureResult(Location);
 
-public sealed record CloudCeilingConditionResult(Location Location, string CeilingCategory, int EstimatedCeilingM, int CloudCoverLowPercent, int CloudCoverMidPercent, int CloudCoverHighPercent) : ConditionFeatureResult(Location);
+public sealed record CloudCeilingConditionResult(Location Location, CeilingCategory CeilingCategory, int EstimatedCeilingM, int CloudCoverLowPercent, int CloudCoverMidPercent, int CloudCoverHighPercent) : ConditionFeatureResult(Location);
 
 public sealed record SolarYieldResult(Location Location, double KwhPerKwp, int PeakHour) : ConditionFeatureResult(Location);
 

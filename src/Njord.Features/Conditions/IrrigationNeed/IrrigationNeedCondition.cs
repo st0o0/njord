@@ -7,10 +7,6 @@ namespace Njord.Features.Conditions.IrrigationNeed;
 
 public sealed class IrrigationNeedCondition(IOptions<IrrigationNeedConfig> config) : FeatureRule<ForecastInput>
 {
-    public const string Water = "water";
-    public const string Skip = "skip";
-    public const string Reduce = "reduce";
-    public const string SoilWet = "soil_wet";
 
     public const double HeavyRainMm = 5.0;
     public const double HighProbabilityPercent = 60.0;
@@ -56,23 +52,23 @@ public sealed class IrrigationNeedCondition(IOptions<IrrigationNeedConfig> confi
             Math.Round(etMm, 2));
     }
 
-    private static string Advise(double moisturePercent, double etMm, double rainMm, double expectedRainMm, double averageProbability, IrrigationNeedConfig options)
+    private static IrrigationAdvice Advise(double moisturePercent, double etMm, double rainMm, double expectedRainMm, double averageProbability, IrrigationNeedConfig options)
     {
         if (rainMm > HeavyRainMm && averageProbability > HighProbabilityPercent)
         {
-            return Skip;
+            return IrrigationAdvice.Skip;
         }
 
         if (moisturePercent > options.WetThresholdPercent)
         {
-            return SoilWet;
+            return IrrigationAdvice.SoilWet;
         }
 
         if (etMm > expectedRainMm && moisturePercent < options.DryThresholdPercent)
         {
-            return Water;
+            return IrrigationAdvice.Water;
         }
 
-        return expectedRainMm > 0.0 ? Reduce : Skip;
+        return expectedRainMm > 0.0 ? IrrigationAdvice.Reduce : IrrigationAdvice.Skip;
     }
 }

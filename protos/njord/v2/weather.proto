@@ -794,24 +794,91 @@ message FloodTimeline {
   int32 days_above_warning = 5;
 }
 
+enum HeatPumpRecommendation {
+  HEAT_PUMP_RECOMMENDATION_UNSPECIFIED = 0;
+  HEAT_PUMP_RECOMMENDATION_IDEAL = 1;
+  HEAT_PUMP_RECOMMENDATION_NORMAL = 2;
+  HEAT_PUMP_RECOMMENDATION_INEFFICIENT = 3;
+  HEAT_PUMP_RECOMMENDATION_AVOID = 4;
+}
+
+enum BatteryStrategy {
+  BATTERY_STRATEGY_UNSPECIFIED = 0;
+  BATTERY_STRATEGY_FEED_IN = 1;
+  BATTERY_STRATEGY_CHARGE_BATTERY = 2;
+  BATTERY_STRATEGY_CONSERVE = 3;
+  BATTERY_STRATEGY_NORMAL = 4;
+}
+
+enum IrrigationAdvice {
+  IRRIGATION_ADVICE_UNSPECIFIED = 0;
+  IRRIGATION_ADVICE_WATER = 1;
+  IRRIGATION_ADVICE_SKIP = 2;
+  IRRIGATION_ADVICE_REDUCE = 3;
+  IRRIGATION_ADVICE_SOIL_WET = 4;
+}
+
+enum FrostDepthRisk {
+  FROST_DEPTH_RISK_UNSPECIFIED = 0;
+  FROST_DEPTH_RISK_NONE = 1;
+  FROST_DEPTH_RISK_SURFACE = 2;
+  FROST_DEPTH_RISK_SHALLOW = 3;
+  FROST_DEPTH_RISK_MODERATE = 4;
+  FROST_DEPTH_RISK_DEEP = 5;
+}
+
+enum InversionStrength {
+  INVERSION_STRENGTH_UNSPECIFIED = 0;
+  INVERSION_STRENGTH_NONE = 1;
+  INVERSION_STRENGTH_MILD = 2;
+  INVERSION_STRENGTH_STRONG = 3;
+  INVERSION_STRENGTH_EXTREME = 4;
+}
+
+enum InversionType {
+  INVERSION_TYPE_UNSPECIFIED = 0;
+  INVERSION_TYPE_RADIATION = 1;
+  INVERSION_TYPE_SUBSIDENCE = 2;
+  INVERSION_TYPE_FRONTAL = 3;
+}
+
+enum StabilityClass {
+  STABILITY_CLASS_UNSPECIFIED = 0;
+  STABILITY_CLASS_STABLE = 1;
+  STABILITY_CLASS_MARGINAL = 2;
+  STABILITY_CLASS_CAPPED = 3;
+  STABILITY_CLASS_UNSTABLE = 4;
+  STABILITY_CLASS_EXPLOSIVE = 5;
+}
+
+enum CeilingCategory {
+  CEILING_CATEGORY_UNSPECIFIED = 0;
+  CEILING_CATEGORY_VERY_LOW = 1;
+  CEILING_CATEGORY_LOW = 2;
+  CEILING_CATEGORY_MODERATE = 3;
+  CEILING_CATEGORY_HIGH = 4;
+  CEILING_CATEGORY_VERY_HIGH = 5;
+  CEILING_CATEGORY_UNLIMITED = 6;
+}
+
 message HeatPumpCopCondition {
   ConditionData condition = 1;
   double cop = 2;
-  string recommendation = 3;
+  HeatPumpRecommendation recommendation = 3;
   double best_cop = 4;
   int32 best_hour = 5;
 }
 
 message SolarBatteryStrategyCondition {
   ConditionData condition = 1;
-  string strategy = 2;
+  BatteryStrategy strategy = 2;
   double today_kwh = 3;
   double tomorrow_kwh_estimate = 4;
 }
 
 message IrrigationNeedCondition {
   ConditionData condition = 1;
-  string advice = 2;
+  IrrigationAdvice advice = 2;
   double soil_moisture_percent = 3;
   double rain_expected_mm = 4;
   double et_mm = 5;
@@ -820,22 +887,22 @@ message IrrigationNeedCondition {
 message FrostDepthCondition {
   ConditionData condition = 1;
   double depth_cm = 2;
-  string risk = 3;
+  FrostDepthRisk risk = 3;
   double snow_insulation_cm = 4;
   double soil_temperature_c = 5;
 }
 
 message InversionDetectionCondition {
   ConditionData condition = 1;
-  string strength = 2;
-  string inversion_type = 3;
+  InversionStrength strength = 2;
+  InversionType inversion_type = 3;
   double temperature_difference_c = 4;
   double boundary_layer_height_m = 5;
 }
 
 message AtmosphericStabilityCondition {
   ConditionData condition = 1;
-  string stability_class = 2;
+  StabilityClass stability_class = 2;
   double cape_j_per_kg = 3;
   double cin_j_per_kg = 4;
   double lifted_index = 5;
@@ -843,7 +910,7 @@ message AtmosphericStabilityCondition {
 
 message CloudCeilingCondition {
   ConditionData condition = 1;
-  string ceiling_category = 2;
+  CeilingCategory ceiling_category = 2;
   int32 estimated_ceiling_m = 3;
   int32 cloud_cover_low_percent = 4;
   int32 cloud_cover_mid_percent = 5;

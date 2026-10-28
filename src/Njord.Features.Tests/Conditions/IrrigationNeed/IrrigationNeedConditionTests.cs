@@ -21,7 +21,7 @@ public sealed class IrrigationNeedConditionTests
         var result = Evaluate(p => p with { SoilMoisture0To1cm = 0.15, Evapotranspiration = 0.2, Rain = 0.0 });
 
         Assert.Multiple(
-            () => Assert.Equal(IrrigationNeedCondition.Water, result.Advice),
+            () => Assert.Equal(IrrigationAdvice.Water, result.Advice),
             () => Assert.Equal(15.0, result.SoilMoisturePercent),
             () => Assert.Equal(4.8, result.EtMm),
             () => Assert.Equal(0.0, result.RainExpectedMm));
@@ -32,7 +32,7 @@ public sealed class IrrigationNeedConditionTests
     {
         var result = Evaluate(p => p with { SoilMoisture0To1cm = 0.4, Evapotranspiration = 0.2, Rain = 0.0 });
 
-        Assert.Equal(IrrigationNeedCondition.Skip, result.Advice);
+        Assert.Equal(IrrigationAdvice.Skip, result.Advice);
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public sealed class IrrigationNeedConditionTests
     {
         var result = Evaluate(p => p with { SoilMoisture0To1cm = 0.7, Evapotranspiration = 0.1, Rain = 0.0 });
 
-        Assert.Equal(IrrigationNeedCondition.SoilWet, result.Advice);
+        Assert.Equal(IrrigationAdvice.SoilWet, result.Advice);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public sealed class IrrigationNeedConditionTests
         var result = Evaluate(p => p with { SoilMoisture0To1cm = 0.1, Evapotranspiration = 0.1, Rain = 0.5, PrecipitationProbability = 90.0 });
 
         Assert.Multiple(
-            () => Assert.Equal(IrrigationNeedCondition.Skip, result.Advice),
+            () => Assert.Equal(IrrigationAdvice.Skip, result.Advice),
             () => Assert.Equal(10.8, result.RainExpectedMm));
     }
 
@@ -58,7 +58,7 @@ public sealed class IrrigationNeedConditionTests
     {
         var result = Evaluate(p => p with { SoilMoisture0To1cm = 0.4, Evapotranspiration = 0.1, Rain = 0.1, PrecipitationProbability = 50.0 });
 
-        Assert.Equal(IrrigationNeedCondition.Reduce, result.Advice);
+        Assert.Equal(IrrigationAdvice.Reduce, result.Advice);
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public sealed class IrrigationNeedConditionTests
     {
         var result = Evaluate(p => p with { SoilMoisture0To1cm = 0.1, Evapotranspiration = 0.05, Rain = 0.1, PrecipitationProbability = 100.0 });
 
-        Assert.Equal(IrrigationNeedCondition.Reduce, result.Advice);
+        Assert.Equal(IrrigationAdvice.Reduce, result.Advice);
     }
 
     [Fact]

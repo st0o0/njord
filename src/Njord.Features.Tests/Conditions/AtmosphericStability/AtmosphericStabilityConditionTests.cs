@@ -25,25 +25,25 @@ public sealed class AtmosphericStabilityConditionTests
         var result = Assert.IsType<AtmosphericStabilityConditionResult>(Eval(2800, 20, -7));
 
         Assert.Multiple(
-            () => Assert.Equal(AtmosphericStabilityCondition.Explosive, result.StabilityClass),
+            () => Assert.Equal(StabilityClass.Explosive, result.StabilityClass),
             () => Assert.Equal(2800, result.CapeJPerKg),
             () => Assert.Equal(20, result.CinJPerKg),
             () => Assert.Equal(-7, result.LiftedIndex));
     }
 
     [Theory]
-    [InlineData(299, 0, 0, AtmosphericStabilityCondition.Stable)]
-    [InlineData(300, 0, -5, AtmosphericStabilityCondition.Marginal)]
-    [InlineData(999, 0, -5, AtmosphericStabilityCondition.Marginal)]
-    [InlineData(1000, 201, -5, AtmosphericStabilityCondition.Capped)]
-    [InlineData(1000, 200, -5, AtmosphericStabilityCondition.Marginal)]
-    [InlineData(1000, 50, -5, AtmosphericStabilityCondition.Marginal)]
-    [InlineData(1000, 49, -3.5, AtmosphericStabilityCondition.Unstable)]
-    [InlineData(1000, 49, -3, AtmosphericStabilityCondition.Marginal)]
-    [InlineData(2500, 49, -6.5, AtmosphericStabilityCondition.Explosive)]
-    [InlineData(2500, 49, -6, AtmosphericStabilityCondition.Unstable)]
-    [InlineData(2499, 49, -8, AtmosphericStabilityCondition.Unstable)]
-    public void Class_boundaries(double cape, double cin, double lifted, string expected)
+    [InlineData(299, 0, 0, StabilityClass.Stable)]
+    [InlineData(300, 0, -5, StabilityClass.Marginal)]
+    [InlineData(999, 0, -5, StabilityClass.Marginal)]
+    [InlineData(1000, 201, -5, StabilityClass.Capped)]
+    [InlineData(1000, 200, -5, StabilityClass.Marginal)]
+    [InlineData(1000, 50, -5, StabilityClass.Marginal)]
+    [InlineData(1000, 49, -3.5, StabilityClass.Unstable)]
+    [InlineData(1000, 49, -3, StabilityClass.Marginal)]
+    [InlineData(2500, 49, -6.5, StabilityClass.Explosive)]
+    [InlineData(2500, 49, -6, StabilityClass.Unstable)]
+    [InlineData(2499, 49, -8, StabilityClass.Unstable)]
+    public void Class_boundaries(double cape, double cin, double lifted, StabilityClass expected)
     {
         Assert.Equal(expected, AtmosphericStabilityCondition.Classify(cape, cin, lifted));
     }

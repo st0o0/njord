@@ -85,3 +85,70 @@ public enum PollenTrendDirection
     Rising,
     Falling,
 }
+
+public enum HeatPumpRecommendation
+{
+    Ideal,
+    Normal,
+    Inefficient,
+    Avoid,
+}
+
+public enum BatteryStrategy
+{
+    FeedIn,
+    ChargeBattery,
+    Conserve,
+    Normal,
+}
+
+public enum IrrigationAdvice
+{
+    Water,
+    Skip,
+    Reduce,
+    SoilWet,
+}
+
+public enum FrostDepthRisk
+{
+    None,
+    Surface,
+    Shallow,
+    Moderate,
+    Deep,
+}
+
+public enum InversionStrength
+{
+    None,
+    Mild,
+    Strong,
+    Extreme,
+}
+
+public enum InversionType
+{
+    Radiation,
+    Subsidence,
+    Frontal,
+}
+
+public enum StabilityClass
+{
+    Stable,
+    Marginal,
+    Capped,
+    Unstable,
+    Explosive,
+}
+
+public enum CeilingCategory
+{
+    VeryLow,
+    Low,
+    Moderate,
+    High,
+    VeryHigh,
+    Unlimited,
+}

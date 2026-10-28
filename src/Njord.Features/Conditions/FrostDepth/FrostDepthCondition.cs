@@ -7,11 +7,6 @@ namespace Njord.Features.Conditions.FrostDepth;
 
 public sealed class FrostDepthCondition(IOptions<FrostDepthConfig> config) : FeatureRule<ForecastInput>
 {
-    public const string None = "none";
-    public const string Surface = "surface";
-    public const string Shallow = "shallow";
-    public const string Moderate = "moderate";
-    public const string Deep = "deep";
 
     public const int ForecastHours = 48;
     public const double StefanAlpha = 2.4;
@@ -64,13 +59,13 @@ public sealed class FrostDepthCondition(IOptions<FrostDepthConfig> config) : Fea
         return StefanAlpha * Math.Sqrt(freezingDegreeHours) / (1.0 + snowDepthCm / 10.0) * wind;
     }
 
-    public static string RiskFor(double depthCm, double pipeDepthCm) => depthCm switch
+    public static FrostDepthRisk RiskFor(double depthCm, double pipeDepthCm) => depthCm switch
     {
-        <= 0.0 => None,
-        _ when pipeDepthCm > 0.0 && depthCm >= pipeDepthCm * PipeApproachFraction => Deep,
-        < 5.0 => Surface,
-        < 15.0 => Shallow,
-        < 30.0 => Moderate,
-        _ => Deep,
+        <= 0.0 => FrostDepthRisk.None,
+        _ when pipeDepthCm > 0.0 && depthCm >= pipeDepthCm * PipeApproachFraction => FrostDepthRisk.Deep,
+        < 5.0 => FrostDepthRisk.Surface,
+        < 15.0 => FrostDepthRisk.Shallow,
+        < 30.0 => FrostDepthRisk.Moderate,
+        _ => FrostDepthRisk.Deep,
     };
 }

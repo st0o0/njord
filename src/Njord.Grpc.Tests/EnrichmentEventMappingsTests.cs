@@ -436,12 +436,12 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Heat_pump_cop_maps_to_the_heat_pump_cop_case()
     {
-        var evt = Map(new HeatPumpCopConditionResult(Lucerne, 4.2, "ideal", 4.8, 14));
+        var evt = Map(new HeatPumpCopConditionResult(Lucerne, 4.2, HeatPumpRecommendation.Ideal, 4.8, 14));
 
         Assert.Equal(Case.HeatPumpCop, evt.FeatureCase);
         Assert.Multiple(
             () => Assert.Equal(4.2, evt.HeatPumpCop.Cop),
-            () => Assert.Equal("ideal", evt.HeatPumpCop.Recommendation),
+            () => Assert.Equal(V2.HeatPumpRecommendation.Ideal, evt.HeatPumpCop.Recommendation),
             () => Assert.Equal(4.8, evt.HeatPumpCop.BestCop),
             () => Assert.Equal(14, evt.HeatPumpCop.BestHour));
     }
@@ -449,11 +449,11 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Irrigation_need_maps_to_the_irrigation_need_case()
     {
-        var evt = Map(new IrrigationNeedConditionResult(Lucerne, "water", 18.5, 0.4, 3.2));
+        var evt = Map(new IrrigationNeedConditionResult(Lucerne, IrrigationAdvice.Water, 18.5, 0.4, 3.2));
 
         Assert.Equal(Case.IrrigationNeed, evt.FeatureCase);
         Assert.Multiple(
-            () => Assert.Equal("water", evt.IrrigationNeed.Advice),
+            () => Assert.Equal(V2.IrrigationAdvice.Water, evt.IrrigationNeed.Advice),
             () => Assert.Equal(18.5, evt.IrrigationNeed.SoilMoisturePercent),
             () => Assert.Equal(0.4, evt.IrrigationNeed.RainExpectedMm),
             () => Assert.Equal(3.2, evt.IrrigationNeed.EtMm));
@@ -462,12 +462,12 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Frost_depth_maps_to_the_frost_depth_case()
     {
-        var evt = Map(new FrostDepthConditionResult(Lucerne, 22.5, "moderate", 4.0, -1.5));
+        var evt = Map(new FrostDepthConditionResult(Lucerne, 22.5, FrostDepthRisk.Moderate, 4.0, -1.5));
 
         Assert.Equal(Case.FrostDepth, evt.FeatureCase);
         Assert.Multiple(
             () => Assert.Equal(22.5, evt.FrostDepth.DepthCm),
-            () => Assert.Equal("moderate", evt.FrostDepth.Risk),
+            () => Assert.Equal(V2.FrostDepthRisk.Moderate, evt.FrostDepth.Risk),
             () => Assert.Equal(4.0, evt.FrostDepth.SnowInsulationCm),
             () => Assert.Equal(-1.5, evt.FrostDepth.SoilTemperatureC));
     }
@@ -475,12 +475,12 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Inversion_detection_maps_to_the_inversion_detection_case()
     {
-        var evt = Map(new InversionDetectionConditionResult(Lucerne, "strong", "radiation", 2.5, 400));
+        var evt = Map(new InversionDetectionConditionResult(Lucerne, InversionStrength.Strong, InversionType.Radiation, 2.5, 400));
 
         Assert.Equal(Case.InversionDetection, evt.FeatureCase);
         Assert.Multiple(
-            () => Assert.Equal("strong", evt.InversionDetection.Strength),
-            () => Assert.Equal("radiation", evt.InversionDetection.InversionType),
+            () => Assert.Equal(V2.InversionStrength.Strong, evt.InversionDetection.Strength),
+            () => Assert.Equal(V2.InversionType.Radiation, evt.InversionDetection.InversionType),
             () => Assert.Equal(2.5, evt.InversionDetection.TemperatureDifferenceC),
             () => Assert.Equal(400, evt.InversionDetection.BoundaryLayerHeightM));
     }
@@ -488,11 +488,11 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Atmospheric_stability_maps_to_the_atmospheric_stability_case()
     {
-        var evt = Map(new AtmosphericStabilityConditionResult(Lucerne, "unstable", 1500, 20, -4));
+        var evt = Map(new AtmosphericStabilityConditionResult(Lucerne, StabilityClass.Unstable, 1500, 20, -4));
 
         Assert.Equal(Case.AtmosphericStability, evt.FeatureCase);
         Assert.Multiple(
-            () => Assert.Equal("unstable", evt.AtmosphericStability.StabilityClass),
+            () => Assert.Equal(V2.StabilityClass.Unstable, evt.AtmosphericStability.StabilityClass),
             () => Assert.Equal(1500, evt.AtmosphericStability.CapeJPerKg),
             () => Assert.Equal(20, evt.AtmosphericStability.CinJPerKg),
             () => Assert.Equal(-4, evt.AtmosphericStability.LiftedIndex));
@@ -501,11 +501,11 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Cloud_ceiling_maps_to_the_cloud_ceiling_case()
     {
-        var evt = Map(new CloudCeilingConditionResult(Lucerne, "low", 900, 80, 20, 10));
+        var evt = Map(new CloudCeilingConditionResult(Lucerne, CeilingCategory.Low, 900, 80, 20, 10));
 
         Assert.Equal(Case.CloudCeiling, evt.FeatureCase);
         Assert.Multiple(
-            () => Assert.Equal("low", evt.CloudCeiling.CeilingCategory),
+            () => Assert.Equal(V2.CeilingCategory.Low, evt.CloudCeiling.CeilingCategory),
             () => Assert.Equal(900, evt.CloudCeiling.EstimatedCeilingM),
             () => Assert.Equal(80, evt.CloudCeiling.CloudCoverLowPercent),
             () => Assert.Equal(20, evt.CloudCeiling.CloudCoverMidPercent),
@@ -524,11 +524,11 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Solar_battery_strategy_maps_to_the_solar_battery_strategy_case()
     {
-        var evt = Map(new SolarBatteryStrategyConditionResult(Lucerne, "feed_in", 12.5, 20.1));
+        var evt = Map(new SolarBatteryStrategyConditionResult(Lucerne, BatteryStrategy.FeedIn, 12.5, 20.1));
 
         Assert.Equal(Case.SolarBatteryStrategy, evt.FeatureCase);
         Assert.Multiple(
-            () => Assert.Equal("feed_in", evt.SolarBatteryStrategy.Strategy),
+            () => Assert.Equal(V2.BatteryStrategy.FeedIn, evt.SolarBatteryStrategy.Strategy),
             () => Assert.Equal(12.5, evt.SolarBatteryStrategy.TodayKwh),
             () => Assert.Equal(20.1, evt.SolarBatteryStrategy.TomorrowKwhEstimate));
     }

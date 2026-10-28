@@ -23,7 +23,7 @@ public sealed class FrostDepthConditionTests
 
         Assert.Multiple(
             () => Assert.Equal(0.0, result.DepthCm),
-            () => Assert.Equal(FrostDepthCondition.None, result.Risk),
+            () => Assert.Equal(FrostDepthRisk.None, result.Risk),
             () => Assert.Equal(6.0, result.SoilTemperatureC));
     }
 
@@ -34,7 +34,7 @@ public sealed class FrostDepthConditionTests
 
         Assert.Multiple(
             () => Assert.Equal(Math.Round(2.4 * Math.Sqrt(2.4), 1), result.DepthCm),
-            () => Assert.Equal(FrostDepthCondition.Surface, result.Risk));
+            () => Assert.Equal(FrostDepthRisk.Surface, result.Risk));
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public sealed class FrostDepthConditionTests
 
         Assert.Multiple(
             () => Assert.Equal(Math.Round(2.4 * Math.Sqrt(144.0), 1), result.DepthCm),
-            () => Assert.Equal(FrostDepthCondition.Moderate, result.Risk));
+            () => Assert.Equal(FrostDepthRisk.Moderate, result.Risk));
     }
 
     [Fact]
@@ -74,18 +74,18 @@ public sealed class FrostDepthConditionTests
     {
         var result = Evaluate(p => p with { Temperature = -3.0, SoilTemperature = -1.0, SnowDepth = 0.0, WindSpeed = 2.0 }, pipeDepthCm: 35.0);
 
-        Assert.Equal(FrostDepthCondition.Deep, result.Risk);
+        Assert.Equal(FrostDepthRisk.Deep, result.Risk);
     }
 
     [Theory]
-    [InlineData(0.0, FrostDepthCondition.None)]
-    [InlineData(4.9, FrostDepthCondition.Surface)]
-    [InlineData(5.0, FrostDepthCondition.Shallow)]
-    [InlineData(14.9, FrostDepthCondition.Shallow)]
-    [InlineData(15.0, FrostDepthCondition.Moderate)]
-    [InlineData(29.9, FrostDepthCondition.Moderate)]
-    [InlineData(30.0, FrostDepthCondition.Deep)]
-    public void Risk_boundaries(double depth, string expected)
+    [InlineData(0.0, FrostDepthRisk.None)]
+    [InlineData(4.9, FrostDepthRisk.Surface)]
+    [InlineData(5.0, FrostDepthRisk.Shallow)]
+    [InlineData(14.9, FrostDepthRisk.Shallow)]
+    [InlineData(15.0, FrostDepthRisk.Moderate)]
+    [InlineData(29.9, FrostDepthRisk.Moderate)]
+    [InlineData(30.0, FrostDepthRisk.Deep)]
+    public void Risk_boundaries(double depth, FrostDepthRisk expected)
     {
         Assert.Equal(expected, FrostDepthCondition.RiskFor(depth, 200.0));
     }

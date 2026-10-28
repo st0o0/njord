@@ -33,8 +33,8 @@ public sealed class InversionDetectionConditionTests
         var result = Assert.IsType<InversionDetectionConditionResult>(Eval(2.0, 4.5, 5.0, 400, 10, 1));
 
         Assert.Multiple(
-            () => Assert.Equal(InversionDetectionCondition.Strong, result.Strength),
-            () => Assert.Equal(InversionDetectionCondition.Radiation, result.InversionType),
+            () => Assert.Equal(InversionStrength.Strong, result.Strength),
+            () => Assert.Equal(InversionType.Radiation, result.InversionType),
             () => Assert.Equal(2.5, result.TemperatureDifferenceC),
             () => Assert.Equal(400, result.BoundaryLayerHeightM));
     }
@@ -44,7 +44,7 @@ public sealed class InversionDetectionConditionTests
     {
         var result = Assert.IsType<InversionDetectionConditionResult>(Eval(2.0, 5.0, 5.0, 400, 80, 6));
 
-        Assert.Equal(InversionDetectionCondition.Subsidence, result.InversionType);
+        Assert.Equal(InversionType.Subsidence, result.InversionType);
     }
 
     [Fact]
@@ -53,8 +53,8 @@ public sealed class InversionDetectionConditionTests
         var result = Assert.IsType<InversionDetectionConditionResult>(Eval(2.0, 3.0, 3.0, 700, 80, 6));
 
         Assert.Multiple(
-            () => Assert.Equal(InversionDetectionCondition.Mild, result.Strength),
-            () => Assert.Equal(InversionDetectionCondition.Frontal, result.InversionType));
+            () => Assert.Equal(InversionStrength.Mild, result.Strength),
+            () => Assert.Equal(InversionType.Frontal, result.InversionType));
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public sealed class InversionDetectionConditionTests
     {
         var result = Assert.IsType<InversionDetectionConditionResult>(Eval(0.0, 5.0, 6.0, 200, 10, 1));
 
-        Assert.Equal(InversionDetectionCondition.Extreme, result.Strength);
+        Assert.Equal(InversionStrength.Extreme, result.Strength);
     }
 
     [Fact]
@@ -78,14 +78,14 @@ public sealed class InversionDetectionConditionTests
     }
 
     [Theory]
-    [InlineData(0.0, 400, InversionDetectionCondition.None)]
-    [InlineData(1.0, 799, InversionDetectionCondition.Mild)]
-    [InlineData(1.0, 800, InversionDetectionCondition.None)]
-    [InlineData(2.01, 499, InversionDetectionCondition.Strong)]
-    [InlineData(2.0, 499, InversionDetectionCondition.Mild)]
-    [InlineData(4.01, 299, InversionDetectionCondition.Extreme)]
-    [InlineData(4.01, 300, InversionDetectionCondition.Strong)]
-    public void Strength_boundaries(double diff, double layer, string expected)
+    [InlineData(0.0, 400, InversionStrength.None)]
+    [InlineData(1.0, 799, InversionStrength.Mild)]
+    [InlineData(1.0, 800, InversionStrength.None)]
+    [InlineData(2.01, 499, InversionStrength.Strong)]
+    [InlineData(2.0, 499, InversionStrength.Mild)]
+    [InlineData(4.01, 299, InversionStrength.Extreme)]
+    [InlineData(4.01, 300, InversionStrength.Strong)]
+    public void Strength_boundaries(double diff, double layer, InversionStrength expected)
     {
         Assert.Equal(expected, InversionDetectionCondition.ClassifyStrength(diff, layer));
     }

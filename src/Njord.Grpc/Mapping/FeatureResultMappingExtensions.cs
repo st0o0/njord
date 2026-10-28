@@ -151,8 +151,8 @@ internal static class FeatureResultMappingExtensions
         return new V2.InversionDetectionCondition
         {
             Condition = new V2.ConditionData(),
-            Strength = r.Strength,
-            InversionType = r.InversionType,
+            Strength = r.Strength.ToProto(),
+            InversionType = r.InversionType.ToProto(),
             TemperatureDifferenceC = r.TemperatureDifferenceC,
             BoundaryLayerHeightM = r.BoundaryLayerHeightM,
         };
@@ -163,7 +163,7 @@ internal static class FeatureResultMappingExtensions
         return new V2.AtmosphericStabilityCondition
         {
             Condition = new V2.ConditionData(),
-            StabilityClass = r.StabilityClass,
+            StabilityClass = r.StabilityClass.ToProto(),
             CapeJPerKg = r.CapeJPerKg,
             CinJPerKg = r.CinJPerKg,
             LiftedIndex = r.LiftedIndex,
@@ -175,7 +175,7 @@ internal static class FeatureResultMappingExtensions
         return new V2.CloudCeilingCondition
         {
             Condition = new V2.ConditionData(),
-            CeilingCategory = r.CeilingCategory,
+            CeilingCategory = r.CeilingCategory.ToProto(),
             EstimatedCeilingM = r.EstimatedCeilingM,
             CloudCoverLowPercent = r.CloudCoverLowPercent,
             CloudCoverMidPercent = r.CloudCoverMidPercent,
@@ -189,7 +189,7 @@ internal static class FeatureResultMappingExtensions
         {
             Condition = new V2.ConditionData(),
             Cop = r.Cop,
-            Recommendation = r.Recommendation,
+            Recommendation = r.Recommendation.ToProto(),
             BestCop = r.BestCop,
             BestHour = r.BestHour,
         };
@@ -200,7 +200,7 @@ internal static class FeatureResultMappingExtensions
         return new V2.SolarBatteryStrategyCondition
         {
             Condition = new V2.ConditionData(),
-            Strategy = r.Strategy,
+            Strategy = r.Strategy.ToProto(),
             TodayKwh = r.TodayKwh,
             TomorrowKwhEstimate = r.TomorrowKwhEstimate,
         };
@@ -211,7 +211,7 @@ internal static class FeatureResultMappingExtensions
         return new V2.IrrigationNeedCondition
         {
             Condition = new V2.ConditionData(),
-            Advice = r.Advice,
+            Advice = r.Advice.ToProto(),
             SoilMoisturePercent = r.SoilMoisturePercent,
             RainExpectedMm = r.RainExpectedMm,
             EtMm = r.EtMm,
@@ -224,7 +224,7 @@ internal static class FeatureResultMappingExtensions
         {
             Condition = new V2.ConditionData(),
             DepthCm = r.DepthCm,
-            Risk = r.Risk,
+            Risk = r.Risk.ToProto(),
             SnowInsulationCm = r.SnowInsulationCm,
             SoilTemperatureC = r.SoilTemperatureC,
         };

@@ -31,19 +31,19 @@ public sealed class HeatPumpCopConditionTests
 
         Assert.Multiple(
             () => Assert.Equal(Math.Round(6.81 - 0.121 * 20.0, 2), result.Cop),
-            () => Assert.Equal(HeatPumpCopCondition.Ideal, result.Recommendation));
+            () => Assert.Equal(HeatPumpRecommendation.Ideal, result.Recommendation));
     }
 
     [Fact]
     public void Cold_weather_is_normal()
     {
-        Assert.Equal(HeatPumpCopCondition.Normal, Evaluate(0.0).Recommendation);
+        Assert.Equal(HeatPumpRecommendation.Normal, Evaluate(0.0).Recommendation);
     }
 
     [Fact]
     public void Frost_is_inefficient()
     {
-        Assert.Equal(HeatPumpCopCondition.Inefficient, Evaluate(-5.0).Recommendation);
+        Assert.Equal(HeatPumpRecommendation.Inefficient, Evaluate(-5.0).Recommendation);
     }
 
     [Fact]
@@ -53,17 +53,17 @@ public sealed class HeatPumpCopConditionTests
 
         Assert.Multiple(
             () => Assert.Equal(1.0, result.Cop),
-            () => Assert.Equal(HeatPumpCopCondition.Avoid, result.Recommendation));
+            () => Assert.Equal(HeatPumpRecommendation.Avoid, result.Recommendation));
     }
 
     [Theory]
-    [InlineData(4.01, HeatPumpCopCondition.Ideal)]
-    [InlineData(4.0, HeatPumpCopCondition.Normal)]
-    [InlineData(2.5, HeatPumpCopCondition.Normal)]
-    [InlineData(2.49, HeatPumpCopCondition.Inefficient)]
-    [InlineData(1.5, HeatPumpCopCondition.Inefficient)]
-    [InlineData(1.49, HeatPumpCopCondition.Avoid)]
-    public void Recommendation_boundaries(double cop, string expected)
+    [InlineData(4.01, HeatPumpRecommendation.Ideal)]
+    [InlineData(4.0, HeatPumpRecommendation.Normal)]
+    [InlineData(2.5, HeatPumpRecommendation.Normal)]
+    [InlineData(2.49, HeatPumpRecommendation.Inefficient)]
+    [InlineData(1.5, HeatPumpRecommendation.Inefficient)]
+    [InlineData(1.49, HeatPumpRecommendation.Avoid)]
+    public void Recommendation_boundaries(double cop, HeatPumpRecommendation expected)
     {
         Assert.Equal(expected, HeatPumpCopCondition.Recommend(cop));
     }

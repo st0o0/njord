@@ -7,13 +7,6 @@ namespace Njord.Features.Conditions.InversionDetection;
 
 public sealed class InversionDetectionCondition(IOptions<InversionDetectionConfig> config) : FeatureRule<ForecastInput>
 {
-    public const string None = "none";
-    public const string Mild = "mild";
-    public const string Strong = "strong";
-    public const string Extreme = "extreme";
-    public const string Radiation = "radiation";
-    public const string Subsidence = "subsidence";
-    public const string Frontal = "frontal";
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
@@ -39,7 +32,7 @@ public sealed class InversionDetectionCondition(IOptions<InversionDetectionConfi
 
         var diff = t80 - surface;
         var strength = ClassifyStrength(diff, layer);
-        if (strength == None)
+        if (strength == InversionStrength.None)
         {
             return null;
         }
@@ -52,22 +45,22 @@ public sealed class InversionDetectionCondition(IOptions<InversionDetectionConfi
             Math.Round(layer));
     }
 
-    public static string ClassifyStrength(double tempDiff, double boundaryLayer) => (tempDiff, boundaryLayer) switch
+    public static InversionStrength ClassifyStrength(double tempDiff, double boundaryLayer) => (tempDiff, boundaryLayer) switch
     {
-        ( <= 0, _) => None,
-        (_, >= 800) => None,
-        ( > 4, < 300) => Extreme,
-        ( > 2, < 500) => Strong,
-        _ => Mild,
+        ( <= 0, _) => InversionStrength.None,
+        (_, >= 800) => InversionStrength.None,
+        ( > 4, < 300) => InversionStrength.Extreme,
+        ( > 2, < 500) => InversionStrength.Strong,
+        _ => InversionStrength.Mild,
     };
 
-    public static string ClassifyType(double tempDiff, double boundaryLayer, double? cloudCover, double? windSpeed)
+    public static InversionType ClassifyType(double tempDiff, double boundaryLayer, double? cloudCover, double? windSpeed)
     {
         if (cloudCover < 30 && windSpeed < 3)
         {
-            return Radiation;
+            return InversionType.Radiation;
         }
 
-        return boundaryLayer < 500 && tempDiff > 2 ? Subsidence : Frontal;
+        return boundaryLayer < 500 && tempDiff > 2 ? InversionType.Subsidence : InversionType.Frontal;
     }
 }

@@ -7,12 +7,6 @@ namespace Njord.Features.Conditions.CloudCeiling;
 
 public sealed class CloudCeilingCondition(IOptions<CloudCeilingConfig> config) : FeatureRule<ForecastInput>
 {
-    public const string VeryLow = "very_low";
-    public const string Low = "low";
-    public const string Moderate = "moderate";
-    public const string High = "high";
-    public const string VeryHigh = "very_high";
-    public const string Unlimited = "unlimited";
     public const double HighCloudCeilingM = 8000.0;
 
     public override FeatureDescriptor Descriptor { get; } = new(
@@ -52,7 +46,7 @@ public sealed class CloudCeilingCondition(IOptions<CloudCeilingConfig> config) :
         }
         else
         {
-            return new CloudCeilingConditionResult(ctx.Location, Unlimited, 0, (int)Math.Round(low), (int)Math.Round(mid), (int)Math.Round(high));
+            return new CloudCeilingConditionResult(ctx.Location, CeilingCategory.Unlimited, 0, (int)Math.Round(low), (int)Math.Round(mid), (int)Math.Round(high));
         }
 
         if (ceiling is not { } meters)
@@ -69,12 +63,12 @@ public sealed class CloudCeilingCondition(IOptions<CloudCeilingConfig> config) :
             (int)Math.Round(high));
     }
 
-    public static string Categorize(double meters) => meters switch
+    public static CeilingCategory Categorize(double meters) => meters switch
     {
-        < 300 => VeryLow,
-        < 1000 => Low,
-        < 3000 => Moderate,
-        <= 6000 => High,
-        _ => VeryHigh,
+        < 300 => CeilingCategory.VeryLow,
+        < 1000 => CeilingCategory.Low,
+        < 3000 => CeilingCategory.Moderate,
+        <= 6000 => CeilingCategory.High,
+        _ => CeilingCategory.VeryHigh,
     };
 }

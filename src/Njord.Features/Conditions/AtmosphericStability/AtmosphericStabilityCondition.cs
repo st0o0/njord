@@ -7,11 +7,6 @@ namespace Njord.Features.Conditions.AtmosphericStability;
 
 public sealed class AtmosphericStabilityCondition(IOptions<AtmosphericStabilityConfig> config) : FeatureRule<ForecastInput>
 {
-    public const string Stable = "stable";
-    public const string Marginal = "marginal";
-    public const string Capped = "capped";
-    public const string Unstable = "unstable";
-    public const string Explosive = "explosive";
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
@@ -38,36 +33,36 @@ public sealed class AtmosphericStabilityCondition(IOptions<AtmosphericStabilityC
         return new AtmosphericStabilityConditionResult(ctx.Location, Classify(cape, cin, lifted), cape, cin, lifted);
     }
 
-    public static string Classify(double cape, double cin, double liftedIndex)
+    public static StabilityClass Classify(double cape, double cin, double liftedIndex)
     {
         if (cape < 300)
         {
-            return Stable;
+            return StabilityClass.Stable;
         }
 
         if (cape < 1000)
         {
-            return Marginal;
+            return StabilityClass.Marginal;
         }
 
         if (cin > 200)
         {
-            return Capped;
+            return StabilityClass.Capped;
         }
 
         if (cin < 50)
         {
             if (cape >= 2500 && liftedIndex < -6)
             {
-                return Explosive;
+                return StabilityClass.Explosive;
             }
 
             if (liftedIndex < -3)
             {
-                return Unstable;
+                return StabilityClass.Unstable;
             }
         }
 
-        return Marginal;
+        return StabilityClass.Marginal;
     }
 }

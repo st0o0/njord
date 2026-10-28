@@ -36,7 +36,7 @@ public sealed class SolarBatteryStrategyConditionTests
         var result = Evaluate(800.0, 800.0 * 2);
 
         Assert.Multiple(
-            () => Assert.Equal(SolarBatteryStrategyCondition.FeedIn, result.Strategy),
+            () => Assert.Equal(BatteryStrategy.FeedIn, result.Strategy),
             () => Assert.Equal(Math.Round(13 * 800.0 * KwhPerWatt, 2), result.TodayKwh),
             () => Assert.Equal(Math.Round(24 * 1600.0 * KwhPerWatt, 2), result.TomorrowKwhEstimate));
     }
@@ -44,29 +44,29 @@ public sealed class SolarBatteryStrategyConditionTests
     [Fact]
     public void A_cloudy_tomorrow_after_a_surplus_today_charges_the_battery()
     {
-        Assert.Equal(SolarBatteryStrategyCondition.ChargeBattery, Evaluate(800.0, 100.0).Strategy);
+        Assert.Equal(BatteryStrategy.ChargeBattery, Evaluate(800.0, 100.0).Strategy);
     }
 
     [Fact]
     public void A_sunny_tomorrow_after_a_low_today_conserves()
     {
-        Assert.Equal(SolarBatteryStrategyCondition.Conserve, Evaluate(50.0, 800.0).Strategy);
+        Assert.Equal(BatteryStrategy.Conserve, Evaluate(50.0, 800.0).Strategy);
     }
 
     [Fact]
     public void Similar_days_are_normal()
     {
-        Assert.Equal(SolarBatteryStrategyCondition.Normal, Evaluate(800.0, 800.0 * 13 / 24).Strategy);
+        Assert.Equal(BatteryStrategy.Normal, Evaluate(800.0, 800.0 * 13 / 24).Strategy);
     }
 
     [Theory]
-    [InlineData(10.0, 12.01, 10.0, SolarBatteryStrategyCondition.FeedIn)]
-    [InlineData(10.0, 12.0, 10.0, SolarBatteryStrategyCondition.Normal)]
-    [InlineData(10.0, 7.99, 10.0, SolarBatteryStrategyCondition.ChargeBattery)]
-    [InlineData(10.0, 8.0, 10.0, SolarBatteryStrategyCondition.Normal)]
-    [InlineData(9.99, 20.0, 10.0, SolarBatteryStrategyCondition.Conserve)]
-    [InlineData(9.99, 5.0, 10.0, SolarBatteryStrategyCondition.Normal)]
-    public void Strategy_boundaries(double today, double tomorrow, double capacity, string expected)
+    [InlineData(10.0, 12.01, 10.0, BatteryStrategy.FeedIn)]
+    [InlineData(10.0, 12.0, 10.0, BatteryStrategy.Normal)]
+    [InlineData(10.0, 7.99, 10.0, BatteryStrategy.ChargeBattery)]
+    [InlineData(10.0, 8.0, 10.0, BatteryStrategy.Normal)]
+    [InlineData(9.99, 20.0, 10.0, BatteryStrategy.Conserve)]
+    [InlineData(9.99, 5.0, 10.0, BatteryStrategy.Normal)]
+    public void Strategy_boundaries(double today, double tomorrow, double capacity, BatteryStrategy expected)
     {
         Assert.Equal(expected, SolarBatteryStrategyCondition.Decide(today, tomorrow, capacity));
     }

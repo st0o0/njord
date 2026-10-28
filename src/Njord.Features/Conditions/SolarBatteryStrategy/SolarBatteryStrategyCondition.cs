@@ -8,10 +8,6 @@ namespace Njord.Features.Conditions.SolarBatteryStrategy;
 
 public sealed class SolarBatteryStrategyCondition(IOptions<SolarBatteryStrategyConfig> config) : FeatureRule<ForecastSolarInput>
 {
-    public const string FeedIn = "feed_in";
-    public const string ChargeBattery = "charge_battery";
-    public const string Conserve = "conserve";
-    public const string Normal = "normal";
 
     private const double SunnierFactor = 1.2;
     private const double CloudierFactor = 0.8;
@@ -58,15 +54,15 @@ public sealed class SolarBatteryStrategyCondition(IOptions<SolarBatteryStrategyC
             Math.Round(tomorrowKwh, 2));
     }
 
-    public static string Decide(double todayKwh, double tomorrowKwh, double batteryCapacityKwh)
+    public static BatteryStrategy Decide(double todayKwh, double tomorrowKwh, double batteryCapacityKwh)
     {
         var surplus = todayKwh >= batteryCapacityKwh;
         if (tomorrowKwh > todayKwh * SunnierFactor)
         {
-            return surplus ? FeedIn : Conserve;
+            return surplus ? BatteryStrategy.FeedIn : BatteryStrategy.Conserve;
         }
 
-        return surplus && tomorrowKwh < todayKwh * CloudierFactor ? ChargeBattery : Normal;
+        return surplus && tomorrowKwh < todayKwh * CloudierFactor ? BatteryStrategy.ChargeBattery : BatteryStrategy.Normal;
     }
 
     private static double ToKwh(List<double> watts, SolarBatteryStrategyConfig options) =>

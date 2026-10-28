@@ -32,7 +32,7 @@ public sealed class CloudCeilingConditionTests
         var result = Assert.IsType<CloudCeilingConditionResult>(Eval(80, 90, 90));
 
         Assert.Multiple(
-            () => Assert.Equal(CloudCeilingCondition.Low, result.CeilingCategory),
+            () => Assert.Equal(CeilingCategory.Low, result.CeilingCategory),
             () => Assert.Equal(900, result.EstimatedCeilingM),
             () => Assert.Equal(80, result.CloudCoverLowPercent),
             () => Assert.Equal(90, result.CloudCoverMidPercent),
@@ -45,7 +45,7 @@ public sealed class CloudCeilingConditionTests
         var result = Assert.IsType<CloudCeilingConditionResult>(Eval(10, 70, 0));
 
         Assert.Multiple(
-            () => Assert.Equal(CloudCeilingCondition.High, result.CeilingCategory),
+            () => Assert.Equal(CeilingCategory.High, result.CeilingCategory),
             () => Assert.Equal(3200, result.EstimatedCeilingM));
     }
 
@@ -55,7 +55,7 @@ public sealed class CloudCeilingConditionTests
         var result = Assert.IsType<CloudCeilingConditionResult>(Eval(10, 10, 70));
 
         Assert.Multiple(
-            () => Assert.Equal(CloudCeilingCondition.VeryHigh, result.CeilingCategory),
+            () => Assert.Equal(CeilingCategory.VeryHigh, result.CeilingCategory),
             () => Assert.Equal(8000, result.EstimatedCeilingM));
     }
 
@@ -65,7 +65,7 @@ public sealed class CloudCeilingConditionTests
         var result = Assert.IsType<CloudCeilingConditionResult>(Eval(10, 20, 50));
 
         Assert.Multiple(
-            () => Assert.Equal(CloudCeilingCondition.Unlimited, result.CeilingCategory),
+            () => Assert.Equal(CeilingCategory.Unlimited, result.CeilingCategory),
             () => Assert.Equal(0, result.EstimatedCeilingM));
     }
 
@@ -76,15 +76,15 @@ public sealed class CloudCeilingConditionTests
     }
 
     [Theory]
-    [InlineData(299, CloudCeilingCondition.VeryLow)]
-    [InlineData(300, CloudCeilingCondition.Low)]
-    [InlineData(999, CloudCeilingCondition.Low)]
-    [InlineData(1000, CloudCeilingCondition.Moderate)]
-    [InlineData(2999, CloudCeilingCondition.Moderate)]
-    [InlineData(3000, CloudCeilingCondition.High)]
-    [InlineData(6000, CloudCeilingCondition.High)]
-    [InlineData(6001, CloudCeilingCondition.VeryHigh)]
-    public void Category_boundaries(double meters, string expected)
+    [InlineData(299, CeilingCategory.VeryLow)]
+    [InlineData(300, CeilingCategory.Low)]
+    [InlineData(999, CeilingCategory.Low)]
+    [InlineData(1000, CeilingCategory.Moderate)]
+    [InlineData(2999, CeilingCategory.Moderate)]
+    [InlineData(3000, CeilingCategory.High)]
+    [InlineData(6000, CeilingCategory.High)]
+    [InlineData(6001, CeilingCategory.VeryHigh)]
+    public void Category_boundaries(double meters, CeilingCategory expected)
     {
         Assert.Equal(expected, CloudCeilingCondition.Categorize(meters));
     }

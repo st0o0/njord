@@ -110,4 +110,79 @@ internal static class FeatureEnumMappingExtensions
         PollenTrendDirection.Falling => V2.PollenTrendDirection.Falling,
         _ => throw new ArgumentOutOfRangeException(nameof(pollenTrendDirection), pollenTrendDirection, null),
     };
+
+    public static V2.HeatPumpRecommendation ToProto(this HeatPumpRecommendation value) => value switch
+    {
+        HeatPumpRecommendation.Ideal => V2.HeatPumpRecommendation.Ideal,
+        HeatPumpRecommendation.Normal => V2.HeatPumpRecommendation.Normal,
+        HeatPumpRecommendation.Inefficient => V2.HeatPumpRecommendation.Inefficient,
+        HeatPumpRecommendation.Avoid => V2.HeatPumpRecommendation.Avoid,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
+    };
+
+    public static V2.BatteryStrategy ToProto(this BatteryStrategy value) => value switch
+    {
+        BatteryStrategy.FeedIn => V2.BatteryStrategy.FeedIn,
+        BatteryStrategy.ChargeBattery => V2.BatteryStrategy.ChargeBattery,
+        BatteryStrategy.Conserve => V2.BatteryStrategy.Conserve,
+        BatteryStrategy.Normal => V2.BatteryStrategy.Normal,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
+    };
+
+    public static V2.IrrigationAdvice ToProto(this IrrigationAdvice value) => value switch
+    {
+        IrrigationAdvice.Water => V2.IrrigationAdvice.Water,
+        IrrigationAdvice.Skip => V2.IrrigationAdvice.Skip,
+        IrrigationAdvice.Reduce => V2.IrrigationAdvice.Reduce,
+        IrrigationAdvice.SoilWet => V2.IrrigationAdvice.SoilWet,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
+    };
+
+    public static V2.FrostDepthRisk ToProto(this FrostDepthRisk value) => value switch
+    {
+        FrostDepthRisk.None => V2.FrostDepthRisk.None,
+        FrostDepthRisk.Surface => V2.FrostDepthRisk.Surface,
+        FrostDepthRisk.Shallow => V2.FrostDepthRisk.Shallow,
+        FrostDepthRisk.Moderate => V2.FrostDepthRisk.Moderate,
+        FrostDepthRisk.Deep => V2.FrostDepthRisk.Deep,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
+    };
+
+    public static V2.InversionStrength ToProto(this InversionStrength value) => value switch
+    {
+        InversionStrength.None => V2.InversionStrength.None,
+        InversionStrength.Mild => V2.InversionStrength.Mild,
+        InversionStrength.Strong => V2.InversionStrength.Strong,
+        InversionStrength.Extreme => V2.InversionStrength.Extreme,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
+    };
+
+    public static V2.InversionType ToProto(this InversionType value) => value switch
+    {
+        InversionType.Radiation => V2.InversionType.Radiation,
+        InversionType.Subsidence => V2.InversionType.Subsidence,
+        InversionType.Frontal => V2.InversionType.Frontal,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
+    };
+
+    public static V2.StabilityClass ToProto(this StabilityClass value) => value switch
+    {
+        StabilityClass.Stable => V2.StabilityClass.Stable,
+        StabilityClass.Marginal => V2.StabilityClass.Marginal,
+        StabilityClass.Capped => V2.StabilityClass.Capped,
+        StabilityClass.Unstable => V2.StabilityClass.Unstable,
+        StabilityClass.Explosive => V2.StabilityClass.Explosive,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
+    };
+
+    public static V2.CeilingCategory ToProto(this CeilingCategory value) => value switch
+    {
+        CeilingCategory.VeryLow => V2.CeilingCategory.VeryLow,
+        CeilingCategory.Low => V2.CeilingCategory.Low,
+        CeilingCategory.Moderate => V2.CeilingCategory.Moderate,
+        CeilingCategory.High => V2.CeilingCategory.High,
+        CeilingCategory.VeryHigh => V2.CeilingCategory.VeryHigh,
+        CeilingCategory.Unlimited => V2.CeilingCategory.Unlimited,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
+    };
 }
