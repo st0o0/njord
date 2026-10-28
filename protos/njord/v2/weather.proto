@@ -262,7 +262,7 @@ message StreamEnrichmentsRequest {
 }
 
 // One feature result. The oneof case identifies the feature. Field number ranges per output kind:
-// alerts 20-49, scores 50-59, conditions 60-79, trends 80-89, forecasts 90-99.
+// alerts 20-49 (+55), scores 50-58, conditions 60-79 (+82-84), trends 80-81, forecasts 90-99.
 message EnrichmentEvent {
   reserved 2, 10, 11, 12, 13, 14, 15;
   reserved "type_name", "alerts", "lifestyle", "payload";

@@ -9,7 +9,7 @@ export const CATEGORIES = [
   { key: 'AirQuality', label: 'Air quality' },
   { key: 'Lifestyle', label: 'Lifestyle' },
   { key: 'Insight', label: 'Insight' },
-  { key: 'Energy', label: 'Solar' },
+  { key: 'Energy', label: 'Energy' },
   { key: 'Flood', label: 'Flood' },
   { key: 'Marine', label: 'Marine' },
 ] as const

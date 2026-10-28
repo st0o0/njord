@@ -64,6 +64,26 @@ services:
       #- Njord__Polling__BudgetOverride__RequestsPerMonth=300000
       #- Njord__Polling__BudgetOverride__RequestsPerMinute=600
 
+      # ── New features (off by default, enable individually) ────────
+      # Energy
+      #- Njord__Features__Energy__HeatPumpCop__Enabled=true
+      #- Njord__Features__Energy__HeatPumpCop__TargetTemperature=35
+      #- Njord__Features__Energy__SolarBatteryStrategy__Enabled=true
+      # Health & Wellness
+      #- Njord__Features__Forecast__MigraineRisk__Enabled=true
+      #- Njord__Features__Lifestyle__SleepQuality__Enabled=true
+      #- Njord__Features__AirQuality__AsthmaRisk__Enabled=true
+      # Agriculture
+      #- Njord__Features__Lifestyle__IrrigationNeed__Enabled=true
+      #- Njord__Features__Lifestyle__SprayWindow__Enabled=true
+      # Atmospheric Insights
+      #- Njord__Features__Insight__InversionDetection__Enabled=true
+      #- Njord__Features__Insight__AtmosphericStability__Enabled=true
+      #- Njord__Features__Insight__CloudCeiling__Enabled=true
+      # Cross-domain
+      #- Njord__Features__Forecast__CompoundHeatStress__Enabled=true
+      #- Njord__Features__AirQuality__AllergySeverity__Enabled=true
+
       # ── Feature settings (per feature, only values that differ from the default) ────────────────────────────────────────────
       #- Njord__Features__Forecast__Frost__Thresholds__0=0
       #- Njord__Features__Forecast__Frost__Thresholds__1=-5
