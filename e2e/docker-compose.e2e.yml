@@ -11,10 +11,10 @@ services:
     volumes:
       - njord-data:/app/data
     environment:
-      # ── Location (coordinates are required) ──
-      - Njord__Locations__0__Name=Lucerne
-      - Njord__Locations__0__Latitude=47.0502
-      - Njord__Locations__0__Longitude=8.3093
+      # ── Location (coastal city for full domain coverage incl. Marine) ──
+      - Njord__Locations__0__Name=Barcelona
+      - Njord__Locations__0__Latitude=41.3874
+      - Njord__Locations__0__Longitude=2.1686
 
       # ── Weather (primary: deterministic Forecast API, best_match) ─
       - Njord__Forecast__ForecastDays=4
@@ -73,6 +73,18 @@ services:
       - Njord__Features__Insight__InversionDetection__Enabled=true
       - Njord__Features__Insight__AtmosphericStability__Enabled=true
       - Njord__Features__Insight__CloudCeiling__Enabled=true
+      - Njord__Features__Forecast__Shower__Enabled=true
+      - Njord__Features__AirQuality__SmogRisk__Enabled=true
+      - Njord__Features__AirQuality__PollenBlast__Enabled=true
+      - Njord__Features__AirQuality__GranularAqi__Enabled=true
+      - Njord__Features__AirQuality__RagweedPollen__Enabled=true
+      - Njord__Features__Lifestyle__FireRisk__Enabled=true
+      - Njord__Features__Lifestyle__Evapotranspiration__Enabled=true
+      - Njord__Features__Lifestyle__SoilMoisture__Enabled=true
+      - Njord__Features__Lifestyle__GrowingDegree__Enabled=true
+      - Njord__Features__Marine__CoastalFlood__Enabled=true
+      - Njord__Features__Marine__OceanCurrents__Enabled=true
+      - Njord__Features__Energy__ElevatedWind__Enabled=true
       # ── Ensemble (comparison models for ModelComparison) ────────
       - Njord__Forecast__Models__0=ecmwf_ifs025_ensemble_mean
       - Njord__Forecast__Models__1=ecmwf_aifs025_ensemble_mean
@@ -91,7 +103,7 @@ services:
       - ha-config:/config
       - ../../ha-njord/custom_components/njord:/config/custom_components/njord:ro
     environment:
-      - TZ=Europe/Zurich
+      - TZ=Europe/Madrid
 
 volumes:
   njord-data:
