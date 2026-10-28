@@ -139,3 +139,39 @@ Njord__Features__AirQuality__GranularAqi__Enabled: "true"
 - Display a breakdown dashboard showing which pollutant is worst today
 - Alert specifically on high ozone days (avoid afternoon outdoor activity)
 - Track NO2 near busy roads
+
+---
+
+## AllergySeverity
+
+Combines all pollen species into one allergy score from 0 (none) to 100 (severe). The base is the highest normalized pollen reading. Wind, a low boundary layer and low humidity amplify it; rain and high humidity dampen it. Also reports the best low-pollen window (`BestStart` / `BestHours`).
+
+**Entity:** `sensor.<location>_allergy_severity` (score 0--100)
+**Domains:** Forecast + AirQuality | **Default:** Off
+
+```yaml
+Njord__Features__AirQuality__AllergySeverity__Enabled: "true"
+```
+
+**Automation ideas:**
+- Announce the best time to air the house or go outside
+- Start the air purifier when the score is high
+- Show the score next to the pollen alert on a dashboard
+
+---
+
+## AsthmaRisk
+
+Weighted respiratory risk score from 0 to 100, built from PM2.5 (35 %), ozone (25 %), pollen (20 %), humidity (10 %) and boundary layer height (10 %). Cold air (x1.3) and rapid temperature change (x1.2) amplify the score.
+
+**Entity:** `sensor.<location>_asthma_risk` (score 0--100)
+**Domains:** Forecast + AirQuality | **Default:** Off
+
+```yaml
+Njord__Features__AirQuality__AsthmaRisk__Enabled: "true"
+```
+
+**Automation ideas:**
+- Notify sensitive household members when the score is high
+- Keep windows closed and run ventilation in recirculate mode
+- Suggest indoor exercise

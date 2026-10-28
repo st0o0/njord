@@ -5,6 +5,27 @@ All features are a `FeatureRule<TInput>` in `Njord.Features/<OutputKind>/<Featur
 config (`Enabled` + thresholds), a `FeatureDescriptor` (incl. `PollDepth` for look-back), a typed
 result and proto message, a `docs/data/features.json` entry, and a ha-njord entity.
 
+## Completed
+
+| Feature / system | Output | Notes |
+|------------------|--------|-------|
+| CompoundHeatStress | Alert | |
+| MigraineRisk | Alert | |
+| AllergySeverity | Score | |
+| AsthmaRisk | Score | |
+| SleepQuality | Score | |
+| SprayWindow | Score | |
+| HeatPumpCop | Condition | |
+| SolarBatteryStrategy | Condition | |
+| IrrigationNeed | Condition | Delivers the Irrigation Advisor idea (Tier 2) |
+| FrostDepth | Condition | |
+| InversionDetection | Condition | |
+| AtmosphericStability | Condition | |
+| CloudCeiling | Condition | |
+| WindowScanner / TimeWindow / Calendar entity | Infrastructure | `calendar.<location>_activity_windows` in ha-njord |
+| Event system (data lifecycle, feature transitions) | Infrastructure | `event.<location>_data`, `event.<location>_features` |
+| i18n foundation (`translation_key`) | Infrastructure | |
+
 ## Tier 1 — Free (no new API calls)
 
 These use variables already fetched by enabled features. Zero marginal budget cost.
@@ -92,7 +113,7 @@ HDD/CDD forecast for energy planning and heat pump scheduling.
 These add 2-4 variables to the weather request. Current count is ~31 (4 calls at `ceil(vars/10)`);
 adding up to ~35 stays at 4 calls. Beyond 40 it becomes 5.
 
-### Irrigation Advisor
+### ~~Irrigation Advisor~~ (done: IrrigationNeed)
 
 > Garden:Irrigation · Condition · Weather
 

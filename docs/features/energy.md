@@ -63,3 +63,55 @@ Njord__Features__Energy__ElevatedWind__Enabled: "true"
 - Estimate wind turbine output from 80 m or 120 m wind speed
 - Alert when wind exceeds turbine cut-out speed (typically 25 m/s)
 - Dashboard showing wind speed at ground vs hub height
+
+---
+
+## HeatPumpCop
+
+Estimates the heat pump coefficient of performance (COP) from the outdoor temperature: `COP = 6.81 - 0.121 x (target - outdoor)`. Reports a recommendation:
+
+| Recommendation | COP |
+|----------------|-----|
+| ideal | > 4.0 |
+| normal | 2.5 -- 4.0 |
+| inefficient | 1.5 -- 2.5 |
+| avoid | < 1.5 |
+
+**Entity:** `sensor.<location>_heat_pump_cop`
+**Domains:** Forecast | **Default:** Off
+
+```yaml
+Njord__Features__Energy__HeatPumpCop__Enabled: "true"
+Njord__Features__Energy__HeatPumpCop__TargetTemperature: "35"
+```
+
+`TargetTemperature` is the flow temperature of the heating circuit (default 35 °C).
+
+**Automation ideas:**
+- Shift hot water heating to hours with an `ideal` COP
+- Switch to a backup heater when the recommendation is `avoid`
+- Pre-heat the house during efficient hours
+
+---
+
+## SolarBatteryStrategy
+
+Recommends how to run a home battery: `feed_in`, `charge_battery`, `conserve` or `normal`. Compares the actual solar yield of today (satellite) with the forecast for tomorrow.
+
+**Entity:** `sensor.<location>_solar_battery_strategy`
+**Domains:** Forecast + Satellite | **Default:** Off
+
+```yaml
+Njord__Features__Energy__SolarBatteryStrategy__Enabled: "true"
+Njord__Features__Energy__SolarBatteryStrategy__BatteryCapacityKwh: "10"
+Njord__Features__Energy__SolarBatteryStrategy__SystemEfficiency: "0.85"
+```
+
+::: tip
+Satellite data costs about 720 API calls/month/location. See SatelliteRadiation.
+:::
+
+**Automation ideas:**
+- Charge the battery from the grid when `charge_battery` and tomorrow is dark
+- Allow feed-in when tomorrow is sunny
+- Hold reserve capacity on `conserve`

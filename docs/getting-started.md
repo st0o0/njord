@@ -37,7 +37,7 @@ Weather data comes from the Open-Meteo deterministic Forecast API (`api.open-met
 
 The `/app/data` volume stores the SQLite journal (each PollWorker's learned schedule and API usage). Keep it mounted so state survives restarts.
 
-Each poll cycle fetches the domains the enabled features need per location. The defaults (18 features: 14 weather alerts + RainProbability + Commute + Pollen + PM2.5) need Forecast, Ensemble and Air Quality, about 3,600 API calls per month at the default 60-minute interval. See [Budget](/configuration/budget).
+Each poll cycle fetches the domains the enabled features need per location. The defaults (18 features: 15 weather alerts incl. RainProbability + Commute + Pollen + PM2.5) need Forecast, Ensemble and Air Quality, about 3,600 API calls per month at the default 60-minute interval. See [Budget](/configuration/budget).
 
 ::: tip
 For several locations or solar data, use the [Config Builder](/builder).
@@ -70,7 +70,7 @@ Under **Settings > Devices & Services > njord Weather**:
 - Per location: weather entity, air quality and flood sensors, alert binary sensors, lifestyle conditions, an event entity for alert state changes
 - On the server device: a "Trigger Poll" button, API usage, version, uptime and stream connectivity sensors
 
-With all defaults you get about 45 entities per location. Enable more features to add lifestyle scores, energy monitoring, flood risk and more. See [Entities](/home-assistant/entities).
+With all defaults you get about 45 entities per location (about 70 with all features enabled). Enable more features to add lifestyle scores, energy monitoring, flood risk and more. See [Entities](/home-assistant/entities).
 
 ## How it works
 

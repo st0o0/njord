@@ -1,6 +1,6 @@
 # Entities
 
-The integration creates entities across five platforms: `weather`, `sensor`, `binary_sensor`, `event`, and `button`.
+The integration creates entities across six platforms: `weather`, `sensor`, `binary_sensor`, `calendar`, `event`, and `button`.
 
 ## Weather (`weather.*`)
 
@@ -31,8 +31,10 @@ The server delivers data for each enabled domain per location:
 | Flood | River discharge | `sensor.lucerne_river_discharge` |
 | Lifestyle | Commute safety, exercise, soil moisture, evapotranspiration, growing degree | `sensor.lucerne_commute_safety` |
 | Energy | Solar yield, elevated wind speed/direction | `sensor.lucerne_solar_yield` |
+| Scores | Allergy severity, sleep quality, asthma risk, spray window | `sensor.lucerne_allergy_severity`, `sensor.lucerne_sleep_quality` |
+| Conditions | Heat pump COP, solar battery strategy, irrigation need, frost depth, inversion detection, atmospheric stability, cloud ceiling | `sensor.lucerne_heat_pump_cop`, `sensor.lucerne_cloud_ceiling` |
 
-The set of sensors depends on which features are enabled. The entity count for a single location ranges from about 45 (defaults) to 80+ (all features).
+The set of sensors depends on which features are enabled. The entity count for a single location ranges from about 45 (defaults) to about 70 (all features).
 
 ---
 
@@ -40,7 +42,7 @@ The set of sensors depends on which features are enabled. The entity count for a
 
 Up to 30 alert types as binary sensors. Active alerts show `on`, inactive show `off`. The active alert's severity and details are exposed as state attributes.
 
-### Weather alerts (20)
+### Weather alerts (22)
 
 | Alert | Entity suffix | What it warns about |
 |-------|---------------|---------------------|
@@ -64,6 +66,8 @@ Up to 30 alert types as binary sensors. Active alerts show `on`, inactive show `
 | Shower | `shower_alert` | Sudden convective showers |
 | Fire Risk | `fire_risk_alert` | Wildfire risk conditions |
 | Coastal Flood | `coastal_flood_alert` | Storm surge risk |
+| Compound Heat Stress | `compound_heat_stress_alert` | Combined heat, humidity and air quality stress |
+| Migraine Risk | `migraine_risk_alert` | Weather conditions that commonly trigger migraines |
 
 ### Other alerts
 
@@ -92,6 +96,14 @@ Entity ID pattern: `binary_sensor.{location}_{type}_alert`
 | `duration_hours` | int | Expected duration in hours (only when set) |
 
 These attributes come from the gRPC API.
+
+---
+
+## Calendar (`calendar.*`)
+
+One calendar entity per location shows the activity time windows of the score features.
+
+Entity ID: `calendar.{location}_activity_windows`
 
 ---
 
@@ -134,6 +146,15 @@ Entity ID: `event.njord_{location}_weather_alert`
 
 **Event data:** `type`, `location`, `severity`, `confidence`, `trigger_value`, `threshold`, `peak_value`, `hours_until`, `duration_hours`, `previous_severity` (on escalation/deescalation/cleared)
 
+### Data and feature events
+
+Two further event entities per location:
+
+| Entity | Event types | When it fires |
+|--------|-------------|---------------|
+| `event.{location}_data` | `domain_updated`, `features_updated` | Data lifecycle: a domain received new data, or features were re-evaluated |
+| `event.{location}_features` | `score_threshold`, `condition_changed`, window events | Feature transitions: a score crosses a threshold, a condition changes, an activity window opens or closes |
+
 ---
 
 ## Button (`button.*`)
@@ -154,15 +175,15 @@ Attributes after pressing: `triggered_count`, `last_triggered`.
 type: entities
 title: Weather Alerts
 entities:
-  - entity: sensor.njord_home_frost_alert
+  - entity: binary_sensor.home_frost_alert
     name: Frost
-  - entity: sensor.njord_home_heat_alert
+  - entity: binary_sensor.home_heat_alert
     name: Heat
-  - entity: sensor.njord_home_storm_alert
+  - entity: binary_sensor.home_storm_alert
     name: Storm
-  - entity: sensor.njord_home_uv_alert
+  - entity: binary_sensor.home_uv_alert
     name: UV
-  - entity: sensor.njord_home_thunderstorm_alert
+  - entity: binary_sensor.home_thunderstorm_alert
     name: Thunderstorm
 ```
 

@@ -475,3 +475,68 @@ Njord__Features__Marine__CoastalFlood__WindSpeedThreshold: "4.2"
 - Close flood barriers
 - Notify marine and harbor operations
 - Activate coastal monitoring cameras
+
+---
+
+### CompoundHeatStress
+
+Warns when heat and air pollution combine into a danger greater than either alone. Fires when any one of these triggers is met:
+
+| Trigger | Condition |
+|---------|-----------|
+| Wet bulb | Wet-bulb temperature >= 28 °C |
+| Heat + PM2.5 | Apparent temperature >= 40 °C and PM2.5 >= 25 ug/m3 |
+| UV + stagnant air | UV index >= 8, boundary layer < 500 m and PM2.5 >= 15 ug/m3 |
+
+| Severity | Meaning |
+|----------|---------|
+| Yellow | Warning: one trigger met |
+| Orange | Severe: several triggers met or values well above the limits |
+| Red | Extreme: wet-bulb temperature >= 35 °C |
+
+**Entity:** `binary_sensor.<location>_compound_heat_stress_alert`
+**Domains:** Forecast + AirQuality | **Default:** Off | **Confidence:** From ensemble spread
+
+```yaml
+Njord__Features__Forecast__CompoundHeatStress__Enabled: "true"
+```
+
+Thresholds live in the `Njord:Features:Forecast:CompoundHeatStress` section.
+
+**Automation ideas:**
+- Keep windows closed and run cooling with filtered air
+- Cancel outdoor work and exercise at orange or red severity
+- Notify vulnerable household members early
+
+---
+
+### MigraineRisk
+
+Warns when weather patterns known to trigger migraines are forecast. Uses the poll history (ring buffer, PollDepth 6) to judge changes.
+
+| Signal | Condition |
+|--------|-----------|
+| Pressure drop (primary) | > 5 hPa in 6 h or > 10 hPa in 24 h |
+| Temperature swing | > 8 °C in 12 h |
+| Humidity swing | > 30 % in 12 h |
+| Foehn wind | Foehn conditions detected |
+
+| Severity | Meaning |
+|----------|---------|
+| Yellow | Mild risk |
+| Orange | Moderate risk |
+| Red | Severe risk |
+
+**Entity:** `binary_sensor.<location>_migraine_risk_alert`
+**Domains:** Forecast | **Default:** Off | **Confidence:** Medium
+
+```yaml
+Njord__Features__Forecast__MigraineRisk__Enabled: "true"
+```
+
+Thresholds live in the `Njord:Features:Forecast:MigraineRisk` section.
+
+**Automation ideas:**
+- Send a reminder to take preventive medication
+- Dim lights and reduce notifications at orange or red severity
+- Log alert days next to a symptom diary

@@ -227,3 +227,77 @@ Njord__Features__Energy__ElevatedWind__Enabled: "true"
 - Track wind energy production potential
 - Compare 80 m wind to 10 m ground wind on a dashboard
 - Alert when hub-height wind exceeds turbine cut-off speed
+
+---
+
+## SleepQuality
+
+Scores the coming night from 0 (poor) to 100 (excellent). Penalties apply for heat, humidity, pollen, wind and storms. Also recommends a ventilation window for cooling the bedroom.
+
+**Entity:** `sensor.<location>_sleep_quality` (score 0--100)
+**Domains:** Forecast + AirQuality | **Default:** Off
+
+```yaml
+Njord__Features__Lifestyle__SleepQuality__Enabled: "true"
+Njord__Features__Lifestyle__SleepQuality__PollenSensitive: "true"
+Njord__Features__Lifestyle__SleepQuality__NightStartHour: "22"
+```
+
+**Automation ideas:**
+- Evening announcement of the expected sleep quality
+- Open bedroom windows during the recommended ventilation window
+- Start the bedroom fan on hot nights
+
+---
+
+## SprayWindow
+
+Finds the best time windows for spraying in the garden or on crops. Mandatory conditions: wind below 3 m/s and no rain for 4 h. Optimal conditions: temperature 10--25 °C and humidity 40--80 %. Time windows come from the WindowScanner.
+
+**Entity:** `sensor.<location>_spray_window`
+**Domains:** Forecast | **Default:** Off
+
+```yaml
+Njord__Features__Lifestyle__SprayWindow__Enabled: "true"
+```
+
+**Automation ideas:**
+- Notify when a suitable window opens
+- Add the window to a calendar
+- Postpone spraying when no window exists in the next days
+
+---
+
+## IrrigationNeed
+
+Advises whether to water, based on evapotranspiration, soil moisture, vapour pressure deficit and the rain forecast. Reports one of: `water`, `skip`, `reduce`, `soil_wet`.
+
+**Entity:** `sensor.<location>_irrigation_need`
+**Domains:** Forecast | **Default:** Off
+
+```yaml
+Njord__Features__Lifestyle__IrrigationNeed__Enabled: "true"
+```
+
+**Automation ideas:**
+- Start the sprinkler only when the advice is `water`
+- Shorten the cycle when the advice is `reduce`
+- Skip the schedule when rain is forecast
+
+---
+
+## FrostDepth
+
+Estimates how deep frost penetrates the ground (in cm) with the Stefan model. Snow cover insulates (insulation factor) and wind amplifies the effect. Reports a risk level: `none`, `surface`, `shallow`, `moderate`, `deep`.
+
+**Entity:** `sensor.<location>_frost_depth` (cm)
+**Domains:** Forecast | **Default:** Off
+
+```yaml
+Njord__Features__Lifestyle__FrostDepth__Enabled: "true"
+```
+
+**Automation ideas:**
+- Warn about frozen water pipes at `moderate` or `deep`
+- Pause garden and construction digging
+- Turn on outdoor pipe heating

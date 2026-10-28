@@ -139,3 +139,57 @@ Njord__Features__AirQuality__PollenBlast__PollenDelta: "10"
 - Proactive allergy medication reminder before the blast
 - Close windows and switch to recirculated air before pollen spikes
 - Alert allergy-sensitive household members
+
+---
+
+## InversionDetection
+
+Detects temperature inversions by comparing temperature at the surface, 80 m and 120 m. Reports strength (`mild`, `strong`, `extreme`) and type (`radiation`, `subsidence`, `frontal`). Inversions trap pollution and fog near the ground.
+
+**Entity:** `sensor.<location>_inversion_detection`
+**Domains:** Forecast | **Default:** Off
+
+```yaml
+Njord__Features__Insight__InversionDetection__Enabled: "true"
+```
+
+**Automation ideas:**
+- Avoid burning in fireplaces or gardens during a strong inversion
+- Expect fog and poor air quality
+- Combine with SmogRisk for ventilation decisions
+
+---
+
+## AtmosphericStability
+
+Assesses convection from CAPE, CIN (convective inhibition) and Lifted Index. Reports a class: `stable`, `marginal`, `capped`, `unstable` or `explosive`.
+
+**Entity:** `sensor.<location>_atmospheric_stability`
+**Domains:** Forecast | **Default:** Off
+
+```yaml
+Njord__Features__Insight__AtmosphericStability__Enabled: "true"
+```
+
+**Automation ideas:**
+- Secure outdoor items when the class is `unstable` or `explosive`
+- Cross-check thunderstorm alerts
+- Show on a dashboard for paragliding and sailing
+
+---
+
+## CloudCeiling
+
+Estimates the cloud base height from the low, mid and high cloud layers. Reports a category: `very_low`, `low`, `moderate`, `high`, `very_high` or `unlimited`.
+
+**Entity:** `sensor.<location>_cloud_ceiling`
+**Domains:** Forecast | **Default:** Off
+
+```yaml
+Njord__Features__Insight__CloudCeiling__Enabled: "true"
+```
+
+**Automation ideas:**
+- Flight and drone go/no-go indicator
+- Plan astronomy sessions when the sky is `unlimited`
+- Warn about low ceilings for hill walking
