@@ -2,42 +2,67 @@
 
 Line coverage says a line ran, not that a test would notice if it were wrong. [Stryker.NET](https://stryker-mutator.io/docs/stryker-net/introduction/) changes the production code (`>` to `>=`, `+` to `-`, a removed statement) and re-runs the tests that cover the changed line; a mutant that no test kills **survived**, and points at an assertion that is too weak.
 
-It is used on the pure-logic projects only, where tests are fast and assert exact values:
-`Njord.Forecast`, `Njord.Features`, and `ParameterSelection`, `BudgetGuard`, `NjordOptionsValidator` in `Njord.Core`. Actor, gRPC code is not a good target (timing, I/O).
+## Targets
+
+The targets are listed in `src/mutation-targets.txt`, one project per line; each is mutated with its `<Project>.Tests` project.
+
+| Project | Why |
+|---------|-----|
+| `Njord.Features` | Primary target: the feature rules are pure logic with exact-value tests |
+| `Njord.Core` | Domain logic and validation |
+| `Njord.Messages` | Small result records |
+| `Njord.Budget` | Budget calculations |
+| `Njord.Grpc` | Mapping logic |
+| `Njord.OpenMeteo` | Client logic and mapping |
+
+Not targets:
+
+- `Njord.IntegrationTests`: slow, whole host.
+- `Njord.Architecture.Tests`: ArchUnit rules, no production logic.
+- `Njord.Persistence`: extend-only records, nothing to mutate.
+- `Njord.Pipeline`, `Njord.Polling`: Akka streams and actors, timing-sensitive tests make mutation runs flaky.
+
+To add a target, append the project name to `src/mutation-targets.txt` (`#` starts a comment). The script and the workflow both read it.
 
 ## Run
 
 ```bash
-bash scripts/run-mutation.sh Weather           # in the .NET SDK container (needs Docker)
-bash scripts/run-mutation.sh Weather --local   # directly, where the SDK's MSBuild resolves (CI)
+bash scripts/run-mutation.sh                          # all targets, in the .NET SDK container (needs Docker)
+bash scripts/run-mutation.sh Njord.Features           # a single target
+bash scripts/run-mutation.sh Njord.Features --local   # directly, where the SDK's MSBuild resolves (CI, Linux/macOS)
 ```
 
-On Windows the tool picks Visual Studio's `MSBuild.exe`, which cannot resolve the .NET SDK, so run it through the container. A project takes one to three minutes. Reports (`html`, `json`, `markdown`) are written to `src/Njord.<Project>.Tests/StrykerOutput/` (git-ignored); open the HTML report to see each surviving mutant in its line.
+On Windows the tool picks Visual Studio's `MSBuild.exe`, which cannot resolve the .NET SDK, so run it through the container. The script exits non-zero when any target fails its threshold and lists the failed projects. Reports (`html`, `json`, `markdown`) are written to `src/<Project>.Tests/StrykerOutput/` (git-ignored); open the HTML report to see each surviving mutant in its line.
 
-Configuration: `src/stryker-config.json` (MTP runner, thresholds high 80 / low 60, options classes, validators and DI registration are not mutated), the tool version is pinned in `.config/dotnet-tools.json`. The weekly workflow `.github/workflows/mutation.yml` runs every project and publishes the scores in the job summary. It is not a required check; `break` stays at 0.
+## CI
 
-## Baseline
+`.github/workflows/mutation.yml` runs weekly (Sunday 03:00 UTC) and on manual dispatch (optionally for one project). A discover job reads `src/mutation-targets.txt` and builds the matrix, so one job per target runs. Each job publishes its score in the job summary and uploads the reports as an artifact. It never runs on pull requests and is not a required check.
 
-First run, before any test was added:
+## Thresholds
 
-| Project | Mutation score |
-|---------|----------------|
-| Weather | 47.1 % |
-| Core (selected files) | 80.8 % |
+Configuration: `src/stryker-config.json` (MTP runner; the tool version is pinned in `.config/dotnet-tools.json`).
 
-After closing surviving mutants in the alert rules:
+- `high` 80: the target score.
+- `low` 60: below this the score is flagged as a warning.
+- `break` 60: a project under 60 % fails its run (and its weekly job).
 
-| Project | Before | After |
-|---------|--------|-------|
-| Weather | 47.1 % | 92.2 % |
+## Exclusions
 
-Stryker does not score mutants that fail to compile, so the Fog, Humidity, Ice, Thunderstorm and TropicalNight rules (all mutants are compile errors) do not count; their specs still run. No `break` threshold is set for any project: the score is a trend to watch weekly, not a PR gate.
+Not mutated (`mutate` in `src/stryker-config.json`):
 
-## Justified exclusions (equivalent mutants)
+- `*Options.cs` and `*OptionsValidator.cs`: configuration shape and cross-field rules checked at startup.
+- `ServiceCollectionExtensions.cs` and `*SetupContainer.cs`: DI and host wiring.
+- `obj/`: generated code.
 
-These survive because the mutation does not change observable behavior:
+Mutators: `string` mutations are ignored (log and wire text, no behavior).
 
-- `HeatRule`: `??` operand swap on the temperature fallback (only null-ness of both is tested); `found = true` (without a hit `Classify` returns None anyway); `peak > MinValue` (always true once an extreme exists).
+Stryker does not score mutants that fail to compile, so those do not count.
+
+### Equivalent mutants
+
+Mutants that survive because the mutation does not change observable behavior are accepted, not fixed by weakening production code. Examples from the alert rules:
+
+- `HeatRule`: `??` operand swap on the temperature fallback; `found = true`; `peak > MinValue` (always true once an extreme exists).
 - `StormRule`: `peak > MinValue`, same reason.
 - `PressureDropRule`: `j < i` to `j <= i` (a pair of span 0 fails the `>= 3` check).
 - `SnowRule`: `> 0` to `>= 0` (a total of 0 means confidence 0, severity None either way).

@@ -4,18 +4,41 @@ on:
   schedule:
     - cron: "0 3 * * 0"
   workflow_dispatch:
+    inputs:
+      project:
+        description: "Project to mutate, e.g. Njord.Features (empty = all targets)"
+        required: false
 
 permissions:
   contents: read
 
 jobs:
-  mutation:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.targets.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: targets
+        env:
+          INPUT_PROJECT: ${{ inputs.project }}
+        run: |
+          if [ -n "$INPUT_PROJECT" ]; then
+            matrix=$(jq -cn --arg p "$INPUT_PROJECT" '[$p]')
+          else
+            matrix=$(grep -v '^#' src/mutation-targets.txt | grep -v '^[[:space:]]*$' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          fi
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  mutate:
+    needs: discover
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        project: [Forecast, Weather.Alerts, Core]
+        project: ${{ fromJson(needs.discover.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v7
 
@@ -29,11 +52,11 @@ jobs:
       - name: Add the mutation score to the job summary
         if: always()
         run: |
-          report=$(ls src/Njord.${{ matrix.project }}.Tests/StrykerOutput/*/reports/mutation-report.md | head -n 1)
+          report=$(ls src/${{ matrix.project }}.Tests/StrykerOutput/*/reports/mutation-report.md | head -n 1)
           { echo "## Mutation score: ${{ matrix.project }}"; cat "$report"; } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: mutation-${{ matrix.project }}
-          path: src/Njord.${{ matrix.project }}.Tests/StrykerOutput/*/reports
+          path: src/${{ matrix.project }}.Tests/StrykerOutput/*/reports

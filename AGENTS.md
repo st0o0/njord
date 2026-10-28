@@ -210,7 +210,7 @@ Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (lo
 (template), `docker-compose.example.yml` (repo root).
 
 Other checks (repo root, local only): `openspec validate --all --no-interactive`,
-`bash scripts/check-openspec-root.sh`, mutation testing `bash scripts/run-mutation.sh <Project>`.
+`bash scripts/check-openspec-root.sh`, mutation testing `bash scripts/run-mutation.sh [Project]` (no argument: all targets in `src/mutation-targets.txt`).
 Full-stack verification is the `e2e-test` skill (`.claude/skills/e2e-test/SKILL.md`, `e2e/E2E-TEST-PLAN.md`).
 
 ## Conventions

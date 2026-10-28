@@ -1,0 +1,7 @@
+# Projects mutated by scripts/run-mutation.sh and .github/workflows/mutation.yml (tests: <name>.Tests)
+Njord.Features
+Njord.Core
+Njord.Messages
+Njord.Budget
+Njord.Grpc
+Njord.OpenMeteo
