@@ -33,6 +33,12 @@ public sealed record IrrigationNeedConditionResult(Location Location, string Adv
 
 public sealed record FrostDepthConditionResult(Location Location, double DepthCm, string Risk, double SnowInsulationCm, double SoilTemperatureC) : ConditionFeatureResult(Location);
 
+public sealed record InversionDetectionConditionResult(Location Location, string Strength, string InversionType, double TemperatureDifferenceC, double BoundaryLayerHeightM) : ConditionFeatureResult(Location);
+
+public sealed record AtmosphericStabilityConditionResult(Location Location, string StabilityClass, double CapeJPerKg, double CinJPerKg, double LiftedIndex) : ConditionFeatureResult(Location);
+
+public sealed record CloudCeilingConditionResult(Location Location, string CeilingCategory, int EstimatedCeilingM, int CloudCoverLowPercent, int CloudCoverMidPercent, int CloudCoverHighPercent) : ConditionFeatureResult(Location);
+
 public sealed record SolarYieldResult(Location Location, double KwhPerKwp, int PeakHour) : ConditionFeatureResult(Location);
 
 public sealed record SatelliteRadiationResult(Location Location, DateTimeOffset ObservedAt, double Gti, double? Ghi, double? BlendedKwhPerSquareMeter) : ConditionFeatureResult(Location);

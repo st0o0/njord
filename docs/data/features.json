@@ -696,6 +696,45 @@
     "weatherParams": ["Temperature", "Pressure", "WindDirection"]
   },
   {
+    "key": "Insight:InversionDetection",
+    "name": "InversionDetection",
+    "category": "Insight",
+    "output": "Condition",
+    "description": "Detects temperature inversions in the lowest 120 m of the atmosphere",
+    "longDescription": "Compares the temperature at 80 m and 120 m with the surface temperature. An inversion exists when it is warmer aloft. Rates it mild, strong or extreme from the temperature difference and the boundary layer height (no report when the layer is 800 m or higher) and classifies it as radiation (clear, calm), subsidence (shallow and strong) or frontal.",
+    "entities": ["sensor.{location}_inversion_detection"],
+    "automationExample": "Warn about trapped smoke and poor air dispersion when a strong inversion is reported",
+    "enabledByDefault": false,
+    "domains": ["Forecast"],
+    "weatherParams": ["Temperature", "Temperature80m", "Temperature120m", "BoundaryLayerHeight", "Visibility", "CloudCover", "WindSpeed"]
+  },
+  {
+    "key": "Insight:AtmosphericStability",
+    "name": "AtmosphericStability",
+    "category": "Insight",
+    "output": "Condition",
+    "description": "Classifies atmospheric stability from CAPE, CIN and the lifted index",
+    "longDescription": "Reads convective available potential energy, convective inhibition and the lifted index. Reports stable (CAPE under 300), marginal, capped (CAPE 1000 or more with CIN over 200), unstable (CIN under 50 and lifted index under -3) or explosive (CAPE 2500 or more, CIN under 50, lifted index under -6).",
+    "entities": ["sensor.{location}_atmospheric_stability"],
+    "automationExample": "Close the awning when the stability class is unstable or explosive",
+    "enabledByDefault": false,
+    "domains": ["Forecast"],
+    "weatherParams": ["Cape", "ConvectiveInhibition", "LiftedIndex"]
+  },
+  {
+    "key": "Insight:CloudCeiling",
+    "name": "CloudCeiling",
+    "category": "Insight",
+    "output": "Condition",
+    "description": "Estimates the height of the lowest significant cloud layer",
+    "longDescription": "Uses the low, mid and high cloud cover layers. The lowest layer above 50 percent decides the ceiling: the boundary layer height for low cloud, the freezing level for mid cloud and 8000 m for high cloud. Reports very_low, low, moderate, high, very_high or unlimited for clear skies.",
+    "entities": ["sensor.{location}_cloud_ceiling"],
+    "automationExample": "Skip the drone flight when the cloud ceiling is very_low",
+    "enabledByDefault": false,
+    "domains": ["Forecast"],
+    "weatherParams": ["CloudCoverLow", "CloudCoverMid", "CloudCoverHigh", "FreezingLevelHeight", "BoundaryLayerHeight"]
+  },
+  {
     "key": "Insight:SeasonalOutlook",
     "name": "SeasonalOutlook",
     "category": "Insight",

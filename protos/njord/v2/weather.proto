@@ -329,6 +329,9 @@ message EnrichmentEvent {
     ApproachingFront approaching_front = 68;
     ConfidenceTrend confidence_trend = 80;
     PollenTrend pollen_trend = 81;
+    InversionDetectionCondition inversion_detection = 82;
+    AtmosphericStabilityCondition atmospheric_stability = 83;
+    CloudCeilingCondition cloud_ceiling = 84;
     SeasonalOutlook seasonal_outlook = 90;
     ModelComparison model_comparison = 91;
     GrowingDegreeForecast growing_degree = 92;
@@ -820,6 +823,31 @@ message FrostDepthCondition {
   string risk = 3;
   double snow_insulation_cm = 4;
   double soil_temperature_c = 5;
+}
+
+message InversionDetectionCondition {
+  ConditionData condition = 1;
+  string strength = 2;
+  string inversion_type = 3;
+  double temperature_difference_c = 4;
+  double boundary_layer_height_m = 5;
+}
+
+message AtmosphericStabilityCondition {
+  ConditionData condition = 1;
+  string stability_class = 2;
+  double cape_j_per_kg = 3;
+  double cin_j_per_kg = 4;
+  double lifted_index = 5;
+}
+
+message CloudCeilingCondition {
+  ConditionData condition = 1;
+  string ceiling_category = 2;
+  int32 estimated_ceiling_m = 3;
+  int32 cloud_cover_low_percent = 4;
+  int32 cloud_cover_mid_percent = 5;
+  int32 cloud_cover_high_percent = 6;
 }
 
 message SolarYield {

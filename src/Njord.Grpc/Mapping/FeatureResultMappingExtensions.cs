@@ -146,6 +146,43 @@ internal static class FeatureResultMappingExtensions
         };
     }
 
+    public static V2.InversionDetectionCondition ToProto(this InversionDetectionConditionResult r)
+    {
+        return new V2.InversionDetectionCondition
+        {
+            Condition = new V2.ConditionData(),
+            Strength = r.Strength,
+            InversionType = r.InversionType,
+            TemperatureDifferenceC = r.TemperatureDifferenceC,
+            BoundaryLayerHeightM = r.BoundaryLayerHeightM,
+        };
+    }
+
+    public static V2.AtmosphericStabilityCondition ToProto(this AtmosphericStabilityConditionResult r)
+    {
+        return new V2.AtmosphericStabilityCondition
+        {
+            Condition = new V2.ConditionData(),
+            StabilityClass = r.StabilityClass,
+            CapeJPerKg = r.CapeJPerKg,
+            CinJPerKg = r.CinJPerKg,
+            LiftedIndex = r.LiftedIndex,
+        };
+    }
+
+    public static V2.CloudCeilingCondition ToProto(this CloudCeilingConditionResult r)
+    {
+        return new V2.CloudCeilingCondition
+        {
+            Condition = new V2.ConditionData(),
+            CeilingCategory = r.CeilingCategory,
+            EstimatedCeilingM = r.EstimatedCeilingM,
+            CloudCoverLowPercent = r.CloudCoverLowPercent,
+            CloudCoverMidPercent = r.CloudCoverMidPercent,
+            CloudCoverHighPercent = r.CloudCoverHighPercent,
+        };
+    }
+
     public static V2.HeatPumpCopCondition ToProto(this HeatPumpCopConditionResult r)
     {
         return new V2.HeatPumpCopCondition

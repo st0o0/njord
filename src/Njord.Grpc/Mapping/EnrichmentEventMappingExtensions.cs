@@ -310,6 +310,24 @@ internal static class EnrichmentEventMappingExtensions
             UpdatedAt = now.ToTimestamp(),
             FloodTimeline = r.ToProto(),
         },
+        InversionDetectionConditionResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            InversionDetection = r.ToProto(),
+        },
+        AtmosphericStabilityConditionResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            AtmosphericStability = r.ToProto(),
+        },
+        CloudCeilingConditionResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            CloudCeiling = r.ToProto(),
+        },
         HeatPumpCopConditionResult r => new EnrichmentEvent
         {
             Location = r.Location.Name,

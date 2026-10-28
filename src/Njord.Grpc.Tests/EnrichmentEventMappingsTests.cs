@@ -473,6 +473,46 @@ public sealed class EnrichmentEventMappingsTests
     }
 
     [Fact]
+    public void Inversion_detection_maps_to_the_inversion_detection_case()
+    {
+        var evt = Map(new InversionDetectionConditionResult(Lucerne, "strong", "radiation", 2.5, 400));
+
+        Assert.Equal(Case.InversionDetection, evt.FeatureCase);
+        Assert.Multiple(
+            () => Assert.Equal("strong", evt.InversionDetection.Strength),
+            () => Assert.Equal("radiation", evt.InversionDetection.InversionType),
+            () => Assert.Equal(2.5, evt.InversionDetection.TemperatureDifferenceC),
+            () => Assert.Equal(400, evt.InversionDetection.BoundaryLayerHeightM));
+    }
+
+    [Fact]
+    public void Atmospheric_stability_maps_to_the_atmospheric_stability_case()
+    {
+        var evt = Map(new AtmosphericStabilityConditionResult(Lucerne, "unstable", 1500, 20, -4));
+
+        Assert.Equal(Case.AtmosphericStability, evt.FeatureCase);
+        Assert.Multiple(
+            () => Assert.Equal("unstable", evt.AtmosphericStability.StabilityClass),
+            () => Assert.Equal(1500, evt.AtmosphericStability.CapeJPerKg),
+            () => Assert.Equal(20, evt.AtmosphericStability.CinJPerKg),
+            () => Assert.Equal(-4, evt.AtmosphericStability.LiftedIndex));
+    }
+
+    [Fact]
+    public void Cloud_ceiling_maps_to_the_cloud_ceiling_case()
+    {
+        var evt = Map(new CloudCeilingConditionResult(Lucerne, "low", 900, 80, 20, 10));
+
+        Assert.Equal(Case.CloudCeiling, evt.FeatureCase);
+        Assert.Multiple(
+            () => Assert.Equal("low", evt.CloudCeiling.CeilingCategory),
+            () => Assert.Equal(900, evt.CloudCeiling.EstimatedCeilingM),
+            () => Assert.Equal(80, evt.CloudCeiling.CloudCoverLowPercent),
+            () => Assert.Equal(20, evt.CloudCeiling.CloudCoverMidPercent),
+            () => Assert.Equal(10, evt.CloudCeiling.CloudCoverHighPercent));
+    }
+
+    [Fact]
     public void Spray_window_scores_map_to_the_spray_window_case()
     {
         var evt = Map(new SprayWindowScoreResult(Lucerne, 90, Anchor, 3));
