@@ -4,19 +4,23 @@ Structured logging with SourceContext-based attribution, level discipline, and o
 ## Requirements
 ### Requirement: Actor logging via Akka ILoggingAdapter
 
-All actor classes (types extending `ActorBase` or its subclasses) SHALL use `Context.GetLogger()` to obtain an `ILoggingAdapter` for logging. Actor classes SHALL NOT inject `ILogger<T>` via constructor for logging purposes. Every log event an actor emits through its `ILoggingAdapter` SHALL reach the host's logging pipeline with the actor's full type name as its log category, so that it carries that name as `SourceContext` in Serilog.
+All actor classes (types extending `ActorBase` or its subclasses) SHALL use `Context.GetLogger()` to obtain an `ILoggingAdapter` for logging. Actor classes SHALL NOT inject `ILogger<T>` via constructor for logging purposes. Actor log events SHALL reach the host's logging pipeline through `AddLoggerFactory()` (Akka.Hosting's `LoggerFactoryLogger`), which routes them to `ILogger<ActorSystem>`. The `LogSource` property on each log event SHALL carry the actor's path for operational filtering.
 
 #### Scenario: Actor uses Akka logger
 - **WHEN** `PollWorker` emits a log message
 - **THEN** the log is emitted via `ILoggingAdapter` obtained from `Context.GetLogger()`
 
-#### Scenario: Actor log includes SourceContext
+#### Scenario: Actor log SourceContext is ActorSystem
 - **WHEN** `PollWorker` emits a log message through `ILoggingAdapter`
-- **THEN** the log event contains `SourceContext` with value `"Njord.Pipeline.PollWorker"`, not `"Akka.Actor.ActorSystem"`
+- **THEN** the log event contains `SourceContext` with value `"Akka.Actor.ActorSystem"` (the standard Akka.Hosting category)
+
+#### Scenario: Actor log carries LogSource for filtering
+- **WHEN** `PollWorker` emits a log message through `ILoggingAdapter`
+- **THEN** the log event carries a `LogSource` property with the actor's path, usable for operational filtering
 
 #### Scenario: Actor log keeps its structured properties
 - **WHEN** `PollWorker` logs `"Data changed for {Location}/{Model}"`
-- **THEN** the log event carries the named properties `Location` and `Model`, the message template, and the `ActorPath` and `LogSource` of the emitting actor
+- **THEN** the log event carries the named properties `Location` and `Model`, and the `ActorPath` of the emitting actor
 
 ### Requirement: Non-actor logging via ILogger
 
@@ -87,18 +91,6 @@ Operationally significant lifecycle events SHALL be logged at Information level,
 #### Scenario: Data changed is a Debug log
 - **WHEN** a `PollWorker` detects changed data for its target
 - **THEN** `"Data changed for {Location}/{Model}"` is logged at Debug level
-
-### Requirement: Akka internal logs keep an Akka category
-
-Log events emitted by Akka.NET itself (cluster, remoting, persistence, streams internals and log sources given as plain strings) SHALL keep a log category in the `Akka` namespace, so the production override `"Akka": "Warning"` filters them while it does not filter njord's own actors.
-
-#### Scenario: Akka internal Information log is filtered in production
-- **WHEN** an Akka component logs at Information level and the production configuration (`"Akka": "Warning"`) is active
-- **THEN** the log event does not appear in the output
-
-#### Scenario: njord actor Information log is visible in production
-- **WHEN** a njord actor logs at Information level and the production configuration (default `Information`, `"Akka": "Warning"`) is active
-- **THEN** the log event appears in the output with the actor's full type name as `SourceContext`
 
 ### Requirement: Akka log level follows the configured minimum level
 

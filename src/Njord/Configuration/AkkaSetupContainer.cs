@@ -31,7 +31,7 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
         {
             loggers.LogLevel = AkkaLogLevel.From(configuration);
             loggers.ClearLoggers();
-            loggers.AddLogger<ActorCategoryLogger>();
+            loggers.AddLoggerFactory();
         });
 
     internal static void ConfigureInfrastructure(
@@ -42,7 +42,11 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
         var port = configuration.GetValue("Akka:RemotingPort", 2552);
 
         builder
-            .WithSqlPersistence(selection.ConnectionString, selection.ProviderName, autoInitialize: true)
+            .WithSqlPersistence(selection.ConnectionString, selection.ProviderName, autoInitialize: true,
+                journalBuilder: journal => journal.WithHealthCheck(),
+                snapshotBuilder: snapshot => snapshot.WithHealthCheck())
+            .WithActorSystemLivenessCheck()
+            .WithAkkaClusterReadinessCheck()
             .WithRemoting(new RemoteOptions { HostName = "localhost", Port = port })
             .WithClustering(port == 0
                 ? new ClusterOptions()

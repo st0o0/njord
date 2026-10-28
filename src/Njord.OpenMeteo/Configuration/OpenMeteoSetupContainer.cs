@@ -84,15 +84,12 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
 
     private sealed class GatewayActorRegistration : IActorRegistration
     {
-        private static readonly TimeSpan MinBackoff = TimeSpan.FromSeconds(3);
-        private static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(30);
-        private const double RandomFactor = 0.2;
-
         public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
         {
             builder.WithSingleton<IForecastGateway>("gateway-supervisor",
-                (_, _, resolver) => resolver.Props<OpenMeteoGateway>().BackoffOnFailure("gateway", MinBackoff,
-                    MaxBackoff, RandomFactor, config => config.WithMaxNrOfRetries(-1)));
+                (_, _, resolver) => resolver.Props<OpenMeteoGateway>().BackoffOnFailure("gateway",
+                    SupervisorDefaults.MinBackoff, SupervisorDefaults.MaxBackoff, SupervisorDefaults.RandomFactor,
+                    config => config.WithMaxNrOfRetries(-1)));
         }
     }
 }

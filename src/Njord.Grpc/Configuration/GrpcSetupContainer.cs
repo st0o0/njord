@@ -19,15 +19,12 @@ public sealed class GrpcSetupContainer : IServiceSetupContainer
 
     private sealed class GrpcActorRegistration : IActorRegistration
     {
-        private static readonly TimeSpan MinBackoff = TimeSpan.FromSeconds(3);
-        private static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(30);
-        private const double RandomFactor = 0.2;
-
         public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
         {
             builder.WithSingleton<IGrpcConsumer>("grpc-consumer-supervisor",
                 (_, _, resolver) => resolver.Props<GrpcConsumer>().BackoffOnFailure("grpc-consumer",
-                    MinBackoff, MaxBackoff, RandomFactor, config => config.WithMaxNrOfRetries(-1)));
+                    SupervisorDefaults.MinBackoff, SupervisorDefaults.MaxBackoff, SupervisorDefaults.RandomFactor,
+                    config => config.WithMaxNrOfRetries(-1)));
         }
     }
 }
