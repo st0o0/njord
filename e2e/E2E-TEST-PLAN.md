@@ -2,7 +2,7 @@
 
 Agent-orchestrated end-to-end test against a real Docker stack.
 gRPC + REST. Real Open-Meteo API. 6 domains (Weather, AirQuality, Flood, Marine, Seasonal, Satellite),
-20 alert types, lifestyle features, multi-model weather comparison.
+22 alert types, lifestyle features, multi-model weather comparison.
 
 ## Section Index
 
@@ -11,11 +11,15 @@ gRPC + REST. Real Open-Meteo API. 6 domains (Weather, AirQuality, Flood, Marine,
 | S0 | Stack Setup | 4 | Opus |
 | S1 | HA Onboarding + Token | 6 | Opus |
 | S2 | Integration Setup | 3 | Opus |
-| S3 | Entity Registration | 5 | Opus |
+| S3 | Entity Registration | 8 | Opus |
 | S4 | Domain Data: Weather | 5 | Haiku #1 |
 | S5 | Domain Data: Air Quality | 4 | Haiku #1 |
 | S6 | Domain Data: Flood | 3 | Haiku #1 |
 | S7 | Alert Binary Sensors | 5 | Haiku #2 |
+| S7b | New Score Sensors | 4 | Haiku #2 |
+| S7c | New Condition Sensors | 7 | Haiku #2 |
+| S7d | Calendar Entity | 2 | Haiku #2 |
+| S7e | Event Entities | 2 | Haiku #2 |
 | S8 | gRPC: GetDomainData + StreamDomainData | 5 | Haiku #2 |
 | S9 | gRPC: GetEnrichments + StreamEnrichments | 4 | Haiku #2 |
 | S10 | gRPC: GetCatalog + GetStatus + TriggerPoll | 5 | Haiku #3 |
@@ -24,7 +28,7 @@ gRPC + REST. Real Open-Meteo API. 6 domains (Weather, AirQuality, Flood, Marine,
 | S13 | Multi-Cycle: TriggerPoll × 2 | 4 | Opus |
 | S14 | Budget Tracking | 3 | Opus |
 | S15 | Teardown | 3 | Opus |
-| | **Total** | **~66** | |
+| | **Total** | **~81** | |
 
 ---
 
@@ -40,7 +44,7 @@ gRPC + REST. Real Open-Meteo API. 6 domains (Weather, AirQuality, Flood, Marine,
 - **Location:** Lucerne (explicit coordinates 47.0502 / 8.3093 in the compose file)
 - **Weather:** ForecastDays=4, models `ecmwf_ifs025_ensemble_mean` (primary) + `ecmwf_aifs025_ensemble_mean`
   (`Weather:ModelComparison` enabled)
-- **Features:** ALL enabled (37 feature toggles, `Njord__Features__*`)
+- **Features:** ALL enabled (66 feature toggles, `Njord__Features__*`; `HeatPumpCop` with `TargetTemperature=35`)
 - **Resolved domains:** Weather, AirQuality, Flood, Marine, Seasonal, Satellite (Marine fails for the inland
   location and backs off up to the poll interval)
 
@@ -55,12 +59,16 @@ Derived from config: 1 location, all features enabled.
 | sensor (flood) | 1 | `lucerne_river_discharge` | River discharge m³/s |
 | sensor (lifestyle) | ~7 | `lucerne_commute_safety`, `lucerne_exercise`, `lucerne_model_temperature_spread`, `lucerne_seasonal_temperature_anomaly`, `lucerne_solar_yield`, ... | Varies by data availability; Marine-dependent sensors absent for inland |
 | sensor (server) | 4 | `server_monthly_usage`, `server_daily_usage`, `server_version`, `server_uptime` | Diagnostics |
-| binary_sensor (alerts) | 20 | `lucerne_{frost,heat,...}` alert binary sensors | on when severity > none |
+| sensor (scores, new) | 4 | `lucerne_allergy_severity`, `lucerne_sleep_quality`, `lucerne_asthma_risk`, `lucerne_spray_window` | Score sensors 0-100 |
+| sensor (conditions, new) | 7 | `lucerne_heat_pump_cop`, `lucerne_solar_battery_strategy`, `lucerne_irrigation_need`, `lucerne_frost_depth`, `lucerne_inversion_detection`, `lucerne_atmospheric_stability`, `lucerne_cloud_ceiling` | Numeric and enum condition sensors |
+| binary_sensor (alerts) | 22 | `lucerne_{frost,heat,...}` alert binary sensors (incl. `compound_heat_stress`, `migraine_risk`) | on when severity > none |
+| calendar | 1 | `calendar.njord_lucerne_activity_windows` | Activity windows |
+| event (lifecycle) | 2 | `event.njord_lucerne_data_lifecycle`, `event.njord_lucerne_feature_transitions` | Lifecycle and transition events |
 | binary_sensor (lifestyle) | 2 | `lucerne_planting_safe`, `lucerne_ventilation_window` | Condition binary sensors |
 | binary_sensor (streams) | 2 | `server_domain_data_stream`, `server_enrichment_stream` | Connectivity |
 | event | 1 | `lucerne_weather_alert` | Alert event entity |
 | button | 1 | `server_trigger_poll` | Manual poll trigger |
-| **Total** | **~45** | | Entity ids follow HA device + name naming; unique ids are the contract. Count varies by data availability (Marine fails for inland). |
+| **Total** | **~60** | | Entity ids follow HA device + name naming; unique ids are the contract. Count varies by data availability (Marine fails for inland). |
 
 ---
 
@@ -97,10 +105,13 @@ Try claude-in-chrome first, API fallback if extension unavailable.
 ## S3 — Entity Registration
 
 1. Poll `/api/states` until weather entity appears (5s interval, 120s timeout)
-2. Count entities matching `njord` platform: expect ~45
+2. Count entities matching `njord` platform: expect ~60
 3. Verify `weather.lucerne` exists with state ∈ HA condition list
 4. Verify at least 1 AQ sensor exists (pattern: `sensor.lucerne_pm*`)
 5. Verify at least 1 alert binary_sensor exists (pattern: `binary_sensor.lucerne_*_alert`)
+6. Verify `calendar.njord_*_activity_windows` exists
+7. Verify `event.njord_*_data_lifecycle` exists
+8. Verify `event.njord_*_feature_transitions` exists
 
 ---
 
@@ -139,11 +150,46 @@ After S3 completes, spawn three subagents in a single message.
 
 ## S7 — Alert Binary Sensors (Haiku #2)
 
-1. 20 alert binary_sensors exist matching `*_alert`
+1. 22 alert binary_sensors exist matching `*_alert`
 2. Each has `state` ∈ {"on", "off"}
-3. At least one alert from each category exists: frost, heat, storm, uv, pollen
+3. At least one alert from each category exists: frost, heat, storm, uv, pollen; the new `compound_heat_stress` and `migraine_risk` binary_sensors exist
 4. `event.lucerne_weather_alert` exists with `event_types` including alert lifecycle events
 5. Alert severity is delivered via the event entity data (not as a binary_sensor attribute)
+
+---
+
+## S7b — New Score Sensors (Haiku #2)
+
+1. `sensor.njord_*_allergy_severity` has numeric state 0-100
+2. `sensor.njord_*_sleep_quality` has numeric state 0-100
+3. `sensor.njord_*_asthma_risk` has numeric state 0-100
+4. `sensor.njord_*_spray_window` has numeric state 0-100
+
+---
+
+## S7c — New Condition Sensors (Haiku #2)
+
+1. `sensor.njord_*_heat_pump_cop` has numeric state (COP value, > 0)
+2. `sensor.njord_*_solar_battery_strategy` state ∈ {feed_in, charge_battery, conserve, normal}
+3. `sensor.njord_*_irrigation_need` state ∈ {water, skip, reduce, soil_wet}
+4. `sensor.njord_*_frost_depth` has numeric state (cm, ≥ 0)
+5. `sensor.njord_*_inversion_detection` state ∈ {mild, strong, extreme}
+6. `sensor.njord_*_atmospheric_stability` state ∈ {stable, marginal, capped, unstable, explosive}
+7. `sensor.njord_*_cloud_ceiling` has numeric state (meters, ≥ 0)
+
+---
+
+## S7d — Calendar Entity (Haiku #2)
+
+1. `calendar.njord_*_activity_windows` exists
+2. It has events (the list may be empty if no windows are computed yet)
+
+---
+
+## S7e — Event Entities (Haiku #2)
+
+1. `event.njord_*_data_lifecycle` exists with `event_types` domain_updated, features_updated
+2. `event.njord_*_feature_transitions` exists with `event_types` score_threshold, condition_changed, window_opened, window_closing_soon, window_closed
 
 ---
 
@@ -166,6 +212,7 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 2. `events[]` has at least 1 entry; the feature is the oneof case (e.g. `fog`) and the alert severity is at `<case>.alert.severity`
 3. Open `StreamEnrichments` (no TriggerPoll needed) — the stream replays cached enrichment events immediately. Expect data within seconds.
 4. Event has a feature oneof case set (`type_name` no longer exists)
+5. Enrichment events of the new features (e.g. `compound_heat_stress`, `allergy_severity`, `heat_pump_cop`, `cloud_ceiling`) appear in the stream
 
 ---
 
@@ -173,7 +220,7 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 1. `GetCatalog` on `njord.v2.WeatherService` → has at least 1 location named "Lucerne" and lists weather models
 2. `GetStatus` → `budget` has `monthly_used` ≥ 0 and `monthly_limit` > 0
-3. `GetStatus` → `activeEnrichments` count ≥ 37 (all enabled features); poll state is reported per location
+3. `GetStatus` → `activeEnrichments` count ≥ 66 (all enabled features); poll state is reported per location
 4. `TriggerPoll` → `triggeredCount` ≥ 1
 5. After trigger: `GetStatus` shows incremented `monthlyUsed`
 
