@@ -7,7 +7,6 @@ WORKDIR /src
 
 COPY protos/ /protos/
 COPY src/global.json src/Directory.Build.props src/Directory.Packages.props src/Njord.slnx ./
-COPY src/Njord.Forecast/Njord.Forecast.csproj Njord.Forecast/
 COPY src/Njord.Budget/Njord.Budget.csproj Njord.Budget/
 COPY src/Njord.Persistence/Njord.Persistence.csproj Njord.Persistence/
 COPY src/Njord.Messages/Njord.Messages.csproj Njord.Messages/
@@ -20,7 +19,6 @@ COPY src/Njord.Features/Njord.Features.csproj Njord.Features/
 COPY src/Njord/Njord.csproj Njord/
 RUN dotnet restore Njord/Njord.csproj -a ${TARGETARCH}
 
-COPY src/Njord.Forecast/ Njord.Forecast/
 COPY src/Njord.Budget/ Njord.Budget/
 COPY src/Njord.Persistence/ Njord.Persistence/
 COPY src/Njord.Messages/ Njord.Messages/
