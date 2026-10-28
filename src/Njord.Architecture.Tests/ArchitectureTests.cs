@@ -33,7 +33,8 @@ public sealed class ArchitectureTests
             .Build();
 
     private static IObjectProvider<IType> InAssembly(Assembly assembly)
-        => Types().That().ResideInAssembly(assembly);
+        => Types().That().ResideInAssembly(assembly)
+            .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage");
 
     private static readonly IObjectProvider<IType> MessagesLayer = InAssembly(MessagesAssembly);
     private static readonly IObjectProvider<IType> PersistenceLayer = InAssembly(PersistenceAssembly);
