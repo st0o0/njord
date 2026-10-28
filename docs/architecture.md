@@ -29,7 +29,7 @@ Forecast and Ensemble are separate domains that poll independently. The Forecast
 <likec4-view view-id="internals"></likec4-view>
 
 - **Ingest**: `OpenMeteoGateway` routes each domain request to its client (`ForecastClient`, `EnsembleClient`, `AirQualityClient`, `FloodClient`, `MarineClient`, `SeasonalClient`, `SatelliteRadiationClient`) and rate-limits against the budget. Clients build requests and parse responses. They know nothing about gRPC or Home Assistant.
-- **Domain**: `PollManager`, one `PollWorker` per location (cluster sharding), `ForecastPipeline` with the `FeatureEngine`, `BudgetTracker` and the 53 feature rules (`Njord.Features`).
+- **Domain**: `PollManager`, one `PollWorker` per location (cluster sharding), `ForecastPipeline` with the `FeatureEngine`, `BudgetTracker` and the 58 feature rules (`Njord.Features`).
 - **Consumers**: `GrpcConsumer` behind the gRPC API. They attach to the pipeline via SourceRef and know nothing about Open-Meteo.
 
 Ingest and consumers never reference each other; all data flows through the domain model.
@@ -61,7 +61,7 @@ A feature rule declares its required domains and fields in a `FeatureDescriptor`
 | Conditions | Various | SoilMoisture, Evapotranspiration, Gardening, Ventilation, NightVentilation, SurfConditions, OceanCurrents, SnowDepthWatch, PollenTrend, ElevatedWind |
 | Trends and forecasts | Various | ConfidenceTrend, FrontApproaching, ModelComparison, SeasonalOutlook, GrowingDegree, SolarYield, SatelliteRadiation |
 
-53 feature rules across 8 categories. Every feature result reaches gRPC consumers as an `EnrichmentEvent` whose `feature` oneof case identifies the result type.
+58 feature rules across 8 categories. Every feature result reaches gRPC consumers as an `EnrichmentEvent` whose `feature` oneof case identifies the result type.
 
 ## gRPC services
 

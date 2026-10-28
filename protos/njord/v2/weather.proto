@@ -310,6 +310,9 @@ message EnrichmentEvent {
     Outdoor outdoor = 52;
     SurfConditions surf_conditions = 53;
     AllergySeverityScore allergy_severity = 54;
+    MigraineRiskAlert migraine_risk = 55;
+    SleepQualityScore sleep_quality = 56;
+    AsthmaRiskScore asthma_risk = 57;
     CommuteSafety commute_safety = 60;
     VentilationWindow ventilation_window = 61;
     NightVentilation night_ventilation = 62;
@@ -625,6 +628,10 @@ message CompoundHeatStressAlert {
   AlertData alert = 1;
 }
 
+message MigraineRiskAlert {
+  AlertData alert = 1;
+}
+
 message FireRiskAlert {
   AlertData alert = 1;
   double risk_score = 2;
@@ -709,6 +716,14 @@ message Bbq {
 }
 
 message AllergySeverityScore {
+  ScoreData score = 1;
+}
+
+message SleepQualityScore {
+  ScoreData score = 1;
+}
+
+message AsthmaRiskScore {
   ScoreData score = 1;
 }
 

@@ -172,6 +172,12 @@ internal static class EnrichmentEventMappingExtensions
             UpdatedAt = now.ToTimestamp(),
             CompoundHeatStress = r.ToProto(),
         },
+        MigraineRiskAlertResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            MigraineRisk = r.ToProto(),
+        },
         FireRiskAlertResult r => new EnrichmentEvent
         {
             Location = r.Location.Name,
@@ -237,6 +243,18 @@ internal static class EnrichmentEventMappingExtensions
             Location = r.Location.Name,
             UpdatedAt = now.ToTimestamp(),
             AllergySeverity = r.ToProto(),
+        },
+        SleepQualityScoreResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            SleepQuality = r.ToProto(),
+        },
+        AsthmaRiskScoreResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            AsthmaRisk = r.ToProto(),
         },
         LaundryScoreResult r => new EnrichmentEvent
         {

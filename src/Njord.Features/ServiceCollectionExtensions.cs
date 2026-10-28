@@ -14,6 +14,7 @@ using Njord.Features.Alerts.Heat;
 using Njord.Features.Alerts.HeavyRain;
 using Njord.Features.Alerts.Humidity;
 using Njord.Features.Alerts.Ice;
+using Njord.Features.Alerts.MigraineRisk;
 using Njord.Features.Alerts.Pm25;
 using Njord.Features.Alerts.Pollen;
 using Njord.Features.Alerts.PollenBlast;
@@ -52,9 +53,11 @@ using Njord.Features.Forecasts.GrowingDegree;
 using Njord.Features.Forecasts.ModelComparison;
 using Njord.Features.Forecasts.SeasonalOutlook;
 using Njord.Features.Scores.AllergySeverity;
+using Njord.Features.Scores.AsthmaRisk;
 using Njord.Features.Scores.Bbq;
 using Njord.Features.Scores.Laundry;
 using Njord.Features.Scores.Outdoor;
+using Njord.Features.Scores.SleepQuality;
 using Njord.Features.Trends.ConfidenceTrend;
 
 namespace Njord.Features;
@@ -94,6 +97,8 @@ public static class ServiceCollectionExtensions
         services.AddNjordOptions<CoastalFloodConfig>();
         services.AddNjordOptions<CompoundHeatStressConfig>();
         services.AddSingleton<IFeatureRule, CompoundHeatStressAlert>();
+        services.AddNjordOptions<MigraineRiskConfig>();
+        services.AddSingleton<IFeatureRule, MigraineRiskAlert>();
         services.AddSingleton<IFeatureRule, DustAlert>();
         services.AddSingleton<IFeatureRule, FloodRainAlert>();
         services.AddSingleton<IFeatureRule, FloodRiskAlert>();
@@ -126,6 +131,10 @@ public static class ServiceCollectionExtensions
         // Scores
         services.AddNjordOptions<AllergySeverityConfig>();
         services.AddSingleton<IFeatureRule, AllergySeverityScore>();
+        services.AddNjordOptions<AsthmaRiskConfig>();
+        services.AddSingleton<IFeatureRule, AsthmaRiskScore>();
+        services.AddNjordOptions<SleepQualityConfig>();
+        services.AddSingleton<IFeatureRule, SleepQualityScore>();
         services.AddNjordOptions<BbqConfig>();
         services.AddNjordOptions<LaundryConfig>();
         services.AddNjordOptions<OutdoorConfig>();

@@ -3,7 +3,7 @@
 Alerts, scores, conditions, trends and forecasts are all features. Each feature is a rule that declares the domains it reads and is evaluated only when one of them has new data. A feature is switched with `Njord:Features:<Category>:<Name>:Enabled` and carries its own options (thresholds) in the same section; see [Features and domains](./#features-and-domains).
 
 ::: tip Detailed feature documentation
-For full descriptions, configuration examples, and automation ideas for all 53 features, see the [Features reference](/features/).
+For full descriptions, configuration examples, and automation ideas for all 58 features, see the [Features reference](/features/).
 :::
 
 | Alert group | Domains | Rules |

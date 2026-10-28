@@ -276,6 +276,14 @@ internal static class AlertResultMappingExtensions
         };
     }
 
+    public static V2.MigraineRiskAlert ToProto(this MigraineRiskAlertResult r)
+    {
+        return new V2.MigraineRiskAlert
+        {
+            Alert = r.ToData(),
+        };
+    }
+
     public static V2.SmogRiskAlert ToProto(this SmogRiskAlertResult r)
     {
         return new V2.SmogRiskAlert

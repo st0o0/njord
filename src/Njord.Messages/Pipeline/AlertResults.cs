@@ -345,6 +345,18 @@ public sealed record CompoundHeatStressAlertResult(
     ConfidenceLevel Level) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
     HoursUntil, DurationHours, Level);
 
+public sealed record MigraineRiskAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
 public sealed record FireRiskAlertResult(
     Location Location,
     AlertSeverity Severity,

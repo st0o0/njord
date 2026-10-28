@@ -304,6 +304,33 @@ public sealed class EnrichmentEventMappingsTests
     }
 
     [Fact]
+    public void Migraine_risk_alerts_map_to_the_migraine_risk_case()
+    {
+        var evt = Map(new MigraineRiskAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
+
+        Assert.Equal(Case.MigraineRisk, evt.FeatureCase);
+        AssertAlert(evt.MigraineRisk.Alert);
+    }
+
+    [Fact]
+    public void Sleep_quality_scores_map_to_the_sleep_quality_case()
+    {
+        var evt = Map(new SleepQualityScoreResult(Lucerne, 74, Anchor, 3));
+
+        Assert.Equal(Case.SleepQuality, evt.FeatureCase);
+        AssertScore(evt.SleepQuality.Score, 74);
+    }
+
+    [Fact]
+    public void Asthma_risk_scores_map_to_the_asthma_risk_case()
+    {
+        var evt = Map(new AsthmaRiskScoreResult(Lucerne, 74, Anchor, 3));
+
+        Assert.Equal(Case.AsthmaRisk, evt.FeatureCase);
+        AssertScore(evt.AsthmaRisk.Score, 74);
+    }
+
+    [Fact]
     public void Allergy_severity_scores_map_to_the_allergy_severity_case()
     {
         var evt = Map(new AllergySeverityScoreResult(Lucerne, 74, Anchor, 3));

@@ -37,6 +37,22 @@ internal static class FeatureResultMappingExtensions
         };
     }
 
+    public static V2.SleepQualityScore ToProto(this SleepQualityScoreResult r)
+    {
+        return new V2.SleepQualityScore
+        {
+            Score = r.ToData(),
+        };
+    }
+
+    public static V2.AsthmaRiskScore ToProto(this AsthmaRiskScoreResult r)
+    {
+        return new V2.AsthmaRiskScore
+        {
+            Score = r.ToData(),
+        };
+    }
+
     public static V2.Laundry ToProto(this LaundryScoreResult r)
     {
         return new V2.Laundry

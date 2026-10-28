@@ -1,6 +1,6 @@
 # Features
 
-njord evaluates 53 features across seven categories. Each feature polls one or more weather domains, evaluates a rule against the forecast data, and delivers the result to Home Assistant as an entity.
+njord evaluates 58 features across seven categories. Each feature polls one or more weather domains, evaluates a rule against the forecast data, and delivers the result to Home Assistant as an entity.
 
 Features are toggled with a single environment variable:
 

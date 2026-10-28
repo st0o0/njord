@@ -249,6 +249,20 @@
     "options": [{ "name": "WetBulbWarning", "type": "number", "default": 28 }, { "name": "WetBulbSevere", "type": "number", "default": 32 }, { "name": "WetBulbExtreme", "type": "number", "default": 35 }, { "name": "ApparentTempThreshold", "type": "number", "default": 40 }, { "name": "Pm25Threshold", "type": "number", "default": 25 }, { "name": "BoundaryLayerLow", "type": "number", "default": 500 }]
   },
   {
+    "key": "Forecast:MigraineRisk",
+    "name": "MigraineRisk",
+    "category": "Forecast",
+    "output": "Alert",
+    "description": "Warns when pressure swings and Foehn conditions make migraine attacks more likely",
+    "longDescription": "Compares the current pressure with the value 6 and 24 hours ago (a drop of 5 hPa in 6 h is yellow, 10 hPa in 24 h is orange). Large temperature (8 C) and humidity (30 %) swings raise the level by one step each; Foehn conditions (wind from 150-210 degrees with rising temperature and pressure and falling humidity) add two steps. Needs about 6 hours of poll history.",
+    "entities": ["binary_sensor.{location}_migraine_risk_alert"],
+    "automationExample": "Send a heads-up to take preventive medication when migraine risk is active",
+    "enabledByDefault": false,
+    "domains": ["Forecast"],
+    "weatherParams": ["Pressure", "Temperature", "Humidity", "DewPoint", "WindDirection"],
+    "options": [{ "name": "PressureThreshold6h", "type": "number", "default": 5 }, { "name": "PressureThreshold24h", "type": "number", "default": 10 }, { "name": "TempSwingThreshold", "type": "number", "default": 8 }, { "name": "HumiditySwingThreshold", "type": "number", "default": 30 }]
+  },
+  {
     "key": "Forecast:Shower",
     "name": "Shower",
     "category": "Forecast",
@@ -358,6 +372,36 @@
     "domains": ["Forecast", "AirQuality"],
     "weatherParams": ["WindSpeed", "Humidity", "Rain", "BoundaryLayerHeight"],
     "airQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
+  },
+  {
+    "key": "AirQuality:AsthmaRisk",
+    "name": "AsthmaRisk",
+    "category": "AirQuality",
+    "output": "Score",
+    "description": "Scores the asthma risk from fine particles, ozone, pollen, humidity and a shallow boundary layer",
+    "longDescription": "Combines PM2.5 (0-75 ug/m3), ozone (0-180 ug/m3), the strongest pollen species, a humidity U-curve (best at 40-60 %) and a shallow boundary layer into a weighted 0-100 risk. Cold damp air and rapid temperature changes amplify the result. The score is the peak risk of the day; the best window is the longest stretch of low risk.",
+    "entities": ["sensor.{location}_asthma_risk"],
+    "automationExample": "Remind to carry the inhaler when asthma risk is high",
+    "enabledByDefault": false,
+    "domains": ["Forecast", "AirQuality"],
+    "weatherParams": ["Temperature", "Humidity", "BoundaryLayerHeight"],
+    "airQualityParams": ["Pm25", "Ozone", "BirchPollen", "GrassPollen"],
+    "options": [{ "name": "Pm25Weight", "type": "number", "default": 35 }, { "name": "OzoneWeight", "type": "number", "default": 25 }, { "name": "PollenWeight", "type": "number", "default": 20 }, { "name": "HumidityWeight", "type": "number", "default": 10 }, { "name": "BoundaryLayerWeight", "type": "number", "default": 10 }, { "name": "MinWindowScore", "type": "number", "default": 50 }, { "name": "MinWindowHours", "type": "number", "default": 2 }, { "name": "MaxWindows", "type": "number", "default": 3 }]
+  },
+  {
+    "key": "Lifestyle:SleepQuality",
+    "name": "SleepQuality",
+    "category": "Lifestyle",
+    "output": "Score",
+    "description": "Scores the coming night's sleep conditions and finds the best pre-sleep ventilation window",
+    "longDescription": "Scores the night hours (22-06 UTC by default) from 100 down for heat, cold, humidity, fine particles, pollen, gusts and thunderstorm potential. Pollen weighs more when PollenSensitive is on. The best window is the best stretch of the evening to air the bedroom.",
+    "entities": ["sensor.{location}_sleep_quality"],
+    "automationExample": "Open the bedroom window during the best ventilation window and close it before bed",
+    "enabledByDefault": false,
+    "domains": ["Forecast", "AirQuality"],
+    "weatherParams": ["Temperature", "ApparentTemperature", "Humidity", "WindGusts", "Cape", "Precipitation"],
+    "airQualityParams": ["BirchPollen", "GrassPollen", "Pm25"],
+    "options": [{ "name": "NightStartHour", "type": "number", "default": 22 }, { "name": "NightEndHour", "type": "number", "default": 6 }, { "name": "MinWindowScore", "type": "number", "default": 50 }, { "name": "MinWindowHours", "type": "number", "default": 2 }, { "name": "MaxWindows", "type": "number", "default": 3 }]
   },
   {
     "key": "AirQuality:RagweedPollen",
