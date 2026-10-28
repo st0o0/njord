@@ -29,6 +29,14 @@ internal static class FeatureResultMappingExtensions
         };
     }
 
+    public static V2.AllergySeverityScore ToProto(this AllergySeverityScoreResult r)
+    {
+        return new V2.AllergySeverityScore
+        {
+            Score = r.ToData(),
+        };
+    }
+
     public static V2.Laundry ToProto(this LaundryScoreResult r)
     {
         return new V2.Laundry

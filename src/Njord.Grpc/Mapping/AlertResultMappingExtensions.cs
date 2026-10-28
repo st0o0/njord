@@ -268,6 +268,14 @@ internal static class AlertResultMappingExtensions
         };
     }
 
+    public static V2.CompoundHeatStressAlert ToProto(this CompoundHeatStressAlertResult r)
+    {
+        return new V2.CompoundHeatStressAlert
+        {
+            Alert = r.ToData(),
+        };
+    }
+
     public static V2.SmogRiskAlert ToProto(this SmogRiskAlertResult r)
     {
         return new V2.SmogRiskAlert

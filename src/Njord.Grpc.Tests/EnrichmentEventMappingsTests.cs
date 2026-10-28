@@ -295,6 +295,24 @@ public sealed class EnrichmentEventMappingsTests
     }
 
     [Fact]
+    public void Compound_heat_stress_alerts_map_to_the_compound_heat_stress_case()
+    {
+        var evt = Map(new CompoundHeatStressAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
+
+        Assert.Equal(Case.CompoundHeatStress, evt.FeatureCase);
+        AssertAlert(evt.CompoundHeatStress.Alert);
+    }
+
+    [Fact]
+    public void Allergy_severity_scores_map_to_the_allergy_severity_case()
+    {
+        var evt = Map(new AllergySeverityScoreResult(Lucerne, 74, Anchor, 3));
+
+        Assert.Equal(Case.AllergySeverity, evt.FeatureCase);
+        AssertScore(evt.AllergySeverity.Score, 74);
+    }
+
+    [Fact]
     public void Laundry_scores_map_to_the_laundry_case()
     {
         var evt = Map(new LaundryScoreResult(Lucerne, 72, Anchor, 3));

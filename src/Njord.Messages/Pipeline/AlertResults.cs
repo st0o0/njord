@@ -333,6 +333,18 @@ public sealed record SmogRiskAlertResult(
     double Pm25) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
     HoursUntil, DurationHours, Level);
 
+public sealed record CompoundHeatStressAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
 public sealed record FireRiskAlertResult(
     Location Location,
     AlertSeverity Severity,

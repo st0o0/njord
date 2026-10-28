@@ -234,6 +234,21 @@
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [26, 28, 32] }]
   },
   {
+    "key": "Forecast:CompoundHeatStress",
+    "name": "CompoundHeatStress",
+    "category": "Forecast",
+    "output": "Alert",
+    "description": "Warns when heat combines with humidity, fine particles or a shallow boundary layer",
+    "longDescription": "Escalates from wet-bulb temperature (28/32/35 C) and adds compound triggers: very high apparent temperature with elevated PM2.5, or strong UV under a shallow boundary layer with particles. Heat is more dangerous when the air is also polluted.",
+    "entities": ["binary_sensor.{location}_compound_heat_stress_alert"],
+    "automationExample": "Keep windows closed and cancel outdoor exercise when compound heat stress is active",
+    "enabledByDefault": false,
+    "domains": ["Forecast", "AirQuality"],
+    "weatherParams": ["ApparentTemperature", "WetBulbTemperature", "UvIndex", "BoundaryLayerHeight", "Humidity"],
+    "airQualityParams": ["Pm25"],
+    "options": [{ "name": "WetBulbWarning", "type": "number", "default": 28 }, { "name": "WetBulbSevere", "type": "number", "default": 32 }, { "name": "WetBulbExtreme", "type": "number", "default": 35 }, { "name": "ApparentTempThreshold", "type": "number", "default": 40 }, { "name": "Pm25Threshold", "type": "number", "default": 25 }, { "name": "BoundaryLayerLow", "type": "number", "default": 500 }]
+  },
+  {
     "key": "Forecast:Shower",
     "name": "Shower",
     "category": "Forecast",
@@ -329,6 +344,20 @@
     "weatherParams": ["BoundaryLayerHeight"],
     "airQualityParams": ["Pm25"],
     "options": [{ "name": "BoundaryLayerThresholdM", "type": "number", "default": 500 }, { "name": "Pm25ThresholdUgm3", "type": "number", "default": 25.0 }]
+  },
+  {
+    "key": "AirQuality:AllergySeverity",
+    "name": "AllergySeverity",
+    "category": "AirQuality",
+    "output": "Score",
+    "description": "Scores today's allergy burden and finds the low-pollen windows",
+    "longDescription": "Normalises the strongest pollen species to 0-100 and adjusts it for dry wind, a shallow boundary layer, low humidity, recent rain and humid air. The score is the peak burden of the day; the best window is the longest stretch of low burden.",
+    "entities": ["sensor.{location}_allergy_severity"],
+    "automationExample": "Open the windows only during the low-pollen window",
+    "enabledByDefault": false,
+    "domains": ["Forecast", "AirQuality"],
+    "weatherParams": ["WindSpeed", "Humidity", "Rain", "BoundaryLayerHeight"],
+    "airQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
   },
   {
     "key": "AirQuality:RagweedPollen",

@@ -298,6 +298,7 @@ message EnrichmentEvent {
     FireRiskAlert fire_risk = 45;
     PollenBlastAlert pollen_blast = 46;
     CoastalFloodAlert coastal_flood = 47;
+    CompoundHeatStressAlert compound_heat_stress = 48;
     SoilMoistureCondition soil_moisture = 70;
     EvapotranspirationCondition evapotranspiration = 71;
     RagweedPollenCondition ragweed_pollen = 72;
@@ -308,6 +309,7 @@ message EnrichmentEvent {
     Laundry laundry = 51;
     Outdoor outdoor = 52;
     SurfConditions surf_conditions = 53;
+    AllergySeverityScore allergy_severity = 54;
     CommuteSafety commute_safety = 60;
     VentilationWindow ventilation_window = 61;
     NightVentilation night_ventilation = 62;
@@ -619,6 +621,10 @@ message SmogRiskAlert {
   double pm25 = 3;
 }
 
+message CompoundHeatStressAlert {
+  AlertData alert = 1;
+}
+
 message FireRiskAlert {
   AlertData alert = 1;
   double risk_score = 2;
@@ -699,6 +705,10 @@ message ElevatedWindCondition {
 }
 
 message Bbq {
+  ScoreData score = 1;
+}
+
+message AllergySeverityScore {
   ScoreData score = 1;
 }
 

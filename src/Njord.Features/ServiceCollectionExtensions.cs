@@ -3,6 +3,7 @@ using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Features.Alerts.ClearSkyUv;
 using Njord.Features.Alerts.CoastalFlood;
+using Njord.Features.Alerts.CompoundHeatStress;
 using Njord.Features.Alerts.Dust;
 using Njord.Features.Alerts.FireRisk;
 using Njord.Features.Alerts.FloodRain;
@@ -50,6 +51,7 @@ using Njord.Features.Conditions.VentilationWindow;
 using Njord.Features.Forecasts.GrowingDegree;
 using Njord.Features.Forecasts.ModelComparison;
 using Njord.Features.Forecasts.SeasonalOutlook;
+using Njord.Features.Scores.AllergySeverity;
 using Njord.Features.Scores.Bbq;
 using Njord.Features.Scores.Laundry;
 using Njord.Features.Scores.Outdoor;
@@ -90,6 +92,8 @@ public static class ServiceCollectionExtensions
         services.AddNjordOptions<FireRiskConfig>();
         services.AddNjordOptions<PollenBlastConfig>();
         services.AddNjordOptions<CoastalFloodConfig>();
+        services.AddNjordOptions<CompoundHeatStressConfig>();
+        services.AddSingleton<IFeatureRule, CompoundHeatStressAlert>();
         services.AddSingleton<IFeatureRule, DustAlert>();
         services.AddSingleton<IFeatureRule, FloodRainAlert>();
         services.AddSingleton<IFeatureRule, FloodRiskAlert>();
@@ -120,6 +124,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFeatureRule, CoastalFloodAlert>();
 
         // Scores
+        services.AddNjordOptions<AllergySeverityConfig>();
+        services.AddSingleton<IFeatureRule, AllergySeverityScore>();
         services.AddNjordOptions<BbqConfig>();
         services.AddNjordOptions<LaundryConfig>();
         services.AddNjordOptions<OutdoorConfig>();
