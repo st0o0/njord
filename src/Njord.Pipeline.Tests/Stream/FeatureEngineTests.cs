@@ -7,6 +7,8 @@ using Njord.Core.Forecast;
 using Njord.Features.Alerts.Frost;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
+using Njord.Messages.Stream;
 using Njord.Pipeline.Stream;
 using Njord.Tests.Shared;
 
@@ -59,7 +61,7 @@ public sealed class FeatureEngineTests
 
         Assert.Equal(2, events.Count);
         Assert.Multiple(
-            () => Assert.IsType<PipelineEvent.ForecastDataReceived>(events[0]),
+            () => Assert.IsType<ForecastDataReceived>(events[0]),
             () => Assert.IsType<ProbeResult>(events[1]));
     }
 
@@ -83,7 +85,7 @@ public sealed class FeatureEngineTests
 
         var events = engine.Process(Forecast(DomainData.Lucerne, 10.0));
 
-        Assert.IsType<PipelineEvent.ForecastDataReceived>(Assert.Single(events));
+        Assert.IsType<ForecastDataReceived>(Assert.Single(events));
     }
 
     [Fact]
@@ -189,7 +191,7 @@ public sealed class FeatureEngineTests
 
         Assert.Multiple(
             () => Assert.Empty(rule.Calls),
-            () => Assert.IsType<PipelineEvent.ForecastDataReceived>(Assert.Single(events)));
+            () => Assert.IsType<ForecastDataReceived>(Assert.Single(events)));
     }
 
     [Fact]
@@ -269,7 +271,7 @@ public sealed class FeatureEngineTests
             DomainData.Received(DomainData.Lucerne, DomainData.Forecast(Start, 48, (_, p) => p with { Temperature = -6.0 })));
 
         Assert.Equal(2, events.Count);
-        Assert.IsType<PipelineEvent.ForecastDataReceived>(events[0]);
+        Assert.IsType<ForecastDataReceived>(events[0]);
         var frost = Assert.IsType<FrostAlertResult>(events[1]);
         Assert.Equal(AlertSeverity.Orange, frost.Severity);
     }
@@ -361,7 +363,7 @@ public sealed class FeatureEngineTests
 
         var events = engine.Process(ModelData(DomainData.Lucerne, "ukmo", 8.0));
 
-        var received = Assert.IsType<PipelineEvent.ForecastDataReceived>(Assert.Single(events));
+        var received = Assert.IsType<ForecastDataReceived>(Assert.Single(events));
         Assert.Multiple(
             () => Assert.Equal("ukmo", received.ModelId),
             () => Assert.Empty(rule.Calls));
@@ -381,7 +383,7 @@ public sealed class FeatureEngineTests
         Assert.Multiple(
             () => Assert.Equal(["ecmwf", "ukmo"], call.Models.Keys.Order().ToArray()),
             () => Assert.Equal(8.0, call.Models["ukmo"].Points[0].Temperature),
-            () => Assert.Null(Assert.IsType<PipelineEvent.ForecastDataReceived>(events[0]).ModelId),
+            () => Assert.Null(Assert.IsType<ForecastDataReceived>(events[0]).ModelId),
             () => Assert.Contains(events, e => e is ProbeResult));
     }
 

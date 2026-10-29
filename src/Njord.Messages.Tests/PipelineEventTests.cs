@@ -3,6 +3,7 @@ using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Core.Flood;
 using Njord.Core.Forecast;
+using Njord.Messages.Stream;
 
 namespace Njord.Messages.Tests;
 
@@ -17,9 +18,9 @@ public sealed class PipelineEventTests
         var points = ImmutableArray.Create(new ForecastPoint(Run, 20, 19, 3, 0, 0, 0, 1013, 0, 50, 10, 1));
         var forecast = new DomainForecast<ForecastPoint>(DomainKind.Forecast, Run, TimeResolution.Hourly, points);
 
-        PipelineEvent evt = new PipelineEvent.ForecastDataReceived(Lucerne, forecast);
+        PipelineEvent evt = new ForecastDataReceived(Lucerne, forecast);
 
-        var received = Assert.IsType<PipelineEvent.ForecastDataReceived>(evt);
+        var received = Assert.IsType<ForecastDataReceived>(evt);
         Assert.Multiple(
             () => Assert.Equal(Lucerne, received.Location),
             () => Assert.Same(forecast, received.Forecast));
@@ -31,7 +32,7 @@ public sealed class PipelineEventTests
         var forecast = new DomainForecast<FloodPoint>(DomainKind.Flood, Run, TimeResolution.Daily, []);
 
         Assert.Equal(
-            new PipelineEvent.FloodDataReceived(Lucerne, forecast),
-            new PipelineEvent.FloodDataReceived(new Location("LUCERNE", 47.05, 8.31), forecast));
+            new FloodDataReceived(Lucerne, forecast),
+            new FloodDataReceived(new Location("LUCERNE", 47.05, 8.31), forecast));
     }
 }

@@ -67,6 +67,7 @@ using Njord.Features.Scores.Outdoor;
 using Njord.Features.Scores.SleepQuality;
 using Njord.Features.Scores.SprayWindow;
 using Njord.Features.Trends.ConfidenceTrend;
+using Njord.Messages.Results;
 
 namespace Njord.Features;
 

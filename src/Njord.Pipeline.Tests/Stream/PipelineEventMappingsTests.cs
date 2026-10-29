@@ -4,6 +4,7 @@ using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Core.Solar;
+using Njord.Messages.Stream;
 using Njord.Pipeline.Stream;
 using Njord.Tests.Shared;
 
@@ -21,7 +22,7 @@ public sealed class PipelineEventMappingsTests
 
         var mapped = new DomainDataReceived(Lucerne, DomainKind.Forecast, forecast).ToPipelineEvent();
 
-        var weather = Assert.IsType<PipelineEvent.ForecastDataReceived>(mapped);
+        var weather = Assert.IsType<ForecastDataReceived>(mapped);
         Assert.Multiple(
             () => Assert.Equal(Lucerne, weather.Location),
             () => Assert.Same(forecast, weather.Forecast));
@@ -34,7 +35,7 @@ public sealed class PipelineEventMappingsTests
 
         var mapped = new DomainDataReceived(Lucerne, DomainKind.Flood, forecast).ToPipelineEvent();
 
-        var flood = Assert.IsType<PipelineEvent.FloodDataReceived>(mapped);
+        var flood = Assert.IsType<FloodDataReceived>(mapped);
         Assert.Same(forecast, flood.Forecast);
     }
 
@@ -45,9 +46,9 @@ public sealed class PipelineEventMappingsTests
         var marine = new DomainForecast<MarinePoint>(DomainKind.Marine, Start, TimeResolution.Hourly, [new MarinePoint(Start, 1, 2, 3)]);
 
         Assert.Multiple(
-            () => Assert.Same(airQuality, Assert.IsType<PipelineEvent.AirQualityDataReceived>(
+            () => Assert.Same(airQuality, Assert.IsType<AirQualityDataReceived>(
                 new DomainDataReceived(Lucerne, DomainKind.AirQuality, airQuality).ToPipelineEvent()).Forecast),
-            () => Assert.Same(marine, Assert.IsType<PipelineEvent.MarineDataReceived>(
+            () => Assert.Same(marine, Assert.IsType<MarineDataReceived>(
                 new DomainDataReceived(Lucerne, DomainKind.Marine, marine).ToPipelineEvent()).Forecast));
     }
 
@@ -58,7 +59,7 @@ public sealed class PipelineEventMappingsTests
 
         var mapped = new DomainDataReceived(Lucerne, DomainKind.Satellite, satellite).ToPipelineEvent();
 
-        Assert.Same(satellite, Assert.IsType<PipelineEvent.SatelliteDataReceived>(mapped).Forecast);
+        Assert.Same(satellite, Assert.IsType<SatelliteDataReceived>(mapped).Forecast);
     }
 
     [Fact]
@@ -68,7 +69,7 @@ public sealed class PipelineEventMappingsTests
 
         var mapped = new DomainDataReceived(Lucerne, DomainKind.Ensemble, forecast).ToPipelineEvent();
 
-        Assert.Same(forecast, Assert.IsType<PipelineEvent.EnsembleDataReceived>(mapped).Forecast);
+        Assert.Same(forecast, Assert.IsType<EnsembleDataReceived>(mapped).Forecast);
     }
 
     [Fact]

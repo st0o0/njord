@@ -1,7 +1,7 @@
 using Akka.Streams;
-using Njord.Core.Domain;
 
-namespace Njord.Core.Actors;
+
+namespace Njord.Messages.Stream;
 
 public sealed record RequestPipelineOutput(long RequestId);
 

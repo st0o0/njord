@@ -13,6 +13,7 @@ using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Messages.Budget;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
 
 namespace Njord.Grpc;
 

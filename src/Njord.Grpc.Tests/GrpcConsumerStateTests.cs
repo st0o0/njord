@@ -4,6 +4,8 @@ using Njord.Core.Forecast;
 using Njord.Core.Seasonal;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
+using Njord.Messages.Stream;
 using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;
@@ -16,8 +18,8 @@ public sealed class GrpcConsumerStateTests
     [Fact]
     public void Weather_data_is_kept_separately_per_model()
     {
-        var primary = new PipelineEvent.ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor, 2));
-        var secondary = new PipelineEvent.ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor, 3), "ukmo_global_ensemble_mean_20km");
+        var primary = new ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor, 2));
+        var secondary = new ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor, 3), "ukmo_global_ensemble_mean_20km");
 
         var state = GrpcConsumerState.Empty.Apply(primary).Apply(secondary);
 
@@ -29,9 +31,9 @@ public sealed class GrpcConsumerStateTests
     [Fact]
     public void Domain_data_is_kept_as_the_latest_event_per_location_and_domain()
     {
-        var older = new PipelineEvent.ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor, 2));
-        var newer = new PipelineEvent.ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor.AddHours(1), 2));
-        var flood = new PipelineEvent.FloodDataReceived(Lucerne, DomainData.Flood(Anchor));
+        var older = new ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor, 2));
+        var newer = new ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor.AddHours(1), 2));
+        var flood = new FloodDataReceived(Lucerne, DomainData.Flood(Anchor));
 
         var state = GrpcConsumerState.Empty.Apply(older).Apply(flood).Apply(newer);
 
@@ -43,8 +45,8 @@ public sealed class GrpcConsumerStateTests
     [Fact]
     public void Seasonal_data_is_kept_as_the_latest_event()
     {
-        var older = new PipelineEvent.SeasonalDataReceived(Lucerne, Seasonal(Anchor));
-        var newer = new PipelineEvent.SeasonalDataReceived(Lucerne, Seasonal(Anchor.AddDays(1)));
+        var older = new SeasonalDataReceived(Lucerne, Seasonal(Anchor));
+        var newer = new SeasonalDataReceived(Lucerne, Seasonal(Anchor.AddDays(1)));
 
         var state = GrpcConsumerState.Empty.Apply(older).Apply(newer);
 
@@ -58,7 +60,7 @@ public sealed class GrpcConsumerStateTests
     public void Domain_data_of_another_location_or_domain_is_not_available()
     {
         var state = GrpcConsumerState.Empty.Apply(
-            new PipelineEvent.ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor, 2)));
+            new ForecastDataReceived(Lucerne, DomainData.Forecast(Anchor, 2)));
 
         Assert.Multiple(
             () => Assert.Null(state.GetDomainData(DomainData.Bern, DomainKind.Forecast)),

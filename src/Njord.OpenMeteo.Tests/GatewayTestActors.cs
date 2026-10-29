@@ -3,6 +3,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
 using Njord.Core.Domain;
+using Njord.Messages.Stream;
 using Njord.OpenMeteo.Budget;
 
 namespace Njord.OpenMeteo.Tests;

@@ -9,6 +9,8 @@ using Njord.Core.Domain;
 using Njord.Features.Alerts.Frost;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
+using Njord.Messages.Stream;
 using Njord.Pipeline.Stream;
 using Njord.Pipeline.Tests.Helpers;
 using Njord.Tests.Shared;

@@ -4,6 +4,7 @@ using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Messages.Forecast;
+using Njord.Messages.Stream;
 using Njord.OpenMeteo.Gateway;
 using Njord.Tests.Shared;
 

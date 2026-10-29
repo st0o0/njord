@@ -7,6 +7,7 @@ using Njord.Grpc.V2;
 using Njord.Messages.Budget;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Stream;
 using Njord.Tests.Shared;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
@@ -50,7 +51,7 @@ public sealed class ProtoMappingsTests
     [Fact]
     public void Weather_events_map_to_a_domain_data_update_with_the_model_run()
     {
-        var evt = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
+        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
 
         var update = evt.ToDomainDataUpdate();
 
@@ -120,7 +121,7 @@ public sealed class ProtoMappingsTests
     [Fact]
     public void Enrichment_locations_cover_alerts_and_lifestyle_but_not_domain_data()
     {
-        var weather = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 1));
+        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 1));
 
         Assert.Multiple(
             () => Assert.Equal(DomainData.Lucerne, EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor).ToEnrichmentLocation()),
@@ -133,7 +134,7 @@ public sealed class ProtoMappingsTests
     {
         var points = new[] { new EnsemblePoint(Anchor, 1.5, 0.3, 2.1) };
         var forecast = new DomainForecast<EnsemblePoint>(DomainKind.Ensemble, Anchor, TimeResolution.Hourly, [.. points]);
-        var evt = new PipelineEvent.EnsembleDataReceived(DomainData.Lucerne, forecast);
+        var evt = new EnsembleDataReceived(DomainData.Lucerne, forecast);
 
         var update = evt.ToDomainDataUpdate();
 
@@ -151,7 +152,7 @@ public sealed class ProtoMappingsTests
     [Fact]
     public void Events_without_an_enrichment_have_no_enrichment_event()
     {
-        var weather = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 1));
+        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 1));
 
         Assert.Null(weather.ToEnrichmentEvent(Anchor));
     }

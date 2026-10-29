@@ -3,6 +3,8 @@ using Njord.Core.Domain;
 using Njord.Core.Solar;
 using Njord.Features.Conditions.Shared;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
+using Njord.Messages.Stream;
 
 namespace Njord.Features.Conditions.SatelliteRadiation;
 

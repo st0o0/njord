@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Features;
+using Njord.Messages.Results;
 using Servus.Application.Startup;
 
 namespace Njord.Configuration;

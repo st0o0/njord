@@ -6,6 +6,8 @@ using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
+using Njord.Messages.Stream;
 using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;
@@ -38,7 +40,7 @@ public sealed class GrpcConsumerTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
-        var weather = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
+        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
         var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor);
 
         await pipeline.OfferAsync(weather, ct);

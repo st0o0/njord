@@ -1,5 +1,7 @@
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
+using Njord.Messages.Results;
+using Njord.Messages.Stream;
 
 namespace Njord.Pipeline.Stream;
 

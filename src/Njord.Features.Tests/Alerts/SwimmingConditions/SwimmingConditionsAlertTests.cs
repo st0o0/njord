@@ -4,6 +4,7 @@ using Njord.Core.Marine;
 using Njord.Features.Alerts.SwimmingConditions;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Stream;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.FloodFixtures;
 using M = Njord.Tests.Shared.MarineFixtures;

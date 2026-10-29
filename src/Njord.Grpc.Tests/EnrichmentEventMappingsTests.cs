@@ -4,6 +4,7 @@ using Njord.Core.Domain;
 using Njord.Grpc.Mapping;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
 using Njord.Tests.Shared;
 using Case = Njord.Grpc.V2.EnrichmentEvent.FeatureOneofCase;
 

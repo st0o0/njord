@@ -6,6 +6,7 @@ using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Stream;
 using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;
@@ -22,7 +23,7 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
-        var weather = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
+        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
 
         await pipeline.OfferAsync(weather, ct);
         await AwaitAssertAsync(async () =>
@@ -70,8 +71,8 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
 
-        var weather = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
-        var flood = new PipelineEvent.FloodDataReceived(DomainData.Lucerne, DomainData.Flood(Anchor));
+        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
+        var flood = new FloodDataReceived(DomainData.Lucerne, DomainData.Flood(Anchor));
         var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor);
 
         await pipeline.OfferAsync(weather, ct);
@@ -105,7 +106,7 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
-        var weather = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
+        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
 
         await pipeline.OfferAsync(weather, ct);
         await AwaitAssertAsync(async () =>
@@ -124,7 +125,7 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
             .WaitAsync(TimeSpan.FromSeconds(5), ct);
 
         Assert.Single(events);
-        Assert.IsNotType<PipelineEvent.Heartbeat>(events[0]);
+        Assert.IsNotType<Heartbeat>(events[0]);
     }
 
     private async Task<(IActorRef Consumer, ISourceQueueWithComplete<PipelineEvent> Pipeline)> StartAsync()

@@ -8,6 +8,7 @@ using Njord.Core.Marine;
 using Njord.Core.Seasonal;
 using Njord.Core.Solar;
 using Njord.Grpc.V2;
+using Njord.Messages.Stream;
 
 namespace Njord.Grpc.Mapping;
 
@@ -15,40 +16,40 @@ internal static class DomainDataProtoMappingExtensions
 {
     public static DomainDataUpdate? ToDomainDataUpdate(this PipelineEvent pipelineEvent) => pipelineEvent switch
     {
-        PipelineEvent.ForecastDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Forecast = e.Forecast.ToWeatherData(), Model = e.ModelId ?? string.Empty }),
-        PipelineEvent.AirQualityDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { AirQuality = e.Forecast.ToAirQualityData() }),
-        PipelineEvent.FloodDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Flood = e.Forecast.ToFloodData() }),
-        PipelineEvent.MarineDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Marine = e.Forecast.ToMarineData() }),
-        PipelineEvent.SeasonalDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Seasonal = e.Forecast.ToSeasonalData() }),
-        PipelineEvent.SatelliteDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Satellite = e.Forecast.ToSatelliteData() }),
-        PipelineEvent.EnsembleDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Ensemble = e.Forecast.ToEnsembleData() }),
+        ForecastDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Forecast = e.Forecast.ToWeatherData(), Model = e.ModelId ?? string.Empty }),
+        AirQualityDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { AirQuality = e.Forecast.ToAirQualityData() }),
+        FloodDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Flood = e.Forecast.ToFloodData() }),
+        MarineDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Marine = e.Forecast.ToMarineData() }),
+        SeasonalDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Seasonal = e.Forecast.ToSeasonalData() }),
+        SatelliteDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Satellite = e.Forecast.ToSatelliteData() }),
+        EnsembleDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Ensemble = e.Forecast.ToEnsembleData() }),
         _ => null,
     };
 
     public static string? ToModelId(this PipelineEvent pipelineEvent) =>
-        pipelineEvent is PipelineEvent.ForecastDataReceived e ? e.ModelId : null;
+        pipelineEvent is ForecastDataReceived e ? e.ModelId : null;
 
     public static DomainKind? ToDomainKind(this PipelineEvent pipelineEvent) => pipelineEvent switch
     {
-        PipelineEvent.ForecastDataReceived => DomainKind.Forecast,
-        PipelineEvent.AirQualityDataReceived => DomainKind.AirQuality,
-        PipelineEvent.FloodDataReceived => DomainKind.Flood,
-        PipelineEvent.MarineDataReceived => DomainKind.Marine,
-        PipelineEvent.SeasonalDataReceived => DomainKind.Seasonal,
-        PipelineEvent.SatelliteDataReceived => DomainKind.Satellite,
-        PipelineEvent.EnsembleDataReceived => DomainKind.Ensemble,
+        ForecastDataReceived => DomainKind.Forecast,
+        AirQualityDataReceived => DomainKind.AirQuality,
+        FloodDataReceived => DomainKind.Flood,
+        MarineDataReceived => DomainKind.Marine,
+        SeasonalDataReceived => DomainKind.Seasonal,
+        SatelliteDataReceived => DomainKind.Satellite,
+        EnsembleDataReceived => DomainKind.Ensemble,
         _ => null,
     };
 
     public static Location? ToDomainLocation(this PipelineEvent pipelineEvent) => pipelineEvent switch
     {
-        PipelineEvent.ForecastDataReceived e => e.Location,
-        PipelineEvent.AirQualityDataReceived e => e.Location,
-        PipelineEvent.FloodDataReceived e => e.Location,
-        PipelineEvent.MarineDataReceived e => e.Location,
-        PipelineEvent.SeasonalDataReceived e => e.Location,
-        PipelineEvent.SatelliteDataReceived e => e.Location,
-        PipelineEvent.EnsembleDataReceived e => e.Location,
+        ForecastDataReceived e => e.Location,
+        AirQualityDataReceived e => e.Location,
+        FloodDataReceived e => e.Location,
+        MarineDataReceived e => e.Location,
+        SeasonalDataReceived e => e.Location,
+        SatelliteDataReceived e => e.Location,
+        EnsembleDataReceived e => e.Location,
         _ => null,
     };
 

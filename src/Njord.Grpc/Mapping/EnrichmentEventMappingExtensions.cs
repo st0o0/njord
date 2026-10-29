@@ -3,6 +3,8 @@ using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Grpc.V2;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
+using Njord.Messages.Stream;
 
 namespace Njord.Grpc.Mapping;
 

@@ -2,6 +2,8 @@ using Njord.Core.AirQuality;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
+using Njord.Messages.Results;
+using Njord.Messages.Stream;
 
 namespace Njord.Core.Tests.Domain;
 

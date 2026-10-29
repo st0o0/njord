@@ -1,4 +1,6 @@
 using Njord.Core.Domain;
+using Njord.Messages.Results;
+using Njord.Messages.Stream;
 
 namespace Njord.Tests.Shared;
 

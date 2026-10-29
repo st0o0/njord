@@ -8,6 +8,7 @@ using Njord.Core.Actors;
 using Njord.Core.Domain;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Stream;
 using Servus.Akka;
 
 namespace Njord.Grpc;
@@ -103,10 +104,10 @@ public sealed class GrpcConsumer : ReceiveActor
 
         Source.From(snapshot)
             .Concat(_clientHubSource)
-            .KeepAlive<PipelineEvent, PipelineEvent, NotUsed>(KeepAliveInterval, () => PipelineEvent.Heartbeat.Instance)
+            .KeepAlive<PipelineEvent, PipelineEvent, NotUsed>(KeepAliveInterval, () => Heartbeat.Instance)
             .Buffer(StreamClientBufferSize, OverflowStrategy.Backpressure)
             .IdleTimeout(ClientIdleTimeout)
-            .Where(e => e is not PipelineEvent.Heartbeat)
+            .Where(e => e is not Heartbeat)
             .RunWith(StreamRefs.SourceRef<PipelineEvent>(), _mat)
             .PipeTo(Sender, Self,
                 sr => new RequestGrpcStreamCompleted(msg.RequestId, sr),

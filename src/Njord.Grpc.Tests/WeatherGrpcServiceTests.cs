@@ -11,6 +11,7 @@ using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Stream;
 using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;
@@ -42,7 +43,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 30_000)]
     public async Task GetDomainData_returns_the_latest_event_of_the_requested_domain()
     {
-        var evt = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 3));
+        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 3));
         var service = CreateService(domainEvent: evt);
 
         var response = await service.GetDomainData(
@@ -60,7 +61,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     {
         var forecast = new DomainForecast<SeasonalPoint>(
             DomainKind.Seasonal, Anchor, TimeResolution.Monthly, [new SeasonalPoint(Anchor, 1.5, -12.0, 80.0)]);
-        var service = CreateService(domainEvent: new PipelineEvent.SeasonalDataReceived(DomainData.Lucerne, forecast));
+        var service = CreateService(domainEvent: new SeasonalDataReceived(DomainData.Lucerne, forecast));
 
         var response = await service.GetDomainData(
             new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Seasonal },
@@ -79,7 +80,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 30_000)]
     public async Task GetDomainData_returns_the_requested_secondary_model_labelled_with_its_id()
     {
-        var evt = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2), "ukmo_global_ensemble_mean_20km");
+        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2), "ukmo_global_ensemble_mean_20km");
         var service = CreateService(domainEvent: evt, models: TwoModels);
 
         var response = await service.GetDomainData(
@@ -94,7 +95,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 30_000)]
     public async Task GetDomainData_labels_primary_weather_with_the_primary_model_id()
     {
-        var evt = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
+        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
         var service = CreateService(domainEvent: evt, models: TwoModels);
 
         var response = await service.GetDomainData(
@@ -107,7 +108,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 30_000)]
     public async Task GetDomainData_is_not_found_for_a_model_that_is_not_enabled()
     {
-        var evt = new PipelineEvent.ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
+        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
         var service = CreateService(domainEvent: evt);
 
         var ex = await Assert.ThrowsAsync<RpcException>(() => service.GetDomainData(

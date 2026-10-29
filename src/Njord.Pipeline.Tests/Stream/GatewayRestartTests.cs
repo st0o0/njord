@@ -7,6 +7,7 @@ using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Grpc;
 using Njord.Messages.Forecast;
+using Njord.Messages.Stream;
 using Njord.OpenMeteo.Budget;
 using Njord.OpenMeteo.Gateway;
 using Njord.Pipeline.Stream;
@@ -47,7 +48,7 @@ public sealed class GatewayRestartTests : Akka.Hosting.TestKit.TestKit
         var gateway = StartGateway();
 
         await FetchUntilCompletedAsync(gateway, region, ct);
-        await consumer.ExpectMsgAsync<PipelineEvent.ForecastDataReceived>(TimeSpan.FromSeconds(10), cancellationToken: ct);
+        await consumer.ExpectMsgAsync<ForecastDataReceived>(TimeSpan.FromSeconds(10), cancellationToken: ct);
 
         // The budget read fault is thrown inside the gate stage: supervision drops that one request without a reply.
         _budget.ThrowOnNextRead = true;
@@ -57,9 +58,9 @@ public sealed class GatewayRestartTests : Akka.Hosting.TestKit.TestKit
         await FetchUntilCompletedAsync(gateway, region, ct);
 
         var next = await consumer.FishForMessageAsync(
-            m => m is PipelineEvent.ForecastDataReceived or ConsumerCompleted or ConsumerFailed,
+            m => m is ForecastDataReceived or ConsumerCompleted or ConsumerFailed,
             TimeSpan.FromSeconds(10), cancellationToken: ct);
-        var weather = Assert.IsType<PipelineEvent.ForecastDataReceived>(next);
+        var weather = Assert.IsType<ForecastDataReceived>(next);
         Assert.Equal(Lucerne.Name, weather.Location.Name);
     }
 

@@ -2,6 +2,8 @@ using Microsoft.Extensions.Options;
 using Njord.Core.AirQuality;
 using Njord.Core.Domain;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
+using Njord.Messages.Stream;
 
 namespace Njord.Features.Conditions.RagweedPollen;
 

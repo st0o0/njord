@@ -18,6 +18,7 @@ using Njord.Features.Alerts.Visibility;
 using Njord.Features.Alerts.WindChill;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
 using Njord.Tests.Shared;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;

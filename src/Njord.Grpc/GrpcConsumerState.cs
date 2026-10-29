@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using Njord.Core;
 using Njord.Core.Domain;
+using Njord.Messages.Results;
+using Njord.Messages.Stream;
 
 namespace Njord.Grpc;
 

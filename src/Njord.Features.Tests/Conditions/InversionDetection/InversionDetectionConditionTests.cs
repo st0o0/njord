@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Features.Conditions.InversionDetection;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Stream;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;

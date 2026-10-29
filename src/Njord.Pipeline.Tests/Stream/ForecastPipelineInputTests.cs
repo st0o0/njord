@@ -8,6 +8,8 @@ using Njord.Core.Domain;
 using Njord.Features.Alerts.Frost;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
+using Njord.Messages.Stream;
 using Njord.Pipeline.Stream;
 using Njord.Pipeline.Tests.Helpers;
 using Njord.Tests.Shared;
@@ -176,12 +178,12 @@ public sealed class ForecastPipelineInputTests : Akka.Hosting.TestKit.TestKit
         Assert.Equal("Lucerne", raised.Location.Name);
     }
 
-    private static async Task<PipelineEvent.ForecastDataReceived> NextWeatherAsync(Akka.TestKit.TestProbe consumer, CancellationToken ct)
+    private static async Task<ForecastDataReceived> NextWeatherAsync(Akka.TestKit.TestProbe consumer, CancellationToken ct)
     {
         var message = await consumer.FishForMessageAsync(
-            m => m is PipelineEvent.ForecastDataReceived or ConsumerCompleted or ConsumerFailed,
+            m => m is ForecastDataReceived or ConsumerCompleted or ConsumerFailed,
             TimeSpan.FromSeconds(10), cancellationToken: ct);
-        return Assert.IsType<PipelineEvent.ForecastDataReceived>(message);
+        return Assert.IsType<ForecastDataReceived>(message);
     }
 
     private static async Task<FrostAlertResult> NextFrostAlertAsync(Akka.TestKit.TestProbe consumer, CancellationToken ct)

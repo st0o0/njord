@@ -1,7 +1,7 @@
 using Akka.Streams;
-using Njord.Core.Domain;
 
-namespace Njord.Grpc;
+
+namespace Njord.Messages.Stream;
 
 public sealed record RequestGrpcStream(long RequestId);
 

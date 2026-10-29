@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Njord.Core.Domain;
 using Njord.Features;
+using Njord.Messages.Results;
 
 namespace Njord.Tests.Shared;
 

@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Messages.Results;
 using Njord.Tests.Shared;
 
 namespace Njord.Features.Tests.Registration;

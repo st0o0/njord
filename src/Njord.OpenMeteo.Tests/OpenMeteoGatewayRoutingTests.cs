@@ -11,6 +11,7 @@ using Njord.Core.Polling;
 using Njord.Core.Seasonal;
 using Njord.Core.Solar;
 using Njord.Messages.Forecast;
+using Njord.Messages.Stream;
 using Njord.OpenMeteo.Gateway;
 using Njord.Tests.Shared;
 

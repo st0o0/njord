@@ -4,6 +4,8 @@ using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Features.Shared;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
+using Njord.Messages.Stream;
 
 namespace Njord.Features.Scores.Outdoor;
 
