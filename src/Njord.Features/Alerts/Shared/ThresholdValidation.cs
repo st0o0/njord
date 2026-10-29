@@ -11,9 +11,14 @@ internal static class ThresholdValidation
             return null;
         }
 
-        if (values.Length < 3)
+        if (values.Length != 3)
         {
-            return $"{path} needs three values (advisory, warning, severe), got {values.Length}.";
+            return $"{path} needs exactly three values (advisory, warning, severe), got {values.Length}.";
+        }
+
+        if (!values.All(double.IsFinite))
+        {
+            return $"{path} must contain only finite numbers, got [{string.Join(", ", values)}].";
         }
 
         var ordered = direction == ScanDirection.Max
