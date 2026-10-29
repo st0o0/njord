@@ -6,6 +6,11 @@ public static class Scoring
 {
     public static double Ramp(double value, double zeroAt, double oneAt)
     {
+        if (oneAt == zeroAt)
+        {
+            return value >= oneAt ? 1.0 : 0.0;
+        }
+
         var fraction = (value - zeroAt) / (oneAt - zeroAt);
         return Math.Clamp(fraction, 0.0, 1.0);
     }
@@ -42,10 +47,23 @@ public static class Scoring
 
     public static (int Score, int Start, int Length) BestWindow(IReadOnlyList<double> scores, double goodScore)
     {
+        if (scores.Count == 0)
+        {
+            return (0, 0, 0);
+        }
+
         var (start, length) = LongestRun([.. scores.Select(score => score >= goodScore)]);
         if (length == 0)
         {
-            var best = scores.ToList().IndexOf(scores.Max());
+            var best = 0;
+            for (var i = 1; i < scores.Count; i++)
+            {
+                if (scores[i] > scores[best])
+                {
+                    best = i;
+                }
+            }
+
             return ((int)Math.Round(scores[best]), best, 0);
         }
 

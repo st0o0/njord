@@ -8,8 +8,6 @@ namespace Njord.Features.Conditions.SolarYield;
 
 public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<ForecastSolarInput>
 {
-    public const double SystemEfficiency = 0.8;
-
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Energy,
@@ -32,7 +30,7 @@ public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<
         }
 
         var kwhPerSquareMeter = hours.Sum(hour => hour.Radiation) / 1000.0;
-        var yield = kwhPerSquareMeter * SystemEfficiency;
+        var yield = kwhPerSquareMeter * config.Value.SystemEfficiency * config.Value.PeakKw;
         var peak = hours.MaxBy(hour => hour.Radiation);
         return new SolarYieldResult(ctx.Location, Math.Round(yield, 2), peak.ValidFrom.Hour);
     }

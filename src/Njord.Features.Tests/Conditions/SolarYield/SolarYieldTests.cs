@@ -13,7 +13,11 @@ namespace Njord.Features.Tests.Conditions.SolarYield;
 
 public sealed class SolarYieldTests
 {
-    private static Features.Conditions.SolarYield.SolarYield Feature() => new(Options.Create(new SolarYieldConfig { Enabled = true }));
+    private const double Efficiency = 0.8;
+    private const double PeakKw = 5.0;
+
+    private static Features.Conditions.SolarYield.SolarYield Feature() =>
+        new(Options.Create(new SolarYieldConfig { Enabled = true, PeakKw = PeakKw, SystemEfficiency = Efficiency }));
 
     private static LocationForecast Sunny() => ForecastOnly(Day((hour, point) => point with
     {
@@ -33,7 +37,7 @@ public sealed class SolarYieldTests
         var yield = Assert.IsType<SolarYieldResult>(Run(Feature(), Now, Sunny()));
 
         Assert.Multiple(
-            () => Assert.Equal(Math.Round((23 * 100.0 + 800.0) / 1000.0 * Features.Conditions.SolarYield.SolarYield.SystemEfficiency, 2), yield.KwhPerKwp),
+            () => Assert.Equal(Math.Round((23 * 100.0 + 800.0) / 1000.0 * Efficiency * PeakKw, 2), yield.KwhPerKwp),
             () => Assert.Equal(Now.AddHours(3).Hour, yield.PeakHour));
     }
 
@@ -51,7 +55,7 @@ public sealed class SolarYieldTests
         var yield = Assert.IsType<SolarYieldResult>(Run(Feature(), Now, WithSatellite((1, 50.0), (0, 400.0))));
 
         Assert.Multiple(
-            () => Assert.Equal(Math.Round((400.0 + 800.0 + 22 * 100.0) / 1000.0 * Features.Conditions.SolarYield.SolarYield.SystemEfficiency, 2), yield.KwhPerKwp),
+            () => Assert.Equal(Math.Round((400.0 + 800.0 + 22 * 100.0) / 1000.0 * Efficiency * PeakKw, 2), yield.KwhPerKwp),
             () => Assert.Equal(Now.AddHours(3).Hour, yield.PeakHour));
     }
 

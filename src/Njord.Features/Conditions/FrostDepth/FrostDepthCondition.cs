@@ -56,7 +56,8 @@ public sealed class FrostDepthCondition(IOptions<FrostDepthConfig> config) : Fea
         }
 
         var wind = Math.Min(1.5, 1.0 + 0.1 * Math.Max(0.0, windSpeed - 5.0));
-        return StefanAlpha * Math.Sqrt(freezingDegreeHours) / (1.0 + snowDepthCm / 10.0) * wind;
+        var freezingDegreeDays = freezingDegreeHours / 24.0;
+        return StefanAlpha * Math.Sqrt(freezingDegreeDays) / (1.0 + snowDepthCm / 10.0) * wind;
     }
 
     public static FrostDepthRisk RiskFor(double depthCm, double pipeDepthCm) => depthCm switch

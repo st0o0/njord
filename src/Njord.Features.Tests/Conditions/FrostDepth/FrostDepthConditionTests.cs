@@ -33,18 +33,18 @@ public sealed class FrostDepthConditionTests
         var result = Evaluate(p => p with { Temperature = -0.05, SoilTemperature = 1.0, SnowDepth = 0.0, WindSpeed = 2.0 });
 
         Assert.Multiple(
-            () => Assert.Equal(Math.Round(2.4 * Math.Sqrt(2.4), 1), result.DepthCm),
+            () => Assert.Equal(Math.Round(2.4 * Math.Sqrt(2.4 / 24.0), 1), result.DepthCm),
             () => Assert.Equal(FrostDepthRisk.Surface, result.Risk));
     }
 
     [Fact]
-    public void Hard_frost_reaches_a_moderate_depth()
+    public void Hard_frost_reaches_a_shallow_depth()
     {
         var result = Evaluate(p => p with { Temperature = -3.0, SoilTemperature = -1.0, SnowDepth = 0.0, WindSpeed = 2.0 });
 
         Assert.Multiple(
-            () => Assert.Equal(Math.Round(2.4 * Math.Sqrt(144.0), 1), result.DepthCm),
-            () => Assert.Equal(FrostDepthRisk.Moderate, result.Risk));
+            () => Assert.Equal(Math.Round(2.4 * Math.Sqrt(144.0 / 24.0), 1), result.DepthCm),
+            () => Assert.Equal(FrostDepthRisk.Shallow, result.Risk));
     }
 
     [Fact]
@@ -61,8 +61,8 @@ public sealed class FrostDepthConditionTests
     [Fact]
     public void Wind_amplification_is_capped()
     {
-        var calm = FrostDepthCondition.DepthCm(100.0, 0.0, 5.0);
-        var gale = FrostDepthCondition.DepthCm(100.0, 0.0, 50.0);
+        var calm = FrostDepthCondition.DepthCm(2400.0, 0.0, 5.0);
+        var gale = FrostDepthCondition.DepthCm(2400.0, 0.0, 50.0);
 
         Assert.Multiple(
             () => Assert.Equal(24.0, calm),
@@ -72,7 +72,7 @@ public sealed class FrostDepthConditionTests
     [Fact]
     public void A_frost_approaching_the_pipe_depth_is_deep()
     {
-        var result = Evaluate(p => p with { Temperature = -3.0, SoilTemperature = -1.0, SnowDepth = 0.0, WindSpeed = 2.0 }, pipeDepthCm: 35.0);
+        var result = Evaluate(p => p with { Temperature = -3.0, SoilTemperature = -1.0, SnowDepth = 0.0, WindSpeed = 2.0 }, pipeDepthCm: 7.0);
 
         Assert.Equal(FrostDepthRisk.Deep, result.Risk);
     }

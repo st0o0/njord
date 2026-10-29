@@ -21,7 +21,7 @@ public sealed class Evapotranspiration(IOptions<EvapotranspirationConfig> config
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var today = ctx.Current.Forecast.NextHoursInclusive(ctx.Now, 24);
+        var today = ctx.Current.Forecast.NextHours(ctx.Now, 24);
         var dailySum = 0.0;
         foreach (var point in today)
         {
