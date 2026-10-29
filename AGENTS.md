@@ -28,7 +28,7 @@ src/
     Domain/             #   FeatureDescriptor, FeatureCategory, FeatureContext,
                         #   FeatureInputs (typed inputs), DomainRequirements,
                         #   LocationForecast, RingBuffer, ForecastQueries, OutputKind
-    Configuration/      #   IConfigSection, IHasArrayDefaults, NjordOptions (with FindLocation), LocationOptions, 
+    Configuration/      #   IConfigSection, IHasArrayDefaults, NjordOptions (with FindLocation), LocationOptions,
                         #   PollingOptions, Health/HealthOptions, AddNjordOptions (+ validators)
     Polling/            #   CallWeight (fractional), DomainCallConfig, RequestBudget (free-tier constants, DailyLimit), FetchTimeouts
   Njord.Messages/       # Contracts (-> Core, Akka.Streams for ISinkRef/ISourceRef):

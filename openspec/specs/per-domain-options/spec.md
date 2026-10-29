@@ -3,9 +3,11 @@
 ## Purpose
 TBD - created by archiving change restructure-forecast-and-clients. Update Purpose after archive.
 ## Requirements
-
 ### Requirement: Independent forecast days per domain
-AirQuality, Marine, Flood, Forecast, and Ensemble SHALL each have their own configuration section with a forecast-days setting. No domain's forecast days SHALL affect another domain.
+AirQuality, Marine, Flood, Forecast, Ensemble, Seasonal, and Satellite SHALL each have
+their own configuration section with a forecast-days (or past-hours) setting. No domain's
+forecast days SHALL affect another domain. All domain Options classes and their validators
+SHALL live in `Njord.OpenMeteo/Configuration/`.
 
 #### Scenario: Defaults
 - **WHEN** no value is configured
@@ -18,6 +20,10 @@ AirQuality, Marine, Flood, Forecast, and Ensemble SHALL each have their own conf
 #### Scenario: Weather setting no longer exists
 - **WHEN** `Njord:Weather:ForecastDays` is configured
 - **THEN** it SHALL have no effect (the section is removed)
+
+#### Scenario: Options placement
+- **WHEN** the solution is inspected
+- **THEN** ForecastOptions, EnsembleOptions, and FloodOptions (plus their validators) SHALL be in `Njord.OpenMeteo/Configuration/`, alongside AirQualityOptions, MarineOptions, SeasonalOptions, and SatelliteOptions
 
 ### Requirement: API limits enforced at startup
 Each domain's forecast days SHALL be validated against its API limit when the service starts.
@@ -59,3 +65,4 @@ Each domain's forecast days SHALL be validated against its API limit when the se
 #### Scenario: No interface
 - **WHEN** `ForecastOptions` is inspected
 - **THEN** it SHALL NOT implement `IHasArrayDefaults`
+
