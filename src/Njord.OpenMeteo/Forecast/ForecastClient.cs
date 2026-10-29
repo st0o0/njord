@@ -34,7 +34,7 @@ public sealed class ForecastClient : IDomainClient
         _pastHours = options.Value.PastHours;
         _models = options.Value.Models;
         _primaryModel = _models.Length > 0 ? _models[0] : BestMatch;
-        CallWeight = Core.Polling.CallWeight.Of(_variables.Count, _forecastDays);
+        CallWeight = (int)Math.Max(1, Math.Ceiling(Core.Polling.CallWeight.Of(_variables.Count, _forecastDays)));
     }
 
     public DomainKind Domain => DomainKind.Forecast;

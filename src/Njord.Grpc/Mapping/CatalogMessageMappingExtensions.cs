@@ -1,6 +1,7 @@
 using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Messages.Config;
+using Njord.OpenMeteo.Configuration;
 
 namespace Njord.Grpc.Mapping;
 

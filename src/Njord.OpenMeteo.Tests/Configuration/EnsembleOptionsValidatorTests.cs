@@ -1,7 +1,8 @@
 using Njord.Core.Configuration;
+using Njord.OpenMeteo.Configuration;
 using Njord.Tests.Shared;
 
-namespace Njord.Core.Tests.Configuration;
+namespace Njord.OpenMeteo.Tests.Configuration;
 
 public sealed class EnsembleOptionsValidatorTests
 {

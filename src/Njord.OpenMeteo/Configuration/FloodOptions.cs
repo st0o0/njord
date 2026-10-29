@@ -1,4 +1,6 @@
-namespace Njord.Core.Configuration;
+using Njord.Core.Configuration;
+
+namespace Njord.OpenMeteo.Configuration;
 
 public sealed class FloodOptions : IConfigSection
 {

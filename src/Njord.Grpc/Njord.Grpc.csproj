@@ -15,6 +15,8 @@
     <ItemGroup>
         <ProjectReference Include="..\Njord.Core\Njord.Core.csproj" />
         <ProjectReference Include="..\Njord.Messages\Njord.Messages.csproj" />
+        <!-- Temporary: EnsembleOptions for the Catalog path; removed by the Catalog change. -->
+        <ProjectReference Include="..\Njord.OpenMeteo\Njord.OpenMeteo.csproj" />
     </ItemGroup>
 
     <ItemGroup>

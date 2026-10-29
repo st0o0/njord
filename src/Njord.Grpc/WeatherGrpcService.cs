@@ -11,6 +11,7 @@ using Njord.Grpc.V2;
 using Njord.Messages.Config;
 using Njord.Messages.Fetch;
 using Njord.Messages.Stream;
+using Njord.OpenMeteo.Configuration;
 using ActorSystem = Akka.Actor.ActorSystem;
 using GrpcStatus = Grpc.Core.Status;
 

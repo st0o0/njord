@@ -1,14 +1,13 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Core.Polling;
 
 namespace Njord.Polling.Configuration;
 
 public sealed class PollingOptionsValidator(
     IOptions<NjordOptions> scope,
-    IOptions<ForecastOptions> forecast,
-    IOptions<EnsembleOptions> ensemble,
-    IOptions<FloodOptions> flood,
+    IOptions<DomainCallConfig> callConfig,
     IOptions<DomainRequirements> requirements) : IValidateOptions<PollingOptions>
 {
     public ValidateOptionsResult Validate(string? name, PollingOptions options)
@@ -32,7 +31,7 @@ public sealed class PollingOptionsValidator(
 
         if (failures.Count == 0
             && ReadScope() is { } projectionScope
-            && BudgetGuard.Violation(projectionScope, options, requirements.Value, forecast.Value, ensemble.Value, flood.Value) is { } violation)
+            && BudgetGuard.Violation(projectionScope, options, requirements.Value, callConfig.Value) is { } violation)
         {
             failures.Add(violation);
         }

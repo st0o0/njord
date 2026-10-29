@@ -47,7 +47,7 @@ public sealed class EnsembleClient : IDomainClient
         _weatherVariables = _needsModels ? resolved.AllForecast.ToApiNames() : [];
         _allVariables = [.. _weatherVariables.Concat(_spreadVariables).Distinct()];
         _forecastDays = Math.Min(options.Value.ForecastDays, MaxForecastDays);
-        CallWeight = Core.Polling.CallWeight.Of(_allVariables.Count, _forecastDays) * _modelIds.Length;
+        CallWeight = (int)Math.Max(1, Math.Ceiling(Core.Polling.CallWeight.Of(_allVariables.Count, _forecastDays))) * _modelIds.Length;
     }
 
     public DomainKind Domain => DomainKind.Ensemble;

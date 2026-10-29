@@ -28,9 +28,9 @@ src/
     Domain/             #   FeatureDescriptor, FeatureCategory, FeatureContext,
                         #   FeatureInputs (typed inputs), DomainRequirements,
                         #   LocationForecast, RingBuffer, ForecastQueries, OutputKind
-    Configuration/      #   IConfigSection, IHasArrayDefaults, NjordOptions (with FindLocation), LocationOptions, ForecastOptions, EnsembleOptions, FloodOptions,
+    Configuration/      #   IConfigSection, IHasArrayDefaults, NjordOptions (with FindLocation), LocationOptions, 
                         #   PollingOptions, Health/HealthOptions, AddNjordOptions (+ validators)
-    Polling/            #   CallWeight, RequestBudget (free-tier constants, DailyLimit), FetchTimeouts
+    Polling/            #   CallWeight (fractional), DomainCallConfig, RequestBudget (free-tier constants, DailyLimit), FetchTimeouts
   Njord.Messages/       # Contracts (-> Core, Akka.Streams for ISinkRef/ISourceRef):
                         #   Alerts/ (enums, thresholds), Budget/ (QueryBudgetStatus, RecordApiCall),
                         #   Config/ (CatalogResult), Fetch/ (FetchDomain*, FetchResult*, QueryDomainData),
@@ -51,7 +51,7 @@ src/
   Njord.Features/       # (-> Core) every feature: <OutputKind>/<Feature>/ with FeatureRule + <Name>Config (+ validator)
                         #   side by side (Alerts/ Scores/ Conditions/ Trends/ Forecasts/), <Kind>/Shared/ and top-level
                         #   Shared/ (Scoring), ServiceCollectionExtensions.AddFeatures; typed inputs stay in Core
-  Njord.Grpc/           # WeatherGrpcService, OpsGrpcService, ActorAsk, GrpcConsumer, Mapping/
+  Njord.Grpc/           # (temporary ref to OpenMeteo for EnsembleOptions until the Catalog change) WeatherGrpcService, OpsGrpcService, ActorAsk, GrpcConsumer, Mapping/
   Njord/                # Host: Program.cs, NjordHost, Configuration/ (setup containers, PersistenceOptions), Health/
 
   Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
@@ -145,10 +145,10 @@ SHARD REGIONS (Sharded Entity)
   `DomainRequirements` (with base params; consumers take `IOptions<DomainRequirements>`) and mapped to
   API names by `ParamMappings.ToApiNames()`; the clients only build the URL. `FeatureEngine` skips a
   rule whose required fields are missing from the stream (`LocationForecast.HasFields`). `BudgetGuard`
-  uses the same resolved requirements and the per-API `ForecastDays`: Forecast costs
-  `ceil(variables / 10) * ceil(Forecast.ForecastDays / 14)` calls per cycle (no model multiplier),
-  Ensemble costs `ceil(variables / 10) * ceil(Ensemble.ForecastDays / 14) * modelCount`
-  (spread-only: 1 call), every other required domain 1.
+  uses the same resolved requirements and `DomainCallConfig` (built by the Host from the per-domain Options): every required
+  domain costs `ceil(variables / 10) * (days / 14.0)` (fractional days, `CallWeight.Of`); Forecast times
+  `max(1, modelCount)`, Ensemble times `modelCount` (spread-only: no model multiplier), Flood ensemble adds 4, Satellite uses
+  `PastHours / 336.0`, Seasonal is 30 requests/month at `max(formula, 1.3)`.
 - **Per-domain forecast days.** `Njord:Forecast` (4, max 16), `Njord:Ensemble` (4, max 35), `Njord:AirQuality` (5,
   max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92, max 210).
 - **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Name>` (65 features; categories in
@@ -163,8 +163,7 @@ SHARD REGIONS (Sharded Entity)
   `Polling:BudgetOverride`. Startup validates projected usage (`BudgetGuard`: locations x required
   domains x poll cycles x call weight) against 80 % of the monthly budget.
 - **Any change to polling needs a budget estimate** against 300k/month, 10k/day, and politeness toward
-  a free service. Forecast weighs `ceil(variables / 10) * ceil(forecastDays / 14)` calls;
-  Ensemble weighs `ceil(variables / 10) * ceil(forecastDays / 14) * modelCount` (spread-only: 1); others 1.
+  a free service. Every domain weighs `ceil(variables / 10) * (forecastDays / 14.0)` calls (Ensemble times `modelCount`, spread-only: 1 model).
 - **Seasonal is a normal domain** (`DomainKind.Seasonal`, `SeasonalPoint`, `TimeResolution.Monthly`): the gateway fetches
   `seasonal-api.open-meteo.com` for `SeasonalOutlook`, the PollWorker learns its roughly daily cycle, `BudgetGuard`
   counts it as 30 calls/month/location instead of once per poll cycle. The API delivers ensemble-mean
@@ -329,8 +328,8 @@ Rules apply to production code.
 
 One `sealed` class per concern implementing `IConfigSection` (`static abstract SectionName`), registered with
 `AddNjordOptions<T>()` (`BindConfiguration(T.SectionName).ValidateOnStart()`) or `AddNjordOptions<T, TValidator>()`
-when it has cross-field rules (`IValidateOptions<T>`). Options live with their owner (Forecast/Ensemble/Flood/Polling/Health
-in `Njord.Core`, AirQuality/Marine/Seasonal/Satellite in `Njord.OpenMeteo`, `PollingOptionsValidator`
+when it has cross-field rules (`IValidateOptions<T>`). Options live with their owner (Polling/Health
+in `Njord.Core`, Forecast/Ensemble/Flood/AirQuality/Marine/Seasonal/Satellite in `Njord.OpenMeteo`, `PollingOptionsValidator`
 and `BudgetGuard` in `Njord.Polling`, `PersistenceOptions` in the Host, feature options in each `<Name>Config`).
 Defaults are property initializers. Naming: `private const string SectionName` + explicit interface implementation.
 

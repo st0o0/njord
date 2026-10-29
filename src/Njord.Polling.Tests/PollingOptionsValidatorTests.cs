@@ -23,9 +23,7 @@ public sealed class PollingOptionsValidatorTests
         };
         return new(
             Options.Create(scope),
-            Options.Create(new ForecastOptions()),
-            Options.Create(new EnsembleOptions { Models = ensembleModels ?? [] }),
-            Options.Create(new FloodOptions()),
+            Options.Create(new DomainCallConfig(EnsembleModelCount: ensembleModels?.Length ?? 0)),
             Options.Create(new DomainRequirements(
                 Forecast: ForecastParams.Temperature,
                 AirQuality: AirQualityParams.Pm25,
@@ -80,14 +78,14 @@ public sealed class PollingOptionsValidatorTests
     [Fact]
     public void Should_count_ensemble_models_in_the_budget_projection()
     {
-        var options = new PollingOptions { Budget = new RequestBudget(2_500, 600) };
+        var options = new PollingOptions { Budget = new RequestBudget(1_300, 600) };
 
         var withoutComparison = ValidatorWith(null, 1).Validate(null, options);
         var withComparison = ValidatorWith(["a", "b", "c"], 1).Validate(null, options);
 
         Assert.Multiple(
             () => Assert.True(withoutComparison.Succeeded),
-            () => Assert.Contains("exceeds the guard of 2000", ValidationAssert.SingleFailure(withComparison)));
+            () => Assert.Contains("exceeds the guard of 1040", ValidationAssert.SingleFailure(withComparison)));
     }
 
     [Fact]

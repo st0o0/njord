@@ -13,6 +13,7 @@ using Njord.Messages.Fetch;
 using Njord.Messages.Results.Alerts;
 using Njord.Messages.Results.Conditions;
 using Njord.Messages.Stream;
+using Njord.OpenMeteo.Configuration;
 using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;

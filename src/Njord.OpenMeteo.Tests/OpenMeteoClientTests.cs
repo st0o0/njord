@@ -227,7 +227,7 @@ public sealed class OpenMeteoClientTests
         var variables = TestRequirements.All.Forecast.ToApiNames();
 
         Assert.Multiple(
-            () => Assert.Equal(CallWeight.Of(variables.Count, 4), client.CallWeight),
+            () => Assert.Equal((int)Math.Ceiling(CallWeight.Of(variables.Count, 4)), client.CallWeight),
             () => Assert.True(client.CallWeight > 1));
     }
 
