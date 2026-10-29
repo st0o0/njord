@@ -16,7 +16,6 @@ public readonly record struct ForecastAqInput(DomainForecast<ForecastPoint> Fore
 public readonly record struct ForecastSolarInput(DomainForecast<ForecastPoint> Forecast, DomainForecast<SatelliteRadiationPoint> Satellite);
 public readonly record struct FloodInput(DomainForecast<FloodPoint> Flood);
 public readonly record struct FloodForecastInput(DomainForecast<FloodPoint> Flood, DomainForecast<ForecastPoint> Forecast);
-public readonly record struct FloodMarineForecastInput(DomainForecast<FloodPoint> Flood, DomainForecast<MarinePoint> Marine, DomainForecast<ForecastPoint> Forecast);
 public readonly record struct MarineInput(DomainForecast<MarinePoint> Marine);
 public readonly record struct MarineForecastInput(DomainForecast<MarinePoint> Marine, DomainForecast<ForecastPoint> Forecast);
 public readonly record struct EnsembleInput(DomainForecast<EnsemblePoint> Ensemble);
