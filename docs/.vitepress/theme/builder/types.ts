@@ -29,6 +29,8 @@ export interface FeatureEntry {
   airQualityParams?: string[]
   ensembleParams?: string[]
   marineParams?: string[]
+  optionalAirQualityParams?: string[]
+  optionalMarineParams?: string[]
   options?: FeatureOption[]
 }
 

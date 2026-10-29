@@ -11,7 +11,7 @@
     "enabledByDefault": true,
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Temperature"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
+    "ensembleParams": ["TemperatureSpread"],
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [0, -5, -15] }]
   },
   {
@@ -26,7 +26,7 @@
     "enabledByDefault": true,
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Temperature", "ApparentTemperature"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
+    "ensembleParams": ["TemperatureSpread"],
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [30, 35, 40] }]
   },
   {
@@ -41,7 +41,7 @@
     "enabledByDefault": true,
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["WindGusts"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
+    "ensembleParams": ["WindSpeedSpread"],
     "options": [{ "name": "GustThresholds", "type": "numberArray", "default": [17, 25, 33] }]
   },
   {
@@ -56,7 +56,7 @@
     "enabledByDefault": true,
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Precipitation"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
+    "ensembleParams": ["PrecipitationSpread"],
     "options": [{ "name": "HourlyThreshold", "type": "number", "default": 10 }, { "name": "DailyThreshold", "type": "number", "default": 25 }]
   },
   {
@@ -70,7 +70,7 @@
     "automationExample": "Remind the family to apply sunscreen before going outside",
     "enabledByDefault": true,
     "domains": ["Forecast"],
-    "optionalWeatherParams": ["UvIndex"]
+    "weatherParams": ["UvIndex"]
   },
   {
     "key": "Forecast:Fog",
@@ -98,7 +98,8 @@
     "enabledByDefault": true,
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Snowfall", "FreezingLevelHeight"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"]
+    "ensembleParams": ["PrecipitationSpread"],
+    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [1, 5, 15] }]
   },
   {
     "key": "Forecast:PressureDrop",
@@ -126,7 +127,8 @@
     "enabledByDefault": true,
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Precipitation", "WindGusts", "Cape"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
+    "optionalWeatherParams": ["ConvectiveInhibition"],
+    "ensembleParams": ["WindSpeedSpread"],
     "options": [{ "name": "CapeThresholds", "type": "numberArray", "default": [1000, 1500, 2500] }, { "name": "PrecipThreshold", "type": "number", "default": 5 }, { "name": "GustThreshold", "type": "number", "default": 20 }, { "name": "CinThreshold", "type": "number", "default": 200 }]
   },
   {
@@ -141,8 +143,8 @@
     "enabledByDefault": true,
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Temperature", "Precipitation"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
-    "optionalWeatherParams": ["Rain", "SoilTemperature"],
+    "optionalWeatherParams": ["Rain", "SoilTemperature", "WeatherCode"],
+    "ensembleParams": ["PrecipitationSpread"],
     "options": [{ "name": "Threshold", "type": "number", "default": 2 }]
   },
   {
@@ -157,7 +159,7 @@
     "enabledByDefault": true,
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["ApparentTemperature"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
+    "ensembleParams": ["TemperatureSpread"],
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [-10, -20, -30] }]
   },
   {
@@ -186,7 +188,7 @@
     "enabledByDefault": true,
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Temperature", "IsDay"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
+    "ensembleParams": ["TemperatureSpread"],
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [20, 23, 25] }]
   },
   {
@@ -215,7 +217,7 @@
     "enabledByDefault": true,
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["PrecipitationProbability"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
+    "ensembleParams": ["PrecipitationSpread"],
     "options": [{ "name": "WindowHours", "type": "number", "default": 6 }, { "name": "Thresholds", "type": "numberArray", "default": [50, 70, 90] }]
   },
   {
@@ -230,7 +232,7 @@
     "enabledByDefault": false,
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["WetBulbTemperature"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
+    "ensembleParams": ["TemperatureSpread"],
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [26, 28, 32] }]
   },
   {
@@ -274,7 +276,7 @@
     "enabledByDefault": false,
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Showers"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
+    "ensembleParams": ["PrecipitationSpread"],
     "options": [{ "name": "WindowHours", "type": "number", "default": 6 }, { "name": "Thresholds", "type": "numberArray", "default": [3, 5, 10] }]
   },
   {
@@ -399,7 +401,8 @@
     "automationExample": "Open the bedroom window during the best ventilation window and close it before bed",
     "enabledByDefault": false,
     "domains": ["Forecast", "AirQuality"],
-    "weatherParams": ["Temperature", "ApparentTemperature", "Humidity", "WindGusts", "Cape", "Precipitation"],
+    "weatherParams": ["Temperature", "Humidity", "WindGusts", "Cape", "Precipitation"],
+    "optionalWeatherParams": ["ApparentTemperature"],
     "airQualityParams": ["BirchPollen", "GrassPollen", "Pm25"],
     "options": [{ "name": "NightStartHour", "type": "number", "default": 22 }, { "name": "NightEndHour", "type": "number", "default": 6 }, { "name": "MinWindowScore", "type": "number", "default": 50 }, { "name": "MinWindowHours", "type": "number", "default": 2 }, { "name": "MaxWindows", "type": "number", "default": 3 }]
   },
@@ -486,7 +489,7 @@
     "enabledByDefault": false,
     "domains": ["Forecast"],
     "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "PrecipitationProbability", "CloudCover", "Humidity"],
-    "optionalWeatherParams": ["SunshineDuration"]
+    "optionalWeatherParams": ["SunshineDuration", "IsDay"]
   },
   {
     "key": "Lifestyle:IrrigationNeed",
@@ -542,8 +545,9 @@
     "enabledByDefault": false,
     "domains": ["Forecast", "AirQuality"],
     "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "PrecipitationProbability", "CloudCover"],
-    "optionalWeatherParams": ["UvIndex"],
-    "airQualityParams": ["Pm25", "BirchPollen", "GrassPollen", "Alder", "Mugwort"]
+    "optionalWeatherParams": ["UvIndex", "IsDay"],
+    "airQualityParams": ["Pm25"],
+    "optionalAirQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
   },
   {
     "key": "Lifestyle:Bbq",
@@ -556,7 +560,8 @@
     "automationExample": "Suggest a BBQ evening when the score is high and the weekend is approaching",
     "enabledByDefault": false,
     "domains": ["Forecast"],
-    "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "PrecipitationProbability", "CloudCover"]
+    "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "PrecipitationProbability", "CloudCover"],
+    "optionalWeatherParams": ["IsDay"]
   },
   {
     "key": "Lifestyle:NightVentilation",
@@ -583,7 +588,8 @@
     "enabledByDefault": false,
     "domains": ["Forecast", "AirQuality"],
     "weatherParams": ["Temperature", "Precipitation"],
-    "airQualityParams": ["Pm25", "BirchPollen", "GrassPollen", "Alder", "Mugwort"]
+    "airQualityParams": ["Pm25"],
+    "optionalAirQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
   },
   {
     "key": "Lifestyle:Gardening",
@@ -652,8 +658,9 @@
     "enabledByDefault": false,
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Temperature", "Humidity", "WindSpeed", "SoilMoisture0To1cm", "Precipitation"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
-    "options": [{ "name": "TemperatureThreshold", "type": "number", "default": 30.0 }, { "name": "HumidityThreshold", "type": "number", "default": 30.0 }, { "name": "WindSpeedThreshold", "type": "number", "default": 5.6 }, { "name": "SoilMoistureThreshold", "type": "number", "default": 0.10 }]
+    "optionalWeatherParams": ["IsDay"],
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [{ "name": "TemperatureThreshold", "type": "number", "default": 30.0 }, { "name": "HumidityThreshold", "type": "number", "default": 30.0 }, { "name": "WindSpeedThreshold", "type": "number", "default": 5.6 }, { "name": "SoilMoistureThreshold", "type": "number", "default": 0.10 }, { "name": "RedThreshold", "type": "number", "default": 0.7 }, { "name": "OrangeThreshold", "type": "number", "default": 0.4 }, { "name": "YellowThreshold", "type": "number", "default": 0.2 }]
   },
   {
     "key": "Lifestyle:GrowingDegree",
@@ -680,7 +687,7 @@
     "automationExample": "Only commit to outdoor event plans when forecast confidence is high and stable",
     "enabledByDefault": false,
     "domains": ["Ensemble"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"]
+    "ensembleParams": ["TemperatureSpread"]
   },
   {
     "key": "Insight:FrontApproaching",
@@ -706,7 +713,8 @@
     "automationExample": "Warn about trapped smoke and poor air dispersion when a strong inversion is reported",
     "enabledByDefault": false,
     "domains": ["Forecast"],
-    "weatherParams": ["Temperature", "Temperature80m", "Temperature120m", "BoundaryLayerHeight", "Visibility", "CloudCover", "WindSpeed"]
+    "weatherParams": ["Temperature", "Temperature80m", "BoundaryLayerHeight", "CloudCover", "WindSpeed"],
+    "optionalWeatherParams": ["Temperature120m", "Visibility"]
   },
   {
     "key": "Insight:AtmosphericStability",
@@ -756,7 +764,8 @@
     "entities": ["weather.{location}_{model_name}"],
     "automationExample": "Check model agreement before planning a weekend trip",
     "enabledByDefault": false,
-    "domains": ["Ensemble"],
+    "domains": ["Forecast", "Ensemble"],
+    "weatherParams": ["Temperature", "Precipitation"],
     "ensembleParams": ["Models"]
   },
   {
@@ -770,7 +779,8 @@
     "automationExample": "Run the dishwasher during peak solar production hours",
     "enabledByDefault": false,
     "domains": ["Forecast"],
-    "weatherParams": ["GlobalTiltedIrradiance"]
+    "weatherParams": ["GlobalTiltedIrradiance"],
+    "options": [{ "name": "PeakKw", "type": "number", "default": 5 }, { "name": "SystemEfficiency", "type": "number", "default": 0.8 }]
   },
   {
     "key": "Energy:SatelliteRadiation",
@@ -795,7 +805,7 @@
     "automationExample": "Heat the buffer tank in the hour with the best COP",
     "enabledByDefault": false,
     "domains": ["Forecast"],
-    "weatherParams": ["Temperature", "Humidity"],
+    "weatherParams": ["Temperature"],
     "options": [{ "name": "TargetTemperature", "type": "number", "default": 35 }, { "name": "ForecastHours", "type": "number", "default": 24 }]
   },
   {
@@ -823,7 +833,8 @@
     "automationExample": "Track daily wind energy potential alongside your solar yield",
     "enabledByDefault": false,
     "domains": ["Forecast"],
-    "weatherParams": ["WindSpeed80m", "WindDirection80m", "WindSpeed120m", "WindDirection120m"],
+    "weatherParams": ["WindSpeed80m", "WindDirection80m"],
+    "optionalWeatherParams": ["WindSpeed120m", "WindDirection120m"],
     "options": []
   },
   {
@@ -873,7 +884,9 @@
     "entities": ["binary_sensor.{location}_swimming_conditions_alert"],
     "automationExample": "Check swimming conditions before heading to the beach",
     "enabledByDefault": false,
-    "domains": ["Marine"]
+    "domains": ["Marine"],
+    "marineParams": ["WaveHeight"],
+    "optionalMarineParams": ["WaterTemperature"]
   },
   {
     "key": "Marine:Surf",
@@ -886,7 +899,9 @@
     "automationExample": "Get notified when surf conditions are good at your favorite break",
     "enabledByDefault": false,
     "domains": ["Forecast", "Marine"],
-    "optionalWeatherParams": ["WindDirection"]
+    "optionalWeatherParams": ["WindDirection"],
+    "marineParams": ["SwellWaveHeight", "SwellWavePeriod"],
+    "optionalMarineParams": ["SwellWaveDirection", "WindWaveHeight"]
   },
   {
     "key": "Marine:OceanCurrents",
@@ -913,9 +928,11 @@
     "automationExample": "Activate coastal property flood defenses when storm surge risk is high",
     "enabledByDefault": false,
     "domains": ["Marine", "Forecast", "Ensemble"],
-    "marineParams": ["SeaLevelHeight", "WaveHeight", "WaveDirection"],
-    "weatherParams": ["WindSpeed", "WindDirection"],
-    "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
+    "weatherParams": ["WindSpeed"],
+    "optionalWeatherParams": ["WindDirection"],
+    "ensembleParams": ["TemperatureSpread"],
+    "marineParams": ["SeaLevelHeight", "WaveHeight"],
+    "optionalMarineParams": ["WaveDirection"],
     "options": [{ "name": "SeaLevelThresholdM", "type": "number", "default": 0.3 }, { "name": "WaveHeightThresholdM", "type": "number", "default": 1.5 }, { "name": "WindSpeedThreshold", "type": "number", "default": 4.2 }]
   }
 ]
