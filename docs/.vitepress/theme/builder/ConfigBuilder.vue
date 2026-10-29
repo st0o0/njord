@@ -218,7 +218,14 @@ onMounted(() => {
               <div v-if="f.options?.length && isFeatureOn(f.key)" class="inline-options">
                 <label v-for="opt in f.options" :key="opt.name" class="inline-option">
                   <span class="option-name">{{ opt.name }}</span>
-                  <span v-if="opt.type === 'numberArray'" class="array-inputs">
+                  <input
+                    v-if="opt.type === 'boolean'"
+                    type="checkbox"
+                    :checked="getOption(f.key, opt) as boolean"
+                    @change="storeOption(f.key, opt, ($event.target as HTMLInputElement).checked)"
+                    class="option-checkbox"
+                  />
+                  <span v-else-if="opt.type === 'numberArray'" class="array-inputs">
                     <input
                       v-for="(v, idx) in getArrayOption(f.key, opt)"
                       :key="idx"
@@ -439,6 +446,7 @@ button.active { background: var(--vp-c-brand-1); color: white; border-color: var
 .option-name { min-width: 100px; }
 .option-input { width: 100px; font-size: 12px; }
 .option-input-small { width: 64px; }
+.option-checkbox { width: 16px; height: 16px; margin: 0; vertical-align: middle; }
 .array-inputs { display: flex; gap: 4px; }
 .advanced { margin-top: 8px; }
 

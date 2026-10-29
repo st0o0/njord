@@ -53,11 +53,11 @@ export const USER_GROUPS: { key: string; label: string; icon: string; categories
 // A per-feature setting below Njord:Features:<Name>; null/absent in the config means the built-in default.
 export interface FeatureOption {
   name: string
-  type: 'number' | 'numberArray'
-  default: number | number[]
+  type: 'number' | 'numberArray' | 'boolean'
+  default: number | number[] | boolean
 }
 
-export type OptionValue = number | number[]
+export type OptionValue = number | number[] | boolean
 
 // docs/data/features.json mirrors the registered FeatureRules (descriptor requirements plus the options of each
 // feature config class) and is maintained by hand together with them (see the njord-enrichment-feature skill).

@@ -5,8 +5,6 @@ const DAYS_PER_MONTH = 30
 const GUARD_FACTOR = 0.8
 const FREE_TIER_MONTHLY = 300_000
 const FLOOD_ENSEMBLE_WEIGHT = 5
-// TemperatureSpread, PrecipitationSpread, WindSpeedSpread (BudgetGuard.EnsembleSpreadVariableCount)
-const ENSEMBLE_SPREAD_VARIABLE_COUNT = 3
 // The seasonal domain learns a roughly daily update cycle, so it costs about one call per location and day.
 const SEASONAL_CALLS_PER_DAY = 1
 
@@ -24,7 +22,7 @@ export interface BudgetResult {
 }
 
 // Mirrors BudgetGuard (Njord.Polling): per location and poll cycle the Forecast domain costs
-// ceil(variables / 10) * ceil(Forecast.ForecastDays / 14) calls (variables = union of the enabled features' weather
+// ceil(variables / 10) * ceil(Forecast.ForecastDays / 14) * max(1, Forecast.Models) calls (variables = union of the enabled features' weather
 // requirements; the Ensemble domain uses Ensemble.ForecastDays), every other required domain costs one call.
 export function computeBudget(config: NjordConfig): BudgetResult {
   const pollMinutes = parseTimeSpan(config.pollInterval)
@@ -60,7 +58,7 @@ export function computeBudget(config: NjordConfig): BudgetResult {
 
 function weatherWeight(config: NjordConfig, features: Record<string, boolean>): number {
   return requiredDomains(features).includes('Forecast')
-    ? Math.ceil(weatherVariableCount(features) / 10) * Math.ceil(config.forecast.forecastDays / 14)
+    ? Math.ceil(weatherVariableCount(features) / 10) * Math.ceil(config.forecast.forecastDays / 14) * Math.max(1, config.forecast.models.filter(Boolean).length)
     : 0
 }
 
@@ -82,7 +80,7 @@ function ensembleWeight(config: NjordConfig, features: Record<string, boolean>):
   if (!domains.includes('Ensemble')) return 0
   const modelCount = Math.max(1, config.ensemble.models.filter(Boolean).length)
   if (ensembleNeedsModels(features)) {
-    return Math.ceil((weatherVariableCount(features) + ENSEMBLE_SPREAD_VARIABLE_COUNT) / 10) * Math.ceil(config.ensemble.forecastDays / 14) * modelCount
+    return Math.ceil((weatherVariableCount(features) + ensembleSpreadVarCount(features)) / 10) * Math.ceil(config.ensemble.forecastDays / 14) * modelCount
   }
   return Math.ceil(ensembleSpreadVarCount(features) / 10) * Math.ceil(config.ensemble.forecastDays / 14)
 }

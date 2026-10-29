@@ -29,6 +29,10 @@ function changedOptions(config: NjordConfig): [string, string, OptionValue][] {
 function parseOptionValue(featureKey: string, option: string, value: unknown): OptionValue | null {
   const def = FEATURES.find(f => f.key === featureKey)?.options?.find(o => o.name.toLowerCase() === option.toLowerCase())
   if (!def) return null
+  if (def.type === 'boolean') {
+    if (typeof value === 'boolean') return value
+    return String(value).trim().toLowerCase() === 'true'
+  }
   if (def.type === 'numberArray') {
     if (!Array.isArray(value)) return null
     const numbers = value.map(Number)
@@ -341,6 +345,12 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
       }
       const option = optionName(key, parts[2])
       if (!option) continue
+      const parsed = parseOptionValue(key, option, value)
+      if (parsed === null) continue
+      if (typeof parsed === 'boolean') {
+        ;(config.featureOptions[key] ??= {})[option] = parsed
+        continue
+      }
       const num = Number(value)
       if (Number.isNaN(num)) continue
       if (parts.length === 4 && /^\d+$/.test(parts[3])) {
