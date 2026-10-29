@@ -48,6 +48,7 @@ services:
       - Njord__Features__ConfidenceTrend__Enabled=true
       - Njord__Features__FrontApproaching__Enabled=true
       - Njord__Features__SolarYield__Enabled=true
+      - Njord__Features__SolarYield__BatteryCapacityKwh=10.0
       - Njord__Features__SatelliteRadiation__Enabled=true
       - Njord__Features__PollenTrend__Enabled=true
       - Njord__Features__FloodRisk__Enabled=true

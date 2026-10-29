@@ -156,7 +156,7 @@ internal static class FeatureResultMappingExtensions
         {
             Condition = new V2.ConditionData(),
             Strength = r.Strength.ToProto(),
-            InversionType = r.InversionType.ToProto(),
+            InversionType = r.InversionType?.ToProto() ?? V2.InversionType.Unspecified,
             TemperatureDifferenceC = r.TemperatureDifferenceC,
             BoundaryLayerHeightM = r.BoundaryLayerHeightM,
         };

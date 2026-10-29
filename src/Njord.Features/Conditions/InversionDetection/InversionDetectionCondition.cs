@@ -34,15 +34,11 @@ public sealed class InversionDetectionCondition(IOptions<InversionDetectionConfi
 
         var diff = t80 - surface;
         var strength = ClassifyStrength(diff, layer);
-        if (strength == InversionStrength.None)
-        {
-            return null;
-        }
 
         return new InversionDetectionConditionResult(
             ctx.Location,
             strength,
-            ClassifyType(diff, layer, point.CloudCover, point.WindSpeed),
+            strength == InversionStrength.None ? null : ClassifyType(diff, layer, point.CloudCover, point.WindSpeed),
             Math.Round(diff, 1),
             Math.Round(layer));
     }

@@ -133,7 +133,7 @@ public sealed record IrrigationNeedConditionResult(Location Location, Irrigation
 
 public sealed record FrostDepthConditionResult(Location Location, double DepthCm, FrostDepthRisk Risk, double SnowInsulationCm, double SoilTemperatureC) : ConditionFeatureResult(Location);
 
-public sealed record InversionDetectionConditionResult(Location Location, InversionStrength Strength, InversionType InversionType, double TemperatureDifferenceC, double BoundaryLayerHeightM) : ConditionFeatureResult(Location);
+public sealed record InversionDetectionConditionResult(Location Location, InversionStrength Strength, InversionType? InversionType, double TemperatureDifferenceC, double BoundaryLayerHeightM) : ConditionFeatureResult(Location);
 
 public sealed record AtmosphericStabilityConditionResult(Location Location, StabilityClass StabilityClass, double CapeJPerKg, double CinJPerKg, double LiftedIndex) : ConditionFeatureResult(Location);
 

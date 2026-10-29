@@ -65,15 +65,23 @@ public sealed class InversionDetectionConditionTests
     }
 
     [Fact]
-    public void A_normal_atmosphere_reports_nothing()
+    public void A_normal_atmosphere_reports_none_strength()
     {
-        Assert.Null(Eval(10.0, 9.0, 8.0, 400, 10, 1));
+        var result = Assert.IsType<InversionDetectionConditionResult>(Eval(10.0, 9.0, 8.0, 400, 10, 1));
+
+        Assert.Multiple(
+            () => Assert.Equal(InversionStrength.None, result.Strength),
+            () => Assert.Null(result.InversionType));
     }
 
     [Fact]
-    public void A_deep_boundary_layer_reports_nothing()
+    public void A_deep_boundary_layer_reports_none_strength()
     {
-        Assert.Null(Eval(2.0, 5.0, 5.0, 800, 10, 1));
+        var result = Assert.IsType<InversionDetectionConditionResult>(Eval(2.0, 5.0, 5.0, 800, 10, 1));
+
+        Assert.Multiple(
+            () => Assert.Equal(InversionStrength.None, result.Strength),
+            () => Assert.Null(result.InversionType));
     }
 
     [Theory]

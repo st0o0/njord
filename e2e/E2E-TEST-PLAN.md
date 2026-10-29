@@ -172,7 +172,7 @@ After S3 completes, spawn three subagents in a single message.
 2. `sensor.njord_*_solar_battery_strategy` state ∈ {feed_in, charge_battery, conserve, normal}
 3. `sensor.njord_*_irrigation_need` state ∈ {water, skip, reduce, soil_wet}
 4. `sensor.njord_*_frost_depth` has numeric state (cm, ≥ 0)
-5. `sensor.njord_*_inversion_detection` state ∈ {mild, strong, extreme}
+5. `sensor.njord_*_inversion_detection` state ∈ {none, mild, strong, extreme}
 6. `sensor.njord_*_atmospheric_stability` state ∈ {stable, marginal, capped, unstable, explosive}
 7. `sensor.njord_*_cloud_ceiling` has numeric state (meters, ≥ 0)
 
