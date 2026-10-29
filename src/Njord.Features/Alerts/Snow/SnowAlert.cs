@@ -14,7 +14,7 @@ public sealed class SnowAlert(IOptions<SnowConfig> config) : FeatureRule<Forecas
         FeatureCategory.Forecast,
         Name: "Snow",
         DefaultEnabled: true,
-        new DomainRequirements(Forecast: ForecastParams.Snowfall | ForecastParams.FreezingLevelHeight, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.Snowfall | ForecastParams.FreezingLevelHeight, Ensemble: EnsembleParams.PrecipitationSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -33,13 +33,7 @@ public sealed class SnowAlert(IOptions<SnowConfig> config) : FeatureRule<Forecas
         var snowiest = window.HighestBy(p => p.Snowfall);
         var freezingLevels = window.Select(p => p.FreezingLevelHeight).OfType<double>().Order().ToList();
 
-        var (severity, snowThreshold) = totalSum switch
-        {
-            > 20 => (AlertSeverity.Red, 20.0),
-            > 5 => (AlertSeverity.Orange, 5.0),
-            > 0 => (AlertSeverity.Yellow, 0.0),
-            _ => (AlertSeverity.None, 0.0),
-        };
+        var (severity, snowThreshold) = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Max).Classify(totalSum);
 
         if (severity == AlertSeverity.None)
         {
@@ -49,7 +43,7 @@ public sealed class SnowAlert(IOptions<SnowConfig> config) : FeatureRule<Forecas
         var roundedSum = Math.Round(totalSum, 1);
         var freezingLevel = freezingLevels.Count > 0 ? (double?)Math.Round(Median(freezingLevels), 0) : null;
         var spread = snowiest is not null ? ctx.Current.Ensemble.Points.SpreadAt(snowiest.ValidFrom) : null;
-        var level = ConfidenceThresholds.Default.LevelFor(spread?.TemperatureSpread);
+        var level = ConfidenceThresholds.Default.LevelFor(spread?.PrecipitationSpread);
         return new SnowAlertResult(
             ctx.Location, severity, level.ToConfidence(), roundedSum, snowThreshold,
             PeakValue: null, HoursUntil: null, DurationHours: null, Level: level,

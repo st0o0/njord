@@ -14,8 +14,8 @@ public sealed class IceAlert(IOptions<IceConfig> config) : FeatureRule<ForecastE
         Name: "Ice",
         DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.Precipitation,
-            OptionalForecast: ForecastParams.Rain | ForecastParams.SoilTemperature,
-            Ensemble: EnsembleParams.TemperatureSpread));
+            OptionalForecast: ForecastParams.Rain | ForecastParams.SoilTemperature | ForecastParams.WeatherCode,
+            Ensemble: EnsembleParams.PrecipitationSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -25,27 +25,37 @@ public sealed class IceAlert(IOptions<IceConfig> config) : FeatureRule<ForecastE
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
         var icy = ctx.Current.Forecast.NextHoursInclusive(ctx.Now)
-            .Where(p => (p.Rain ?? p.Precipitation) > 0 && p.Temperature <= config.Value.Threshold)
+            .Select(p => (Point: p, Hit: Classify(p)))
+            .Where(x => x.Hit.Severity != AlertSeverity.None)
             .ToList();
-        if (icy.MinBy(p => p.Temperature) is not { Temperature: { } minTemp } coldest)
+        if (icy.Select(x => x.Point).Where(p => p.Temperature is not null).MinBy(p => p.Temperature) is not { Temperature: { } minTemp } coldest)
         {
             return null;
         }
 
-        var soilFrozen = icy.Any(p => p.SoilTemperature is <= 0);
-        var severity = (minTemp, soilFrozen) switch
-        {
-            ( <= 0, true) => AlertSeverity.Red,
-            ( <= 0, false) => AlertSeverity.Orange,
-            _ => AlertSeverity.Yellow,
-        };
+        var severity = icy.Max(x => x.Hit.Severity);
+        var threshold = icy.Where(x => x.Hit.Severity == severity).Max(x => x.Hit.Threshold);
+        var soilFrozen = icy.Any(x => x.Point.SoilTemperature is <= 0);
 
         var rounded = Math.Round(minTemp, 1);
         var spread = ctx.Current.Ensemble.Points.SpreadAt(coldest.ValidFrom);
-        var level = ConfidenceThresholds.Default.LevelFor(spread?.TemperatureSpread);
+        var level = ConfidenceThresholds.Default.LevelFor(spread?.PrecipitationSpread);
         return new IceAlertResult(
-            ctx.Location, severity, level.ToConfidence(), rounded, config.Value.Threshold,
-            PeakValue: null, HoursUntil: icy[0].HoursFrom(ctx.Now), DurationHours: null, Level: level,
+            ctx.Location, severity, level.ToConfidence(), rounded, threshold,
+            PeakValue: null, HoursUntil: icy[0].Point.HoursFrom(ctx.Now), DurationHours: null, Level: level,
             ExpectedLow: rounded, RainHours: icy.Count, SoilFrozen: soilFrozen);
+    }
+
+    private (AlertSeverity Severity, double Threshold) Classify(ForecastPoint p)
+    {
+        const double FreezingPoint = 0.0;
+        return p.WeatherCode switch
+        {
+            66 or 67 => (AlertSeverity.Red, FreezingPoint),
+            56 or 57 => (AlertSeverity.Orange, FreezingPoint),
+            _ when (p.Rain ?? p.Precipitation) > 0 && p.Temperature <= FreezingPoint => (AlertSeverity.Red, FreezingPoint),
+            _ when (p.Rain ?? p.Precipitation) > 0 && p.Temperature <= config.Value.Threshold => (AlertSeverity.Yellow, config.Value.Threshold),
+            _ => (AlertSeverity.None, config.Value.Threshold),
+        };
     }
 }

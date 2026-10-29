@@ -14,7 +14,7 @@ public sealed class StormAlert(IOptions<StormConfig> config) : FeatureRule<Forec
         FeatureCategory.Forecast,
         Name: "Storm",
         DefaultEnabled: true,
-        new DomainRequirements(Forecast: ForecastParams.WindGusts, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.WindGusts, Ensemble: EnsembleParams.WindSpeedSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -37,7 +37,7 @@ public sealed class StormAlert(IOptions<StormConfig> config) : FeatureRule<Forec
 
         var rounded = Math.Round(gust, 1);
         var spread = ctx.Current.Ensemble.Points.SpreadAt(peak.ValidFrom);
-        var level = ConfidenceThresholds.Default.LevelFor(spread?.TemperatureSpread);
+        var level = ConfidenceThresholds.Default.LevelFor(spread?.WindSpeedSpread);
         return new StormAlertResult(
             ctx.Location, severity, level.ToConfidence(), rounded, effectiveThreshold,
             PeakValue: null, HoursUntil: peak.HoursFrom(ctx.Now), DurationHours: null, Level: level,

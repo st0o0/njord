@@ -14,7 +14,7 @@ public sealed class ShowerAlert(IOptions<ShowerConfig> config) : FeatureRule<For
         FeatureCategory.Forecast,
         Name: "Shower",
         DefaultEnabled: false,
-        new DomainRequirements(Forecast: ForecastParams.Showers, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.Showers, Ensemble: EnsembleParams.PrecipitationSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -38,7 +38,7 @@ public sealed class ShowerAlert(IOptions<ShowerConfig> config) : FeatureRule<For
 
         var rounded = Math.Round(peak, 1);
         var spread = ctx.Current.Ensemble.Points.SpreadAt(highest.ValidFrom);
-        var level = ConfidenceThresholds.Default.LevelFor(spread?.TemperatureSpread);
+        var level = ConfidenceThresholds.Default.LevelFor(spread?.PrecipitationSpread);
         return new ShowerAlertResult(
             ctx.Location, severity, level.ToConfidence(), rounded, effectiveThreshold,
             PeakValue: null, HoursUntil: highest.HoursFrom(ctx.Now), DurationHours: null, Level: level,

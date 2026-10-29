@@ -16,8 +16,8 @@ public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : Fea
         DefaultEnabled: true,
         new DomainRequirements(
             Forecast: ForecastParams.Cape | ForecastParams.Precipitation | ForecastParams.WindGusts,
-            OptionalForecast: ForecastParams.ConvectiveInhibition | ForecastParams.LiftedIndex,
-            Ensemble: EnsembleParams.TemperatureSpread));
+            OptionalForecast: ForecastParams.ConvectiveInhibition,
+            Ensemble: EnsembleParams.WindSpeedSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -26,69 +26,67 @@ public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : Fea
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
+        var cfg = config.Value;
+        var capes = cfg.EffectiveCapeThresholds;
         var evaluable = ctx.Current.Forecast.NextHoursInclusive(ctx.Now).Where(p => p.Cape is not null && p.WindGusts is not null).ToList();
         if (evaluable.Count == 0)
         {
             return null;
         }
 
-        var meetAll = evaluable
-            .Where(p => p.Cape > config.Value.CapeThreshold
-                && p.Precipitation > config.Value.PrecipThreshold
-                && p.WindGusts > config.Value.GustThreshold)
-            .ToList();
-        var share = (double)meetAll.Count / evaluable.Count;
-        var severity = share switch
-        {
-            > 0.75 => AlertSeverity.Red,
-            >= 0.5 => AlertSeverity.Orange,
-            > 0 => AlertSeverity.Yellow,
-            _ => AlertSeverity.None,
-        };
-
-        if (severity == AlertSeverity.None)
+        var stormHours = evaluable.Where(p => p.Cape >= capes[0]).ToList();
+        if (stormHours.Count == 0)
         {
             return null;
         }
 
-        var peak = (meetAll.Count > 0 ? meetAll : evaluable).HighestBy(p => p.Cape);
-        severity = ApplyStabilityModifier(severity, peak, config.Value);
+        var severity = AlertSeverity.None;
+        ForecastPoint? peak = null;
+        foreach (var p in stormHours)
+        {
+            var hourSeverity = HourSeverity(p, cfg, capes);
+            if (peak is null || hourSeverity > severity || (hourSeverity == severity && p.Cape > peak.Cape))
+            {
+                severity = hourSeverity;
+                peak = p;
+            }
+        }
+
+        if (peak?.ConvectiveInhibition > cfg.CinThreshold)
+        {
+            severity = Downgrade(severity);
+        }
 
         var maxCape = evaluable.Max(p => p.Cape) ?? 0.0;
         var spread = peak is not null ? ctx.Current.Ensemble.Points.SpreadAt(peak.ValidFrom) : null;
-        var level = ConfidenceThresholds.Default.LevelFor(spread?.TemperatureSpread);
+        var level = ConfidenceThresholds.Default.LevelFor(spread?.WindSpeedSpread);
         return new ThunderstormAlertResult(
-            ctx.Location, severity, level.ToConfidence(), Math.Round(maxCape, 0), config.Value.CapeThreshold,
-            PeakValue: null, HoursUntil: meetAll.Count > 0 ? meetAll[0].HoursFrom(ctx.Now) : null, DurationHours: null, Level: level);
+            ctx.Location, severity, level.ToConfidence(), Math.Round(maxCape, 0), capes[0],
+            PeakValue: null, HoursUntil: stormHours[0].HoursFrom(ctx.Now), DurationHours: stormHours.Count, Level: level);
     }
 
-    private static AlertSeverity ApplyStabilityModifier(AlertSeverity severity, ForecastPoint? peak, ThunderstormConfig cfg)
+    private static AlertSeverity HourSeverity(ForecastPoint p, ThunderstormConfig cfg, double[] capes)
     {
-        if (peak is not { ConvectiveInhibition: { } cin, LiftedIndex: { } li })
+        var gusts = p.WindGusts ?? 0.0;
+        var precip = p.Precipitation ?? 0.0;
+        var cape = p.Cape ?? 0.0;
+        if (cape >= capes[2] && (gusts >= cfg.GustThreshold * 1.25 || precip >= cfg.PrecipThreshold * 2))
         {
-            return severity;
+            return AlertSeverity.Red;
         }
 
-        if (cin < cfg.CinThreshold && li < cfg.LiftedIndexThreshold)
+        if (cape >= capes[1] && (gusts >= cfg.GustThreshold || precip >= cfg.PrecipThreshold))
         {
-            return severity switch
-            {
-                AlertSeverity.Yellow => AlertSeverity.Orange,
-                AlertSeverity.Orange => AlertSeverity.Red,
-                _ => severity,
-            };
+            return AlertSeverity.Orange;
         }
 
-        if (cin > 0)
-        {
-            return severity switch
-            {
-                AlertSeverity.Red => AlertSeverity.Orange,
-                AlertSeverity.Orange => AlertSeverity.Yellow,
-                _ => severity,
-            };
-        }
-
-        return severity;
+        return AlertSeverity.Yellow;
     }
+
+    private static AlertSeverity Downgrade(AlertSeverity severity) => severity switch
+    {
+        AlertSeverity.Red => AlertSeverity.Orange,
+        AlertSeverity.Orange => AlertSeverity.Yellow,
+        _ => severity,
+    };
 }

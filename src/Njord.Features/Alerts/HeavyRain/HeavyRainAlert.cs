@@ -14,7 +14,7 @@ public sealed class HeavyRainAlert(IOptions<HeavyRainConfig> config) : FeatureRu
         FeatureCategory.Forecast,
         Name: "HeavyRain",
         DefaultEnabled: true,
-        new DomainRequirements(Forecast: ForecastParams.Precipitation, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.Precipitation, Ensemble: EnsembleParams.PrecipitationSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -52,7 +52,7 @@ public sealed class HeavyRainAlert(IOptions<HeavyRainConfig> config) : FeatureRu
         var triggerValue = hourlyExceeds ? Math.Round(Math.Max(0.0, peakPrecipitation), 1) : Math.Round(dailySum, 1);
         var threshold = hourlyExceeds ? hourlyThreshold : dailyThreshold;
         var spread = ctx.Current.Ensemble.Points.SpreadAt(wettest.ValidFrom);
-        var level = ConfidenceThresholds.Default.LevelFor(spread?.TemperatureSpread);
+        var level = ConfidenceThresholds.Default.LevelFor(spread?.PrecipitationSpread);
         return new HeavyRainAlertResult(
             ctx.Location, severity, level.ToConfidence(), triggerValue, threshold,
             PeakValue: null, HoursUntil: hourlyExceeds ? wettest.HoursFrom(ctx.Now) : null, DurationHours: null, Level: level,

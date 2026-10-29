@@ -14,7 +14,7 @@ public sealed class RainProbabilityAlert(IOptions<RainProbabilityConfig> config)
         FeatureCategory.Forecast,
         Name: "RainProbability",
         DefaultEnabled: true,
-        new DomainRequirements(Forecast: ForecastParams.PrecipitationProbability, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.PrecipitationProbability, Ensemble: EnsembleParams.PrecipitationSpread));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -38,7 +38,7 @@ public sealed class RainProbabilityAlert(IOptions<RainProbabilityConfig> config)
 
         var rounded = Math.Round(peak, 1);
         var spread = ctx.Current.Ensemble.Points.SpreadAt(highest.ValidFrom);
-        var level = ConfidenceThresholds.Default.LevelFor(spread?.TemperatureSpread);
+        var level = ConfidenceThresholds.Default.LevelFor(spread?.PrecipitationSpread);
         return new RainProbabilityAlertResult(
             ctx.Location, severity, level.ToConfidence(), rounded, effectiveThreshold,
             PeakValue: null, HoursUntil: highest.HoursFrom(ctx.Now), DurationHours: null, Level: level,
