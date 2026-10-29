@@ -3,7 +3,7 @@ using Akka.Hosting;
 using Njord.Core;
 using Njord.Tests.Shared;
 
-namespace Njord.Pipeline.Tests;
+namespace Njord.Pipeline.Tests.Helpers;
 
 public sealed class PipelineSchedulerConnectionTests : Akka.Hosting.TestKit.TestKit
 {

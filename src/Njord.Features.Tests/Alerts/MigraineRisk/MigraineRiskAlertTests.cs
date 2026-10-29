@@ -10,7 +10,7 @@ using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;
 
-namespace Njord.Features.Tests.Alerts;
+namespace Njord.Features.Tests.Alerts.MigraineRisk;
 
 public sealed class MigraineRiskAlertTests
 {

@@ -4,7 +4,6 @@ using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.OpenMeteo.Http;
-using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo.Flood;
 

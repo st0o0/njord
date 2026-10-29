@@ -3,7 +3,6 @@ using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Core.Flood;
 using Njord.Core.Forecast;
-using Njord.Messages.Pipeline;
 
 namespace Njord.Messages.Tests;
 

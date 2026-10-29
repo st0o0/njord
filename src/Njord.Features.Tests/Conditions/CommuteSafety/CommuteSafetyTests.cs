@@ -5,11 +5,11 @@ using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;
 
-namespace Njord.Features.Tests.Conditions;
+namespace Njord.Features.Tests.Conditions.CommuteSafety;
 
 public sealed class CommuteSafetyTests
 {
-    private static CommuteSafety Feature(bool enabled = true) => new(Options.Create(new CommuteSafetyConfig { Enabled = enabled }));
+    private static Features.Conditions.CommuteSafety.CommuteSafety Feature(bool enabled = true) => new(Options.Create(new CommuteSafetyConfig { Enabled = enabled }));
 
     [Fact]
     public void Benign_weather_is_reported_as_safe()

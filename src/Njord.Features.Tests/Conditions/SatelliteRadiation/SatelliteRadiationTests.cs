@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core;
+using Njord.Core.Forecast;
 using Njord.Core.Solar;
 using Njord.Features.Conditions.SatelliteRadiation;
 using Njord.Messages.Pipeline;
@@ -7,11 +8,11 @@ using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;
 
-namespace Njord.Features.Tests.Conditions;
+namespace Njord.Features.Tests.Conditions.SatelliteRadiation;
 
 public sealed class SatelliteRadiationTests
 {
-    private static SatelliteRadiation Feature() => new(Options.Create(new SatelliteRadiationConfig { Enabled = true }));
+    private static Features.Conditions.SatelliteRadiation.SatelliteRadiation Feature() => new(Options.Create(new SatelliteRadiationConfig { Enabled = true }));
 
     private static DomainForecast<SatelliteRadiationPoint> Observed(params (int HoursAgo, double? Gti, double? Ghi)[] hours) =>
         new(DomainKind.Satellite, Now, TimeResolution.Hourly,

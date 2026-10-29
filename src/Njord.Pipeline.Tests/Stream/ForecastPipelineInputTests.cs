@@ -8,9 +8,11 @@ using Njord.Core.Domain;
 using Njord.Features.Alerts.Frost;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
+using Njord.Pipeline.Stream;
+using Njord.Pipeline.Tests.Helpers;
 using Njord.Tests.Shared;
 
-namespace Njord.Pipeline.Tests;
+namespace Njord.Pipeline.Tests.Stream;
 
 public sealed class ForecastPipelineInputTests : Akka.Hosting.TestKit.TestKit
 {

@@ -7,7 +7,6 @@ using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Http;
-using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo.Forecast;
 

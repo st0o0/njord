@@ -5,7 +5,7 @@ using Akka.Streams.Dsl;
 using Njord.Core;
 using Servus.Akka;
 
-namespace Njord.Pipeline.Tests;
+namespace Njord.Pipeline.Tests.Helpers;
 
 internal sealed class PersistentConsumerActor : ReceivePersistentActor
 {

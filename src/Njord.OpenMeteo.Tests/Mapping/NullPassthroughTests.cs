@@ -3,7 +3,6 @@ using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Flood;
 using Njord.OpenMeteo.Forecast;
 using Njord.OpenMeteo.Http;
-using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Marine;
 
 namespace Njord.OpenMeteo.Tests.Mapping;

@@ -8,7 +8,7 @@ using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.FloodFixtures;
 using M = Njord.Tests.Shared.MarineFixtures;
 
-namespace Njord.Features.Tests.Alerts;
+namespace Njord.Features.Tests.Alerts.SwimmingConditions;
 
 public sealed class SwimmingConditionsAlertTests
 {

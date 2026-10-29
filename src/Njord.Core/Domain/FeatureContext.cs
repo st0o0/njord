@@ -1,5 +1,3 @@
-using Njord.Core;
-
 namespace Njord.Core.Domain;
 
 public readonly record struct FeatureContext<TInput>(

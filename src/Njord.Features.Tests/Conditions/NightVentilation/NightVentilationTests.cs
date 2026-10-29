@@ -5,11 +5,11 @@ using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;
 
-namespace Njord.Features.Tests.Conditions;
+namespace Njord.Features.Tests.Conditions.NightVentilation;
 
 public sealed class NightVentilationTests
 {
-    private static NightVentilation Feature() => new(Options.Create(new NightVentilationConfig { Enabled = true }));
+    private static Features.Conditions.NightVentilation.NightVentilation Feature() => new(Options.Create(new NightVentilationConfig { Enabled = true }));
 
     [Fact]
     public void Opening_windows_overnight_is_advised_before_a_hot_day()

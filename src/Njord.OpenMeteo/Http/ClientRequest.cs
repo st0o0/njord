@@ -4,7 +4,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 using Njord.Core;
 using Njord.Core.Domain;
-using Njord.Core.Domain;
+using Njord.Core.Forecast;
 
 namespace Njord.OpenMeteo.Http;
 

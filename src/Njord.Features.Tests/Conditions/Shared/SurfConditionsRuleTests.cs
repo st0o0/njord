@@ -4,7 +4,7 @@ using Njord.Core.Marine;
 using Njord.Features.Conditions.Shared;
 using static Njord.Tests.Shared.MarineFixtures;
 
-namespace Njord.Features.Tests.Conditions;
+namespace Njord.Features.Tests.Conditions.Shared;
 
 public sealed class SurfConditionsRuleTests
 {

@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-using Njord.Core;
 using Njord.Core.AirQuality;
 using Njord.Core.Configuration;
 using Njord.Core.Forecast;

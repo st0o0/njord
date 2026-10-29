@@ -5,11 +5,11 @@ using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;
 
-namespace Njord.Features.Tests.Conditions;
+namespace Njord.Features.Tests.Conditions.VentilationWindow;
 
 public sealed class VentilationWindowTests
 {
-    private static VentilationWindow Feature() => new(Options.Create(new VentilationWindowConfig { Enabled = true }));
+    private static Features.Conditions.VentilationWindow.VentilationWindow Feature() => new(Options.Create(new VentilationWindowConfig { Enabled = true }));
 
     [Fact]
     public void The_whole_day_is_advised_when_air_and_weather_stay_good()

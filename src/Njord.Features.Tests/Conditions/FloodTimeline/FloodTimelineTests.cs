@@ -8,11 +8,11 @@ using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;
 using F = Njord.Tests.Shared.FloodFixtures;
 
-namespace Njord.Features.Tests.Conditions;
+namespace Njord.Features.Tests.Conditions.FloodTimeline;
 
 public sealed class FloodTimelineTests
 {
-    private static FloodTimeline Feature() => new(Options.Create(new FloodTimelineConfig { Enabled = true }));
+    private static Features.Conditions.FloodTimeline.FloodTimeline Feature() => new(Options.Create(new FloodTimelineConfig { Enabled = true }));
 
     private static LocationForecast With(params FloodPoint[] points) =>
         ForecastOnly(Day()) with { Flood = F.FloodForecast(points) };

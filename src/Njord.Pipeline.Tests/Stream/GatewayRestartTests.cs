@@ -2,21 +2,18 @@ using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
-using Njord.Core;
 using Njord.Core.Actors;
-using Njord.Core.Domain;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Grpc;
 using Njord.Messages.Forecast;
-using Njord.Messages.Forecast;
-using Njord.Messages.Pipeline;
-using Njord.OpenMeteo;
 using Njord.OpenMeteo.Budget;
 using Njord.OpenMeteo.Gateway;
+using Njord.Pipeline.Stream;
+using Njord.Pipeline.Tests.Helpers;
 using Njord.Tests.Shared;
 
-namespace Njord.Pipeline.Tests;
+namespace Njord.Pipeline.Tests.Stream;
 
 // The seam this change exists for: a faulting gateway must not rebuild the pipeline, so its analysis state
 // and every consumer's SourceRef survive.

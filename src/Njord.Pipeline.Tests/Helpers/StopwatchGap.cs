@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Njord.Pipeline.Tests;
+namespace Njord.Pipeline.Tests.Helpers;
 
 internal static class StopwatchGap
 {

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Pipeline.Health;
+using Njord.Pipeline.Stream;
 using Servus.Akka;
 using Servus.Application.Startup;
 

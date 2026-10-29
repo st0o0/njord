@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Options;
-using Njord.Core.Domain;
 using Njord.Features.Forecasts.GrowingDegree;
 using Njord.Messages.Pipeline;
-using Njord.Tests.Shared;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;

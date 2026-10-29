@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Njord.Core;
+using Njord.Core.Forecast;
 using Njord.Core.Seasonal;
-using Njord.OpenMeteo.Mapping;
 using static Njord.OpenMeteo.Mapping.SeriesAccess;
 
 namespace Njord.OpenMeteo.Seasonal;

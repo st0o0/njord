@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Core.Forecast;
 using Njord.Features.Conditions.AtmosphericStability;
 using Njord.Messages.Pipeline;
 using static Njord.Tests.Shared.AlertRuleFixture;

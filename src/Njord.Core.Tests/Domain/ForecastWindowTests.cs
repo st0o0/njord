@@ -1,6 +1,6 @@
-using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Core.Flood;
+using Njord.Core.Forecast;
 
 namespace Njord.Core.Tests.Domain;
 

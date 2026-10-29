@@ -7,9 +7,10 @@ using Njord.Core.Forecast;
 using Njord.Features.Alerts.Frost;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
+using Njord.Pipeline.Stream;
 using Njord.Tests.Shared;
 
-namespace Njord.Pipeline.Tests;
+namespace Njord.Pipeline.Tests.Stream;
 
 public sealed class FeatureEngineTests
 {

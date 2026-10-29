@@ -3,7 +3,6 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
 using Njord.Core.Domain;
-using Njord.Messages.Pipeline;
 
 namespace Njord.Grpc.Tests;
 

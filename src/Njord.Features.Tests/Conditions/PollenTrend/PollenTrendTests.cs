@@ -6,11 +6,11 @@ using Njord.Messages.Pipeline;
 using static Njord.Tests.Shared.AirQualityFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 
-namespace Njord.Features.Tests.Conditions;
+namespace Njord.Features.Tests.Conditions.PollenTrend;
 
 public sealed class PollenTrendTests
 {
-    private static PollenTrend Feature() => new(Options.Create(new PollenTrendConfig { Enabled = true }));
+    private static Features.Conditions.PollenTrend.PollenTrend Feature() => new(Options.Create(new PollenTrendConfig { Enabled = true }));
 
     private static LocationForecast With(Func<int, AirQualityPoint, AirQualityPoint> shape) =>
         new(Lucerne, AirQuality: Day(shape));

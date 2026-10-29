@@ -3,7 +3,7 @@ using Njord.Core.Flood;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;
 
-namespace Njord.Core.Tests;
+namespace Njord.Core.Tests.Forecast;
 
 public sealed class DomainForecastTests
 {

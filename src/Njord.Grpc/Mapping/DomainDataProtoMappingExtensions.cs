@@ -8,7 +8,6 @@ using Njord.Core.Marine;
 using Njord.Core.Seasonal;
 using Njord.Core.Solar;
 using Njord.Grpc.V2;
-using Njord.Messages.Pipeline;
 
 namespace Njord.Grpc.Mapping;
 

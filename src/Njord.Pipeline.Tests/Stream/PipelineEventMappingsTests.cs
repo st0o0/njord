@@ -1,12 +1,13 @@
 using Njord.Core;
 using Njord.Core.AirQuality;
 using Njord.Core.Domain;
+using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Core.Solar;
-using Njord.Messages.Pipeline;
+using Njord.Pipeline.Stream;
 using Njord.Tests.Shared;
 
-namespace Njord.Pipeline.Tests;
+namespace Njord.Pipeline.Tests.Stream;
 
 public sealed class PipelineEventMappingsTests
 {

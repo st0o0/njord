@@ -1,4 +1,4 @@
-using Njord.Core;
+using Njord.Core.Forecast;
 
 namespace Njord.Core.Domain;
 

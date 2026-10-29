@@ -5,9 +5,8 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
 using Njord.Core.Domain;
-using Njord.Messages.Pipeline;
 
-namespace Njord.Pipeline;
+namespace Njord.Pipeline.Stream;
 
 // Owns the long-lived hubs: producers attach to the MergeHub input via SinkRef, consumers to the
 // BroadcastHub output via SourceRef. Both live as long as this actor; producers and consumers

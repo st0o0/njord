@@ -7,7 +7,6 @@ using Njord.Core.Solar;
 using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Flood;
 using Njord.OpenMeteo.Forecast;
-using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Marine;
 using Njord.OpenMeteo.Satellite;
 using Njord.OpenMeteo.Seasonal;

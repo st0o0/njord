@@ -6,10 +6,7 @@ using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Ensemble;
 using Njord.OpenMeteo.Flood;
 using Njord.OpenMeteo.Forecast;
-using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Marine;
-using Njord.OpenMeteo.Satellite;
-using Njord.OpenMeteo.Seasonal;
 
 namespace Njord.OpenMeteo.Tests.Mapping;
 

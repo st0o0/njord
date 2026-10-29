@@ -4,7 +4,7 @@ using Akka.Streams.Dsl;
 using Njord.Core.Actors;
 using Njord.Core.Domain;
 
-namespace Njord.Pipeline.Tests;
+namespace Njord.Pipeline.Tests.Helpers;
 
 // A test producer: asks the pipeline for a SinkRef and runs a backpressured queue into it.
 public static class PipelineProducer

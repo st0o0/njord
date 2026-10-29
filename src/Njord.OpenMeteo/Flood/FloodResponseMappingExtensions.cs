@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Njord.Core;
 using Njord.Core.Flood;
-using Njord.OpenMeteo.Mapping;
+using Njord.Core.Forecast;
 using static Njord.OpenMeteo.Mapping.SeriesAccess;
 
 namespace Njord.OpenMeteo.Flood;

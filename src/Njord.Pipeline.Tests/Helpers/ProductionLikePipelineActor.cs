@@ -2,7 +2,7 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 
-namespace Njord.Pipeline.Tests;
+namespace Njord.Pipeline.Tests.Helpers;
 
 internal sealed class ProductionLikePipelineActor : ReceiveActor, IWithStash
 {

@@ -6,7 +6,6 @@ using Njord.Core;
 using Njord.Core.AirQuality;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
-using Njord.Core.Domain;
 using Njord.Core.Flood;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;
@@ -16,7 +15,6 @@ using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Ensemble;
 using Njord.OpenMeteo.Flood;
 using Njord.OpenMeteo.Forecast;
-using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Marine;
 using Njord.Tests.Shared;
 

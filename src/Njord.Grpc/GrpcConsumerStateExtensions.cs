@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Grpc.Mapping;
-using Njord.Messages.Pipeline;
 
 namespace Njord.Grpc;
 

@@ -5,11 +5,11 @@ using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;
 
-namespace Njord.Features.Tests.Conditions;
+namespace Njord.Features.Tests.Conditions.ExerciseAdvisory;
 
 public sealed class ExerciseAdvisoryTests
 {
-    private static ExerciseAdvisory Feature() => new(Options.Create(new ExerciseAdvisoryConfig { Enabled = true }));
+    private static Features.Conditions.ExerciseAdvisory.ExerciseAdvisory Feature() => new(Options.Create(new ExerciseAdvisoryConfig { Enabled = true }));
 
     [Fact]
     public void Clean_air_and_mild_weather_are_rated_safe()

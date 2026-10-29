@@ -6,9 +6,8 @@ using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Core.Seasonal;
 using Njord.Core.Solar;
-using Njord.Messages.Pipeline;
 
-namespace Njord.Pipeline;
+namespace Njord.Pipeline.Stream;
 
 internal static class PipelineEventMappingExtensions
 {

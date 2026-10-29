@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Domain;
+using Njord.Core.Forecast;
 using Njord.Core.Seasonal;
 using Njord.Features.Forecasts.SeasonalOutlook;
 using Njord.Messages.Alerts;
@@ -9,13 +10,13 @@ using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;
 
-namespace Njord.Features.Tests.Forecasts;
+namespace Njord.Features.Tests.Forecasts.SeasonalOutlook;
 
 public sealed class SeasonalOutlookTests
 {
     private static readonly DateTimeOffset October = new(2026, 10, 20, 12, 0, 0, TimeSpan.Zero);
 
-    private static SeasonalOutlook Feature() => new(Options.Create(new SeasonalOutlookConfig { Enabled = true }));
+    private static Features.Forecasts.SeasonalOutlook.SeasonalOutlook Feature() => new(Options.Create(new SeasonalOutlookConfig { Enabled = true }));
 
     private static SeasonalPoint Month(int year, int month, double temp = 1.0, double? precip = null, double? mean = null) =>
         new(new DateTimeOffset(year, month, 1, 0, 0, 0, TimeSpan.Zero), temp, precip, mean);

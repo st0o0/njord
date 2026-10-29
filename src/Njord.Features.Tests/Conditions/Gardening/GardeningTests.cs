@@ -5,11 +5,11 @@ using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;
 
-namespace Njord.Features.Tests.Conditions;
+namespace Njord.Features.Tests.Conditions.Gardening;
 
 public sealed class GardeningTests
 {
-    private static Gardening Feature() => new(Options.Create(new GardeningConfig { Enabled = true }));
+    private static Features.Conditions.Gardening.Gardening Feature() => new(Options.Create(new GardeningConfig { Enabled = true }));
 
     [Fact]
     public void Frost_is_flagged_and_blocks_planting()

@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Messages.Pipeline;
 
 namespace Njord.Grpc.Tests;
 

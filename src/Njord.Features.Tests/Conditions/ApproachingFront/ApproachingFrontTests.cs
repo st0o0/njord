@@ -6,11 +6,11 @@ using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;
 
-namespace Njord.Features.Tests.Conditions;
+namespace Njord.Features.Tests.Conditions.ApproachingFront;
 
 public sealed class ApproachingFrontTests
 {
-    private static ApproachingFront Feature() => new(Options.Create(new ApproachingFrontConfig { Enabled = true }));
+    private static Features.Conditions.ApproachingFront.ApproachingFront Feature() => new(Options.Create(new ApproachingFrontConfig { Enabled = true }));
 
     private static LocationForecast Falling(double directionAfter) =>
         ForecastOnly(Hourly(30, (hour, point) => point with

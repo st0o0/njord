@@ -7,13 +7,11 @@ using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Core;
-using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Messages.Budget;
-using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Grpc;

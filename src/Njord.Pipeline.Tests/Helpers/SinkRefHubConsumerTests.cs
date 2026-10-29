@@ -4,7 +4,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Tests.Shared;
 
-namespace Njord.Pipeline.Tests;
+namespace Njord.Pipeline.Tests.Helpers;
 
 public sealed class SinkRefHubConsumerTests : Akka.Hosting.TestKit.TestKit
 {

@@ -2,7 +2,6 @@ using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Njord.Core;
-using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Grpc.V2;
 using Njord.Messages.Budget;

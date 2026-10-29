@@ -2,11 +2,10 @@ using System.Net;
 using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Domain;
+using Njord.Core.Forecast;
 using Njord.Core.Seasonal;
 using Njord.OpenMeteo.Configuration;
-using Njord.OpenMeteo.Mapping;
 using Njord.OpenMeteo.Seasonal;
-using Njord.Tests.Shared;
 
 namespace Njord.OpenMeteo.Tests;
 

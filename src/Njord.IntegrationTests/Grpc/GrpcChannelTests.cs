@@ -1,4 +1,3 @@
-using Akka.Actor;
 using Njord.Grpc.V2;
 
 namespace Njord.IntegrationTests.Grpc;

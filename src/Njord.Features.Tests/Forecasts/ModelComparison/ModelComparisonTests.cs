@@ -6,11 +6,11 @@ using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;
 
-namespace Njord.Features.Tests.Forecasts;
+namespace Njord.Features.Tests.Forecasts.ModelComparison;
 
 public sealed class ModelComparisonTests
 {
-    private static ModelComparison Feature() => new(Options.Create(new ModelComparisonConfig { Enabled = true }));
+    private static Features.Forecasts.ModelComparison.ModelComparison Feature() => new(Options.Create(new ModelComparisonConfig { Enabled = true }));
 
     private static LocationForecast With(params (string Id, double Temp, double Rain)[] models)
     {

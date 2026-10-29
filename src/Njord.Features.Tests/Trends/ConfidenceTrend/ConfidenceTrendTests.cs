@@ -6,11 +6,11 @@ using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;
 
-namespace Njord.Features.Tests.Trends;
+namespace Njord.Features.Tests.Trends.ConfidenceTrend;
 
 public sealed class ConfidenceTrendTests
 {
-    private static ConfidenceTrend Feature() => new(Options.Create(new ConfidenceTrendConfig { Enabled = true }));
+    private static Features.Trends.ConfidenceTrend.ConfidenceTrend Feature() => new(Options.Create(new ConfidenceTrendConfig { Enabled = true }));
 
     private static LocationForecast WithSpread(double value) =>
         new(Lucerne, Ensemble: EnsembleDay(value));

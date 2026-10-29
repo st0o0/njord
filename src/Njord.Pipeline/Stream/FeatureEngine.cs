@@ -1,9 +1,7 @@
-using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
-using Njord.Messages.Pipeline;
 
-namespace Njord.Pipeline;
+namespace Njord.Pipeline.Stream;
 
 // The analysis state of the pipeline: the latest LocationForecast per location and a ring of the most recent ones,
 // deep enough for the feature with the longest PollDepth. Lives inside the StatefulSelectMany closure.

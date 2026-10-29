@@ -7,7 +7,6 @@ using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 using static Njord.Tests.Shared.AlertRuleFixture;
-using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;
 
 namespace Njord.Features.Tests.Alerts.FireRisk;

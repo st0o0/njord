@@ -1,6 +1,7 @@
 using Njord.Core;
 using Njord.Core.AirQuality;
 using Njord.Core.Domain;
+using Njord.Core.Forecast;
 
 namespace Njord.Tests.Shared;
 

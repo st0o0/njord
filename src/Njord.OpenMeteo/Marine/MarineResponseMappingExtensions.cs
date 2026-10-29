@@ -1,6 +1,6 @@
 using Njord.Core;
+using Njord.Core.Forecast;
 using Njord.Core.Marine;
-using Njord.OpenMeteo.Mapping;
 using static Njord.OpenMeteo.Mapping.SeriesAccess;
 
 namespace Njord.OpenMeteo.Marine;

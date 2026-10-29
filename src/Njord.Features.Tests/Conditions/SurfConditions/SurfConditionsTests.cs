@@ -8,11 +8,11 @@ using Njord.Messages.Pipeline;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.MarineFixtures;
 
-namespace Njord.Features.Tests.Conditions;
+namespace Njord.Features.Tests.Conditions.SurfConditions;
 
 public sealed class SurfConditionsTests
 {
-    private static SurfConditions Feature() => new(Options.Create(new SurfConditionsConfig { Enabled = true }));
+    private static Features.Conditions.SurfConditions.SurfConditions Feature() => new(Options.Create(new SurfConditionsConfig { Enabled = true }));
 
     private static MarinePoint Swell() =>
         new(Now, SwellWaveHeight: 1.8, SwellWavePeriod: 14.0, SwellWaveDirection: 270.0);

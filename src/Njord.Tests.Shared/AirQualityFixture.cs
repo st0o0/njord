@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Njord.Core;
 using Njord.Core.AirQuality;
+using Njord.Core.Forecast;
 
 namespace Njord.Tests.Shared;
 
