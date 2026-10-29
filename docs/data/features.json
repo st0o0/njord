@@ -407,7 +407,7 @@
     "weatherParams": ["Temperature", "Humidity", "WindGusts", "Cape", "Precipitation"],
     "optionalWeatherParams": ["ApparentTemperature"],
     "airQualityParams": ["BirchPollen", "GrassPollen", "Pm25"],
-    "options": [{ "name": "NightStartHour", "type": "number", "default": 22 }, { "name": "NightEndHour", "type": "number", "default": 6 }, { "name": "MinWindowScore", "type": "number", "default": 50 }, { "name": "MinWindowHours", "type": "number", "default": 2 }, { "name": "MaxWindows", "type": "number", "default": 3 }]
+    "options": [{ "name": "PollenSensitive", "type": "boolean", "default": false }, { "name": "NightStartHour", "type": "number", "default": 22 }, { "name": "NightEndHour", "type": "number", "default": 6 }, { "name": "MinWindowScore", "type": "number", "default": 50 }, { "name": "MinWindowHours", "type": "number", "default": 2 }, { "name": "MaxWindows", "type": "number", "default": 3 }]
   },
   {
     "key": "RagweedPollen",
@@ -492,7 +492,8 @@
     "enabledByDefault": false,
     "domains": ["Forecast"],
     "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "PrecipitationProbability", "CloudCover", "Humidity"],
-    "optionalWeatherParams": ["SunshineDuration", "IsDay"]
+    "optionalWeatherParams": ["SunshineDuration", "IsDay"],
+    "options": [{ "name": "MinWindowScore", "type": "number", "default": 50 }, { "name": "MinWindowHours", "type": "number", "default": 2 }, { "name": "MaxWindows", "type": "number", "default": 3 }]
   },
   {
     "key": "IrrigationNeed",
@@ -889,7 +890,7 @@
     "entities": ["sensor.{location}_surf"],
     "automationExample": "Get notified when surf conditions are good at your favorite break",
     "enabledByDefault": false,
-    "domains": ["Forecast", "Marine"],
+    "domains": ["Marine"],
     "optionalWeatherParams": ["WindDirection"],
     "marineParams": ["SwellWaveHeight", "SwellWavePeriod"],
     "optionalMarineParams": ["SwellWaveDirection", "WindWaveHeight"]
