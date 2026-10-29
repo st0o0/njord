@@ -47,11 +47,11 @@ A feature SHALL NOT have a `Name` property, a string identifier, or any mechanis
 - **THEN** it SHALL compare by C# type (`typeof(FrostAlert)`), never by a string property
 
 ### Requirement: FeatureDescriptor without Name
-`FeatureDescriptor` SHALL contain `OutputKind Output`, `FeatureCategory Category`, `bool DefaultEnabled`, `DomainRequirements Requirements`, and `int PollDepth`. It SHALL NOT contain a `Name` or any string identifier.
+`FeatureDescriptor` SHALL contain `OutputKind Output`, `FeatureCategory Category`, `DomainRequirements Requirements`, and `int PollDepth`. It SHALL NOT contain a `Name`, any string identifier, or a `DefaultEnabled` flag. The default enabled state is determined solely by the config class property initializer.
 
-#### Scenario: Descriptor carries all metadata except identity
+#### Scenario: Descriptor carries all metadata except identity and defaults
 - **WHEN** a feature exposes its descriptor
-- **THEN** the descriptor SHALL contain category, output kind, default-enabled flag, domain requirements and poll depth, but no name or wire key
+- **THEN** the descriptor SHALL contain category, output kind, domain requirements and poll depth, but no name, wire key, or default-enabled flag
 
 ### Requirement: Typed feature result hierarchy
 Each feature SHALL return a feature-specific sealed record that extends an abstract base per `OutputKind`. The base records SHALL be `AlertFeatureResult`, `ScoreFeatureResult`, `ConditionFeatureResult`, `TrendFeatureResult`, `ForecastFeatureResult`. Feature-specific records (e.g. `FrostAlertResult`) SHALL carry feature-specific data fields alongside the base fields.
