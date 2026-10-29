@@ -23,10 +23,6 @@ public sealed record DomainRequirements(
     EnsembleParams Ensemble = default,
     EnsembleParams OptionalEnsemble = default)
 {
-    public DomainRequirements() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default)
-    {
-    }
-
     public DomainRequirements WithBaseParams() => this with
     {
         Forecast = AllForecast != default ? Forecast | ForecastParams.WeatherCode : Forecast,
