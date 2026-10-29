@@ -80,7 +80,7 @@ services:
       - Njord__Locations__0__Name=Lucerne
       - Njord__Locations__0__Latitude=47.05
       - Njord__Locations__0__Longitude=8.31
-      - Njord__Features__Flood__FloodRisk__Enabled=true
+      - Njord__Features__FloodRisk__Enabled=true
 
 volumes:
   ha-config:

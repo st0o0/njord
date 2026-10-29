@@ -16,7 +16,7 @@ Warns when forecast river discharge exceeds historical levels. Compares current 
 **Domains:** Flood | **Default:** Off
 
 ```yaml
-Njord__Features__Flood__FloodRisk__Enabled: "true"
+Njord__Features__FloodRisk__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -39,7 +39,7 @@ A cross-domain alert combining heavy rainfall from the Forecast domain with risi
 **Domains:** Forecast + Flood | **Default:** Off
 
 ```yaml
-Njord__Features__Flood__FloodRain__Enabled: "true"
+Njord__Features__FloodRain__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -57,7 +57,7 @@ Provides a projected discharge timeline for the coming days. Not an alert -- jus
 **Domains:** Flood | **Default:** Off
 
 ```yaml
-Njord__Features__Flood__FloodTimeline__Enabled: "true"
+Njord__Features__FloodTimeline__Enabled: "true"
 Njord__Flood__ForecastDays: "92"
 ```
 

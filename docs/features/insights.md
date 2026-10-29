@@ -12,7 +12,7 @@ Uses the last 9 poll cycles (PollDepth=8) to compute the trend direction.
 **Domains:** Ensemble | **Default:** Off
 
 ```yaml
-Njord__Features__Insight__ConfidenceTrend__Enabled: "true"
+Njord__Features__ConfidenceTrend__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -32,7 +32,7 @@ Requires at least two models configured in `Njord:Weather:Models`.
 **Domains:** Ensemble | **Default:** Off
 
 ```yaml
-Njord__Features__Forecast__ModelComparison__Enabled: "true"
+Njord__Features__ModelComparison__Enabled: "true"
 Njord__Weather__Models__0: "ecmwf_ifs025_ensemble_mean"
 Njord__Weather__Models__1: "ecmwf_aifs025_ensemble_mean"
 Njord__Weather__Models__2: "ukmo_global_ensemble_mean_20km"
@@ -57,7 +57,7 @@ Provides a monthly temperature anomaly and precipitation anomaly outlook for the
 **Domains:** Seasonal | **Default:** Off
 
 ```yaml
-Njord__Features__Insight__SeasonalOutlook__Enabled: "true"
+Njord__Features__SeasonalOutlook__Enabled: "true"
 Njord__Seasonal__ForecastMonths: "3"
 ```
 
@@ -76,7 +76,7 @@ Detects approaching weather fronts by monitoring pressure trends, temperature ch
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Insight__FrontApproaching__Enabled: "true"
+Njord__Features__FrontApproaching__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -96,8 +96,8 @@ Calculates Growing Degree Days (GDD) -- an agricultural metric that tracks heat 
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Lifestyle__GrowingDegree__Enabled: "true"
-Njord__Features__Lifestyle__GrowingDegree__BaseTemperature: "5.0"
+Njord__Features__GrowingDegree__Enabled: "true"
+Njord__Features__GrowingDegree__BaseTemperature: "5.0"
 ```
 
 Common base temperatures:
@@ -129,10 +129,10 @@ Uses trend data from the last 8 poll cycles to detect the rain-to-dry transition
 **Domains:** Forecast + AirQuality | **Default:** Off | **Confidence:** Medium
 
 ```yaml
-Njord__Features__AirQuality__PollenBlast__Enabled: "true"
-Njord__Features__AirQuality__PollenBlast__TemperatureThreshold: "15"
-Njord__Features__AirQuality__PollenBlast__WindSpeedThreshold: "1.4"
-Njord__Features__AirQuality__PollenBlast__PollenDelta: "10"
+Njord__Features__PollenBlast__Enabled: "true"
+Njord__Features__PollenBlast__TemperatureThreshold: "15"
+Njord__Features__PollenBlast__WindSpeedThreshold: "1.4"
+Njord__Features__PollenBlast__PollenDelta: "10"
 ```
 
 **Automation ideas:**
@@ -150,7 +150,7 @@ Detects temperature inversions by comparing temperature at the surface, 80 m and
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Insight__InversionDetection__Enabled: "true"
+Njord__Features__InversionDetection__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -168,7 +168,7 @@ Assesses convection from CAPE, CIN (convective inhibition) and Lifted Index. Rep
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Insight__AtmosphericStability__Enabled: "true"
+Njord__Features__AtmosphericStability__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -186,7 +186,7 @@ Estimates the cloud base height from the low, mid and high cloud layers. Reports
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Insight__CloudCeiling__Enabled: "true"
+Njord__Features__CloudCeiling__Enabled: "true"
 ```
 
 **Automation ideas:**

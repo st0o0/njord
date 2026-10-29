@@ -28,7 +28,7 @@ src/
     Domain/             #   FeatureDescriptor, FeatureCategory, FeatureContext,
                         #   FeatureInputs (typed inputs), FeatureRequirementsOptions, DomainRequirements,
                         #   LocationForecast, RingBuffer, ForecastQueries, OutputKind
-    Configuration/      #   IConfigSection, NjordOptions (with FindLocation), LocationOptions, ForecastOptions, FloodOptions,
+    Configuration/      #   IConfigSection, IHasArrayDefaults, NjordOptions (with FindLocation), LocationOptions, WeatherOptions, FloodOptions,
                         #   PollingOptions, Health/HealthOptions, AddNjordOptions (+ validators)
     Polling/            #   CallWeight, RequestBudget (free-tier constants, DailyLimit), FetchTimeouts
   Njord.Messages/       # Contracts (-> Core, Akka.Streams for ISinkRef/ISourceRef):
@@ -82,9 +82,11 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
   `FeatureEngine` runs only the enabled rules whose domain got new data and hands them a ring of the last
   `PollDepth + 1` forecasts for trends.
 - **Every feature owns its config class** `<Name>Config : IConfigSection` with `SectionName`
-  `Njord:Features:<Category>:<Name>`, `Enabled` and its options (thresholds); an optional `<Name>ConfigValidator`.
-  Registered in `AddFeatures` next to the rule. Names are unique per category; the description lives only in
-  `docs/data/features.json` (hand-maintained, with the options and defaults).
+  `Njord:Features:<Name>` (flat, no category in the path), `Enabled` and its options (thresholds); an optional
+  `<Name>ConfigValidator`. Configs with array properties implement `IHasArrayDefaults` (array initialized to `[]`,
+  defaults in a `static` property, filled by `ApplyDefaults()`). Registered via `AddFeature<TRule, TConfig>()` or
+  `AddFeature<TRule, TConfig, TValidator>()` in `AddFeatures`. Feature names are globally unique; the description
+  lives only in `docs/data/features.json` (hand-maintained, with the options and defaults).
 - **Feature libraries are plain libraries.** `Njord.Features` references only Core and below; no feature project
   references another or an adapter (Grpc).
 - **One `PollWorker` per location, per-domain independent timers.** No rounds, no waiting for all
@@ -148,11 +150,11 @@ SHARD REGIONS (Sharded Entity)
   (spread-only: 1 call), every other required domain 1.
 - **Per-domain forecast days.** `Njord:AirQuality` (5, max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92,
   max 210) next to `Njord:Weather`.
-- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Category>:<Name>` (66 features; categories see
-  `docs/data/features.json`; env `Njord__Features__<Category>__<Name>__Enabled`). 18 are on by default: the 14
-  weather alerts (`Weather:Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`, `PressureDrop`, `Thunderstorm`,
-  `Ice`, `WindChill`, `Visibility`, `TropicalNight`, `Humidity`), `Lifestyle:Commute`, `AirQuality:Pollen`,
-  `AirQuality:Pm25`; everything else is off. The entity set follows locations x enabled features.
+- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Name>` (66 features; categories in
+  `docs/data/features.json` are UI metadata; env `Njord__Features__<Name>__Enabled`). 18 are on by default: the 14
+  weather alerts (`Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`, `PressureDrop`, `Thunderstorm`,
+  `Ice`, `WindChill`, `Visibility`, `TropicalNight`, `Humidity`), `Commute`, `Pollen`,
+  `Pm25`; everything else is off. The entity set follows locations x enabled features.
 - **Per-domain discovery.** Every domain of a location learns its own cycle and polls independently.
 - **Domains:** `Forecast`, `Ensemble`, `AirQuality`, `Flood`, `Marine`, `Seasonal`, `Satellite` (`DomainKind`); the gateway fetches all of them.
 - **Explicit coordinates.** A location is `Name`, `Latitude` and `Longitude`, all required (`NjordOptionsValidator`).
@@ -177,7 +179,7 @@ SHARD REGIONS (Sharded Entity)
 - Poll interval 60 min and discovery interval 20 min are config values.
 - Wire text for closed sets comes from explicit mappings, never `ToString()`.
 - Feels-like is `apparent_temperature` from the API, no own computation.
-- Thresholds live in the feature's own config (`Njord:Features:<Category>:<Name>`, e.g. three-step severity arrays), validated by its `<Name>ConfigValidator`.
+- Thresholds live in the feature's own config (`Njord:Features:<Name>`, e.g. three-step severity arrays), validated by its `<Name>ConfigValidator`.
 - Options are read at startup (`IOptions<T>`); no hot reload, no runtime config writer.
 
 ## Build & test
@@ -324,23 +326,31 @@ Rules apply to production code.
 
 ## Options
 
-One options class per concern with its own `SectionName`, implementing `IConfigSection` (`static abstract SectionName`), registered with `AddNjordOptions<T>()`
-(`AddOptions<T>().BindConfiguration(T.SectionName).ValidateOnStart()`) or `AddNjordOptions<T, TValidator>()` when it has
-cross-field rules (explicit `IValidateOptions<T>`, failures collected with context). Options live with their owner
-(Njord/Weather/Flood/Polling/Health options in `Njord.Core`, AirQuality/Marine/Seasonal/Satellite/SolarYield options in `Njord.OpenMeteo`, `PollingOptionsValidator` and `BudgetGuard` in
-`Njord.Polling`, `PersistenceOptions` in the Host, feature options in each `<Name>Config`).
-Defaults are property initializers.
+One `sealed` class per concern implementing `IConfigSection` (`static abstract SectionName`), registered with
+`AddNjordOptions<T>()` (`BindConfiguration(T.SectionName).ValidateOnStart()`) or `AddNjordOptions<T, TValidator>()`
+when it has cross-field rules (`IValidateOptions<T>`). Options live with their owner (Weather/Flood/Polling/Health
+in `Njord.Core`, AirQuality/Marine/Seasonal/Satellite/SolarYield in `Njord.OpenMeteo`, `PollingOptionsValidator`
+and `BudgetGuard` in `Njord.Polling`, `PersistenceOptions` in the Host, feature options in each `<Name>Config`).
+Defaults are property initializers. Naming: `private const string SectionName` + explicit interface implementation.
+
+**Array defaults**: .NET's config binder appends to existing arrays instead of replacing (dotnet/runtime#36569).
+Classes with array properties implement `IHasArrayDefaults`: initialize to `[]`, expose defaults as a `static`
+property, fill in `ApplyDefaults()`. `AddNjordOptions` auto-registers `PostConfigure` when it detects the
+interface. Manual `PostConfigure` is reserved for derived values (`PollingOptions.Budget`), never for defaults.
+
+**Feature registration**: `AddFeature<TRule, TConfig>()` or `AddFeature<TRule, TConfig, TValidator>()` in
+`AddFeatures` -- one line per feature (registers options + IFeatureRule singleton).
 
 | Section | Class | Content |
 |---------|-------|---------|
 | `Njord` | `NjordOptions` | `Locations` (`Name`, `Latitude`, `Longitude`, all required) |
-| `Njord:Forecast` | `ForecastOptions` | `ForecastDays` (4, 1..16), `Models` (`ecmwf_ifs025_ensemble_mean`; known ids in `WeatherModelCatalog`) |
+| `Njord:Weather` | `WeatherOptions` | `ForecastDays` (4, 1..16), `Models` (`ecmwf_ifs025_ensemble_mean`; known ids in `WeatherModelCatalog`), `PastHours` (0, 0..96) |
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..8) |
 | `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..6) |
 | `Njord:Satellite` | `SatelliteOptions` | `PastHours` (6, 1..48) |
 | `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210), `IncludeEnsemble` (false) |
-| `Njord:Features:<Category>:<Name>` | `<Name>Config` | `Enabled` (default from the descriptor) plus the feature's options |
+| `Njord:Features:<Name>` | `<Name>Config` | `Enabled` (default from the descriptor) plus the feature's options |
 | `Njord:SolarYield` | `SolarYieldOptions` | `PeakKw` (5.0), `Azimuth` (180), `Tilt` (30) |
 | `Njord:Polling` | `PollingOptions` | `PollInterval` (60 min), `DiscoveryInterval` (20 min), `BudgetOverride` |
 | `Njord:Persistence` | `PersistenceOptions` | `Provider` (Sqlite/PostgreSql), `ConnectionString`, `DataPath` |

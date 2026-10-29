@@ -39,8 +39,8 @@ Warns when the forecast temperature drops below freezing. Critical for protectin
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Forecast__Frost__Enabled: "true"
-Njord__Features__Forecast__Frost__Thresholds: "[0, -5, -15]"
+Njord__Features__Frost__Enabled: "true"
+Njord__Features__Frost__Thresholds: "[0, -5, -15]"
 ```
 
 **Automation ideas:**
@@ -64,7 +64,7 @@ Warns when air or apparent temperature exceeds dangerous levels. Uses the higher
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Forecast__Heat__Thresholds: "[30, 35, 40]"
+Njord__Features__Heat__Thresholds: "[30, 35, 40]"
 ```
 
 **Automation ideas:**
@@ -88,8 +88,8 @@ Warns when the wet-bulb temperature -- a measure combining heat and humidity -- 
 **Domains:** Forecast + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Forecast__WetBulbDanger__Enabled: "true"
-Njord__Features__Forecast__WetBulbDanger__Thresholds: "[26, 28, 32]"
+Njord__Features__WetBulbDanger__Enabled: "true"
+Njord__Features__WetBulbDanger__Thresholds: "[26, 28, 32]"
 ```
 
 **Automation ideas:**
@@ -113,7 +113,7 @@ Warns when the nighttime low stays above 20 °C, making sleep difficult. Checked
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Forecast__TropicalNight__Thresholds: "[20, 23, 25]"
+Njord__Features__TropicalNight__Thresholds: "[20, 23, 25]"
 ```
 
 **Automation ideas:**
@@ -137,7 +137,7 @@ Warns when the apparent temperature drops to dangerous wind-chill levels. Releva
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Forecast__WindChill__Thresholds: "[-10, -20, -30]"
+Njord__Features__WindChill__Thresholds: "[-10, -20, -30]"
 ```
 
 ---
@@ -158,7 +158,7 @@ Warns when wind gusts are expected to exceed storm thresholds.
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Forecast__Storm__GustThresholds: "[17, 25, 33]"
+Njord__Features__Storm__GustThresholds: "[17, 25, 33]"
 ```
 
 **Automation ideas:**
@@ -182,9 +182,9 @@ Detects convective storm potential from CAPE (atmospheric energy), precipitation
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Forecast__Thunderstorm__CapeThresholds: "[1000, 1500, 2500]"
-Njord__Features__Forecast__Thunderstorm__PrecipThreshold: "5"
-Njord__Features__Forecast__Thunderstorm__GustThreshold: "20"
+Njord__Features__Thunderstorm__CapeThresholds: "[1000, 1500, 2500]"
+Njord__Features__Thunderstorm__PrecipThreshold: "5"
+Njord__Features__Thunderstorm__GustThreshold: "20"
 ```
 
 **Automation ideas:**
@@ -210,8 +210,8 @@ Warns when significant rainfall is expected -- either in a single hour or accumu
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Forecast__HeavyRain__HourlyThreshold: "10"
-Njord__Features__Forecast__HeavyRain__DailyThreshold: "25"
+Njord__Features__HeavyRain__HourlyThreshold: "10"
+Njord__Features__HeavyRain__DailyThreshold: "25"
 ```
 
 **Automation ideas:**
@@ -235,8 +235,8 @@ Warns when the chance of rain is high in the next few hours. Uses the native `pr
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Forecast__RainProbability__WindowHours: "6"
-Njord__Features__Forecast__RainProbability__Thresholds: "[50, 70, 90]"
+Njord__Features__RainProbability__WindowHours: "6"
+Njord__Features__RainProbability__Thresholds: "[50, 70, 90]"
 ```
 
 **Automation ideas:**
@@ -260,9 +260,9 @@ Warns about sudden convective showers -- intense, localized rainfall that can st
 **Domains:** Forecast + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Forecast__Shower__Enabled: "true"
-Njord__Features__Forecast__Shower__WindowHours: "6"
-Njord__Features__Forecast__Shower__Thresholds: "[3, 5, 10]"
+Njord__Features__Shower__Enabled: "true"
+Njord__Features__Shower__WindowHours: "6"
+Njord__Features__Shower__Thresholds: "[3, 5, 10]"
 ```
 
 ---
@@ -290,7 +290,7 @@ Warns about black ice conditions: temperatures near or below freezing combined w
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Forecast__Ice__Threshold: "2"
+Njord__Features__Ice__Threshold: "2"
 ```
 
 **Automation ideas:**
@@ -315,8 +315,8 @@ Warns when atmospheric pressure drops rapidly -- a reliable indicator of approac
 **Domains:** Forecast | **Default:** On | **Confidence:** Medium (pressure is inherently stable)
 
 ```yaml
-Njord__Features__Forecast__PressureDrop__Threshold: "5"
-Njord__Features__Forecast__PressureDrop__SevereThreshold: "10"
+Njord__Features__PressureDrop__Threshold: "5"
+Njord__Features__PressureDrop__SevereThreshold: "10"
 ```
 
 ---
@@ -329,7 +329,7 @@ Warns when conditions favor fog formation: temperature close to dew point, low w
 **Domains:** Forecast | **Default:** On | **Confidence:** Medium (fog is a local phenomenon)
 
 ```yaml
-Njord__Features__Forecast__Fog__PersistentHours: "4"
+Njord__Features__Fog__PersistentHours: "4"
 ```
 
 **Automation ideas:**
@@ -353,7 +353,7 @@ Warns when forecast visibility drops below safe distances.
 **Domains:** Forecast | **Default:** On | **Confidence:** Medium
 
 ```yaml
-Njord__Features__Forecast__Visibility__Thresholds: "[1000, 200, 50]"
+Njord__Features__Visibility__Thresholds: "[1000, 200, 50]"
 ```
 
 ---
@@ -372,7 +372,7 @@ Warns when daytime dew point creates muggy, uncomfortable conditions.
 **Domains:** Forecast | **Default:** On | **Confidence:** Medium
 
 ```yaml
-Njord__Features__Forecast__Humidity__Thresholds: "[16, 21, 24]"
+Njord__Features__Humidity__Thresholds: "[16, 21, 24]"
 ```
 
 ---
@@ -402,8 +402,8 @@ Warns about the maximum possible UV index **without clouds**. Even on partly clo
 **Domains:** Forecast | **Default:** Off | **Confidence:** Medium
 
 ```yaml
-Njord__Features__Lifestyle__ClearSkyUv__Enabled: "true"
-Njord__Features__Lifestyle__ClearSkyUv__Thresholds: "[6, 8, 10]"
+Njord__Features__ClearSkyUv__Enabled: "true"
+Njord__Features__ClearSkyUv__Thresholds: "[6, 8, 10]"
 ```
 
 **Automation ideas:**
@@ -436,11 +436,11 @@ Assesses wildfire risk by combining multiple weather factors into a weighted sco
 **Domains:** Forecast + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Lifestyle__FireRisk__Enabled: "true"
-Njord__Features__Lifestyle__FireRisk__TemperatureThreshold: "30"
-Njord__Features__Lifestyle__FireRisk__HumidityThreshold: "30"
-Njord__Features__Lifestyle__FireRisk__WindSpeedThreshold: "5.6"
-Njord__Features__Lifestyle__FireRisk__SoilMoistureThreshold: "0.10"
+Njord__Features__FireRisk__Enabled: "true"
+Njord__Features__FireRisk__TemperatureThreshold: "30"
+Njord__Features__FireRisk__HumidityThreshold: "30"
+Njord__Features__FireRisk__WindSpeedThreshold: "5.6"
+Njord__Features__FireRisk__SoilMoistureThreshold: "0.10"
 ```
 
 **Automation ideas:**
@@ -464,10 +464,10 @@ Warns about storm surge risk by combining sea level deviation, wave height, and 
 **Domains:** Marine + Forecast + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Marine__CoastalFlood__Enabled: "true"
-Njord__Features__Marine__CoastalFlood__SeaLevelThresholdM: "0.3"
-Njord__Features__Marine__CoastalFlood__WaveHeightThresholdM: "1.5"
-Njord__Features__Marine__CoastalFlood__WindSpeedThreshold: "4.2"
+Njord__Features__CoastalFlood__Enabled: "true"
+Njord__Features__CoastalFlood__SeaLevelThresholdM: "0.3"
+Njord__Features__CoastalFlood__WaveHeightThresholdM: "1.5"
+Njord__Features__CoastalFlood__WindSpeedThreshold: "4.2"
 ```
 
 **Automation ideas:**
@@ -497,10 +497,10 @@ Warns when heat and air pollution combine into a danger greater than either alon
 **Domains:** Forecast + AirQuality | **Default:** Off | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Forecast__CompoundHeatStress__Enabled: "true"
+Njord__Features__CompoundHeatStress__Enabled: "true"
 ```
 
-Thresholds live in the `Njord:Features:Forecast:CompoundHeatStress` section.
+Thresholds live in the `Njord:Features:CompoundHeatStress` section.
 
 **Automation ideas:**
 - Keep windows closed and run cooling with filtered air
@@ -530,10 +530,10 @@ Warns when weather patterns known to trigger migraines are forecast. Uses the po
 **Domains:** Forecast | **Default:** Off | **Confidence:** Medium
 
 ```yaml
-Njord__Features__Forecast__MigraineRisk__Enabled: "true"
+Njord__Features__MigraineRisk__Enabled: "true"
 ```
 
-Thresholds live in the `Njord:Features:Forecast:MigraineRisk` section.
+Thresholds live in the `Njord:Features:MigraineRisk` section.
 
 **Automation ideas:**
 - Send a reminder to take preventive medication

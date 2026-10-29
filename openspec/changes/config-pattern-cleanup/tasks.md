@@ -54,7 +54,7 @@ dotnet build src/Njord.slnx
 - [x] 5.1 Replace all PostConfigure lambdas and multi-line registrations in `src/Njord.Features/ServiceCollectionExtensions.cs` with `AddFeature<TRule, TConfig>()` / `AddFeature<TRule, TConfig, TValidator>()` one-liners
 - [x] 5.2 Remove the `PostConfigure<PollingOptions>` for `Budget` from `PollingSetupContainer` — keep this one, it is a derived value not an array default
 - [x] 5.3 Verify `DomainSetupContainer` PostConfigure for `SolarYieldConfig` still works (it copies from `SolarYieldOptions`, not an array default)
-- [ ] 5.4 Test feature registration: run `src/Njord.Features.Tests/` to verify all features resolve correctly
+- [x] 5.4 Test feature registration: run `src/Njord.Features.Tests/` to verify all features resolve correctly
 
 ### Validation
 ```
@@ -68,7 +68,7 @@ dotnet run --project src/Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj
 - [x] 6.2 Update `docs/.vitepress/theme/builder/types.ts`: adapt `featureLabel`, `defaultFeatures`, `recommendedFeatures`, `userFeatureGroups` and any other code that splits feature keys on `:`
 - [x] 6.3 Update `docs/.vitepress/theme/builder/serializer.ts`: remove `split(':')` from JSON export/import; flatten env var export/import paths; fix `n.Weather` references to match (already correct)
 - [x] 6.4 Update `docs/.vitepress/theme/builder/budget.ts` if it references feature keys with `:` separator
-- [ ] 6.5 Verify the Config Builder builds: `cd docs && npm run build`
+- [x] 6.5 Verify the Config Builder builds: `cd docs && npm run build`
 
 ### Validation
 ```
@@ -77,9 +77,9 @@ cd docs && npm run build
 
 ## 7. Update config files
 
-- [ ] 7.1 Update `docker-compose.example.yml`: change `Njord__Forecast__` to `Njord__Weather__`; flatten all `Njord__Features__<Category>__<Name>__` to `Njord__Features__<Name>__`
-- [ ] 7.2 Update `src/Njord/appsettings.Example.json`: flatten feature paths in comments; ensure `"Weather"` section naming is used
-- [ ] 7.3 Verify `src/Njord/appsettings.Development.json` uses `"Weather"` (already does, now matches C#)
+- [x] 7.1 Update `docker-compose.example.yml`: change `Njord__Forecast__` to `Njord__Weather__`; flatten all `Njord__Features__<Category>__<Name>__` to `Njord__Features__<Name>__`
+- [x] 7.2 Update `src/Njord/appsettings.Example.json`: flatten feature paths in comments; ensure `"Weather"` section naming is used
+- [x] 7.3 Verify `src/Njord/appsettings.Development.json` uses `"Weather"` (already does, now matches C#)
 
 ### Validation
 ```
@@ -88,10 +88,10 @@ dotnet build src/Njord.slnx
 
 ## 8. Update tests
 
-- [ ] 8.1 Update any SectionName assertions in `src/Njord.Features.Tests/` that reference old category-prefixed paths
-- [ ] 8.2 Update `src/Njord.Tests.Shared/AppSettingsDefaults.cs` if it references feature section names
-- [ ] 8.3 Update `src/Njord.IntegrationTests/` if they reference config paths
-- [ ] 8.4 Run all test projects to verify nothing is broken
+- [x] 8.1 Update any SectionName assertions in `src/Njord.Features.Tests/` that reference old category-prefixed paths
+- [x] 8.2 Update `src/Njord.Tests.Shared/AppSettingsDefaults.cs` if it references feature section names
+- [x] 8.3 Update `src/Njord.IntegrationTests/` if they reference config paths
+- [x] 8.4 Run all test projects to verify nothing is broken
 
 ### Validation
 ```
@@ -111,11 +111,11 @@ dotnet run --project src/Njord.Architecture.Tests/Njord.Architecture.Tests.cspro
 
 ## 9. Update documentation
 
-- [ ] 9.1 Rewrite the Options section in `AGENTS.md`: new pattern description with `IHasArrayDefaults`, `AddFeature` helper, three template variants (simple, scalar options, array thresholds); updated options table with `Njord:Weather` and `Njord:Features:<Name>`
-- [ ] 9.2 Update the feature config guardrail in `AGENTS.md` (architecture guardrails section): change `Njord:Features:<Category>:<Name>` to `Njord:Features:<Name>`; mention `IHasArrayDefaults` and `AddFeature`
-- [ ] 9.3 Update decisions section in `AGENTS.md` if it references `Njord:Forecast` or old feature paths
-- [ ] 9.4 Update `CLAUDE.md` if it references config paths (check for `Njord:Features:` patterns)
-- [ ] 9.5 Run `dotnet format src/Njord.slnx --verify-no-changes` to confirm formatting compliance
+- [x] 9.1 Rewrite the Options section in `AGENTS.md`: new pattern description with `IHasArrayDefaults`, `AddFeature` helper, three template variants (simple, scalar options, array thresholds); updated options table with `Njord:Weather` and `Njord:Features:<Name>`
+- [x] 9.2 Update the feature config guardrail in `AGENTS.md` (architecture guardrails section): change `Njord:Features:<Category>:<Name>` to `Njord:Features:<Name>`; mention `IHasArrayDefaults` and `AddFeature`
+- [x] 9.3 Update decisions section in `AGENTS.md` if it references `Njord:Forecast` or old feature paths
+- [x] 9.4 Update `CLAUDE.md` if it references config paths (check for `Njord:Features:` patterns)
+- [x] 9.5 Run `dotnet format src/Njord.slnx --verify-no-changes` to confirm formatting compliance
 
 ### Validation
 ```

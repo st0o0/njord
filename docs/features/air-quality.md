@@ -16,7 +16,7 @@ Warns when pollen concentrations reach levels that affect allergy sufferers. Che
 **Domains:** AirQuality | **Default:** On
 
 ```yaml
-Njord__Features__AirQuality__Pollen__Enabled: "true"
+Njord__Features__Pollen__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -60,8 +60,8 @@ Warns about Saharan dust events that can significantly degrade air quality, espe
 **Domains:** AirQuality | **Default:** Off
 
 ```yaml
-Njord__Features__AirQuality__Dust__Enabled: "true"
-Njord__Features__AirQuality__Dust__Thresholds: "[50, 150, 500]"
+Njord__Features__Dust__Enabled: "true"
+Njord__Features__Dust__Thresholds: "[50, 150, 500]"
 ```
 
 ---
@@ -74,7 +74,7 @@ Tracks how pollen concentrations are changing over multiple poll cycles. Reports
 **Domains:** AirQuality | **Default:** Off
 
 ```yaml
-Njord__Features__AirQuality__PollenTrend__Enabled: "true"
+Njord__Features__PollenTrend__Enabled: "true"
 ```
 
 ---
@@ -92,9 +92,9 @@ Both conditions must be present for the alert to fire.
 **Domains:** Forecast + AirQuality | **Default:** Off | **Confidence:** Medium
 
 ```yaml
-Njord__Features__AirQuality__SmogRisk__Enabled: "true"
-Njord__Features__AirQuality__SmogRisk__BoundaryLayerThresholdM: "500"
-Njord__Features__AirQuality__SmogRisk__Pm25ThresholdUgm3: "25"
+Njord__Features__SmogRisk__Enabled: "true"
+Njord__Features__SmogRisk__BoundaryLayerThresholdM: "500"
+Njord__Features__SmogRisk__Pm25ThresholdUgm3: "25"
 ```
 
 **Automation ideas:**
@@ -112,7 +112,7 @@ Adds a ragweed pollen concentration sensor. Ragweed is a major allergen in North
 **Domains:** AirQuality | **Default:** Off
 
 ```yaml
-Njord__Features__AirQuality__RagweedPollen__Enabled: "true"
+Njord__Features__RagweedPollen__Enabled: "true"
 ```
 
 ---
@@ -132,7 +132,7 @@ Adds five per-pollutant European Air Quality Index sensors. While the main `euro
 **Domains:** AirQuality | **Default:** Off
 
 ```yaml
-Njord__Features__AirQuality__GranularAqi__Enabled: "true"
+Njord__Features__GranularAqi__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -150,7 +150,7 @@ Combines all pollen species into one allergy score from 0 (none) to 100 (severe)
 **Domains:** Forecast + AirQuality | **Default:** Off
 
 ```yaml
-Njord__Features__AirQuality__AllergySeverity__Enabled: "true"
+Njord__Features__AllergySeverity__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -168,7 +168,7 @@ Weighted respiratory risk score from 0 to 100, built from PM2.5 (35 %), ozone (2
 **Domains:** Forecast + AirQuality | **Default:** Off
 
 ```yaml
-Njord__Features__AirQuality__AsthmaRisk__Enabled: "true"
+Njord__Features__AsthmaRisk__Enabled: "true"
 ```
 
 **Automation ideas:**

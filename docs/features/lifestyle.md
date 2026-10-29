@@ -24,7 +24,7 @@ Advises whether outdoor exercise is safe, considering heat stress, humidity, air
 **Domains:** Forecast + AirQuality | **Default:** Off
 
 ```yaml
-Njord__Features__Lifestyle__Exercise__Enabled: "true"
+Njord__Features__Exercise__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -42,7 +42,7 @@ Scores how well your laundry will dry outdoors today (0--100). Considers tempera
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Lifestyle__Laundry__Enabled: "true"
+Njord__Features__Laundry__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -59,7 +59,7 @@ An overall outdoor activity score (0--100) combining temperature, wind, rain, cl
 **Domains:** Forecast + AirQuality | **Default:** Off
 
 ```yaml
-Njord__Features__Lifestyle__Outdoor__Enabled: "true"
+Njord__Features__Outdoor__Enabled: "true"
 ```
 
 ---
@@ -72,7 +72,7 @@ Scores barbecue weather (0--100). Considers temperature (warm enough?), wind (gr
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Lifestyle__Bbq__Enabled: "true"
+Njord__Features__Bbq__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -89,7 +89,7 @@ Advises when nighttime temperatures are cool enough to ventilate your home for p
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Lifestyle__NightVentilation__Enabled: "true"
+Njord__Features__NightVentilation__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -106,7 +106,7 @@ Finds the best time window to air out rooms, considering temperature, rain, PM2.
 **Domains:** Forecast + AirQuality | **Default:** Off
 
 ```yaml
-Njord__Features__Lifestyle__Ventilation__Enabled: "true"
+Njord__Features__Ventilation__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -123,7 +123,7 @@ Advises on gardening conditions based on temperature (not too hot, not freezing)
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Lifestyle__Gardening__Enabled: "true"
+Njord__Features__Gardening__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -146,9 +146,9 @@ Reports the topsoil (0--1 cm) moisture status. Tells you whether the ground is t
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Lifestyle__SoilMoisture__Enabled: "true"
-Njord__Features__Lifestyle__SoilMoisture__DryThreshold: "0.15"
-Njord__Features__Lifestyle__SoilMoisture__WetThreshold: "0.35"
+Njord__Features__SoilMoisture__Enabled: "true"
+Njord__Features__SoilMoisture__DryThreshold: "0.15"
+Njord__Features__SoilMoisture__WetThreshold: "0.35"
 ```
 
 **Automation ideas:**
@@ -172,9 +172,9 @@ Reports daily water loss from the ground through evaporation and plant transpira
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Lifestyle__Evapotranspiration__Enabled: "true"
-Njord__Features__Lifestyle__Evapotranspiration__LowMm: "2.0"
-Njord__Features__Lifestyle__Evapotranspiration__HighMm: "5.0"
+Njord__Features__Evapotranspiration__Enabled: "true"
+Njord__Features__Evapotranspiration__LowMm: "2.0"
+Njord__Features__Evapotranspiration__HighMm: "5.0"
 ```
 
 **Automation ideas:**
@@ -199,11 +199,11 @@ Reports snow accumulation depth. Useful for winter road maintenance, ski conditi
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Forecast__SnowDepthWatch__Enabled: "true"
-Njord__Features__Forecast__SnowDepthWatch__LightThreshold: "2"
-Njord__Features__Forecast__SnowDepthWatch__ModerateThreshold: "10"
-Njord__Features__Forecast__SnowDepthWatch__HeavyThreshold: "25"
-Njord__Features__Forecast__SnowDepthWatch__ExtremeThreshold: "50"
+Njord__Features__SnowDepthWatch__Enabled: "true"
+Njord__Features__SnowDepthWatch__LightThreshold: "2"
+Njord__Features__SnowDepthWatch__ModerateThreshold: "10"
+Njord__Features__SnowDepthWatch__HeavyThreshold: "25"
+Njord__Features__SnowDepthWatch__ExtremeThreshold: "50"
 ```
 
 **Automation ideas:**
@@ -220,7 +220,7 @@ Reports wind speed and direction at 80 m and 120 m hub height -- the altitudes w
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Energy__ElevatedWind__Enabled: "true"
+Njord__Features__ElevatedWind__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -238,9 +238,9 @@ Scores the coming night from 0 (poor) to 100 (excellent). Penalties apply for he
 **Domains:** Forecast + AirQuality | **Default:** Off
 
 ```yaml
-Njord__Features__Lifestyle__SleepQuality__Enabled: "true"
-Njord__Features__Lifestyle__SleepQuality__PollenSensitive: "true"
-Njord__Features__Lifestyle__SleepQuality__NightStartHour: "22"
+Njord__Features__SleepQuality__Enabled: "true"
+Njord__Features__SleepQuality__PollenSensitive: "true"
+Njord__Features__SleepQuality__NightStartHour: "22"
 ```
 
 **Automation ideas:**
@@ -258,7 +258,7 @@ Finds the best time windows for spraying in the garden or on crops. Mandatory co
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Lifestyle__SprayWindow__Enabled: "true"
+Njord__Features__SprayWindow__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -276,7 +276,7 @@ Advises whether to water, based on evapotranspiration, soil moisture, vapour pre
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Lifestyle__IrrigationNeed__Enabled: "true"
+Njord__Features__IrrigationNeed__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -294,7 +294,7 @@ Estimates how deep frost penetrates the ground (in cm) with the Stefan model. Sn
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Lifestyle__FrostDepth__Enabled: "true"
+Njord__Features__FrostDepth__Enabled: "true"
 ```
 
 **Automation ideas:**

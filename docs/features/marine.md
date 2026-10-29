@@ -16,7 +16,7 @@ Rates swimming safety based on wave height and sea surface temperature. Designed
 **Domains:** Marine | **Default:** Off
 
 ```yaml
-Njord__Features__Marine__Swimming__Enabled: "true"
+Njord__Features__Swimming__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -34,7 +34,7 @@ Reports surf conditions from swell wave height, swell period, and wind direction
 **Domains:** Forecast + Marine | **Default:** Off
 
 ```yaml
-Njord__Features__Marine__Surf__Enabled: "true"
+Njord__Features__Surf__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -52,8 +52,8 @@ Reports ocean current speed and direction. Useful for maritime operations, fishi
 **Domains:** Marine | **Default:** Off
 
 ```yaml
-Njord__Features__Marine__OceanCurrents__Enabled: "true"
-Njord__Features__Marine__OceanCurrents__StrongCurrentThresholdKmh: "3.0"
+Njord__Features__OceanCurrents__Enabled: "true"
+Njord__Features__OceanCurrents__StrongCurrentThresholdKmh: "3.0"
 ```
 
 **Automation ideas:**

@@ -15,7 +15,7 @@ Configure your system:
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Energy__SolarYield__Enabled: "true"
+Njord__Features__SolarYield__Enabled: "true"
 Njord__SolarYield__PeakKw: "5.0"
 Njord__SolarYield__Tilt: "30"
 Njord__SolarYield__Azimuth: "180"
@@ -38,7 +38,7 @@ Requires the same tilt/azimuth configuration as SolarYield. The satellite data c
 **Domains:** Satellite | **Default:** Off
 
 ```yaml
-Njord__Features__Energy__SatelliteRadiation__Enabled: "true"
+Njord__Features__SatelliteRadiation__Enabled: "true"
 Njord__Satellite__PastHours: "6"
 ```
 
@@ -56,7 +56,7 @@ Reports wind speed and direction at turbine hub heights (80 m and 120 m above gr
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Energy__ElevatedWind__Enabled: "true"
+Njord__Features__ElevatedWind__Enabled: "true"
 ```
 
 **Automation ideas:**
@@ -81,8 +81,8 @@ Estimates the heat pump coefficient of performance (COP) from the outdoor temper
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
-Njord__Features__Energy__HeatPumpCop__Enabled: "true"
-Njord__Features__Energy__HeatPumpCop__TargetTemperature: "35"
+Njord__Features__HeatPumpCop__Enabled: "true"
+Njord__Features__HeatPumpCop__TargetTemperature: "35"
 ```
 
 `TargetTemperature` is the flow temperature of the heating circuit (default 35 °C).
@@ -102,9 +102,9 @@ Recommends how to run a home battery: `feed_in`, `charge_battery`, `conserve` or
 **Domains:** Forecast + Satellite | **Default:** Off
 
 ```yaml
-Njord__Features__Energy__SolarBatteryStrategy__Enabled: "true"
-Njord__Features__Energy__SolarBatteryStrategy__BatteryCapacityKwh: "10"
-Njord__Features__Energy__SolarBatteryStrategy__SystemEfficiency: "0.85"
+Njord__Features__SolarBatteryStrategy__Enabled: "true"
+Njord__Features__SolarBatteryStrategy__BatteryCapacityKwh: "10"
+Njord__Features__SolarBatteryStrategy__SystemEfficiency: "0.85"
 ```
 
 ::: tip
