@@ -1,5 +1,7 @@
 using Njord.Messages.Alerts;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results.Alerts;
+using Njord.Messages.Results.Conditions;
+using Njord.Messages.Results.Trends;
 
 namespace Njord.Grpc.Mapping;
 

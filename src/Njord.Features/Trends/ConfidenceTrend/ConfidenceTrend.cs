@@ -2,8 +2,8 @@ using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
-using Njord.Messages.Pipeline;
 using Njord.Messages.Results;
+using Njord.Messages.Results.Trends;
 using Njord.Messages.Stream;
 
 namespace Njord.Features.Trends.ConfidenceTrend;

@@ -5,7 +5,7 @@ using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Features.Alerts.MigraineRisk;
 using Njord.Messages.Alerts;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results.Alerts;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;

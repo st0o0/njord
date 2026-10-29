@@ -1,7 +1,7 @@
 using Google.Protobuf;
 using Njord.Grpc.Mapping;
 using Njord.Messages.Alerts;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results.Alerts;
 using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;

@@ -181,10 +181,13 @@ public sealed class ArchitectureTests
     }
 
     [Fact]
-    public void Messages_should_not_depend_on_akka()
+    public void Messages_should_not_depend_on_akka_beyond_streams()
     {
         Types().That().Are(MessagesLayer)
-            .Should().NotDependOnAnyTypesThat().ResideInNamespaceMatching(@"^Akka(\..*)?$")
+            .Should().NotDependOnAnyTypesThat().ResideInNamespaceMatching(@"^Akka\.Actor(\..*)?$")
+            .AndShould().NotDependOnAnyTypesThat().ResideInNamespaceMatching(@"^Akka\.Cluster(\..*)?$")
+            .AndShould().NotDependOnAnyTypesThat().ResideInNamespaceMatching(@"^Akka\.Persistence(\..*)?$")
+            .AndShould().NotDependOnAnyTypesThat().ResideInNamespaceMatching(@"^Akka\.Hosting(\..*)?$")
             .Check(Architecture);
     }
 

@@ -4,7 +4,7 @@ using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Features.Conditions.SurfConditions;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results.Scores;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.MarineFixtures;
 

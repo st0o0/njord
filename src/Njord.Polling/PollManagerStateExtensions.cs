@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using Akka.Actor;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Polling;
 
 namespace Njord.Polling;
 

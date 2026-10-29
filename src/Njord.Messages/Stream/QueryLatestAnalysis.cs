@@ -2,7 +2,7 @@ using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Messages.Results;
 
-namespace Njord.Messages.Pipeline;
+namespace Njord.Messages.Stream;
 
 public sealed record QueryLatestAnalysis(Location Location);
 

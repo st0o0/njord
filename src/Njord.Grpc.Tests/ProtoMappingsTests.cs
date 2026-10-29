@@ -6,11 +6,14 @@ using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Messages.Budget;
 using Njord.Messages.Config;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Polling;
+using Njord.Messages.Results.Alerts;
+using Njord.Messages.Results.Conditions;
+using Njord.Messages.Results.Scores;
 using Njord.Messages.Stream;
 using Njord.Tests.Shared;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
-using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
+using DomainPollPhase = Njord.Messages.Polling.PollPhase;
 
 namespace Njord.Grpc.Tests;
 
@@ -125,7 +128,7 @@ public sealed class ProtoMappingsTests
 
         Assert.Multiple(
             () => Assert.Equal(DomainData.Lucerne, EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor).ToEnrichmentLocation()),
-            () => Assert.Equal(DomainData.Bern, new CommuteSafetyResult(DomainData.Bern, Messages.Pipeline.CommuteLevel.Safe, []).ToEnrichmentLocation()),
+            () => Assert.Equal(DomainData.Bern, new CommuteSafetyResult(DomainData.Bern, Messages.Results.Conditions.CommuteLevel.Safe, []).ToEnrichmentLocation()),
             () => Assert.Null(weather.ToEnrichmentLocation()));
     }
 

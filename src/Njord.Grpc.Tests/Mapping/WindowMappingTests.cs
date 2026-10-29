@@ -1,8 +1,9 @@
 using Google.Protobuf.WellKnownTypes;
 using Njord.Core;
 using Njord.Grpc.Mapping;
-using Njord.Messages.Pipeline;
-using DomainLimitingKind = Njord.Messages.Pipeline.LimitingKind;
+using Njord.Messages.Results;
+using Njord.Messages.Results.Scores;
+using DomainLimitingKind = Njord.Messages.Results.LimitingKind;
 using ProtoLimitingKind = Njord.Grpc.V2.LimitingKind;
 
 namespace Njord.Grpc.Tests.Mapping;

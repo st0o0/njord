@@ -1,13 +1,13 @@
 ## 1. Akka.Streams dependency and stream message moves
 
 - [x] 1.1 Add `Akka.Streams` package reference to `src/Njord.Messages/Njord.Messages.csproj` via `dotnet add package`
-- [ ] 1.2 Create `src/Njord.Messages/Stream/` directory. Move `src/Njord.Core/Actors/ForecastStreamMessages.cs` (RequestForecastSink, RequestForecastSinkResponse, RequestForecastSinkCompleted, RequestForecastSinkFailed) to `src/Njord.Messages/Stream/ForecastStreamMessages.cs`, namespace `Njord.Messages.Stream`
-- [ ] 1.3 Move `src/Njord.Core/Actors/PipelineStreamMessages.cs` (RequestPipelineOutput family) to `src/Njord.Messages/Stream/PipelineStreamMessages.cs`, namespace `Njord.Messages.Stream`
-- [ ] 1.4 Move `src/Njord.Grpc/GrpcStreamMessages.cs` (RequestGrpcStream family) to `src/Njord.Messages/Stream/GrpcStreamMessages.cs`, namespace `Njord.Messages.Stream`
-- [ ] 1.5 Move `src/Njord.Core/Domain/DomainDataReceived.cs` to `src/Njord.Messages/Stream/DomainDataReceived.cs`, namespace `Njord.Messages.Stream`
-- [ ] 1.6 Move `src/Njord.Core/Domain/PipelineEvent.cs` to `src/Njord.Messages/Stream/PipelineEvent.cs`, un-nest the 8 subtypes into top-level sealed records, namespace `Njord.Messages.Stream`
-- [ ] 1.7 Move `src/Njord.Core/Domain/FeatureResult.cs` to `src/Njord.Messages/Results/FeatureResult.cs`, namespace `Njord.Messages.Results`
-- [ ] 1.8 Update all `using` statements across src/ for the moved types. Fix compilation errors in Njord.Core, Njord.Pipeline, Njord.OpenMeteo, Njord.Grpc, Njord.Polling, Njord.Features, Njord/ (Host), and all test projects
+- [x] 1.2 Create `src/Njord.Messages/Stream/` directory. Move `src/Njord.Core/Actors/ForecastStreamMessages.cs` (RequestForecastSink, RequestForecastSinkResponse, RequestForecastSinkCompleted, RequestForecastSinkFailed) to `src/Njord.Messages/Stream/ForecastStreamMessages.cs`, namespace `Njord.Messages.Stream`
+- [x] 1.3 Move `src/Njord.Core/Actors/PipelineStreamMessages.cs` (RequestPipelineOutput family) to `src/Njord.Messages/Stream/PipelineStreamMessages.cs`, namespace `Njord.Messages.Stream`
+- [x] 1.4 Move `src/Njord.Grpc/GrpcStreamMessages.cs` (RequestGrpcStream family) to `src/Njord.Messages/Stream/GrpcStreamMessages.cs`, namespace `Njord.Messages.Stream`
+- [x] 1.5 Move `src/Njord.Core/Domain/DomainDataReceived.cs` to `src/Njord.Messages/Stream/DomainDataReceived.cs`, namespace `Njord.Messages.Stream`
+- [x] 1.6 Move `src/Njord.Core/Domain/PipelineEvent.cs` to `src/Njord.Messages/Stream/PipelineEvent.cs`, un-nest the 8 subtypes into top-level sealed records, namespace `Njord.Messages.Stream`
+- [x] 1.7 Move `src/Njord.Core/Domain/FeatureResult.cs` to `src/Njord.Messages/Results/FeatureResult.cs`, namespace `Njord.Messages.Results`
+- [x] 1.8 Update all `using` statements across src/ for the moved types. Fix compilation errors in Njord.Core, Njord.Pipeline, Njord.OpenMeteo, Njord.Grpc, Njord.Polling, Njord.Features, Njord/ (Host), and all test projects
 - [ ] 1.9 Add ArchUnit rule in `src/Njord.Architecture.Tests/ArchitectureTests.cs`: Njord.Messages may reference Akka.Streams but not Akka.Actor, Akka.Cluster, Akka.Persistence, or Akka.Hosting
 
 ### Validation

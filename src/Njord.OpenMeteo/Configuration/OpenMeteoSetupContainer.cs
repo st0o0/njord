@@ -9,6 +9,7 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
+using Njord.Messages.Fetch;
 using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Budget;
 using Njord.OpenMeteo.Ensemble;

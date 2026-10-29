@@ -1,4 +1,4 @@
-namespace Njord.Messages.Pipeline;
+namespace Njord.Messages.Results;
 
 public enum LimitingKind
 {

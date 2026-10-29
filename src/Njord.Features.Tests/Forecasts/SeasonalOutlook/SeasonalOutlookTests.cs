@@ -5,7 +5,7 @@ using Njord.Core.Forecast;
 using Njord.Core.Seasonal;
 using Njord.Features.Forecasts.SeasonalOutlook;
 using Njord.Messages.Alerts;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results.Forecasts;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;

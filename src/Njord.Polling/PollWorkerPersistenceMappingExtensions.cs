@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using Njord.Core;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Polling;
 using Njord.Persistence.Events.Polling;
 
 namespace Njord.Polling;

@@ -1,5 +1,5 @@
 using Njord.Features.Shared;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
 
 namespace Njord.Features.Tests.Shared;
 

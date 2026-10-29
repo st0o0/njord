@@ -1,4 +1,4 @@
-namespace Njord.Core.Domain;
+namespace Njord.Messages.Fetch;
 
 public enum PollFailureReason
 {

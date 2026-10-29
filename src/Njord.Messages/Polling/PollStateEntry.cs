@@ -1,6 +1,6 @@
 using Njord.Core;
 
-namespace Njord.Messages.Pipeline;
+namespace Njord.Messages.Polling;
 
 public sealed record PollStateEntry(
     Location Location,

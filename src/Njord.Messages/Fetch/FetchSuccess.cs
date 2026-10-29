@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Njord.Core.Forecast;
 
-namespace Njord.Core.Domain;
+namespace Njord.Messages.Fetch;
 
 public sealed record FetchSuccess(IDomainForecast Forecast) : FetchResult
 {

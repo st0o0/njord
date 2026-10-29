@@ -3,8 +3,10 @@ using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Core.Seasonal;
 using Njord.Messages.Alerts;
-using Njord.Messages.Pipeline;
 using Njord.Messages.Results;
+using Njord.Messages.Results.Alerts;
+using Njord.Messages.Results.Conditions;
+using Njord.Messages.Results.Scores;
 using Njord.Messages.Stream;
 using Njord.Tests.Shared;
 

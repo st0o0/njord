@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using Njord.Core.AirQuality;
 using Njord.Core.Domain;
 using Njord.Features.Conditions.PollenTrend;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results.Trends;
 using static Njord.Tests.Shared.AirQualityFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 

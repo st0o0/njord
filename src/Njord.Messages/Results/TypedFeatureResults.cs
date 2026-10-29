@@ -3,7 +3,7 @@ using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Messages.Results;
 
-namespace Njord.Messages.Pipeline;
+namespace Njord.Messages.Results;
 
 public abstract record AlertFeatureResult(
     Location Location,

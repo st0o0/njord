@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Forecast;
 using Njord.Features.Conditions.IrrigationNeed;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results.Conditions;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;

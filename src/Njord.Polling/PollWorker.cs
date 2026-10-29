@@ -6,8 +6,8 @@ using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
-using Njord.Messages.Forecast;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Fetch;
+using Njord.Messages.Polling;
 using Njord.Persistence.Events.Polling;
 using Servus.Akka;
 

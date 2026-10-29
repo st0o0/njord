@@ -2,8 +2,12 @@ using Google.Protobuf.WellKnownTypes;
 using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Grpc.V2;
-using Njord.Messages.Pipeline;
 using Njord.Messages.Results;
+using Njord.Messages.Results.Alerts;
+using Njord.Messages.Results.Conditions;
+using Njord.Messages.Results.Forecasts;
+using Njord.Messages.Results.Scores;
+using Njord.Messages.Results.Trends;
 using Njord.Messages.Stream;
 
 namespace Njord.Grpc.Mapping;

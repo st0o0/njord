@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Njord.Core;
 using Njord.Core.Domain;
+using Njord.Messages.Fetch;
 using Njord.Tests.Shared;
 
 namespace Njord.IntegrationTests;

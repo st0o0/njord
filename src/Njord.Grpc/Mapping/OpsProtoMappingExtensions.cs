@@ -1,7 +1,7 @@
 using Google.Protobuf.WellKnownTypes;
 using Njord.Grpc.V2;
 using Njord.Messages.Budget;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Polling;
 
 namespace Njord.Grpc.Mapping;
 

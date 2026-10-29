@@ -2,7 +2,7 @@ using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Messages.Stream;
 
-namespace Njord.Messages.Forecast;
+namespace Njord.Messages.Fetch;
 
 public sealed record QueryDomainData(Location Location, DomainKind Domain, string? ModelId = null);
 

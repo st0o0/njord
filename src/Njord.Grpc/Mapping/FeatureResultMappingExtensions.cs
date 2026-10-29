@@ -1,5 +1,9 @@
 using Google.Protobuf.WellKnownTypes;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
+using Njord.Messages.Results.Conditions;
+using Njord.Messages.Results.Forecasts;
+using Njord.Messages.Results.Scores;
+using Njord.Messages.Results.Trends;
 
 namespace Njord.Grpc.Mapping;
 

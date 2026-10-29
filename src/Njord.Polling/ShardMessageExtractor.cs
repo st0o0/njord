@@ -1,5 +1,5 @@
 using Akka.Cluster.Sharding;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Polling;
 
 namespace Njord.Polling;
 

@@ -4,7 +4,7 @@ using Akka.Event;
 using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Configuration;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Polling;
 using Servus.Akka;
 using Servus.Resilience;
 

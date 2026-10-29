@@ -10,6 +10,7 @@ using Njord.Core.Flood;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Core.Polling;
+using Njord.Messages.Fetch;
 using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Ensemble;

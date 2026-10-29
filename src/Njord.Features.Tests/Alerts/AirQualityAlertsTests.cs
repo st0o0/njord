@@ -5,7 +5,7 @@ using Njord.Features.Alerts.Dust;
 using Njord.Features.Alerts.Pm25;
 using Njord.Features.Alerts.Pollen;
 using Njord.Messages.Alerts;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results.Alerts;
 using static Njord.Tests.Shared.AirQualityFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 

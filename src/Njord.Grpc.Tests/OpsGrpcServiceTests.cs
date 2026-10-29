@@ -5,7 +5,7 @@ using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Grpc.V2;
 using Njord.Messages.Budget;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Polling;
 using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;
@@ -45,7 +45,7 @@ public sealed class OpsGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         public FakePollManager() =>
             Receive<QueryPollStates>(_ => Sender.Tell(new PollStatesResult(
             [
-                new PollStateEntry(new Location("Lucerne", 47.05, 8.31), Messages.Pipeline.PollPhase.Steady,
+                new PollStateEntry(new Location("Lucerne", 47.05, 8.31), Messages.Polling.PollPhase.Steady,
                     TestTimeConstants.BudgetEpoch, null, 0, null),
             ])));
     }

@@ -1,7 +1,7 @@
 using Njord.Core;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Polling;
 
-namespace Njord.Messages.Forecast;
+namespace Njord.Messages.Fetch;
 
 public sealed record FetchDomain(Location Location, DomainKind Domain);
 

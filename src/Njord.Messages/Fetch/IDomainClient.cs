@@ -1,4 +1,6 @@
-namespace Njord.Core.Domain;
+using Njord.Core;
+
+namespace Njord.Messages.Fetch;
 
 public interface IDomainClient
 {

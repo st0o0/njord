@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
+using Njord.Messages.Fetch;
 
 namespace Njord.Tests.Shared;
 

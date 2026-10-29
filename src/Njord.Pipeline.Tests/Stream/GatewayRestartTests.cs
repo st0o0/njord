@@ -6,7 +6,7 @@ using Njord.Core.Actors;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Grpc;
-using Njord.Messages.Forecast;
+using Njord.Messages.Fetch;
 using Njord.Messages.Stream;
 using Njord.OpenMeteo.Budget;
 using Njord.OpenMeteo.Gateway;

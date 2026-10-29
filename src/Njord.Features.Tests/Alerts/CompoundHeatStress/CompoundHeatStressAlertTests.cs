@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Njord.Features.Alerts.CompoundHeatStress;
 using Njord.Messages.Alerts;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results.Alerts;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;

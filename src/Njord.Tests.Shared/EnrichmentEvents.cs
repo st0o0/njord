@@ -1,6 +1,6 @@
 using Njord.Core;
 using Njord.Messages.Alerts;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results.Alerts;
 
 namespace Njord.Tests.Shared;
 

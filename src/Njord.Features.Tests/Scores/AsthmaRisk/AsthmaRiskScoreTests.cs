@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using Njord.Core.AirQuality;
 using Njord.Core.Forecast;
 using Njord.Features.Scores.AsthmaRisk;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results.Scores;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.LifestyleFixture;

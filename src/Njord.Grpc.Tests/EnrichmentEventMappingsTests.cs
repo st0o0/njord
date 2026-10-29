@@ -3,8 +3,12 @@ using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Grpc.Mapping;
 using Njord.Messages.Alerts;
-using Njord.Messages.Pipeline;
 using Njord.Messages.Results;
+using Njord.Messages.Results.Alerts;
+using Njord.Messages.Results.Conditions;
+using Njord.Messages.Results.Forecasts;
+using Njord.Messages.Results.Scores;
+using Njord.Messages.Results.Trends;
 using Njord.Tests.Shared;
 using Case = Njord.Grpc.V2.EnrichmentEvent.FeatureOneofCase;
 

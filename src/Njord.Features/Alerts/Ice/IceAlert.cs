@@ -2,8 +2,8 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Messages.Alerts;
-using Njord.Messages.Pipeline;
 using Njord.Messages.Results;
+using Njord.Messages.Results.Alerts;
 using Njord.Messages.Stream;
 
 namespace Njord.Features.Alerts.Ice;

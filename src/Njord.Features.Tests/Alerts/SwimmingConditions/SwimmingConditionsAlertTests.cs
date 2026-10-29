@@ -3,7 +3,7 @@ using Njord.Core.Domain;
 using Njord.Core.Marine;
 using Njord.Features.Alerts.SwimmingConditions;
 using Njord.Messages.Alerts;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results.Alerts;
 using Njord.Messages.Stream;
 using static Njord.Tests.Shared.FeatureRunner;
 using static Njord.Tests.Shared.FloodFixtures;

@@ -1,5 +1,5 @@
 using Njord.Core;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Polling;
 using static Njord.Polling.Tests.PollStateFixture;
 
 namespace Njord.Polling.Tests;

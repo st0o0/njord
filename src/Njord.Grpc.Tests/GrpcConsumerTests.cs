@@ -4,9 +4,9 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core;
 using Njord.Core.Domain;
-using Njord.Messages.Forecast;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Fetch;
 using Njord.Messages.Results;
+using Njord.Messages.Results.Scores;
 using Njord.Messages.Stream;
 using Njord.Tests.Shared;
 

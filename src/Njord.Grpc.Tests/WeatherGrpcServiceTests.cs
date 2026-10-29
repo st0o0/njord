@@ -9,8 +9,9 @@ using Njord.Core.Forecast;
 using Njord.Core.Seasonal;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
-using Njord.Messages.Forecast;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Fetch;
+using Njord.Messages.Results.Alerts;
+using Njord.Messages.Results.Conditions;
 using Njord.Messages.Stream;
 using Njord.Tests.Shared;
 
@@ -184,7 +185,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 30_000)]
     public async Task GetEnrichments_returns_the_lifestyle_updates_the_consumer_holds()
     {
-        var commute = new CommuteSafetyResult(DomainData.Lucerne, Messages.Pipeline.CommuteLevel.Caution, [Messages.Pipeline.CommuteHazard.Ice]);
+        var commute = new CommuteSafetyResult(DomainData.Lucerne, Messages.Results.Conditions.CommuteLevel.Caution, [Messages.Results.Conditions.CommuteHazard.Ice]);
         var service = CreateService(analysis: new LatestAnalysisResult(DomainData.Lucerne, [commute]));
 
         var response = await service.GetEnrichments(new GetEnrichmentsRequest { Location = "lucerne" }, TestServerCallContext.Create(TestContext.Current.CancellationToken));

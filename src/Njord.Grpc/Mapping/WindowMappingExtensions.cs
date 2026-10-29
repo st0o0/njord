@@ -1,5 +1,5 @@
 using Google.Protobuf.WellKnownTypes;
-using Njord.Messages.Pipeline;
+using Njord.Messages.Results;
 
 namespace Njord.Grpc.Mapping;
 
