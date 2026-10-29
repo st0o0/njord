@@ -26,9 +26,9 @@ src/
     ActorKeys.cs        #   marker interfaces for every resolvable actor
     Actors/             #   IActorRegistration, StreamSupervision, actor marker interfaces (ShardMessageExtractor in Polling)
     Domain/             #   FeatureDescriptor, FeatureCategory, FeatureContext,
-                        #   FeatureInputs (typed inputs), FeatureRequirementsOptions, DomainRequirements,
+                        #   FeatureInputs (typed inputs), DomainRequirements,
                         #   LocationForecast, RingBuffer, ForecastQueries, OutputKind
-    Configuration/      #   IConfigSection, IHasArrayDefaults, NjordOptions (with FindLocation), LocationOptions, WeatherOptions, FloodOptions,
+    Configuration/      #   IConfigSection, IHasArrayDefaults, NjordOptions (with FindLocation), LocationOptions, ForecastOptions, EnsembleOptions, FloodOptions,
                         #   PollingOptions, Health/HealthOptions, AddNjordOptions (+ validators)
     Polling/            #   CallWeight, RequestBudget (free-tier constants, DailyLimit), FetchTimeouts
   Njord.Messages/       # Contracts (-> Core, Akka.Streams for ISinkRef/ISourceRef):
@@ -36,7 +36,7 @@ src/
                         #   Config/ (CatalogResult), Fetch/ (FetchDomain*, FetchResult*, QueryDomainData),
                         #   Polling/ (StartPolling, StopPolling, PollWorkerReport, QueryPoll*, PollTarget),
                         #   Stream/ (DomainDataReceived, PipelineEvent, RequestForecast/Pipeline/GrpcStream*),
-                        #   Results/ (FeatureResult, IFeatureRule, FeatureRule<T>, FeatureResolution,
+                        #   Results/ (FeatureResult, IFeatureRule, FeatureRule<T>,
                         #     Alerts/, Scores/, Conditions/, Trends/, Forecasts/)
   Njord.Persistence/    # Extend-only records, no Njord refs: Events/Budget, Events/Polling
   Njord.OpenMeteo/      # (-> Core) folders per domain: Forecast/, Ensemble/, AirQuality/, Flood/, Marine/, Seasonal/, Satellite/
@@ -73,7 +73,7 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 ## Architecture guardrails
 
 - **Feature-driven config.** The operator sets locations and feature toggles; the rest is derived.
-  Fetched domains = union of the `Requirements` of the enabled features (`FeatureResolution`).
+  Fetched domains = union of the `Requirements` of the enabled features (`DomainRequirements`, OR-ed at startup and registered as `IOptions<DomainRequirements>`).
 - **Every feature is a `FeatureRule<TInput>`** (an `IFeatureRule`) in `Njord.Features/<OutputKind>/<Feature>/`: a
   `FeatureDescriptor` (`Output` (`OutputKind`), `Category`, `Name` (the config section name), `DefaultEnabled`, `Requirements`: a `DomainRequirements` of
   per-domain `XxxParams` flags, `PollDepth`), `Enabled` from its own config, `Project(LocationForecast)` to a typed
@@ -138,18 +138,19 @@ SHARD REGIONS (Sharded Entity)
   (`api.open-meteo.com/v1/forecast`, `ForecastClient`, `DomainKind.Forecast`) using best_match
   (automatic high-resolution model blending, 1-9 km). Ensemble spread and comparison models come
   from the Ensemble Mean API (`ensemble-api.open-meteo.com/v1/ensemble`, `EnsembleClient`,
-  `DomainKind.Ensemble`). `Njord:Weather:Models` (default `ecmwf_ifs025_ensemble_mean`; ids from
-  `WeatherModelCatalog`) configures the ensemble-mean models for comparison. The requested variables
-  follow the enabled features: the `Requirements` of all enabled features are OR-ed
-  (`FeatureResolution.Configure` fills `FeatureRequirementsOptions`, consumers take
-  `IOptions<FeatureRequirementsOptions>`) and mapped to API names by `ParamMappings.ToApiNames()`;
-  the clients only build the URL. `FeatureEngine` skips a rule whose required fields are missing
-  from the stream (`LocationForecast.HasFields`). `BudgetGuard` uses the same resolved requirements:
-  Forecast costs `ceil(variables / 10) * ceil(forecastDays / 14)` calls per cycle
-  (no model multiplier), Ensemble costs `ceil(variables / 10) * ceil(forecastDays / 14) * modelCount`
+  `DomainKind.Ensemble`). Each API has its own options: `Njord:Forecast` (`ForecastDays`, `PastHours`,
+  optional `Models`, empty = best_match) and `Njord:Ensemble` (`ForecastDays`, `Models`, default
+  `ecmwf_ifs025_ensemble_mean`, the ensemble-mean models for comparison). The requested variables
+  follow the enabled features: the `Requirements` of all enabled features are OR-ed into
+  `DomainRequirements` (with base params; consumers take `IOptions<DomainRequirements>`) and mapped to
+  API names by `ParamMappings.ToApiNames()`; the clients only build the URL. `FeatureEngine` skips a
+  rule whose required fields are missing from the stream (`LocationForecast.HasFields`). `BudgetGuard`
+  uses the same resolved requirements and the per-API `ForecastDays`: Forecast costs
+  `ceil(variables / 10) * ceil(Forecast.ForecastDays / 14)` calls per cycle (no model multiplier),
+  Ensemble costs `ceil(variables / 10) * ceil(Ensemble.ForecastDays / 14) * modelCount`
   (spread-only: 1 call), every other required domain 1.
-- **Per-domain forecast days.** `Njord:AirQuality` (5, max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92,
-  max 210) next to `Njord:Weather`.
+- **Per-domain forecast days.** `Njord:Forecast` (4, max 16), `Njord:Ensemble` (4, max 35), `Njord:AirQuality` (5,
+  max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92, max 210).
 - **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Name>` (66 features; categories in
   `docs/data/features.json` are UI metadata; env `Njord__Features__<Name>__Enabled`). 18 are on by default: the 14
   weather alerts (`Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`, `PressureDrop`, `Thunderstorm`,
@@ -174,7 +175,7 @@ SHARD REGIONS (Sharded Entity)
   `Njord:Satellite:PastHours`) for `SatelliteRadiation` (off by default, about 720 calls/month/location, counted per poll
   cycle by `BudgetGuard`). `SolarIrradianceBlend` takes satellite GTI up to the newest observation (ignored when
   older than 3 h) and ensemble GTI afterwards; `SolarYield` and `SatelliteRadiation` use it.
-- **Base parameters.** `FeatureResolution.WithBaseParams` always requests `weather_code` for a required Forecast domain and `pm10` for a required AirQuality domain; `BudgetGuard` and the Config Builder count them.
+- **Base parameters.** `DomainRequirements.WithBaseParams` always requests `weather_code` for a required Forecast domain and `pm10` for a required AirQuality domain; `BudgetGuard` and the Config Builder count them.
 - **Failure backoff.** A failed fetch retries after 60 s, doubling per consecutive failure up to the poll interval (`FailureBackoff`); rate limit and budget rejections wait at least 5 min. The count is persisted in `DomainPolled.ConsecutiveFailures` and reset by a successful fetch.
 - Poll interval 60 min and discovery interval 20 min are config values.
 - Wire text for closed sets comes from explicit mappings, never `ToString()`.
@@ -328,7 +329,7 @@ Rules apply to production code.
 
 One `sealed` class per concern implementing `IConfigSection` (`static abstract SectionName`), registered with
 `AddNjordOptions<T>()` (`BindConfiguration(T.SectionName).ValidateOnStart()`) or `AddNjordOptions<T, TValidator>()`
-when it has cross-field rules (`IValidateOptions<T>`). Options live with their owner (Weather/Flood/Polling/Health
+when it has cross-field rules (`IValidateOptions<T>`). Options live with their owner (Forecast/Ensemble/Flood/Polling/Health
 in `Njord.Core`, AirQuality/Marine/Seasonal/Satellite/SolarYield in `Njord.OpenMeteo`, `PollingOptionsValidator`
 and `BudgetGuard` in `Njord.Polling`, `PersistenceOptions` in the Host, feature options in each `<Name>Config`).
 Defaults are property initializers. Naming: `private const string SectionName` + explicit interface implementation.
@@ -344,7 +345,8 @@ interface. Manual `PostConfigure` is reserved for derived values (`PollingOption
 | Section | Class | Content |
 |---------|-------|---------|
 | `Njord` | `NjordOptions` | `Locations` (`Name`, `Latitude`, `Longitude`, all required) |
-| `Njord:Weather` | `WeatherOptions` | `ForecastDays` (4, 1..16), `Models` (`ecmwf_ifs025_ensemble_mean`; known ids in `WeatherModelCatalog`), `PastHours` (0, 0..96) |
+| `Njord:Forecast` | `ForecastOptions` | `ForecastDays` (4, 1..16), `PastHours` (0, 0..96), `Models` (empty = best_match) |
+| `Njord:Ensemble` | `EnsembleOptions` | `ForecastDays` (4, 1..35), `Models` (`ecmwf_ifs025_ensemble_mean`, required, non-empty, no duplicates) |
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..8) |
 | `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..6) |

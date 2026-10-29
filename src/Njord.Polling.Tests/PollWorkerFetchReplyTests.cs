@@ -18,10 +18,7 @@ public sealed class PollWorkerFetchReplyTests : Akka.Hosting.TestKit.TestKit
 {
     private static readonly TimeSpan ShortReplyTimeout = TimeSpan.FromMilliseconds(300);
 
-    private static readonly IOptions<FeatureRequirementsOptions> Requirements = Options.Create(new FeatureRequirementsOptions
-    {
-        Domains = [DomainKind.Forecast, DomainKind.AirQuality],
-    });
+    private static readonly IOptions<DomainRequirements> Requirements = Options.Create(TestRequirements.For(DomainKind.Forecast, DomainKind.AirQuality));
 
     private static readonly PollTarget Target = new(new Location("lucerne", 0, 0));
     private readonly FakeTimeProvider _time = new FakeTimeProvider(TestTimeConstants.PipelineEpoch);

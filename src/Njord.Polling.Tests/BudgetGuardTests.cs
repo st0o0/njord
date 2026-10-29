@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Njord.Core.AirQuality;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
@@ -18,23 +17,21 @@ public sealed class BudgetGuardTests
         Locations = [.. Enumerable.Range(0, locations).Select(i => new LocationOptions { Name = $"L{i}" })],
     };
 
-    private static FeatureRequirementsOptions Requirements(
-        DomainRequirements requirements,
-        ImmutableArray<string>? models = null,
-        ImmutableArray<string>? ensembleModels = null) => new()
-        {
-            Requirements = requirements,
-            WeatherModels = models ?? ["ecmwf_ifs025_ensemble_mean"],
-            EnsembleModels = ensembleModels ?? [],
-        };
+    private static DomainRequirements Requirements(DomainRequirements requirements) => requirements;
 
-    private static FeatureRequirementsOptions Resolved(ForecastParams weather = ForecastParams.Temperature, ImmutableArray<string>? models = null) =>
-        Requirements(new DomainRequirements(Forecast: weather, AirQuality: AirQualityParams.Pm25), models);
+    private static DomainRequirements Resolved(ForecastParams weather = ForecastParams.Temperature) =>
+        new(Forecast: weather, AirQuality: AirQualityParams.Pm25);
 
-    private static readonly ImmutableArray<string> ThreeModels = ["a", "b", "c"];
+    private static readonly string[] ThreeModels = ["a", "b", "c"];
 
-    private static string? Violation(NjordOptions scope, PollingOptions polling, FeatureRequirementsOptions requirements, FloodOptions? flood = null) =>
-        BudgetGuard.Violation(scope, polling, requirements, new WeatherOptions(), flood);
+    private static string? Violation(
+        NjordOptions scope, PollingOptions polling, DomainRequirements requirements, FloodOptions? flood = null,
+        string[]? forecastModels = null, string[]? ensembleModels = null) =>
+        BudgetGuard.Violation(
+            scope, polling, requirements,
+            new ForecastOptions { Models = forecastModels ?? [] },
+            new EnsembleOptions { Models = ensembleModels ?? [] },
+            flood);
 
     private static PollingOptions WithMonthlyBudget(int perMonth) => new() { Budget = new RequestBudget(perMonth, 600) };
 
@@ -55,10 +52,32 @@ public sealed class BudgetGuardTests
     }
 
     [Fact]
-    public void Should_not_multiply_weather_weight_by_model_count()
+    public void Should_not_multiply_forecast_weight_when_no_models_are_configured()
     {
-        // weather weight 1 (no model multiplier) + air quality 1 = 2 calls x 720 = 1440; 3000 budget -> within guard.
-        Assert.Null(Violation(Scope(), WithMonthlyBudget(3_000), Resolved(models: ThreeModels)));
+        // weather weight 1 (best_match, no model multiplier) + air quality 1 = 2 calls x 720 = 1440; 3000 budget -> within guard.
+        Assert.Null(Violation(Scope(), WithMonthlyBudget(3_000), Resolved()));
+    }
+
+    [Fact]
+    public void Should_multiply_forecast_weight_by_the_configured_model_count()
+    {
+        // weather weight 1 x 3 models + air quality 1 = 4 calls x 720 = 2880; 3000 budget -> guard 2400, exceeds.
+        Assert.NotNull(Violation(Scope(), WithMonthlyBudget(3_000), Resolved(), forecastModels: ThreeModels));
+    }
+
+    [Fact]
+    public void Should_use_the_ensemble_forecast_days_for_the_ensemble_weight()
+    {
+        var resolved = new DomainRequirements(
+            Forecast: ForecastParams.Temperature,
+            Ensemble: EnsembleParams.TemperatureSpread);
+
+        // weather 1 + ensemble spread (1 var x ceil(16/14) = 2) = 3 calls x 720 = 2160; 2500 budget -> guard 2000, exceeds.
+        var message = BudgetGuard.Violation(
+            Scope(), WithMonthlyBudget(2_500), resolved,
+            new ForecastOptions(), new EnsembleOptions { Models = ["a"], ForecastDays = 16 });
+
+        Assert.NotNull(message);
     }
 
     [Fact]
@@ -106,10 +125,9 @@ public sealed class BudgetGuardTests
     {
         // weather 1 + ensemble spread 1 = 2 calls x 720 = 1440; 1800 budget -> guard 1440, exactly at limit.
         var resolved = Requirements(
-            new DomainRequirements(Forecast: ForecastParams.Temperature, Ensemble: EnsembleParams.TemperatureSpread),
-            ensembleModels: ["ecmwf_ifs025_ensemble_mean"]);
+            new DomainRequirements(Forecast: ForecastParams.Temperature, Ensemble: EnsembleParams.TemperatureSpread));
 
-        Assert.Null(Violation(Scope(), WithMonthlyBudget(1_800), resolved));
+        Assert.Null(Violation(Scope(), WithMonthlyBudget(1_800), resolved, ensembleModels: ["ecmwf_ifs025_ensemble_mean"]));
     }
 
     [Fact]
@@ -119,10 +137,9 @@ public sealed class BudgetGuardTests
         var resolved = Requirements(
             new DomainRequirements(
                 Forecast: ForecastParams.Temperature,
-                Ensemble: EnsembleParams.TemperatureSpread | EnsembleParams.Models),
-            ensembleModels: ThreeModels);
+                Ensemble: EnsembleParams.TemperatureSpread | EnsembleParams.Models));
 
-        Assert.NotNull(Violation(Scope(), WithMonthlyBudget(3_000), resolved));
+        Assert.NotNull(Violation(Scope(), WithMonthlyBudget(3_000), resolved, ensembleModels: ThreeModels));
     }
 
     [Fact]
@@ -141,7 +158,7 @@ public sealed class BudgetGuardTests
             | ForecastParams.Pressure | ForecastParams.CloudCover | ForecastParams.WindSpeed | ForecastParams.Snowfall
             | ForecastParams.WindDirection | ForecastParams.ApparentTemperature;
         var plain = Requirements(new DomainRequirements(Forecast: tenVariables));
-        var withBase = Requirements(FeatureResolution.WithBaseParams(new DomainRequirements(Forecast: tenVariables)));
+        var withBase = Requirements(new DomainRequirements(Forecast: tenVariables).WithBaseParams());
 
         // 10 variables weigh 1 call x 720 cycles = 720 (guard 800 of 1000); with weather_code 11 variables weigh 2 calls = 1440.
         Assert.Multiple(

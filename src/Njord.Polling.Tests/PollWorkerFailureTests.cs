@@ -22,8 +22,8 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
     private static readonly PollTarget Target = new(Lucerne);
     private static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Forecast, DomainKind.AirQuality];
 
-    private static IOptions<FeatureRequirementsOptions> RequirementsFor(IReadOnlyList<DomainKind> domains) =>
-        Options.Create(new FeatureRequirementsOptions { Domains = domains });
+    private static IOptions<DomainRequirements> RequirementsFor(IReadOnlyList<DomainKind> domains) =>
+        Options.Create(TestRequirements.For(domains));
 
     private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private TestProbe _gateway = null!;

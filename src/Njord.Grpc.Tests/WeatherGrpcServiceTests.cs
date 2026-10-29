@@ -38,7 +38,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         Assert.Multiple(
             () => Assert.Equal("Lucerne", location.Name),
             () => Assert.Equal(47.05, location.Latitude),
-            () => Assert.Equal([WeatherOptions.DefaultModel], location.Models));
+            () => Assert.Equal([EnsembleOptions.DefaultModel], location.Models));
     }
 
     [Fact(Timeout = 30_000)]
@@ -76,7 +76,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
             () => Assert.Equal(80.0, sample.PrecipitationMean));
     }
 
-    private static readonly ImmutableArray<string> TwoModels = ["ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"];
+    private static readonly string[] TwoModels = ["ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"];
 
     [Fact(Timeout = 30_000)]
     public async Task GetDomainData_returns_the_requested_secondary_model_labelled_with_its_id()
@@ -207,12 +207,12 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         Assert.Equal(new GetEnrichmentsResponse { Location = "Lucerne" }, response);
     }
 
-    private WeatherGrpcService CreateService(PipelineEvent? domainEvent = null, LatestAnalysisResult? analysis = null, ImmutableArray<string>? models = null)
+    private WeatherGrpcService CreateService(PipelineEvent? domainEvent = null, LatestAnalysisResult? analysis = null, string[]? models = null)
     {
         ActorRegistry.Register<IGrpcConsumer>(
             Sys.ActorOf(Props.Create(() => new FakeConsumer(domainEvent, analysis))), overwrite: true);
         return new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Opts(Options),
-            TestServiceInfo.Opts(new FeatureRequirementsOptions { WeatherModels = models ?? [WeatherOptions.DefaultModel] }), TimeProvider.System);
+            TestServiceInfo.Opts(new EnsembleOptions { Models = models ?? [EnsembleOptions.DefaultModel] }), TimeProvider.System);
     }
 
     private sealed class FakeConsumer : ReceiveActor

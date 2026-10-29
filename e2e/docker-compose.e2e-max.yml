@@ -23,10 +23,10 @@ services:
       - Njord__Locations__2__Longitude=7.2620
 
       # ── Weather (max forecast days, all 3 models) ──────────
-      - Njord__Weather__ForecastDays=16
-      - Njord__Weather__Models__0=ecmwf_ifs025_ensemble_mean
-      - Njord__Weather__Models__1=ecmwf_aifs025_ensemble_mean
-      - Njord__Weather__Models__2=ukmo_global_ensemble_mean_20km
+      - Njord__Forecast__ForecastDays=16
+      - Njord__Ensemble__Models__0=ecmwf_ifs025_ensemble_mean
+      - Njord__Ensemble__Models__1=ecmwf_aifs025_ensemble_mean
+      - Njord__Ensemble__Models__2=ukmo_global_ensemble_mean_20km
 
       # ── Domain options (maxed) ─────────────────────────────
       - Njord__AirQuality__ForecastDays=7

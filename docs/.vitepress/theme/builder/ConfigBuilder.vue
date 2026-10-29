@@ -8,9 +8,9 @@ import { exportAsJson, exportAsEnvVars, exportAsCompose, autoImport, encodeHash,
 const config = reactive<NjordConfig>(defaultConfig())
 
 function toggleModel(id: string, on: boolean) {
-  const models = config.weather.models.filter(m => m !== id)
+  const models = config.ensemble.models.filter(m => m !== id)
   if (on) models.push(id)
-  config.weather.models = models.length ? models : [id]
+  config.ensemble.models = models.length ? models : [id]
 }
 
 const featureGroups = userFeatureGroups()
@@ -254,18 +254,28 @@ onMounted(() => {
       <p class="section-hint">Fetched domains: {{ requiredDomains(config.features).join(', ') || 'none' }}. Cost shows the additional API calls per day per location.</p>
     </div>
 
-    <!-- Weather -->
+    <!-- Forecast -->
     <div class="section">
-      <h3>Weather</h3>
+      <h3>Forecast</h3>
       <div class="general-row">
-        <label>Forecast Days <input v-model.number="config.weather.forecastDays" type="number" min="1" max="16" /></label>
+        <label>Forecast Days <input v-model.number="config.forecast.forecastDays" type="number" min="1" max="16" /></label>
+        <label>Past Hours <input v-model.number="config.forecast.pastHours" type="number" min="0" max="96" /></label>
+      </div>
+      <p class="section-hint">The Forecast API uses best_match (automatic high-resolution model blending) unless Models is set.</p>
+    </div>
+
+    <!-- Ensemble -->
+    <div class="section">
+      <h3>Ensemble</h3>
+      <div class="general-row">
+        <label>Forecast Days <input v-model.number="config.ensemble.forecastDays" type="number" min="1" max="35" /></label>
       </div>
       <details class="advanced">
-        <summary>Ensemble comparison models</summary>
-        <p class="section-hint">Select ensemble models for comparison. Only used when Model Comparison is enabled. The primary forecast uses the deterministic Forecast API (best_match) automatically.</p>
+        <summary>Ensemble models</summary>
+        <p class="section-hint">Select ensemble-mean models. The first is primary; additional models are only used when Model Comparison is enabled.</p>
         <div v-for="m in weatherModels" :key="m.id" class="general-row">
           <label>
-            <input type="checkbox" :checked="config.weather.models.includes(m.id)" @change="toggleModel(m.id, ($event.target as HTMLInputElement).checked)" />
+            <input type="checkbox" :checked="config.ensemble.models.includes(m.id)" @change="toggleModel(m.id, ($event.target as HTMLInputElement).checked)" />
             {{ m.displayName }} ({{ m.resolutionKm }} km, {{ m.forecastDays }} days)
           </label>
         </div>

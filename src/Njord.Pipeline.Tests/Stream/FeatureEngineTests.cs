@@ -251,17 +251,6 @@ public sealed class FeatureEngineTests
     }
 
     [Fact]
-    public void The_requirements_are_the_union_of_the_enabled_rules()
-    {
-        var engine = Engine(
-            new RecordingRule(new DomainRequirements(Forecast: ForecastParams.Temperature)),
-            new RecordingRule(new DomainRequirements(Forecast: ForecastParams.WindSpeed)),
-            new RecordingRule(new DomainRequirements(Forecast: ForecastParams.ShortwaveRadiation), enabled: false));
-
-        Assert.Equal(ForecastParams.Temperature | ForecastParams.WindSpeed, engine.Requirements.Forecast);
-    }
-
-    [Fact]
     public void A_real_frost_feature_raises_its_alert_after_the_domain_event()
     {
         var engine = Engine(new FrostAlert(Options.Create(new FrostConfig { Thresholds = FrostConfig.DefaultThresholds })));

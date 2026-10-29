@@ -9,7 +9,7 @@ Rules (static entity set, `TimeProvider`, toggleable features) live in `AGENTS.m
 
 ## Where things live
 
-- **`Njord.Core/Domain`**: `IFeatureRule` (`Descriptor`, `Enabled`, `Execute(ring, now)`), `FeatureRule<TInput>` (base class: `Project(LocationForecast)` builds a typed input, `Evaluate(FeatureContext<TInput>)` returns one `PipelineEvent` or null), `FeatureDescriptor(Output, Category, DefaultEnabled, Requirements, PollDepth)`, `DomainRequirements` (per-domain `XxxParams` flags, `Optional*` flags are requested but never gate), `FeatureInputs`, `FeatureResolution`.
+- **`Njord.Core/Domain`**: `IFeatureRule` (`Descriptor`, `Enabled`, `Execute(ring, now)`), `FeatureRule<TInput>` (base class: `Project(LocationForecast)` builds a typed input, `Evaluate(FeatureContext<TInput>)` returns one `PipelineEvent` or null), `FeatureDescriptor(Output, Category, DefaultEnabled, Requirements, PollDepth)`, `DomainRequirements` (per-domain `XxxParams` flags, `Optional*` flags are requested but never gate), `FeatureInputs`.
 - **`Njord.Messages`**: result records per feature in a domain folder (`Alerts/`, ...), `OutputKind`, `FeatureResult` family (`AlertResult`, `ScoreResult`, `ConditionResult`, `TrendResult`, `ForecastResult`). No rule or formula.
 - **`Njord.Features/<OutputKind>/<Feature>/`**: the rule, its `<Name>Config` and an optional `<Name>ConfigValidator` side by side (`Alerts/ Scores/ Conditions/ Trends/ Forecasts/`; shared helpers in `<Kind>/Shared/` and top-level `Shared/`).
 - **`Njord.Pipeline/Stream/FeatureEngine`** runs the enabled rules whose domain got new data and whose required fields are present.

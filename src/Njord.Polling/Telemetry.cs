@@ -32,6 +32,7 @@ internal static class Telemetry
     private static KeyValuePair<string, object?> DomainTag(DomainKind domain) => new("domain", domain switch
     {
         DomainKind.Forecast => "weather",
+        DomainKind.Ensemble => "ensemble",
         DomainKind.AirQuality => "air_quality",
         DomainKind.Flood => "flood",
         DomainKind.Marine => "marine",

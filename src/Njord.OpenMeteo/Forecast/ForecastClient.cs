@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -21,14 +22,18 @@ public sealed class ForecastClient : IDomainClient
     private readonly IReadOnlyList<string> _variables;
     private readonly int _forecastDays;
     private readonly int _pastHours;
+    private readonly string[] _models;
+    private readonly string _primaryModel;
 
-    public ForecastClient(HttpClient httpClient, IOptions<WeatherOptions> options, IOptions<SolarYieldOptions> solar, IOptions<FeatureRequirementsOptions> requirements, ILogger<ForecastClient> logger)
+    public ForecastClient(HttpClient httpClient, IOptions<ForecastOptions> options, IOptions<SolarYieldOptions> solar, IOptions<DomainRequirements> requirements, ILogger<ForecastClient> logger)
     {
         _httpClient = httpClient;
         _solar = solar.Value;
-        _variables = requirements.Value.Requirements.AllForecast.ToApiNames();
+        _variables = requirements.Value.AllForecast.ToApiNames();
         _forecastDays = Math.Min(options.Value.ForecastDays, MaxForecastDays);
         _pastHours = options.Value.PastHours;
+        _models = options.Value.Models;
+        _primaryModel = _models.Length > 0 ? _models[0] : BestMatch;
         CallWeight = Core.Polling.CallWeight.Of(_variables.Count, _forecastDays);
     }
 
@@ -49,6 +54,11 @@ public sealed class ForecastClient : IDomainClient
             query.Add((ClientRequest.Azimuth, ClientRequest.Number(ClientRequest.ToApiAzimuth(_solar.Azimuth))));
         }
 
+        if (_models.Length > 0)
+        {
+            query.Add((ClientRequest.Models, ClientRequest.List(_models)));
+        }
+
         if (_pastHours > 0)
         {
             query.Add((ClientRequest.PastHours, ClientRequest.Number(_pastHours)));
@@ -58,17 +68,23 @@ public sealed class ForecastClient : IDomainClient
         var uri = ClientRequest.Uri(OpenMeteoEndpoints.ForecastPath, latitude, longitude, [.. query]);
         return ClientRequest.ExecuteResultAsync(
             () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.ForecastResponse, cancellationToken),
-            response => ToSuccess(response.ToModelForecasts(now, BestMatch)),
+            response => ToSuccess(response.ToModelForecasts(now, _primaryModel)),
             cancellationToken);
     }
 
-    private static FetchResult ToSuccess(System.Collections.Immutable.ImmutableDictionary<string, DomainForecast<ForecastPoint>> forecasts)
+    private FetchResult ToSuccess(ImmutableDictionary<string, DomainForecast<ForecastPoint>> forecasts)
     {
-        if (!forecasts.TryGetValue(BestMatch, out var primary))
+        if (!forecasts.TryGetValue(_primaryModel, out var primary))
         {
             return new FetchEmpty();
         }
 
-        return new FetchSuccess(primary);
+        var result = new FetchSuccess(primary);
+        if (_models.Length > 1)
+        {
+            result = result with { Models = forecasts.ToImmutableDictionary(kv => kv.Key, IDomainForecast (kv) => kv.Value) };
+        }
+
+        return result;
     }
 }

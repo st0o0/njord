@@ -54,7 +54,8 @@ export function mergeWithDefaults(partial: Partial<NjordConfig>): NjordConfig {
     ...partial,
     features: { ...defaultFeatures(), ...partial.features },
     featureOptions: { ...partial.featureOptions },
-    weather: { ...d.weather, ...partial.weather },
+    forecast: { ...d.forecast, ...partial.forecast },
+    ensemble: { ...d.ensemble, ...partial.ensemble },
     airQuality: { ...d.airQuality, ...partial.airQuality },
     marine: { ...d.marine, ...partial.marine },
     flood: { ...d.flood, ...partial.flood },
@@ -81,10 +82,15 @@ export function exportAsJson(config: NjordConfig): string {
   if (config.discoveryInterval !== defaults.discoveryInterval) polling.DiscoveryInterval = config.discoveryInterval
   if (config.budgetOverride) polling.BudgetOverride = config.budgetOverride
   n.Polling = polling
-  const weather: Record<string, unknown> = {}
-  if (config.weather.forecastDays !== defaults.weather.forecastDays) weather.ForecastDays = config.weather.forecastDays
-  if (config.weather.models.join(',') !== defaults.weather.models.join(',')) weather.Models = config.weather.models
-  if (Object.keys(weather).length) n.Weather = weather
+  const forecast: Record<string, unknown> = {}
+  if (config.forecast.forecastDays !== defaults.forecast.forecastDays) forecast.ForecastDays = config.forecast.forecastDays
+  if (config.forecast.pastHours !== defaults.forecast.pastHours) forecast.PastHours = config.forecast.pastHours
+  if (config.forecast.models.join(',') !== defaults.forecast.models.join(',')) forecast.Models = config.forecast.models
+  if (Object.keys(forecast).length) n.Forecast = forecast
+  const ensemble: Record<string, unknown> = {}
+  if (config.ensemble.forecastDays !== defaults.ensemble.forecastDays) ensemble.ForecastDays = config.ensemble.forecastDays
+  if (config.ensemble.models.join(',') !== defaults.ensemble.models.join(',')) ensemble.Models = config.ensemble.models
+  if (Object.keys(ensemble).length) n.Ensemble = ensemble
   const aq: Record<string, unknown> = {}
   if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) aq.ForecastDays = config.airQuality.forecastDays
   if (config.airQuality.region !== defaults.airQuality.region) aq.Region = config.airQuality.region
@@ -133,8 +139,11 @@ export function exportAsEnvVars(config: NjordConfig): string {
 
   const defaults = defaultConfig()
   add('Njord__Polling__PollInterval', config.pollInterval)
-  if (config.weather.forecastDays !== defaults.weather.forecastDays) add('Njord__Weather__ForecastDays', String(config.weather.forecastDays))
-  if (config.weather.models.join(',') !== defaults.weather.models.join(',')) config.weather.models.forEach((m, i) => add(`Njord__Weather__Models__${i}`, m))
+  if (config.forecast.forecastDays !== defaults.forecast.forecastDays) add('Njord__Forecast__ForecastDays', String(config.forecast.forecastDays))
+  if (config.forecast.pastHours !== defaults.forecast.pastHours) add('Njord__Forecast__PastHours', String(config.forecast.pastHours))
+  if (config.forecast.models.join(',') !== defaults.forecast.models.join(',')) config.forecast.models.forEach((m, i) => add(`Njord__Forecast__Models__${i}`, m))
+  if (config.ensemble.forecastDays !== defaults.ensemble.forecastDays) add('Njord__Ensemble__ForecastDays', String(config.ensemble.forecastDays))
+  if (config.ensemble.models.join(',') !== defaults.ensemble.models.join(',')) config.ensemble.models.forEach((m, i) => add(`Njord__Ensemble__Models__${i}`, m))
   if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) add('Njord__AirQuality__ForecastDays', String(config.airQuality.forecastDays))
   if (config.airQuality.region !== defaults.airQuality.region) add('Njord__AirQuality__Region', config.airQuality.region)
   if (config.marine.forecastDays !== defaults.marine.forecastDays) add('Njord__Marine__ForecastDays', String(config.marine.forecastDays))
@@ -220,12 +229,19 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   const discoveryInterval = n.Polling?.DiscoveryInterval
   const budgetOverride = n.Polling?.BudgetOverride
   if (pollInterval) config.pollInterval = pollInterval
-  if (n.Weather) {
-    config.weather = {
-      forecastDays: Number(n.Weather.ForecastDays) || 4,
-      models: Array.isArray(n.Weather.Models) && n.Weather.Models.length
-        ? n.Weather.Models.map(String)
-        : n.Weather.Model ? [String(n.Weather.Model)] : defaultConfig().weather.models,
+  if (n.Forecast) {
+    config.forecast = {
+      forecastDays: Number(n.Forecast.ForecastDays) || 4,
+      pastHours: Number(n.Forecast.PastHours) || 0,
+      models: Array.isArray(n.Forecast.Models) ? n.Forecast.Models.map(String) : [],
+    }
+  }
+  if (n.Ensemble) {
+    config.ensemble = {
+      forecastDays: Number(n.Ensemble.ForecastDays) || 4,
+      models: Array.isArray(n.Ensemble.Models) && n.Ensemble.Models.length
+        ? n.Ensemble.Models.map(String)
+        : defaultConfig().ensemble.models,
     }
   }
   if (n.SolarYield) {
@@ -278,7 +294,8 @@ export function importFromJson(json: string): Partial<NjordConfig> {
 
 export function importFromEnvVars(text: string): Partial<NjordConfig> {
   const config = defaultConfig()
-  let weatherModelsSeen = false
+  let forecastModelsSeen = false
+  let ensembleModelsSeen = false
   const lines = text.split('\n').filter(l => l.startsWith('Njord__'))
 
   for (const line of lines) {
@@ -297,12 +314,19 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
       else if (budgetParts[0] === 'RequestsPerMinute') budget.requestsPerMinute = parseInt(value) || 0
       config.budgetOverride = budget
     }
-    else if (parts[0] === 'Weather') {
-      if (parts[1] === 'ForecastDays') config.weather.forecastDays = parseInt(value) || 4
-      else if (parts[1] === 'Model' && value) config.weather.models = [value]
+    else if (parts[0] === 'Forecast') {
+      if (parts[1] === 'ForecastDays') config.forecast.forecastDays = parseInt(value) || 4
+      else if (parts[1] === 'PastHours') config.forecast.pastHours = parseInt(value) || 0
       else if (parts[1] === 'Models' && value) {
-        if (!weatherModelsSeen) { config.weather.models = []; weatherModelsSeen = true }
-        config.weather.models[parseInt(parts[2]) || 0] = value
+        if (!forecastModelsSeen) { config.forecast.models = []; forecastModelsSeen = true }
+        config.forecast.models[parseInt(parts[2]) || 0] = value
+      }
+    }
+    else if (parts[0] === 'Ensemble') {
+      if (parts[1] === 'ForecastDays') config.ensemble.forecastDays = parseInt(value) || 4
+      else if (parts[1] === 'Models' && value) {
+        if (!ensembleModelsSeen) { config.ensemble.models = []; ensembleModelsSeen = true }
+        config.ensemble.models[parseInt(parts[2]) || 0] = value
       }
     }
     else if (parts[0] === 'Flood' && parts[1] === 'IncludeEnsemble') {

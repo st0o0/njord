@@ -27,23 +27,24 @@ public sealed class EnsembleClient : IDomainClient
     private readonly string _primaryModel;
     private readonly bool _needsModels;
 
-    public EnsembleClient(HttpClient httpClient, IOptions<WeatherOptions> options, IOptions<SolarYieldOptions> solar, IOptions<FeatureRequirementsOptions> requirements, ILogger<EnsembleClient> logger)
+    public EnsembleClient(HttpClient httpClient, IOptions<EnsembleOptions> options, IOptions<SolarYieldOptions> solar, IOptions<DomainRequirements> requirements, ILogger<EnsembleClient> logger)
     {
         _httpClient = httpClient;
         var resolved = requirements.Value;
-        _modelIds = resolved.EnsembleModels;
-        _primaryModel = _modelIds.IsDefaultOrEmpty ? WeatherOptions.DefaultModel : _modelIds[0];
+        var configured = options.Value.Models.Length > 0 ? ImmutableArray.Create(options.Value.Models) : ImmutableArray.Create(EnsembleOptions.DefaultModel);
+        _primaryModel = configured[0];
         _needsModels = resolved.AllEnsemble.HasFlag(EnsembleParams.Models);
 
-        var ignored = options.Value.Models.Except(_modelIds).ToArray();
+        _modelIds = _needsModels ? configured : [_primaryModel];
+        var ignored = configured.Except(_modelIds).ToArray();
         if (ignored.Length > 0)
         {
-            logger.LogWarning("Ensemble models ignored because no enabled feature uses them: {Models}", string.Join(", ", ignored));
+            logger.LogWarning("Ensemble models ignored because no enabled feature compares models: {Models}", string.Join(", ", ignored));
         }
 
         _solar = solar.Value;
         _spreadVariables = resolved.AllEnsemble.ToApiNames();
-        _weatherVariables = _needsModels ? resolved.Requirements.AllForecast.ToApiNames() : [];
+        _weatherVariables = _needsModels ? resolved.AllForecast.ToApiNames() : [];
         _allVariables = [.. _weatherVariables.Concat(_spreadVariables).Distinct()];
         _forecastDays = Math.Min(options.Value.ForecastDays, MaxForecastDays);
         CallWeight = Core.Polling.CallWeight.Of(_allVariables.Count, _forecastDays) * _modelIds.Length;

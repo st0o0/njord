@@ -92,7 +92,7 @@ public sealed class DomainRequirementsTests
     [Fact]
     public void Should_require_nothing_by_default()
     {
-        var none = default(DomainRequirements);
+        var none = new DomainRequirements();
 
         Assert.All(Enum.GetValues<DomainKind>(), domain => Assert.False(none.Requires(domain)));
     }
@@ -151,7 +151,31 @@ public sealed class DomainRequirementsTests
         Assert.Multiple(
             () => Assert.True(new DomainRequirements(Ensemble: EnsembleParams.TemperatureSpread).Requires(DomainKind.Ensemble)),
             () => Assert.True(new DomainRequirements(OptionalEnsemble: EnsembleParams.Models).Requires(DomainKind.Ensemble)),
-            () => Assert.False(default(DomainRequirements).Requires(DomainKind.Ensemble)));
+            () => Assert.False(new DomainRequirements().Requires(DomainKind.Ensemble)));
+    }
+
+    [Fact]
+    public void Should_add_weather_code_and_pm10_as_base_params_when_domains_are_required()
+    {
+        var result = new DomainRequirements(
+            Forecast: ForecastParams.Temperature,
+            OptionalAirQuality: AirQualityParams.BirchPollen).WithBaseParams();
+
+        Assert.Multiple(
+            () => Assert.Equal(ForecastParams.Temperature | ForecastParams.WeatherCode, result.Forecast),
+            () => Assert.Equal(AirQualityParams.Pm10, result.AirQuality),
+            () => Assert.Equal(AirQualityParams.BirchPollen, result.OptionalAirQuality));
+    }
+
+    [Fact]
+    public void Should_not_add_base_params_to_domains_that_are_not_required()
+    {
+        var result = new DomainRequirements(Flood: FloodParams.Discharge).WithBaseParams();
+
+        Assert.Multiple(
+            () => Assert.Equal(default, result.Forecast),
+            () => Assert.Equal(default, result.AirQuality),
+            () => Assert.False(result.Requires(DomainKind.Forecast)));
     }
 
     [Fact]

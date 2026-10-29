@@ -32,7 +32,7 @@ public sealed class PollWorkerGatewayConnectionTests : Akka.Hosting.TestKit.Test
         ActorRegistry.Register<IForecastGateway>(fakeGateway, overwrite: true);
 
         var target = new PollTarget(new Location(options.Locations[0].Name, 0, 0));
-        var requirements = Options.Create(new FeatureRequirementsOptions { Domains = [DomainKind.Forecast] });
+        var requirements = Options.Create(TestRequirements.For(DomainKind.Forecast));
         var worker = Sys.ActorOf(
             Props.Create(() => new PollWorker(time, Options.Create(new PollingOptions()), requirements, target.Id)),
             "real-worker");

@@ -5,7 +5,6 @@ using Njord.Core.Domain;
 namespace Njord.OpenMeteo.Configuration;
 
 public sealed class OpenMeteoOptionsValidator :
-    IValidateOptions<WeatherOptions>,
     IValidateOptions<AirQualityOptions>,
     IValidateOptions<FloodOptions>,
     IValidateOptions<MarineOptions>,
@@ -13,25 +12,6 @@ public sealed class OpenMeteoOptionsValidator :
     IValidateOptions<SatelliteOptions>,
     IValidateOptions<SolarYieldOptions>
 {
-    public ValidateOptionsResult Validate(string? name, WeatherOptions options) =>
-        Result([
-            Range("Forecast.ForecastDays", options.ForecastDays, 1, 16),
-            Range("Forecast.PastHours", options.PastHours, 0, 96),
-            options.Models.Length == 0 ? "Forecast.Models must contain at least one model." : null,
-            .. DuplicateModels(options),
-            .. UnknownModels(options)]);
-
-    private static IEnumerable<string> DuplicateModels(WeatherOptions options) =>
-        options.Models
-        .GroupBy(m => m).Where(g => g.Count() > 1)
-        .Select(g => $"Forecast.Models contains '{g.Key}' more than once.");
-
-    private static IEnumerable<string> UnknownModels(WeatherOptions options) =>
-        options.Models
-        .Where(m => WeatherModelCatalog.Find(m) is null)
-        .Distinct()
-        .Select(m => $"Forecast.Models entry '{m}' is not a known model (known: {string.Join(", ", WeatherModelCatalog.All.Select(i => i.Id))}).");
-
     public ValidateOptionsResult Validate(string? name, AirQualityOptions options) =>
         Result(
             Range("AirQuality.ForecastDays", options.ForecastDays, 1, 7),

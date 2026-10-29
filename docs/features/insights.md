@@ -26,16 +26,16 @@ Njord__Features__ConfidenceTrend__Enabled: "true"
 
 Shows the daily temperature and precipitation forecast from every configured ensemble model side by side. Useful for seeing where models agree (high confidence) and where they diverge.
 
-Requires at least two models configured in `Njord:Weather:Models`.
+Requires at least two models configured in `Njord:Ensemble:Models`.
 
 **Entity:** `sensor.<location>_model_temperature_spread`
 **Domains:** Ensemble | **Default:** Off
 
 ```yaml
 Njord__Features__ModelComparison__Enabled: "true"
-Njord__Weather__Models__0: "ecmwf_ifs025_ensemble_mean"
-Njord__Weather__Models__1: "ecmwf_aifs025_ensemble_mean"
-Njord__Weather__Models__2: "ukmo_global_ensemble_mean_20km"
+Njord__Ensemble__Models__0: "ecmwf_ifs025_ensemble_mean"
+Njord__Ensemble__Models__1: "ecmwf_aifs025_ensemble_mean"
+Njord__Ensemble__Models__2: "ukmo_global_ensemble_mean_20km"
 ```
 
 Each configured model also creates its own `weather.<location>_<model>` entity with full forecast data.

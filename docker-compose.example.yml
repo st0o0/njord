@@ -17,9 +17,11 @@ services:
       #- Njord__Locations__1__Longitude=8.54
       # Latitude and Longitude are required for every location.
 
-      # ── Polling & Weather ─────────────────────────────────────
+      # ── Polling & Forecast ─────────────────────────────────────
       #- Njord__Polling__PollInterval=01:00:00
-      #- Njord__Weather__ForecastDays=4
+      #- Njord__Forecast__ForecastDays=4     # 1-16
+      #- Njord__Forecast__PastHours=0        # 0-96
+      #- Njord__Forecast__Models__0=         # empty = best_match
       # Primary weather comes from the deterministic Forecast API (best_match, high-res).
       # Forecast days per domain (only used when an enabled feature needs the domain):
       #- Njord__AirQuality__ForecastDays=5   # 1-7
@@ -28,7 +30,7 @@ services:
       #- Njord__Flood__ForecastDays=92       # 1-210
       #- Njord__Flood__IncludeEnsemble=false # 50 GloFAS members, adds confidence to FloodRisk, costs 5 calls per flood request
       # Features decide which domains are polled (the union of what the enabled ones read).
-      # 7 domains: Weather (Forecast API), Ensemble (spread + comparison), AirQuality, Flood, Marine, Seasonal, Satellite.
+      # 7 domains: Forecast, Ensemble (spread + comparison), AirQuality, Flood, Marine, Seasonal, Satellite.
       # On by default: the 14 weather alerts (Frost, Heat, ...), Commute, Pollen, Pm25.
       # Switch single features on (adds their domain) or off:
       #- Njord__Features__Frost__Enabled=false
@@ -44,8 +46,9 @@ services:
       #- Njord__Features__NightVentilation__Enabled=true
       #- Njord__Features__ConfidenceTrend__Enabled=true
       # Ensemble comparison models (polled from ensemble-api.open-meteo.com when needed):
-      #- Njord__Weather__Models__0=ecmwf_ifs025_ensemble_mean
-      #- Njord__Weather__Models__1=ecmwf_aifs025_ensemble_mean # additional, only used with ModelComparison
+      #- Njord__Ensemble__ForecastDays=4     # 1-35
+      #- Njord__Ensemble__Models__0=ecmwf_ifs025_ensemble_mean
+      #- Njord__Ensemble__Models__1=ecmwf_aifs025_ensemble_mean # additional, only used with ModelComparison
       #- Njord__Features__ModelComparison__Enabled=true # compare all Models via the Ensemble domain
       #- Njord__Features__SeasonalOutlook__Enabled=true # 3-month outlook, one extra call per day and location
       #- Njord__Features__SatelliteRadiation__Enabled=true # observed solar irradiance, about 720 extra calls per month and location

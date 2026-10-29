@@ -1,24 +1,23 @@
 using Njord.Core;
 using Njord.Core.Configuration;
-using Njord.Core.Domain;
 using Njord.Messages.Config;
 
 namespace Njord.Grpc.Mapping;
 
 public static class CatalogMessageMappingExtensions
 {
-    public static CatalogResult ToCatalog(this NjordOptions scope, FeatureRequirementsOptions requirements)
+    public static CatalogResult ToCatalog(this NjordOptions scope, EnsembleOptions ensemble)
     {
-        IReadOnlyList<string> effective = requirements.WeatherModels.IsDefaultOrEmpty
-            ? [requirements.PrimaryWeatherModel]
-            : [.. requirements.WeatherModels];
+        IReadOnlyList<string> effective = ensemble.Models.Length == 0
+            ? [EnsembleOptions.DefaultModel]
+            : [.. ensemble.Models];
         var locations = scope.Locations
             .Select(location => new CatalogLocation(
                 new Location(location.Name, location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault()),
                 effective))
             .ToList();
 
-        return new CatalogResult(locations, [.. WeatherModelCatalog.All.Select(m => new CatalogModel(
-            m.Id, m.DisplayName, m.Provider, m.Region, m.ResolutionKm, m.ForecastDays, effective.Contains(m.Id)))]);
+        return new CatalogResult(locations, [.. effective.Select(id => new CatalogModel(
+            id, id, string.Empty, string.Empty, 0, ensemble.ForecastDays, true))]);
     }
 }

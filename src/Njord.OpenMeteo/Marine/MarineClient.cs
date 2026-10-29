@@ -16,11 +16,11 @@ public sealed class MarineClient : IDomainClient
     private readonly MarineOptions _options;
     private readonly IReadOnlyList<string> _variables;
 
-    public MarineClient(HttpClient httpClient, IOptions<MarineOptions> options, IOptions<FeatureRequirementsOptions> requirements)
+    public MarineClient(HttpClient httpClient, IOptions<MarineOptions> options, IOptions<DomainRequirements> requirements)
     {
         _httpClient = httpClient;
         _options = options.Value;
-        _variables = requirements.Value.Requirements.AllMarine.ToApiNames();
+        _variables = requirements.Value.AllMarine.ToApiNames();
     }
 
     public DomainKind Domain => DomainKind.Marine;

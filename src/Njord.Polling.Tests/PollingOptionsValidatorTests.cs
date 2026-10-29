@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Njord.Core.AirQuality;
 using Njord.Core.Configuration;
@@ -13,24 +11,25 @@ namespace Njord.Polling.Tests;
 
 public sealed class PollingOptionsValidatorTests
 {
-    private static PollingOptionsValidator ValidatorFor(params (string Key, string Value)[] scope) =>
-        ValidatorWith(null, scope);
+    private static PollingOptionsValidator ValidatorFor(int locations = 0) =>
+        ValidatorWith(null, locations);
 
-    private static PollingOptionsValidator ValidatorWith(ImmutableArray<string>? ensembleModels, params (string Key, string Value)[] scope)
+    private static PollingOptionsValidator ValidatorWith(string[]? ensembleModels, int locations)
     {
         var hasEnsemble = ensembleModels is { Length: > 0 };
-        return new(new ConfigurationBuilder()
-            .AddInMemoryCollection(scope.ToDictionary(s => s.Key, s => (string?)s.Value))
-            .Build(),
-            Options.Create(new FeatureRequirementsOptions
-            {
-                Requirements = new DomainRequirements(
-                    Forecast: ForecastParams.Temperature,
-                    AirQuality: AirQualityParams.Pm25,
-                    Ensemble: hasEnsemble ? EnsembleParams.TemperatureSpread | EnsembleParams.Models : EnsembleParams.None),
-                WeatherModels = ["ecmwf_ifs025_ensemble_mean"],
-                EnsembleModels = ensembleModels ?? [],
-            }));
+        var scope = new NjordOptions
+        {
+            Locations = [.. Enumerable.Range(0, locations).Select(i => new LocationOptions { Name = $"L{i}" })],
+        };
+        return new(
+            Options.Create(scope),
+            Options.Create(new ForecastOptions()),
+            Options.Create(new EnsembleOptions { Models = ensembleModels ?? [] }),
+            Options.Create(new FloodOptions()),
+            Options.Create(new DomainRequirements(
+                Forecast: ForecastParams.Temperature,
+                AirQuality: AirQualityParams.Pm25,
+                Ensemble: hasEnsemble ? EnsembleParams.TemperatureSpread | EnsembleParams.Models : EnsembleParams.None)));
     }
 
     [Theory]
@@ -66,8 +65,7 @@ public sealed class PollingOptionsValidatorTests
     [Fact]
     public void Should_reject_polling_that_projects_beyond_eighty_percent_of_the_budget()
     {
-        var validator = ValidatorFor(
-            ("Njord:Locations:0:Name", "Lucerne"));
+        var validator = ValidatorFor(locations: 1);
         var options = new PollingOptions
         {
             PollInterval = TimeSpan.FromMinutes(1),
@@ -83,13 +81,9 @@ public sealed class PollingOptionsValidatorTests
     public void Should_count_ensemble_models_in_the_budget_projection()
     {
         var options = new PollingOptions { Budget = new RequestBudget(2_500, 600) };
-        (string, string)[] scope =
-        [
-            ("Njord:Locations:0:Name", "Lucerne"),
-        ];
 
-        var withoutComparison = ValidatorWith(null, scope).Validate(null, options);
-        var withComparison = ValidatorWith(ImmutableArray.Create("a", "b", "c"), scope).Validate(null, options);
+        var withoutComparison = ValidatorWith(null, 1).Validate(null, options);
+        var withComparison = ValidatorWith(["a", "b", "c"], 1).Validate(null, options);
 
         Assert.Multiple(
             () => Assert.True(withoutComparison.Succeeded),

@@ -30,7 +30,7 @@ public sealed class PollingClusterTests : Akka.Hosting.TestKit.TestKit
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<TimeProvider>(_time);
-        services.AddSingleton(Options.Create(new FeatureRequirementsOptions { Domains = [DomainKind.Forecast, DomainKind.AirQuality] }));
+        services.AddSingleton(Options.Create(TestRequirements.For(DomainKind.Forecast, DomainKind.AirQuality)));
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations =

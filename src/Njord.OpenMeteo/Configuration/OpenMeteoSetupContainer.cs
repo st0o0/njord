@@ -28,7 +28,8 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddNjordOptions<WeatherOptions, OpenMeteoOptionsValidator>();
+        services.AddNjordOptions<ForecastOptions, ForecastOptionsValidator>();
+        services.AddNjordOptions<EnsembleOptions, EnsembleOptionsValidator>();
         services.AddNjordOptions<AirQualityOptions, OpenMeteoOptionsValidator>();
         services.AddNjordOptions<MarineOptions, OpenMeteoOptionsValidator>();
         services.AddNjordOptions<FloodOptions, OpenMeteoOptionsValidator>();

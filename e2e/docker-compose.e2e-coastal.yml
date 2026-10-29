@@ -20,9 +20,9 @@ services:
       - Njord__Locations__1__Longitude=139.6503
 
       # ── Weather (7 days, 2 models) ────────────────────────
-      - Njord__Weather__ForecastDays=7
-      - Njord__Weather__Models__0=ecmwf_ifs025_ensemble_mean
-      - Njord__Weather__Models__1=ecmwf_aifs025_ensemble_mean
+      - Njord__Forecast__ForecastDays=7
+      - Njord__Ensemble__Models__0=ecmwf_ifs025_ensemble_mean
+      - Njord__Ensemble__Models__1=ecmwf_aifs025_ensemble_mean
 
       # ── Enrichments (all enabled) ─────────────────────────
       - Njord__Features__Frost__Enabled=true

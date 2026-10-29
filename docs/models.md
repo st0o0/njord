@@ -1,6 +1,6 @@
 # Models
 
-njord uses the Open-Meteo **Ensemble Mean** API. One call per location returns the ensemble-mean forecast, including `ensemble_std_dev`, the spread that drives alert confidence. By default the model is `ecmwf_ifs025_ensemble_mean`; `Njord:Weather:Models` selects others (`ecmwf_aifs025_ensemble_mean`, `ukmo_global_ensemble_mean_20km`). Several models are only used when [Model comparison](/configuration/model-comparison) is enabled; the first model stays the primary one for all features.
+njord uses the Open-Meteo **Ensemble Mean** API. One call per location returns the ensemble-mean forecast, including `ensemble_std_dev`, the spread that drives alert confidence. By default the model is `ecmwf_ifs025_ensemble_mean`; `Njord:Ensemble:Models` selects others (`ecmwf_aifs025_ensemble_mean`, `ukmo_global_ensemble_mean_20km`). Several models are only used when [Model comparison](/configuration/model-comparison) is enabled; the first model stays the primary one for all features.
 
 The default model `ecmwf_ifs025_ensemble_mean` delivers neither `visibility` nor `uv_index`, so the `Forecast:Visibility` and `Forecast:Uv` alerts stay silent with it.
 

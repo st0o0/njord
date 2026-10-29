@@ -15,7 +15,7 @@
 }
 ```
 
-As environment variables: `Njord__Weather__Models__0=ecmwf_ifs025_ensemble_mean`, `Njord__Weather__Models__1=ecmwf_aifs025_ensemble_mean`, `Njord__Features__ModelComparison__Enabled=true`.
+As environment variables: `Njord__Ensemble__Models__0=ecmwf_ifs025_ensemble_mean`, `Njord__Ensemble__Models__1=ecmwf_aifs025_ensemble_mean`, `Njord__Features__ModelComparison__Enabled=true`.
 
 ## Models
 

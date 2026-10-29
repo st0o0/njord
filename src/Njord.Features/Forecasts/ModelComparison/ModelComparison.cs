@@ -10,7 +10,7 @@ namespace Njord.Features.Forecasts.ModelComparison;
 
 public sealed class ModelComparison(IOptions<ModelComparisonConfig> config) : FeatureRule<ModelComparisonInput>
 {
-    public const string FeatureName = FeatureResolution.ComparisonFeatureName;
+    public const string FeatureName = "ModelComparison";
     public const int ComparedDays = 5;
 
     public override FeatureDescriptor Descriptor { get; } = new(

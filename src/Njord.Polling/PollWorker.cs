@@ -37,9 +37,9 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
     public override string PersistenceId { get; }
 
     public PollWorker(TimeProvider timeProvider, IOptions<PollingOptions> pollingOptions,
-        IOptions<FeatureRequirementsOptions> requirements, string entityId, TimeSpan? replyTimeout = null)
+        IOptions<DomainRequirements> requirements, string entityId, TimeSpan? replyTimeout = null)
     {
-        _enabledDomains = [.. requirements.Value.Domains];
+        _enabledDomains = [.. requirements.Value.RequiredDomains()];
         _timeProvider = timeProvider;
         _replyTimeout = replyTimeout ?? DefaultReplyTimeout;
         _pollInterval = pollingOptions.Value.PollInterval;

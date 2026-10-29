@@ -16,12 +16,10 @@ internal sealed class FeatureEngine
 
     public FeatureEngine(IEnumerable<IFeatureRule> allFeatures, TimeProvider time)
     {
-        _enabled = FeatureResolution.EnabledFeatures(allFeatures);
+        _enabled = [.. allFeatures.Where(f => f.Enabled)];
         _ringDepth = _enabled.Count == 0 ? 1 : _enabled.Max(f => f.Descriptor.PollDepth) + 1;
         _time = time;
     }
-
-    public DomainRequirements Requirements => FeatureResolution.RequiredParams(_enabled);
 
     public IReadOnlyList<PipelineEvent> Process(DomainDataReceived received)
     {

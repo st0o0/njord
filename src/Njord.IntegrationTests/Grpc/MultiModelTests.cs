@@ -18,8 +18,8 @@ public sealed class MultiModelTests : IAsyncLifetime
             _directory.Path,
             settings =>
             {
-                settings["Njord:Weather:Models:0"] = Primary;
-                settings["Njord:Weather:Models:1"] = Secondary;
+                settings["Njord:Ensemble:Models:0"] = Primary;
+                settings["Njord:Ensemble:Models:1"] = Secondary;
                 settings["Njord:Features:ModelComparison:Enabled"] = "true";
             },
             TestContext.Current.CancellationToken,

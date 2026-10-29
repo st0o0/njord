@@ -10,7 +10,7 @@ Configuration is **static**: it is read once at startup. There is no runtime con
 {
   "Njord": {
     "Locations": [ ... ],
-    "Weather": { "ForecastDays": 4 },
+    "Forecast": { "ForecastDays": 4 },
     "Polling": {
       "PollInterval": "01:00:00",
       "DiscoveryInterval": "00:20:00",
@@ -74,7 +74,7 @@ Njord__Polling__PollInterval=00:30:00
 Njord__Locations__0__Name=Lucerne
 Njord__Locations__0__Latitude=47.05
 Njord__Locations__0__Longitude=8.31
-Njord__Weather__ForecastDays=4
+Njord__Forecast__ForecastDays=4
 Njord__Features__FloodRisk__Enabled=true
 Njord__Features__Frost__Thresholds__0=1
 ```
@@ -86,7 +86,7 @@ Use environment variables for secrets like `Njord__Persistence__ConnectionString
 ## Configuration sections
 
 - [Locations](./locations): where to fetch forecasts for
-- [Weather](./weather): solar variables and forecast days
+- [Forecast and Ensemble](./weather): forecast days and ensemble models
 - [Enrichment](./enrichment): feature results and alert thresholds
 - [Persistence](./persistence): SQLite or PostgreSQL storage
 - [Budget](./budget): Open-Meteo limits and usage projection

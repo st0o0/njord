@@ -20,10 +20,10 @@ public sealed class WeatherGrpcService(
     ActorRegistry actorRegistry,
     ActorSystem actorSystem,
     IOptions<NjordOptions> scope,
-    IOptions<FeatureRequirementsOptions> requirements,
+    IOptions<EnsembleOptions> ensemble,
     TimeProvider timeProvider) : WeatherService.WeatherServiceBase
 {
-    private readonly CatalogResult _catalog = scope.Value.ToCatalog(requirements.Value);
+    private readonly CatalogResult _catalog = scope.Value.ToCatalog(ensemble.Value);
 
     public override async Task<GetCatalogResponse> GetCatalog(GetCatalogRequest request, ServerCallContext context)
     {

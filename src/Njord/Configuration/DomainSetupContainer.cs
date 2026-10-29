@@ -21,10 +21,11 @@ public sealed class DomainSetupContainer : IServiceSetupContainer
             config.SystemEfficiency = solar.Value.SystemEfficiency;
         });
 
-        services.AddOptions<FeatureRequirementsOptions>()
-            .Configure<IEnumerable<IFeatureRule>, IOptions<WeatherOptions>>(
-                static (options, features, weather) =>
-                    FeatureResolution.Configure(options, features, weather.Value))
-            .ValidateOnStart();
+        services.AddSingleton<IOptions<DomainRequirements>>(sp =>
+            Options.Create(
+                sp.GetServices<IFeatureRule>()
+                    .Where(r => r.Enabled)
+                    .Aggregate(new DomainRequirements(), (all, f) => all | f.Descriptor.Requirements)
+                    .WithBaseParams()));
     }
 }

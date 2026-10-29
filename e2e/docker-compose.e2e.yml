@@ -17,7 +17,7 @@ services:
       - Njord__Locations__0__Longitude=2.1686
 
       # ── Weather (primary: deterministic Forecast API, best_match) ─
-      - Njord__Weather__ForecastDays=4
+      - Njord__Forecast__ForecastDays=4
 
       # ── Enrichments (all enabled for E2E) ──────────────────────
       - Njord__Features__Frost__Enabled=true
@@ -86,9 +86,9 @@ services:
       - Njord__Features__OceanCurrents__Enabled=true
       - Njord__Features__ElevatedWind__Enabled=true
       # ── Ensemble (comparison models for ModelComparison) ────────
-      - Njord__Weather__Models__0=ecmwf_ifs025_ensemble_mean
-      - Njord__Weather__Models__1=ecmwf_aifs025_ensemble_mean
-      - Njord__Weather__Models__2=ukmo_global_ensemble_mean_20km
+      - Njord__Ensemble__Models__0=ecmwf_ifs025_ensemble_mean
+      - Njord__Ensemble__Models__1=ecmwf_aifs025_ensemble_mean
+      - Njord__Ensemble__Models__2=ukmo_global_ensemble_mean_20km
       - Njord__Features__ModelComparison__Enabled=true
       - Njord__Features__SeasonalOutlook__Enabled=true
 

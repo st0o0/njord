@@ -53,7 +53,7 @@ Timer fires in PollWorker
 ## PollWorker: per-location, per-domain timers
 
 Each configured location gets a PollWorker (persistent sharded entity). On startup it
-receives its enabled domains from `FeatureRequirementsOptions.Domains` (the union of all
+receives its enabled domains from `DomainRequirements.RequiredDomains()` (the union of all
 enabled features' requirements).
 
 Each domain has independent state:
@@ -177,9 +177,9 @@ Each rule declares its `DomainRequirements` in its `Descriptor`:
 - **Optional params** (e.g., `OptionalForecast: WindDirection`): requested from the API
   but never gate execution. The rule must tolerate nulls.
 
-At startup, `FeatureResolution.Configure` OR-combines all enabled rules' requirements,
-adds base params (`WeatherCode` for Forecast, `Pm10` for AirQuality), and configures the
-API clients to request exactly those variables.
+At startup, the `IOptions<DomainRequirements>` registration OR-combines all enabled rules' requirements
+and adds base params (`WeatherCode` for Forecast, `Pm10` for AirQuality) via
+`DomainRequirements.WithBaseParams()`; the API clients request exactly those variables.
 
 ### Available ensemble spread variables
 

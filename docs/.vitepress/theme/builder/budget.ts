@@ -23,9 +23,9 @@ export interface BudgetResult {
   overBudget: boolean
 }
 
-// Mirrors BudgetGuard (Njord.Polling): per location and poll cycle the Weather domain costs
-// ceil(variables / 10) * ceil(forecastDays / 14) calls (variables = union of the enabled features' weather
-// requirements), every other required domain costs one call.
+// Mirrors BudgetGuard (Njord.Polling): per location and poll cycle the Forecast domain costs
+// ceil(variables / 10) * ceil(Forecast.ForecastDays / 14) calls (variables = union of the enabled features' weather
+// requirements; the Ensemble domain uses Ensemble.ForecastDays), every other required domain costs one call.
 export function computeBudget(config: NjordConfig): BudgetResult {
   const pollMinutes = parseTimeSpan(config.pollInterval)
   const cyclesPerDay = pollMinutes > 0 ? MINUTES_PER_DAY / pollMinutes : 0
@@ -60,7 +60,7 @@ export function computeBudget(config: NjordConfig): BudgetResult {
 
 function weatherWeight(config: NjordConfig, features: Record<string, boolean>): number {
   return requiredDomains(features).includes('Forecast')
-    ? Math.ceil(weatherVariableCount(features) / 10) * Math.ceil(config.weather.forecastDays / 14)
+    ? Math.ceil(weatherVariableCount(features) / 10) * Math.ceil(config.forecast.forecastDays / 14)
     : 0
 }
 
@@ -80,11 +80,11 @@ function ensembleNeedsModels(features: Record<string, boolean>): boolean {
 function ensembleWeight(config: NjordConfig, features: Record<string, boolean>): number {
   const domains = requiredDomains(features)
   if (!domains.includes('Ensemble')) return 0
-  const modelCount = Math.max(1, config.weather.models.filter(Boolean).length)
+  const modelCount = Math.max(1, config.ensemble.models.filter(Boolean).length)
   if (ensembleNeedsModels(features)) {
-    return Math.ceil((weatherVariableCount(features) + ENSEMBLE_SPREAD_VARIABLE_COUNT) / 10) * Math.ceil(config.weather.forecastDays / 14) * modelCount
+    return Math.ceil((weatherVariableCount(features) + ENSEMBLE_SPREAD_VARIABLE_COUNT) / 10) * Math.ceil(config.ensemble.forecastDays / 14) * modelCount
   }
-  return Math.ceil(ensembleSpreadVarCount(features) / 10) * Math.ceil(config.weather.forecastDays / 14)
+  return Math.ceil(ensembleSpreadVarCount(features) / 10) * Math.ceil(config.ensemble.forecastDays / 14)
 }
 
 function callsPerLocationCycle(config: NjordConfig, features: Record<string, boolean>): number {
