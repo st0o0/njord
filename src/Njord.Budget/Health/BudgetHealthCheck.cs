@@ -3,7 +3,7 @@ using Akka.Hosting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Njord.Core;
-using Njord.Core.Configuration.Health;
+using Njord.Core.Configuration;
 using Njord.Messages.Budget;
 
 namespace Njord.Budget.Health;

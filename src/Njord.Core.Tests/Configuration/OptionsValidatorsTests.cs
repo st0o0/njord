@@ -1,4 +1,4 @@
-using Njord.Core.Configuration.Health;
+using Njord.Core.Configuration;
 using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration;

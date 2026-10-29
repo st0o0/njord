@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Njord.Core.Configuration.Health;
+using Njord.Core.Configuration;
 using Njord.Messages.Polling;
 using Njord.Pipeline.Health;
 using Njord.Tests.Shared;

@@ -1,4 +1,4 @@
-namespace Njord.Core.Configuration.Health;
+namespace Njord.Core.Configuration;
 
 public sealed class HealthOptions : IConfigSection
 {

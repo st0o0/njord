@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Health;
 using Njord.Health;
 using Servus.Application.Startup;
 

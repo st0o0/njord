@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-namespace Njord.Core.Configuration.Health;
+namespace Njord.Core.Configuration;
 
 public sealed class HealthOptionsValidator : IValidateOptions<HealthOptions>
 {
