@@ -16,7 +16,8 @@ public sealed class BbqScore(IOptions<BbqConfig> config) : FeatureRule<ForecastI
         Name: "Bbq",
         DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.Precipitation | ForecastParams.Temperature | ForecastParams.WindSpeed
-            | ForecastParams.PrecipitationProbability | ForecastParams.CloudCover));
+            | ForecastParams.PrecipitationProbability | ForecastParams.CloudCover,
+            OptionalForecast: ForecastParams.IsDay));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -37,7 +38,7 @@ public sealed class BbqScore(IOptions<BbqConfig> config) : FeatureRule<ForecastI
 
     private static double ScoreHour(ForecastPoint point)
     {
-        if (point.Precipitation > 0.1)
+        if (point.IsDay is not > 0 || point.Precipitation > 0.1)
         {
             return 0.0;
         }

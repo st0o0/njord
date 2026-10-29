@@ -20,7 +20,7 @@ public sealed class OutdoorScore(IOptions<OutdoorConfig> config) : FeatureRule<F
         Forecast: ForecastParams.Temperature | ForecastParams.Precipitation | ForecastParams.PrecipitationProbability
             | ForecastParams.WindSpeed | ForecastParams.CloudCover,
         AirQuality: AirQualityParams.Pm25,
-        OptionalForecast: ForecastParams.UvIndex,
+        OptionalForecast: ForecastParams.UvIndex | ForecastParams.IsDay,
         OptionalAirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
             | AirQualityParams.Alder | AirQualityParams.Mugwort));
 
@@ -46,7 +46,8 @@ public sealed class OutdoorScore(IOptions<OutdoorConfig> config) : FeatureRule<F
 
     private static double ScoreHour(ForecastPoint weather, AirQualityPoint air)
     {
-        if (weather is not { Temperature: { } airTemperature, PrecipitationProbability: { } probability, WindSpeed: { } windSpeed, CloudCover: { } cloudCover }
+        if (weather.IsDay is not > 0
+            || weather is not { Temperature: { } airTemperature, PrecipitationProbability: { } probability, WindSpeed: { } windSpeed, CloudCover: { } cloudCover }
             || air.Pm25 is not { } pm25)
         {
             return 0.0;

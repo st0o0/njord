@@ -20,7 +20,8 @@ public static class AlertRuleFixture
         WeatherCode: 0,
         Humidity: 50.0,
         DewPoint: 5.0,
-        UvIndex: 0.0);
+        UvIndex: 0.0,
+        IsDay: 1.0);
 
     public static DomainForecast<ForecastPoint> Hourly(int hours, Func<int, ForecastPoint, ForecastPoint>? shape = null)
     {

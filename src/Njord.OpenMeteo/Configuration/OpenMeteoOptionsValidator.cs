@@ -16,6 +16,7 @@ public sealed class OpenMeteoOptionsValidator :
     public ValidateOptionsResult Validate(string? name, ForecastOptions options) =>
         Result([
             Range("Forecast.ForecastDays", options.ForecastDays, 1, 16),
+            Range("Forecast.PastHours", options.PastHours, 0, 96),
             options.Model is null
                 ? null
                 : "Njord:Forecast:Model was replaced by Njord:Forecast:Models (a list, the first entry is the primary model).",

@@ -17,4 +17,6 @@ public sealed class ForecastOptions : IConfigSection
     public string? Model { get; set; }
 
     public int ForecastDays { get; set; } = 4;
+
+    public int PastHours { get; set; } = 0;
 }

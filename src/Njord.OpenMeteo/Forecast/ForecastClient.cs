@@ -19,6 +19,7 @@ public sealed class ForecastClient : IDomainClient
     private readonly SolarYieldOptions _solar;
     private readonly IReadOnlyList<string> _variables;
     private readonly int _forecastDays;
+    private readonly int _pastHours;
 
     public ForecastClient(HttpClient httpClient, IOptions<ForecastOptions> options, IOptions<SolarYieldOptions> solar, IOptions<FeatureRequirementsOptions> requirements, ILogger<ForecastClient> logger)
     {
@@ -26,6 +27,7 @@ public sealed class ForecastClient : IDomainClient
         _solar = solar.Value;
         _variables = requirements.Value.Requirements.AllForecast.ToApiNames();
         _forecastDays = Math.Min(options.Value.ForecastDays, MaxForecastDays);
+        _pastHours = options.Value.PastHours;
         CallWeight = Core.Polling.CallWeight.Of(_variables.Count, _forecastDays);
     }
 
@@ -44,6 +46,11 @@ public sealed class ForecastClient : IDomainClient
         {
             query.Add((ClientRequest.Tilt, ClientRequest.Number(_solar.Tilt)));
             query.Add((ClientRequest.Azimuth, ClientRequest.Number(ClientRequest.ToApiAzimuth(_solar.Azimuth))));
+        }
+
+        if (_pastHours > 0)
+        {
+            query.Add((ClientRequest.PastHours, ClientRequest.Number(_pastHours)));
         }
 
         query.Add((ClientRequest.ForecastDays, ClientRequest.Number(_forecastDays)));
