@@ -1,0 +1,5 @@
+services:
+  njord:
+    environment:
+      - Njord__Polling__PollInterval=00:15:00
+      - Njord__Polling__DiscoveryInterval=00:05:00

@@ -57,3 +57,7 @@ node_modules/
 
 # Mutation testing
 StrykerOutput/
+
+# Soak test runtime output
+e2e/soak/soak-results.jsonl
+e2e/soak/soak-events.log
