@@ -24,18 +24,20 @@ src/
     Seasonal/           #   SeasonalPoint, SeasonalParams
     Solar/              #   SatelliteRadiationPoint, SatelliteParams
     ActorKeys.cs        #   marker interfaces for every resolvable actor
-    Actors/             #   IActorRegistration, StreamSupervision, Forecast/Pipeline stream handshakes shared across
-                        #   libraries (actor plumbing used by one library lives there: ShardMessageExtractor in
-                        #   Polling, GrpcStreamMessages in Grpc)
-    Domain/             #   IFeatureRule, FeatureRule<TInput>, FeatureDescriptor, FeatureCategory, FeatureContext,
-                        #   FeatureInputs (typed inputs), FeatureResolution, FeatureRequirementsOptions, DomainRequirements,
-                        #   LocationForecast, RingBuffer, ForecastQueries, DomainDataReceived,
-                        #   PipelineEvent, FeatureResult, OutputKind, PollFailureReason
+    Actors/             #   IActorRegistration, StreamSupervision, actor marker interfaces (ShardMessageExtractor in Polling)
+    Domain/             #   FeatureDescriptor, FeatureCategory, FeatureContext,
+                        #   FeatureInputs (typed inputs), FeatureRequirementsOptions, DomainRequirements,
+                        #   LocationForecast, RingBuffer, ForecastQueries, OutputKind
     Configuration/      #   IConfigSection, NjordOptions (with FindLocation), LocationOptions, ForecastOptions, FloodOptions,
                         #   PollingOptions, Health/HealthOptions, AddNjordOptions (+ validators)
     Polling/            #   CallWeight, RequestBudget (free-tier constants, DailyLimit), FetchTimeouts
-  Njord.Messages/       # Akka-free contracts (-> Core): Fetch*/Poll*/Query* messages,
-                        #   Alerts/, Budget/, Config/
+  Njord.Messages/       # Contracts (-> Core, Akka.Streams for ISinkRef/ISourceRef):
+                        #   Alerts/ (enums, thresholds), Budget/ (QueryBudgetStatus, RecordApiCall),
+                        #   Config/ (CatalogResult), Fetch/ (FetchDomain*, FetchResult*, QueryDomainData),
+                        #   Polling/ (StartPolling, StopPolling, PollWorkerReport, QueryPoll*, PollTarget),
+                        #   Stream/ (DomainDataReceived, PipelineEvent, RequestForecast/Pipeline/GrpcStream*),
+                        #   Results/ (FeatureResult, IFeatureRule, FeatureRule<T>, FeatureResolution,
+                        #     Alerts/, Scores/, Conditions/, Trends/, Forecasts/)
   Njord.Persistence/    # Extend-only records, no Njord refs: Events/Budget, Events/Polling
   Njord.OpenMeteo/      # (-> Core) folders per domain: Forecast/, Ensemble/, AirQuality/, Flood/, Marine/, Seasonal/, Satellite/
                         #   (client, API variable enum, response DTO, mapping extensions per domain),
@@ -64,7 +66,7 @@ docs/                           # VitePress site incl. the Config Builder (docs/
 
 Reference direction: Persistence <- Core <- Messages <- feature libraries
 (OpenMeteo, Budget, Polling, Pipeline, Features, Grpc) <- Host. Core is the foundation (vocabulary +
-domain logic + actor infra); Messages is Akka-free and references only Core. Feature
+domain logic + actor infra); Messages references Core and Akka.Streams (for ISinkRef/ISourceRef). Feature
 libraries reference `Njord.Core` and `Njord.Messages`, never each other, never the Host; they reach each
 other's actors through the markers in `ActorKeys.cs`. Registration stays central in the Host.
 
@@ -101,7 +103,8 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 - **Consumers are output adapters via SourceRef** (`GrpcConsumer`); no relay
   actors. No consumer slows the hub: bounded drop-oldest buffers.
 - **gRPC is an adapter.** Resolve a marker, `ActorAsk` with a `Njord.Messages` message, map with `ToProto()`.
-- **`Njord.Messages` is Akka-free** (refs Forecast only); stream handshakes live in `Njord.Core/Actors`.
+- **`Njord.Messages` refs Core and Akka.Streams** (for `ISinkRef`/`ISourceRef`); all inter-actor messages
+  including stream handshakes live in Messages (namespaces: Fetch, Polling, Stream, Results).
 - **Rules emit typed `FeatureResult`s** (`AlertResult`, `ScoreResult`, `ConditionResult`, `TrendResult`,
   `ForecastResult` and their feature-specific records); gRPC delivers each as an `EnrichmentEvent` whose `feature`
   oneof case identifies the feature (`weather.proto`).
