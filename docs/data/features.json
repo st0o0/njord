@@ -127,7 +127,7 @@
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Precipitation", "WindGusts", "Cape"],
     "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
-    "options": [{ "name": "CapeThreshold", "type": "number", "default": 1000 }, { "name": "PrecipThreshold", "type": "number", "default": 5 }, { "name": "GustThreshold", "type": "number", "default": 15 }]
+    "options": [{ "name": "CapeThresholds", "type": "numberArray", "default": [1000, 1500, 2500] }, { "name": "PrecipThreshold", "type": "number", "default": 5 }, { "name": "GustThreshold", "type": "number", "default": 20 }, { "name": "CinThreshold", "type": "number", "default": 200 }]
   },
   {
     "key": "Forecast:Ice",
@@ -653,7 +653,7 @@
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Temperature", "Humidity", "WindSpeed", "SoilMoisture0To1cm", "Precipitation"],
     "ensembleParams": ["TemperatureSpread", "PrecipitationSpread", "WindSpeedSpread"],
-    "options": [{ "name": "TemperatureThreshold", "type": "number", "default": 30.0 }, { "name": "HumidityThreshold", "type": "number", "default": 30.0 }, { "name": "WindSpeedThreshold", "type": "number", "default": 5.6 }, { "name": "SoilMoistureThreshold", "type": "number", "default": 0.10 }, { "name": "DryHours", "type": "number", "default": 48 }]
+    "options": [{ "name": "TemperatureThreshold", "type": "number", "default": 30.0 }, { "name": "HumidityThreshold", "type": "number", "default": 30.0 }, { "name": "WindSpeedThreshold", "type": "number", "default": 5.6 }, { "name": "SoilMoistureThreshold", "type": "number", "default": 0.10 }]
   },
   {
     "key": "Lifestyle:GrowingDegree",

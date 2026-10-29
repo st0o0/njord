@@ -182,9 +182,9 @@ Detects convective storm potential from CAPE (atmospheric energy), precipitation
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
-Njord__Features__Forecast__Thunderstorm__CapeThreshold: "1000"
+Njord__Features__Forecast__Thunderstorm__CapeThresholds: "[1000, 1500, 2500]"
 Njord__Features__Forecast__Thunderstorm__PrecipThreshold: "5"
-Njord__Features__Forecast__Thunderstorm__GustThreshold: "15"
+Njord__Features__Forecast__Thunderstorm__GustThreshold: "20"
 ```
 
 **Automation ideas:**
@@ -441,7 +441,6 @@ Njord__Features__Lifestyle__FireRisk__TemperatureThreshold: "30"
 Njord__Features__Lifestyle__FireRisk__HumidityThreshold: "30"
 Njord__Features__Lifestyle__FireRisk__WindSpeedThreshold: "5.6"
 Njord__Features__Lifestyle__FireRisk__SoilMoistureThreshold: "0.10"
-Njord__Features__Lifestyle__FireRisk__DryHours: "48"
 ```
 
 **Automation ideas:**

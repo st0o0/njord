@@ -21,7 +21,7 @@ Alert rules run on the high-resolution deterministic forecast from the Forecast 
         "HeavyRain": { "HourlyThreshold": 10.0, "DailyThreshold": 25.0 },
         "PressureDrop": { "Threshold": 5.0, "SevereThreshold": 10.0 },
         "Fog": { "PersistentHours": 4 },
-        "Thunderstorm": { "CapeThreshold": 1000.0, "PrecipThreshold": 5.0, "GustThreshold": 15.0 },
+        "Thunderstorm": { "CapeThresholds": [1000, 1500, 2500], "PrecipThreshold": 5.0, "GustThreshold": 20.0 },
         "Ice": { "Threshold": 2.0 },
         "WindChill": { "Thresholds": [-10, -20, -30] },
         "Visibility": { "Thresholds": [1000, 200, 50] },

@@ -99,9 +99,9 @@ services:
       #- Njord__Features__Forecast__PressureDrop__Threshold=5
       #- Njord__Features__Forecast__PressureDrop__SevereThreshold=10
       #- Njord__Features__Forecast__Fog__PersistentHours=4
-      #- Njord__Features__Forecast__Thunderstorm__CapeThreshold=1000
+      #- Njord__Features__Forecast__Thunderstorm__CapeThresholds__0=1000
       #- Njord__Features__Forecast__Thunderstorm__PrecipThreshold=5
-      #- Njord__Features__Forecast__Thunderstorm__GustThreshold=15
+      #- Njord__Features__Forecast__Thunderstorm__GustThreshold=20
       #- Njord__Features__Forecast__Ice__Threshold=2
 
 volumes:
