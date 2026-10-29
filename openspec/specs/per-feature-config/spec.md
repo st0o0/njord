@@ -45,6 +45,10 @@ Each per-feature config type with range-constrained values SHALL have a validato
 - **WHEN** a config class implements `IHasArrayDefaults` and has a validator
 - **THEN** validation SHALL run after `ApplyDefaults()` has filled empty arrays
 
+#### Scenario: All multi-parameter configs have validators
+- **WHEN** the set of features registered with `AddFeature<TRule, TConfig>()` (2-param) is collected
+- **THEN** none SHALL have config properties beyond `Enabled` without a corresponding validator
+
 ### Requirement: Severity thresholds configurable for Uv, Pm25 and Pollen
 `UvConfig`, `Pm25Config` and `PollenConfig` SHALL expose a `Thresholds` array, implement `IHasArrayDefaults` (array initialized to `[]`, defaults in a static property, filled by `ApplyDefaults()`) and have a validator registered via `AddFeature<TRule, TConfig, TValidator>()`. Defaults SHALL reproduce the previous hardcoded behavior: Uv `[3, 6, 8, 11]` (four levels), Pm25 `[15, 25, 50]`, Pollen `[20, 50, 100]`. Validators SHALL require the exact element count and strictly ascending values.
 

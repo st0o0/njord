@@ -95,26 +95,26 @@ public static class ServiceCollectionExtensions
     {
         // Alerts
         services.AddFeature<ClearSkyUvAlert, ClearSkyUvConfig, ClearSkyUvConfigValidator>();
-        services.AddFeature<CoastalFloodAlert, CoastalFloodConfig>();
+        services.AddFeature<CoastalFloodAlert, CoastalFloodConfig, CoastalFloodConfigValidator>();
         services.AddFeature<CompoundHeatStressAlert, CompoundHeatStressConfig, CompoundHeatStressConfigValidator>();
         services.AddFeature<DustAlert, DustConfig, DustConfigValidator>();
         services.AddFeature<FireRiskAlert, FireRiskConfig, FireRiskConfigValidator>();
         services.AddFeature<FloodRainAlert, FloodRainConfig, FloodRainConfigValidator>();
         services.AddFeature<FloodRiskAlert, FloodRiskConfig, FloodRiskConfigValidator>();
-        services.AddFeature<FogAlert, FogConfig>();
+        services.AddFeature<FogAlert, FogConfig, FogConfigValidator>();
         services.AddFeature<FrostAlert, FrostConfig, FrostConfigValidator>();
         services.AddFeature<HeatAlert, HeatConfig, HeatConfigValidator>();
-        services.AddFeature<HeavyRainAlert, HeavyRainConfig>();
+        services.AddFeature<HeavyRainAlert, HeavyRainConfig, HeavyRainConfigValidator>();
         services.AddFeature<HumidityAlert, HumidityConfig, HumidityConfigValidator>();
-        services.AddFeature<IceAlert, IceConfig>();
-        services.AddFeature<MigraineRiskAlert, MigraineRiskConfig>();
+        services.AddFeature<IceAlert, IceConfig, IceConfigValidator>();
+        services.AddFeature<MigraineRiskAlert, MigraineRiskConfig, MigraineRiskConfigValidator>();
         services.AddFeature<Pm25Alert, Pm25Config, Pm25ConfigValidator>();
         services.AddFeature<PollenAlert, PollenConfig, PollenConfigValidator>();
-        services.AddFeature<PollenBlastAlert, PollenBlastConfig>();
+        services.AddFeature<PollenBlastAlert, PollenBlastConfig, PollenBlastConfigValidator>();
         services.AddFeature<PressureDropAlert, PressureDropConfig, PressureDropConfigValidator>();
         services.AddFeature<RainProbabilityAlert, RainProbabilityConfig, RainProbabilityConfigValidator>();
         services.AddFeature<ShowerAlert, ShowerConfig, ShowerConfigValidator>();
-        services.AddFeature<SmogRiskAlert, SmogRiskConfig>();
+        services.AddFeature<SmogRiskAlert, SmogRiskConfig, SmogRiskConfigValidator>();
         services.AddFeature<SnowAlert, SnowConfig, SnowConfigValidator>();
         services.AddFeature<StormAlert, StormConfig, StormConfigValidator>();
         services.AddFeature<SwimmingConditionsAlert, SwimmingConditionsConfig>();
@@ -126,12 +126,12 @@ public static class ServiceCollectionExtensions
         services.AddFeature<WindChillAlert, WindChillConfig, WindChillConfigValidator>();
 
         // Scores
-        services.AddFeature<AllergySeverityScore, AllergySeverityConfig>();
-        services.AddFeature<AsthmaRiskScore, AsthmaRiskConfig>();
+        services.AddFeature<AllergySeverityScore, AllergySeverityConfig, AllergySeverityConfigValidator>();
+        services.AddFeature<AsthmaRiskScore, AsthmaRiskConfig, AsthmaRiskConfigValidator>();
         services.AddFeature<BbqScore, BbqConfig>();
-        services.AddFeature<LaundryScore, LaundryConfig>();
+        services.AddFeature<LaundryScore, LaundryConfig, LaundryConfigValidator>();
         services.AddFeature<OutdoorScore, OutdoorConfig>();
-        services.AddFeature<SleepQualityScore, SleepQualityConfig>();
+        services.AddFeature<SleepQualityScore, SleepQualityConfig, SleepQualityConfigValidator>();
 
         // Conditions
         services.AddFeature<ApproachingFront, ApproachingFrontConfig>();
@@ -139,24 +139,24 @@ public static class ServiceCollectionExtensions
         services.AddFeature<CloudCeilingCondition, CloudCeilingConfig>();
         services.AddFeature<CommuteSafety, CommuteSafetyConfig>();
         services.AddFeature<ElevatedWind, ElevatedWindConfig>();
-        services.AddFeature<Evapotranspiration, EvapotranspirationConfig>();
+        services.AddFeature<Evapotranspiration, EvapotranspirationConfig, EvapotranspirationConfigValidator>();
         services.AddFeature<ExerciseAdvisory, ExerciseAdvisoryConfig>();
         services.AddFeature<FloodTimeline, FloodTimelineConfig>();
-        services.AddFeature<FrostDepthCondition, FrostDepthConfig>();
+        services.AddFeature<FrostDepthCondition, FrostDepthConfig, FrostDepthConfigValidator>();
         services.AddFeature<Gardening, GardeningConfig>();
         services.AddFeature<GranularAqi, GranularAqiConfig>();
-        services.AddFeature<HeatPumpCopCondition, HeatPumpCopConfig>();
+        services.AddFeature<HeatPumpCopCondition, HeatPumpCopConfig, HeatPumpCopConfigValidator>();
         services.AddFeature<InversionDetectionCondition, InversionDetectionConfig>();
-        services.AddFeature<IrrigationNeedCondition, IrrigationNeedConfig>();
+        services.AddFeature<IrrigationNeedCondition, IrrigationNeedConfig, IrrigationNeedConfigValidator>();
         services.AddFeature<NightVentilation, NightVentilationConfig>();
-        services.AddFeature<OceanCurrents, OceanCurrentsConfig>();
+        services.AddFeature<OceanCurrents, OceanCurrentsConfig, OceanCurrentsConfigValidator>();
         services.AddFeature<PollenTrend, PollenTrendConfig>();
         services.AddFeature<RagweedPollen, RagweedPollenConfig>();
         services.AddFeature<SatelliteRadiation, SatelliteRadiationConfig>();
-        services.AddFeature<SnowDepthWatch, SnowDepthWatchConfig>();
-        services.AddFeature<SoilMoisture, SoilMoistureConfig>();
+        services.AddFeature<SnowDepthWatch, SnowDepthWatchConfig, SnowDepthWatchConfigValidator>();
+        services.AddFeature<SoilMoisture, SoilMoistureConfig, SoilMoistureConfigValidator>();
         services.AddFeature<SolarYield, SolarYieldConfig, SolarYieldConfigValidator>();
-        services.AddFeature<SprayWindowScore, SprayWindowConfig>();
+        services.AddFeature<SprayWindowScore, SprayWindowConfig, SprayWindowConfigValidator>();
         services.AddFeature<SurfConditions, SurfConditionsConfig>();
         services.AddFeature<VentilationWindow, VentilationWindowConfig>();
 
@@ -164,7 +164,7 @@ public static class ServiceCollectionExtensions
         services.AddFeature<ConfidenceTrend, ConfidenceTrendConfig>();
 
         // Forecasts
-        services.AddFeature<GrowingDegree, GrowingDegreeConfig>();
+        services.AddFeature<GrowingDegree, GrowingDegreeConfig, GrowingDegreeConfigValidator>();
         services.AddFeature<ModelComparison, ModelComparisonConfig>();
         services.AddFeature<SeasonalOutlook, SeasonalOutlookConfig>();
 

@@ -9,7 +9,9 @@ public static class OptionsRegistrationExtensions
         where T : class, IConfigSection
     {
         if (typeof(IHasArrayDefaults).IsAssignableFrom(typeof(T)))
+        {
             services.PostConfigure<T>(o => ((IHasArrayDefaults)o).ApplyDefaults());
+        }
 
         return services.AddOptions<T>().BindConfiguration(T.SectionName).ValidateOnStart();
     }
@@ -21,4 +23,5 @@ public static class OptionsRegistrationExtensions
         services.AddSingleton<IValidateOptions<T>, TValidator>();
         return services.AddNjordOptions<T>();
     }
+
 }

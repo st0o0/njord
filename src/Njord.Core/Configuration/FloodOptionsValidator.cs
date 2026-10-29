@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Options;
-using Njord.Core.Configuration;
 
-namespace Njord.OpenMeteo.Configuration;
+namespace Njord.Core.Configuration;
 
 public sealed class FloodOptionsValidator : IValidateOptions<FloodOptions>
 {

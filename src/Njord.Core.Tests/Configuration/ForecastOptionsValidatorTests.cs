@@ -1,8 +1,7 @@
 using Njord.Core.Configuration;
-using Njord.OpenMeteo.Configuration;
 using Njord.Tests.Shared;
 
-namespace Njord.OpenMeteo.Tests.Configuration;
+namespace Njord.Core.Tests.Configuration;
 
 public sealed class ForecastOptionsValidatorTests
 {
