@@ -120,9 +120,18 @@ public sealed class WeatherAlertsTests
     [Theory]
     [InlineData(2.1, AlertSeverity.None)]
     [InlineData(2.0, AlertSeverity.Yellow)]
-    [InlineData(0.0, AlertSeverity.Orange)]
+    [InlineData(0.0, AlertSeverity.Red)]
     public void Ice_severity_follows_the_temperature_during_precipitation(double value, AlertSeverity expected) =>
         Assert.Equal(expected, Severity(new IceAlert(Opts(new IceConfig())), Uniform(p => p with { Precipitation = 1.0, Temperature = value })));
+
+    [Theory]
+    [InlineData(56.0, AlertSeverity.Orange)]
+    [InlineData(57.0, AlertSeverity.Orange)]
+    [InlineData(66.0, AlertSeverity.Red)]
+    [InlineData(67.0, AlertSeverity.Red)]
+    [InlineData(61.0, AlertSeverity.None)]
+    public void Ice_severity_follows_the_freezing_weather_code(double code, AlertSeverity expected) =>
+        Assert.Equal(expected, Severity(new IceAlert(Opts(new IceConfig())), Uniform(p => p with { Temperature = 5.0, WeatherCode = code })));
 
     [Theory]
     [InlineData(4.9, AlertSeverity.None)]
@@ -133,17 +142,31 @@ public sealed class WeatherAlertsTests
 
     [Theory]
     [InlineData(0.0, AlertSeverity.None)]
-    [InlineData(0.5, AlertSeverity.Yellow)]
+    [InlineData(0.5, AlertSeverity.None)]
+    [InlineData(1.0, AlertSeverity.Yellow)]
     [InlineData(6.0, AlertSeverity.Orange)]
-    [InlineData(21.0, AlertSeverity.Red)]
+    [InlineData(16.0, AlertSeverity.Red)]
     public void Snow_severity_follows_the_accumulation(double value, AlertSeverity expected) =>
         Assert.Equal(expected, Severity(new SnowAlert(Opts(new SnowConfig())), Day((h, p) => p with { Snowfall = h == 0 ? value : 0.0 })));
 
     [Theory]
-    [InlineData(1000.0, AlertSeverity.None)]
-    [InlineData(1001.0, AlertSeverity.Red)]
-    public void Thunderstorm_severity_follows_cape_when_rain_and_gusts_agree(double cape, AlertSeverity expected) =>
-        Assert.Equal(expected, Severity(new ThunderstormAlert(Opts(new ThunderstormConfig())), Uniform(p => p with { Cape = cape, Precipitation = 5.1, WindGusts = 15.1 })));
+    [InlineData(999.0, 0.0, 0.0, AlertSeverity.None)]
+    [InlineData(1000.0, 0.0, 10.0, AlertSeverity.Yellow)]
+    [InlineData(1500.0, 5.0, 10.0, AlertSeverity.Orange)]
+    [InlineData(1500.0, 0.0, 20.0, AlertSeverity.Orange)]
+    [InlineData(2500.0, 10.0, 10.0, AlertSeverity.Red)]
+    [InlineData(2500.0, 0.0, 25.0, AlertSeverity.Red)]
+    [InlineData(2500.0, 1.0, 10.0, AlertSeverity.Yellow)]
+    public void Thunderstorm_severity_follows_the_peak_hour(double cape, double precip, double gusts, AlertSeverity expected) =>
+        Assert.Equal(expected, Severity(new ThunderstormAlert(Opts(new ThunderstormConfig())), Uniform(p => p with { Cape = cape, Precipitation = precip, WindGusts = gusts })));
+
+    [Fact]
+    public void Thunderstorm_with_a_strong_cap_is_downgraded_one_step()
+    {
+        var weather = Uniform(p => p with { Cape = 2500.0, Precipitation = 10.0, WindGusts = 10.0, ConvectiveInhibition = 250.0 });
+
+        Assert.Equal(AlertSeverity.Orange, Severity(new ThunderstormAlert(Opts(new ThunderstormConfig())), weather));
+    }
 
     [Theory]
     [InlineData(0, AlertSeverity.None)]
