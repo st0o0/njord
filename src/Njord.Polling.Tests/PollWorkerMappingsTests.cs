@@ -187,7 +187,7 @@ public sealed class PollWorkerMappingsTests
         var weather = state.GetDomain(DomainKind.Forecast);
         Assert.Multiple(
             () => Assert.Equal(PollPhase.Steady, weather.Phase),
-            () => Assert.Equal(new PollTarget(Lucerne), state.Target),
+            () => Assert.Equal(new PollTarget(new Location("lucerne", 0, 0)), state.Target),
             () => Assert.Equal(TimeSpan.FromHours(3), weather.LearnedCycle));
     }
 

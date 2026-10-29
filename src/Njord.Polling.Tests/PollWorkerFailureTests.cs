@@ -12,8 +12,6 @@ using Njord.Tests.Shared;
 
 namespace Njord.Polling.Tests;
 
-// The worker is created with explicit constructor arguments; a probe plays the gateway (it answers through LastSender)
-// and another probe plays the poll manager.
 public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
 {
     private const string TargetId = "lucerne";
@@ -21,9 +19,6 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
     private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
     private static readonly PollTarget Target = new(Lucerne);
     private static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Forecast, DomainKind.AirQuality];
-
-    private static IOptions<DomainRequirements> RequirementsFor(IReadOnlyList<DomainKind> domains) =>
-        Options.Create(TestRequirements.For(domains));
 
     private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private TestProbe _gateway = null!;
@@ -41,11 +36,10 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         });
     }
 
-    private Props WorkerProps(string entityId) =>
-        Props.Create(() => new PollWorker(_time, Options.Create(new PollingOptions()), RequirementsFor(EnabledDomains), entityId));
-
     private IActorRef CreateWorker(string entityId = TargetId) =>
-        Sys.ActorOf(WorkerProps(entityId), $"worker-{Guid.NewGuid():N}");
+        Sys.ActorOf(Props.Create(() => new PollWorker(
+            entityId, _time, Options.Create(new PollingOptions()),
+            Options.Create(TestRequirements.For(EnabledDomains)))), $"worker-{Guid.NewGuid():N}");
 
     private async Task<IActorRef> StartedWorkerAsync(CancellationToken ct)
     {
@@ -55,11 +49,16 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         return worker;
     }
 
+    private async Task<PollWorkerReport> ExpectReportAsync(PollWorkerOutcome outcome, CancellationToken ct)
+    {
+        var report = await _manager.ExpectMsgAsync<PollWorkerReport>(TimeSpan.FromSeconds(5), cancellationToken: ct);
+        Assert.Equal(outcome, report.Outcome);
+        return report;
+    }
+
     private async Task<FetchDomain> ExpectRequestAsync(CancellationToken ct) =>
         await _gateway.ExpectMsgAsync<FetchDomain>(TimeSpan.FromSeconds(5), cancellationToken: ct);
 
-    // A poll asks every enabled domain independently; each one is answered with the same reply, retargeted to its domain.
-    // Each domain produces its own report, so we drain all requests and all reports.
     private async Task AnswerAllAsync(FetchDomainResponse reply, CancellationToken ct)
     {
         foreach (var _ in EnabledDomains)
@@ -71,7 +70,6 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         await DrainReportsAsync(EnabledDomains.Count, ct);
     }
 
-    // Answer all domain requests and return the last report (for backward-compatible assertions).
     private async Task<PollWorkerReport> AnswerAllAndLastReportAsync(FetchDomainResponse reply, CancellationToken ct)
     {
         foreach (var _ in EnabledDomains)
@@ -87,10 +85,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
     {
         PollWorkerReport? last = null;
         for (var i = 0; i < count; i++)
-        {
             last = await _manager.ExpectMsgAsync<PollWorkerReport>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-        }
-
         return last!;
     }
 
@@ -102,13 +97,6 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         _ => reply,
     };
 
-    private async Task<PollWorkerReport> ExpectReportAsync(PollWorkerOutcome outcome, CancellationToken ct)
-    {
-        var report = await _manager.ExpectMsgAsync<PollWorkerReport>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-        Assert.Equal(outcome, report.Outcome);
-        return report;
-    }
-
     private static FetchDomainCompleted Completed(int hash) => new(Lucerne, DomainKind.Forecast, hash);
 
     private async Task StopAsync(IActorRef worker, CancellationToken ct)
@@ -117,6 +105,15 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         await worker.GracefulStop(TimeSpan.FromSeconds(15));
         await ExpectTerminatedAsync(worker, cancellationToken: ct);
     }
+
+    private async Task<PollWorkerReport> FailOnceAsync(IActorRef worker, CancellationToken ct)
+    {
+        worker.Tell(new TriggerLocationPoll(TargetId));
+        return await AnswerAllAndLastReportAsync(
+            new FetchDomainFailed(Lucerne, DomainKind.Forecast, PollFailureReason.Transport, "simulated"), ct);
+    }
+
+    // --- Failure backoff ---
 
     [Theory(Timeout = 30_000)]
     [InlineData(PollFailureReason.Transport, 60)]
@@ -159,7 +156,6 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         var deferred = await AnswerAllAndLastReportAsync(
             new FetchDomainRejected(Lucerne, DomainKind.Forecast, FetchRejectionReason.PipelineUnavailable), ct);
 
-        // The pipeline-unavailable rejection leaves the failure count at one, so the next failure is the second and backs off two minutes.
         worker.Tell(new TriggerLocationPoll(TargetId));
         var queueFull = await AnswerAllAndLastReportAsync(
             new FetchDomainRejected(Lucerne, DomainKind.Forecast, FetchRejectionReason.QueueFull), ct);
@@ -169,12 +165,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
             () => Assert.Equal(_time.GetUtcNow() + TimeSpan.FromMinutes(2), queueFull.State.NextPollUtc));
     }
 
-    private async Task<PollWorkerReport> FailOnceAsync(IActorRef worker, CancellationToken ct)
-    {
-        worker.Tell(new TriggerLocationPoll(TargetId));
-        return await AnswerAllAndLastReportAsync(
-            new FetchDomainFailed(Lucerne, DomainKind.Forecast, PollFailureReason.Transport, "simulated"), ct);
-    }
+    // --- Consecutive failure escalation ---
 
     [Fact(Timeout = 30_000)]
     public async Task The_third_consecutive_failure_backs_off_four_minutes()
@@ -212,9 +203,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         var worker = await StartedWorkerAsync(ct);
         await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Forecast, PollFailureReason.Transport, "simulated"), ct);
         for (var i = 0; i < 3; i++)
-        {
             await FailOnceAsync(worker, ct);
-        }
 
         await StopAsync(worker, ct);
         var recovered = CreateWorker();
@@ -232,9 +221,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         var worker = await StartedWorkerAsync(ct);
         await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Forecast, PollFailureReason.Transport, "simulated"), ct);
         for (var i = 0; i < 4; i++)
-        {
             await FailOnceAsync(worker, ct);
-        }
 
         worker.Tell(new TriggerLocationPoll(TargetId));
         var report = await AnswerAllAndLastReportAsync(
@@ -257,6 +244,8 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         Assert.Equal(_time.GetUtcNow() + TimeSpan.FromSeconds(60), failed.State.NextPollUtc);
     }
 
+    // --- Cross-domain isolation ---
+
     [Fact(Timeout = 30_000)]
     public async Task A_failing_domain_does_not_disturb_the_weather_domain_state()
     {
@@ -271,7 +260,6 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
                 : Completed(1));
         }
 
-        // The report state follows the Forecast domain (last change, miss count) and the earliest due domain (next poll).
         var last = await DrainReportsAsync(EnabledDomains.Count, ct);
 
         Assert.Multiple(
