@@ -13,20 +13,18 @@ using Servus.Akka;
 
 namespace Njord.Polling;
 
-// One persistent entity per location in the poll shard region. Each enabled domain has its own independent
-// timer and fetch cycle. No rounds — a domain fires, fetches, persists its outcome and reschedules itself.
 public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 {
     private const int SnapshotInterval = 50;
     private static readonly TimeSpan DefaultReplyTimeout = TimeSpan.FromSeconds(90);
 
     private sealed record PollDomain(DomainKind Domain);
+
     private sealed record FetchReplyTimeout(DomainKind Domain);
 
     private readonly HashSet<DomainKind> _inFlight = [];
 
     private readonly TimeProvider _timeProvider;
-    private readonly TimeSpan _replyTimeout;
     private readonly TimeSpan _pollInterval;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly DomainKind[] _enabledDomains;
@@ -36,12 +34,11 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
     public override string PersistenceId { get; }
 
-    public PollWorker(TimeProvider timeProvider, IOptions<PollingOptions> pollingOptions,
-        IOptions<DomainRequirements> requirements, string entityId, TimeSpan? replyTimeout = null)
+    public PollWorker(string entityId, TimeProvider timeProvider, IOptions<PollingOptions> pollingOptions,
+        IOptions<DomainRequirements> requirements)
     {
         _enabledDomains = [.. requirements.Value.RequiredDomains()];
         _timeProvider = timeProvider;
-        _replyTimeout = replyTimeout ?? DefaultReplyTimeout;
         _pollInterval = pollingOptions.Value.PollInterval;
         PersistenceId = $"poll-worker-{entityId}";
 
@@ -49,7 +46,9 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         Recover<PollingStopped>(evt => _state = _state.Apply(evt));
         Recover<DomainPolled>(evt => _state = _state.Apply(evt));
         Recover<SnapshotOffer>(offer =>
-            _state = offer.Snapshot is PersistedPollWorkerState snapshot ? snapshot.FromPersistence(_enabledDomains) : _state);
+            _state = offer.Snapshot is PersistedPollWorkerState snapshot
+                ? snapshot.FromPersistence(_enabledDomains)
+                : _state);
         Recover<RecoveryCompleted>(_ => OnRecovered());
 
         Command<StartPolling>(OnStartPolling);
@@ -64,9 +63,12 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             DeleteMessages(success.Metadata.SequenceNr);
             DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
         });
-        Command<SaveSnapshotFailure>(fail => _log.Warning(fail.Cause, "Snapshot save failed for {PersistenceId}", PersistenceId));
-        Command<DeleteMessagesFailure>(fail => _log.Warning(fail.Cause, "Delete messages failed for {PersistenceId}", PersistenceId));
-        Command<DeleteSnapshotsFailure>(fail => _log.Warning(fail.Cause, "Delete snapshots failed for {PersistenceId}", PersistenceId));
+        Command<SaveSnapshotFailure>(fail =>
+            _log.Warning(fail.Cause, "Snapshot save failed for {PersistenceId}", PersistenceId));
+        Command<DeleteMessagesFailure>(fail =>
+            _log.Warning(fail.Cause, "Delete messages failed for {PersistenceId}", PersistenceId));
+        Command<DeleteSnapshotsFailure>(fail =>
+            _log.Warning(fail.Cause, "Delete snapshots failed for {PersistenceId}", PersistenceId));
         Command<DeleteMessagesSuccess>(_ => { });
         Command<DeleteSnapshotsSuccess>(_ => { });
     }
@@ -157,7 +159,8 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
         if (_inFlight.Contains(domain))
         {
-            _log.Debug("Skipping {Reason} poll for {Location}/{Domain} - fetch is in flight", reason, target.Location, domain);
+            _log.Debug("Skipping {Reason} poll for {Location}/{Domain} - fetch is in flight", reason, target.Location,
+                domain);
             return;
         }
 
@@ -171,7 +174,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
         _inFlight.Add(domain);
         gateway.Tell(new FetchDomain(target.Location, domain));
-        Timers.StartSingleTimer(ReplyTimerKey(domain), new FetchReplyTimeout(domain), _replyTimeout);
+        Timers.StartSingleTimer(ReplyTimerKey(domain), new FetchReplyTimeout(domain), DefaultReplyTimeout);
     }
 
     private void OnFetchDomainResponse(FetchDomainResponse reply)
@@ -195,7 +198,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         }
 
         var failed = new FetchDomainFailed(target.Location, msg.Domain, PollFailureReason.Transport,
-            $"Gateway did not answer within {_replyTimeout}");
+            $"Gateway did not answer within {DefaultReplyTimeout}");
         LogDomainOutcome(msg.Domain, failed);
         OnDomainFetchResult(msg.Domain, failed);
     }
@@ -230,7 +233,8 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             FetchDomainCompleted =>
                 new DomainPolled((int)domain, PersistedDomainPollOutcome.Unchanged, null, now, null),
             FetchDomainRejected { Reason: FetchRejectionReason.PipelineUnavailable } =>
-                new DomainPolled((int)domain, PersistedDomainPollOutcome.Failed, null, now, PollWorkerState.PipelineUnavailableRetry, failures),
+                new DomainPolled((int)domain, PersistedDomainPollOutcome.Failed, null, now,
+                    PollWorkerState.PipelineUnavailableRetry, failures),
             FetchDomainFailed { Reason: PollFailureReason.RateLimited } =>
                 new DomainPolled((int)domain, PersistedDomainPollOutcome.Failed, null, now,
                     FailureBackoff.RateLimited(failures + 1, _pollInterval), failures + 1),
@@ -257,7 +261,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
     private void ScheduleDomain(DomainKind domain)
     {
-        if (_state is not { Active: true, Target: { } } || _inFlight.Contains(domain))
+        if (_state is not { Active: true, Target: not null } || _inFlight.Contains(domain))
         {
             return;
         }
@@ -343,7 +347,8 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
     private void RecordTelemetry(DomainKind domain, PersistedDomainPollOutcome outcome, DomainPollState? before)
     {
         Telemetry.RecordDomainPoll(domain, outcome);
-        if (outcome == PersistedDomainPollOutcome.Changed && before is { Phase: PollPhase.Discovery } && _state.GetDomain(domain).Phase == PollPhase.Steady)
+        if (outcome == PersistedDomainPollOutcome.Changed && before is { Phase: PollPhase.Discovery } &&
+            _state.GetDomain(domain).Phase == PollPhase.Steady)
         {
             Telemetry.RecordCycleLearned(domain);
             _log.Info("Learned update cycle {Cycle} for {Location}/{Domain}",
