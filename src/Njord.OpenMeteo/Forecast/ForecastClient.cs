@@ -18,14 +18,14 @@ public sealed class ForecastClient : IDomainClient
     private const string BestMatch = "best_match";
 
     private readonly HttpClient _httpClient;
-    private readonly SolarYieldOptions _solar;
+    private readonly SatelliteOptions _solar;
     private readonly IReadOnlyList<string> _variables;
     private readonly int _forecastDays;
     private readonly int _pastHours;
     private readonly string[] _models;
     private readonly string _primaryModel;
 
-    public ForecastClient(HttpClient httpClient, IOptions<ForecastOptions> options, IOptions<SolarYieldOptions> solar, IOptions<DomainRequirements> requirements, ILogger<ForecastClient> logger)
+    public ForecastClient(HttpClient httpClient, IOptions<ForecastOptions> options, IOptions<SatelliteOptions> solar, IOptions<DomainRequirements> requirements, ILogger<ForecastClient> logger)
     {
         _httpClient = httpClient;
         _solar = solar.Value;

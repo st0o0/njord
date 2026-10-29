@@ -10,12 +10,6 @@ namespace Njord.Features.Alerts.Pm25;
 
 public sealed class Pm25Alert(IOptions<Pm25Config> config) : FeatureRule<AqInput>
 {
-    public const double WhoGuideline = 15.0;
-    public const double OrangeThreshold = 25.0;
-    public const double RedThreshold = 50.0;
-
-    private static readonly SeverityThresholds Thresholds = new(WhoGuideline, OrangeThreshold, RedThreshold, ScanDirection.Max);
-
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.AirQuality,
@@ -43,7 +37,12 @@ public sealed class Pm25Alert(IOptions<Pm25Config> config) : FeatureRule<AqInput
             return null;
         }
 
-        var (severity, threshold) = Thresholds.Classify(peakPm25);
+        if (!SeverityThresholds.TryCreate(config.Value.Thresholds, ScanDirection.Max, out var thresholds))
+        {
+            return null;
+        }
+
+        var (severity, threshold) = thresholds.Classify(peakPm25);
         if (severity == AlertSeverity.None)
         {
             return null;

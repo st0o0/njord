@@ -7,5 +7,6 @@ public sealed class IceConfig : IConfigSection
     private const string SectionName = "Njord:Features:Ice";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
+    public int WindowHours { get; set; } = 24;
     public double Threshold { get; set; } = 2.0;
 }

@@ -69,7 +69,6 @@ services:
       - Njord__Features__FrostDepth__Enabled=true
       - Njord__Features__HeatPumpCop__Enabled=true
       - Njord__Features__HeatPumpCop__TargetTemperature=35
-      - Njord__Features__SolarBatteryStrategy__Enabled=true
       - Njord__Features__InversionDetection__Enabled=true
       - Njord__Features__AtmosphericStability__Enabled=true
       - Njord__Features__CloudCeiling__Enabled=true

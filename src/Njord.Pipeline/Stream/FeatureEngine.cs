@@ -70,9 +70,10 @@ internal sealed class FeatureEngine
                 continue;
             }
 
-            if (feature.Execute(ring, now) is { } result)
+            var results = feature.ExecuteAll(ring, now);
+            if (results.Count > 0)
             {
-                events.Add(result);
+                events.AddRange(results);
             }
         }
 

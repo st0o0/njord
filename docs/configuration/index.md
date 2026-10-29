@@ -53,7 +53,7 @@ List-valued defaults (the feature threshold arrays) are built in: a list you con
 
 You switch features on, njord derives which API domains to poll. Each feature has its own section `Njord:Features:<Category>:<Name>` with an `Enabled` toggle (environment variable `Njord__Features__<Category>__<Name>__Enabled`) and, where it has any, its options such as `Thresholds` (see [Enrichment](./enrichment)); the polled domains are the union of the domains the enabled features read. A feature that is not listed keeps its default. The [Config Builder](/builder) shows the extra API calls per day each feature costs.
 
-See [Features](/features/) for the complete list of all 66 features, their domains and defaults.
+See [Features](/features/) for the complete list of all 65 features, their domains and defaults.
 
 ### How domains are derived
 

@@ -25,7 +25,7 @@ public sealed class IceAlert(IOptions<IceConfig> config) : FeatureRule<ForecastE
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
-        var icy = ctx.Current.Forecast.NextHoursInclusive(ctx.Now)
+        var icy = ctx.Current.Forecast.NextHoursInclusive(ctx.Now, config.Value.WindowHours)
             .Select(p => (Point: p, Hit: Classify(p)))
             .Where(x => x.Hit.Severity != AlertSeverity.None)
             .ToList();

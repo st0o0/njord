@@ -24,7 +24,7 @@ public sealed class HeavyRainAlert(IOptions<HeavyRainConfig> config) : FeatureRu
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
-        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
+        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now, config.Value.WindowHours);
         if (window.HighestBy(p => p.Precipitation) is not { Precipitation: { } peakPrecipitation } wettest)
         {
             return null;

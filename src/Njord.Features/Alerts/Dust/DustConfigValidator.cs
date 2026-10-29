@@ -9,12 +9,18 @@ public sealed class DustConfigValidator : IValidateOptions<DustConfig>
 {
     public ValidateOptionsResult Validate(string? name, DustConfig options)
     {
-        if (ThresholdValidation.Violation($"{IConfigSection.SectionOf<DustConfig>()}:Thresholds", options.Thresholds,
-                ScanDirection.Max) is { } failure)
+        var section = IConfigSection.SectionOf<DustConfig>();
+        var failures = new List<string>();
+        if (ThresholdValidation.Violation($"{section}:Thresholds", options.Thresholds, ScanDirection.Max) is { } failure)
         {
-            return ValidateOptionsResult.Fail(failure);
+            failures.Add(failure);
         }
 
-        return ValidateOptionsResult.Success;
+        if (options.WindowHours < 1)
+        {
+            failures.Add($"{section}:WindowHours must be at least 1, got {options.WindowHours}.");
+        }
+
+        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
     }
 }

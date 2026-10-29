@@ -49,7 +49,7 @@ docker compose -f e2e/docker-compose.e2e.yml -f e2e/docker-compose.soak.yml up -
 | `--ha-url` | `http://localhost:8123` | Home Assistant endpoint |
 | `--container` | `njord-e2e` | Docker container name |
 
-### Expected Numbers (4h, PollInterval=15m, 1 location, all 66 features)
+### Expected Numbers (4h, PollInterval=15m, 1 location, all 65 features)
 
 - Poll cycles: ~16
 - Collector ticks: ~48 (at 5-min intervals)
@@ -115,7 +115,7 @@ Each line in `soak-results.jsonl` is a JSON object:
     "phase": "POLL_PHASE_DISCOVERY",
     "miss_count": 0,
     "cycle_seconds": 0,
-    "enrichment_count": 66,
+    "enrichment_count": 65,
     "budget_partial": false,
     "models_partial": false
   },
@@ -172,7 +172,7 @@ Each line in `soak-results.jsonl` is a JSON object:
 |----|-------|-----------|----------|---------|
 | P1 | STEADY reached | `grpc_status.phase == "POLL_PHASE_STEADY"` within 30 min | FAIL | warmup only |
 | P2 | Low miss count | `grpc_status.miss_count <= 2` in steady state | WARN | excl. restart |
-| P3 | All enrichments | `grpc_status.enrichment_count == 66` in all ticks | FAIL | excl. restart |
+| P3 | All enrichments | `grpc_status.enrichment_count == 65` in all ticks | FAIL | excl. restart |
 
 ### Streams and Metrics
 

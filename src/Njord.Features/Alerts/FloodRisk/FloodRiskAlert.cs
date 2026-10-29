@@ -10,8 +10,6 @@ namespace Njord.Features.Alerts.FloodRisk;
 
 public sealed class FloodRiskAlert(IOptions<FloodRiskConfig> config) : FeatureRule<FloodInput>
 {
-    public const int ForecastDays = 7;
-    public const double MedianFactor = 2.0;
     public const double HighConfidenceShare = 0.7;
     public const double LowConfidenceShare = 0.3;
 
@@ -30,14 +28,14 @@ public sealed class FloodRiskAlert(IOptions<FloodRiskConfig> config) : FeatureRu
     protected override PipelineEvent? Evaluate(FeatureContext<FloodInput> ctx)
     {
         var best = (Severity: AlertSeverity.None, Trigger: 0.0, Threshold: 0.0, HoursUntil: 0, Confidence: 1.0, Level: ConfidenceLevel.High);
-        foreach (var point in ctx.Current.Flood.NextDays(ctx.Now, ForecastDays))
+        foreach (var point in ctx.Current.Flood.NextDays(ctx.Now, config.Value.ForecastDays))
         {
             if (point.Discharge is not { } discharge)
             {
                 continue;
             }
 
-            var (severity, threshold) = Classify(point);
+            var (severity, threshold) = Classify(point, config.Value.MedianFactor);
             var (share, level) = Confidence(point, threshold);
             if (severity > best.Severity
                 || (severity == best.Severity && severity != AlertSeverity.None && discharge > best.Trigger))
@@ -73,7 +71,7 @@ public sealed class FloodRiskAlert(IOptions<FloodRiskConfig> config) : FeatureRu
         return (share, level);
     }
 
-    private static (AlertSeverity Severity, double Threshold) Classify(FloodPoint point)
+    private static (AlertSeverity Severity, double Threshold) Classify(FloodPoint point, double medianFactor)
     {
         if (point.DischargeMax is { } max && point.Discharge > max)
         {
@@ -85,9 +83,9 @@ public sealed class FloodRiskAlert(IOptions<FloodRiskConfig> config) : FeatureRu
             return (AlertSeverity.Orange, p75);
         }
 
-        if (point.DischargeMedian is { } median and > 0 && point.Discharge > median * MedianFactor)
+        if (point.DischargeMedian is { } median and > 0 && point.Discharge > median * medianFactor)
         {
-            return (AlertSeverity.Yellow, median * MedianFactor);
+            return (AlertSeverity.Yellow, median * medianFactor);
         }
 
         return (AlertSeverity.None, 0.0);

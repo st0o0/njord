@@ -29,12 +29,13 @@ public sealed class UvAlert(IOptions<UvConfig> config) : FeatureRule<ForecastInp
             return null;
         }
 
+        var t = config.Value.Thresholds;
         var (level, severity, uvThreshold) = uvIndex switch
         {
-            >= 11 => (UvLevel.Extreme, AlertSeverity.Red, 11.0),
-            >= 8 => (UvLevel.VeryHigh, AlertSeverity.Red, 8.0),
-            >= 6 => (UvLevel.High, AlertSeverity.Orange, 6.0),
-            >= 3 => (UvLevel.Moderate, AlertSeverity.Yellow, 3.0),
+            _ when uvIndex >= t[3] => (UvLevel.Extreme, AlertSeverity.Red, t[3]),
+            _ when uvIndex >= t[2] => (UvLevel.VeryHigh, AlertSeverity.Red, t[2]),
+            _ when uvIndex >= t[1] => (UvLevel.High, AlertSeverity.Orange, t[1]),
+            _ when uvIndex >= t[0] => (UvLevel.Moderate, AlertSeverity.Yellow, t[0]),
             _ => (UvLevel.Moderate, AlertSeverity.None, 0.0),
         };
 

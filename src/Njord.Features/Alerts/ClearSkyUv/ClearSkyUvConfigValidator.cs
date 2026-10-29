@@ -16,6 +16,11 @@ public sealed class ClearSkyUvConfigValidator : IValidateOptions<ClearSkyUvConfi
             failures.Add(failure);
         }
 
+        if (options.WindowHours < 1)
+        {
+            failures.Add($"{section}:WindowHours must be at least 1, got {options.WindowHours}.");
+        }
+
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
     }
 }

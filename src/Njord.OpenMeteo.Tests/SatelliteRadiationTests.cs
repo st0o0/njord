@@ -19,8 +19,8 @@ public sealed class SatelliteRadiationTests
     private const string Body =
         """{"latitude":47.0,"longitude":8.0,"hourly":{"time":[1792483200,1792486800,1792490400],"shortwave_radiation":[140.0,259.0,340.0],"direct_radiation":[90.0,180.0,250.0],"diffuse_radiation":[50.0,79.0,90.0],"direct_normal_irradiance":[300.0,400.0,null],"global_tilted_irradiance":[211.4,382.0,null]}}""";
 
-    private static SatelliteRadiationClient ClientFor(HttpClient http, SatelliteParams flags, SolarYieldOptions? solar = null) =>
-        new(http, Options.Create(new SatelliteOptions()), Options.Create(solar ?? new SolarYieldOptions()),
+    private static SatelliteRadiationClient ClientFor(HttpClient http, SatelliteParams flags, SatelliteOptions? options = null) =>
+        new(http, Options.Create(options ?? new SatelliteOptions()),
             Options.Create(new DomainRequirements(Satellite: flags)));
 
     [Fact(Timeout = 5000)]
@@ -29,7 +29,7 @@ public sealed class SatelliteRadiationTests
         string? requested = null;
         var http = StubOpenMeteoHandler.ClientFor("satellite-api", HttpStatusCode.OK, Body, request => requested = StubOpenMeteoHandler.RawPathAndQuery(request));
 
-        await ClientFor(http, SatelliteParams.GlobalHorizontal | SatelliteParams.GlobalTilted, new SolarYieldOptions { Tilt = 25, Azimuth = 135 })
+        await ClientFor(http, SatelliteParams.GlobalHorizontal | SatelliteParams.GlobalTilted, new SatelliteOptions { Tilt = 25, Azimuth = 135 })
             .FetchAsync(47.05, 8.31, ModelRun, TestContext.Current.CancellationToken);
 
         Assert.Equal(

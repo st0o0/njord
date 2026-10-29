@@ -25,7 +25,7 @@ public sealed class VisibilityAlert(IOptions<VisibilityConfig> config) : Feature
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
         var thresholds = config.Value.Thresholds.ToSeverity(ScanDirection.Min);
-        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
+        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now, config.Value.WindowHours);
         if (window.LowestBy(p => p.Visibility) is not { Visibility: { } low } lowest)
         {
             return null;

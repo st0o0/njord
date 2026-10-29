@@ -26,7 +26,7 @@ public sealed class PressureDropAlert(IOptions<PressureDropConfig> config) : Fea
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
+        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now, config.Value.WindowHours);
         if (window.Count < MinimumHours)
         {
             return null;

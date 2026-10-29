@@ -7,18 +7,20 @@ Energy features help solar and wind energy owners forecast production, track per
 Forecasts your solar panel energy output using Global Tilted Irradiance (GTI) -- the solar radiation that actually hits your panels at their specific tilt and orientation.
 
 Configure your system:
-- **PeakKw**: installed peak power in kW (default: 5.0)
-- **Tilt**: panel tilt angle in degrees from horizontal (default: 30)
-- **Azimuth**: panel compass direction, 180 = south (default: 180)
+- **PeakKw**: installed peak power in kW (default: 5.0), `Njord:Features:SolarYield:PeakKw`
+- **SystemEfficiency**: system efficiency factor (default: 0.8)
+- **BatteryCapacityKwh**: battery capacity in kWh, 0 disables the battery strategy (default: 0)
+- **Tilt**: panel tilt angle in degrees from horizontal (default: 30), `Njord:Satellite:Tilt`
+- **Azimuth**: panel compass direction, 180 = south (default: 180), `Njord:Satellite:Azimuth`
 
 **Entity:** `sensor.<location>_solar_yield`
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
 Njord__Features__SolarYield__Enabled: "true"
-Njord__SolarYield__PeakKw: "5.0"
-Njord__SolarYield__Tilt: "30"
-Njord__SolarYield__Azimuth: "180"
+Njord__Features__SolarYield__PeakKw: "5.0"
+Njord__Satellite__Tilt: "30"
+Njord__Satellite__Azimuth: "180"
 ```
 
 **Automation ideas:**
@@ -92,26 +94,3 @@ Njord__Features__HeatPumpCop__TargetTemperature: "35"
 - Switch to a backup heater when the recommendation is `avoid`
 - Pre-heat the house during efficient hours
 
----
-
-## SolarBatteryStrategy
-
-Recommends how to run a home battery: `feed_in`, `charge_battery`, `conserve` or `normal`. Compares the actual solar yield of today (satellite) with the forecast for tomorrow.
-
-**Entity:** `sensor.<location>_solar_battery_strategy`
-**Domains:** Forecast + Satellite | **Default:** Off
-
-```yaml
-Njord__Features__SolarBatteryStrategy__Enabled: "true"
-Njord__Features__SolarBatteryStrategy__BatteryCapacityKwh: "10"
-Njord__Features__SolarBatteryStrategy__SystemEfficiency: "0.85"
-```
-
-::: tip
-Satellite data costs about 720 API calls/month/location. See SatelliteRadiation.
-:::
-
-**Automation ideas:**
-- Charge the battery from the grid when `charge_battery` and tomorrow is dark
-- Allow feed-in when tomorrow is sunny
-- Hold reserve capacity on `conserve`

@@ -44,12 +44,12 @@ gRPC + REST. Real Open-Meteo API. 6 domains (Weather, AirQuality, Flood, Marine,
 - **Location:** Barcelona (explicit coordinates 41.3874 / 2.1686 in the compose file, coastal for full Marine coverage)
 - **Weather:** ForecastDays=4, models `ecmwf_ifs025_ensemble_mean` (primary) + `ecmwf_aifs025_ensemble_mean`
   (`Weather:ModelComparison` enabled)
-- **Features:** ALL enabled (66 feature toggles, `Njord__Features__*`; `HeatPumpCop` with `TargetTemperature=35`)
+- **Features:** ALL enabled (65 feature toggles, `Njord__Features__*`; `HeatPumpCop` with `TargetTemperature=35`)
 - **Resolved domains:** Weather, AirQuality, Flood, Marine, Seasonal, Satellite (all domains resolve for coastal Barcelona)
 
 ### Expected Entities
 
-Derived from config: 1 location (Barcelona), all 66 features enabled.
+Derived from config: 1 location (Barcelona), all 65 features enabled.
 
 | Platform | Count | Pattern | Notes |
 |----------|-------|---------|-------|
@@ -219,7 +219,7 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 1. `GetCatalog` on `njord.v2.WeatherService` → has at least 1 location named "Barcelona" and lists weather models
 2. `GetStatus` → `budget` has `monthly_used` ≥ 0 and `monthly_limit` > 0
-3. `GetStatus` → `activeEnrichments` count = 66 (all features enabled, all domains resolve for coastal Barcelona); poll state is reported per location
+3. `GetStatus` → `activeEnrichments` count = 65 (all features enabled, all domains resolve for coastal Barcelona); poll state is reported per location
 4. `TriggerPoll` → `triggeredCount` ≥ 1
 5. After trigger: `GetStatus` shows incremented `monthlyUsed`
 

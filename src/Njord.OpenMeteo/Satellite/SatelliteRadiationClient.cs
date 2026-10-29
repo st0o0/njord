@@ -15,14 +15,12 @@ public sealed class SatelliteRadiationClient : IDomainClient
 {
     private readonly HttpClient _httpClient;
     private readonly SatelliteOptions _options;
-    private readonly SolarYieldOptions _solar;
     private readonly IReadOnlyList<string> _variables;
 
-    public SatelliteRadiationClient(HttpClient httpClient, IOptions<SatelliteOptions> options, IOptions<SolarYieldOptions> solar, IOptions<DomainRequirements> requirements)
+    public SatelliteRadiationClient(HttpClient httpClient, IOptions<SatelliteOptions> options, IOptions<DomainRequirements> requirements)
     {
         _httpClient = httpClient;
         _options = options.Value;
-        _solar = solar.Value;
         _variables = requirements.Value.AllSatellite.ToApiNames();
     }
 
@@ -34,8 +32,8 @@ public sealed class SatelliteRadiationClient : IDomainClient
     {
         var uri = ClientRequest.Uri(OpenMeteoEndpoints.SatellitePath, latitude, longitude,
             (ClientRequest.Hourly, ClientRequest.List(_variables)),
-            (ClientRequest.Tilt, ClientRequest.Number(_solar.Tilt)),
-            (ClientRequest.Azimuth, ClientRequest.Number(ClientRequest.ToApiAzimuth(_solar.Azimuth))),
+            (ClientRequest.Tilt, ClientRequest.Number(_options.Tilt)),
+            (ClientRequest.Azimuth, ClientRequest.Number(ClientRequest.ToApiAzimuth(_options.Azimuth))),
             (ClientRequest.PastHours, ClientRequest.Number(_options.PastHours)),
             (ClientRequest.ForecastHours, "1"));
         return ClientRequest.ExecuteAsync(

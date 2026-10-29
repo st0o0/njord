@@ -16,7 +16,6 @@ result and proto message, a `docs/data/features.json` entry, and a ha-njord enti
 | SleepQuality | Score | |
 | SprayWindow | Score | |
 | HeatPumpCop | Condition | |
-| SolarBatteryStrategy | Condition | |
 | IrrigationNeed | Condition | Delivers the Irrigation Advisor idea (Tier 2) |
 | FrostDepth | Condition | |
 | InversionDetection | Condition | |

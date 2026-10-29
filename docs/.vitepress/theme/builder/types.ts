@@ -152,7 +152,7 @@ export interface NjordConfig {
   budgetOverride: { requestsPerMonth: number; requestsPerMinute: number } | null
   persistence: { provider: string; connectionString: string }
   dataPath: string
-  solarYield: { peakKw: number; azimuth: number; tilt: number }
+  satellite: { tilt: number; azimuth: number }
   deploy: { limits: DeployLimits }
 }
 
@@ -173,7 +173,7 @@ export function defaultConfig(): NjordConfig {
     budgetOverride: null,
     persistence: { provider: 'Sqlite', connectionString: '' },
     dataPath: 'data/njord.db',
-    solarYield: { peakKw: 5.0, azimuth: 180, tilt: 30 },
+    satellite: { tilt: 30, azimuth: 180 },
     deploy: { limits: { cpus: '', memory: '' } },
   }
 }

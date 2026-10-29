@@ -13,9 +13,9 @@ namespace Njord.Features.Tests.Alerts;
 
 public sealed class AirQualityAlertsTests
 {
-    private static PollenAlert Pollen() => new(Options.Create(new PollenConfig()));
+    private static PollenAlert Pollen() => new(Options.Create(new PollenConfig { Thresholds = PollenConfig.DefaultThresholds }));
 
-    private static Pm25Alert Pm25() => new(Options.Create(new Pm25Config()));
+    private static Pm25Alert Pm25() => new(Options.Create(new Pm25Config { Thresholds = Pm25Config.DefaultThresholds }));
 
     private static DustAlert Dust() => new(Options.Create(new DustConfig { Enabled = true, Thresholds = DustConfig.DefaultThresholds }));
 

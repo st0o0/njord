@@ -12,7 +12,7 @@
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Temperature"],
     "ensembleParams": ["TemperatureSpread"],
-    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [0, -5, -15] }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "Thresholds", "type": "numberArray", "default": [0, -5, -15] }]
   },
   {
     "key": "Heat",
@@ -27,7 +27,7 @@
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Temperature", "ApparentTemperature"],
     "ensembleParams": ["TemperatureSpread"],
-    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [30, 35, 40] }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "Thresholds", "type": "numberArray", "default": [30, 35, 40] }]
   },
   {
     "key": "Storm",
@@ -42,7 +42,7 @@
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["WindGusts"],
     "ensembleParams": ["WindSpeedSpread"],
-    "options": [{ "name": "GustThresholds", "type": "numberArray", "default": [17, 25, 33] }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "GustThresholds", "type": "numberArray", "default": [17, 25, 33] }]
   },
   {
     "key": "HeavyRain",
@@ -57,7 +57,7 @@
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Precipitation"],
     "ensembleParams": ["PrecipitationSpread"],
-    "options": [{ "name": "HourlyThreshold", "type": "number", "default": 10 }, { "name": "DailyThreshold", "type": "number", "default": 25 }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "HourlyThreshold", "type": "number", "default": 10 }, { "name": "DailyThreshold", "type": "number", "default": 25 }]
   },
   {
     "key": "Uv",
@@ -70,7 +70,8 @@
     "automationExample": "Remind the family to apply sunscreen before going outside",
     "enabledByDefault": true,
     "domains": ["Forecast"],
-    "weatherParams": ["UvIndex"]
+    "weatherParams": ["UvIndex"],
+    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [3, 6, 8, 11] }]
   },
   {
     "key": "Fog",
@@ -84,7 +85,7 @@
     "enabledByDefault": true,
     "domains": ["Forecast"],
     "weatherParams": ["Temperature", "WindSpeed", "Humidity", "DewPoint"],
-    "options": [{ "name": "PersistentHours", "type": "number", "default": 4 }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "PersistentHours", "type": "number", "default": 4 }]
   },
   {
     "key": "Snow",
@@ -99,7 +100,7 @@
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Snowfall", "FreezingLevelHeight"],
     "ensembleParams": ["PrecipitationSpread"],
-    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [1, 5, 15] }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "Thresholds", "type": "numberArray", "default": [1, 5, 15] }]
   },
   {
     "key": "PressureDrop",
@@ -113,7 +114,7 @@
     "enabledByDefault": true,
     "domains": ["Forecast"],
     "weatherParams": ["Pressure"],
-    "options": [{ "name": "Threshold", "type": "number", "default": 5 }, { "name": "SevereThreshold", "type": "number", "default": 10 }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "Threshold", "type": "number", "default": 5 }, { "name": "SevereThreshold", "type": "number", "default": 10 }]
   },
   {
     "key": "Thunderstorm",
@@ -145,7 +146,7 @@
     "weatherParams": ["Temperature", "Precipitation"],
     "optionalWeatherParams": ["Rain", "SoilTemperature", "WeatherCode"],
     "ensembleParams": ["PrecipitationSpread"],
-    "options": [{ "name": "Threshold", "type": "number", "default": 2 }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "Threshold", "type": "number", "default": 2 }]
   },
   {
     "key": "WindChill",
@@ -160,7 +161,7 @@
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["ApparentTemperature"],
     "ensembleParams": ["TemperatureSpread"],
-    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [-10, -20, -30] }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "Thresholds", "type": "numberArray", "default": [-10, -20, -30] }]
   },
   {
     "key": "Visibility",
@@ -174,7 +175,7 @@
     "enabledByDefault": true,
     "domains": ["Forecast"],
     "weatherParams": ["Visibility"],
-    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [1000, 200, 50] }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "Thresholds", "type": "numberArray", "default": [1000, 200, 50] }]
   },
   {
     "key": "TropicalNight",
@@ -189,7 +190,7 @@
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["Temperature", "IsDay"],
     "ensembleParams": ["TemperatureSpread"],
-    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [20, 23, 25] }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "Thresholds", "type": "numberArray", "default": [20, 23, 25] }]
   },
   {
     "key": "Humidity",
@@ -203,7 +204,7 @@
     "enabledByDefault": true,
     "domains": ["Forecast"],
     "weatherParams": ["DewPoint", "IsDay"],
-    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [16, 21, 24] }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "Thresholds", "type": "numberArray", "default": [16, 21, 24] }]
   },
   {
     "key": "RainProbability",
@@ -233,7 +234,7 @@
     "domains": ["Forecast", "Ensemble"],
     "weatherParams": ["WetBulbTemperature"],
     "ensembleParams": ["TemperatureSpread"],
-    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [26, 28, 32] }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "Thresholds", "type": "numberArray", "default": [26, 28, 32] }]
   },
   {
     "key": "CompoundHeatStress",
@@ -304,7 +305,8 @@
     "automationExample": "Close windows and start air purifier when pollen is high",
     "enabledByDefault": true,
     "domains": ["AirQuality"],
-    "airQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
+    "airQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"],
+    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [20, 50, 100] }]
   },
   {
     "key": "Pm25",
@@ -317,7 +319,8 @@
     "automationExample": "Switch ventilation to recirculation mode when PM2.5 is high",
     "enabledByDefault": true,
     "domains": ["AirQuality"],
-    "airQualityParams": ["Pm25"]
+    "airQualityParams": ["Pm25"],
+    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [15, 25, 50] }]
   },
   {
     "key": "Dust",
@@ -331,7 +334,7 @@
     "enabledByDefault": false,
     "domains": ["AirQuality"],
     "airQualityParams": ["Dust"],
-    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [50, 150, 500] }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "Thresholds", "type": "numberArray", "default": [50, 150, 500] }]
   },
   {
     "key": "PollenTrend",
@@ -644,7 +647,7 @@
     "enabledByDefault": false,
     "domains": ["Forecast"],
     "weatherParams": ["UvIndexClearSky", "IsDay"],
-    "options": [{ "name": "Thresholds", "type": "numberArray", "default": [6, 8, 10] }]
+    "options": [{ "name": "WindowHours", "type": "number", "default": 24 }, { "name": "Thresholds", "type": "numberArray", "default": [6, 8, 10] }]
   },
   {
     "key": "FireRisk",
@@ -780,7 +783,7 @@
     "enabledByDefault": false,
     "domains": ["Forecast"],
     "weatherParams": ["GlobalTiltedIrradiance"],
-    "options": []
+    "options": [{ "name": "PeakKw", "type": "number", "default": 5 }, { "name": "SystemEfficiency", "type": "number", "default": 0.8 }, { "name": "BatteryCapacityKwh", "type": "number", "default": 0 }]
   },
   {
     "key": "SatelliteRadiation",
@@ -809,20 +812,6 @@
     "options": [{ "name": "TargetTemperature", "type": "number", "default": 35 }, { "name": "ForecastHours", "type": "number", "default": 24 }]
   },
   {
-    "key": "SolarBatteryStrategy",
-    "name": "SolarBatteryStrategy",
-    "category": "Energy",
-    "output": "Condition",
-    "description": "Recommends how to use the home battery from today's measured and tomorrow's forecast solar yield",
-    "longDescription": "Compares today's yield (satellite tilted irradiance so far) with tomorrow's forecast yield. Recommends feed_in when tomorrow is much sunnier and today has a surplus, charge_battery when tomorrow is much cloudier and today has a surplus, conserve when tomorrow is much sunnier and today is low, otherwise normal. A surplus means today's yield reaches the battery capacity.",
-    "entities": ["sensor.{location}_solar_battery_strategy"],
-    "automationExample": "Switch the inverter to grid feed-in when the strategy is feed_in",
-    "enabledByDefault": false,
-    "domains": ["Forecast", "Satellite"],
-    "weatherParams": ["ShortwaveRadiation"],
-    "options": []
-  },
-  {
     "key": "ElevatedWind",
     "name": "ElevatedWind",
     "category": "Energy",
@@ -847,7 +836,8 @@
     "entities": ["binary_sensor.{location}_flood_risk_alert"],
     "automationExample": "Activate flood barrier pump when flood risk is elevated",
     "enabledByDefault": false,
-    "domains": ["Flood"]
+    "domains": ["Flood"],
+    "options": [{ "name": "MedianFactor", "type": "number", "default": 2 }, { "name": "ForecastDays", "type": "number", "default": 7 }]
   },
   {
     "key": "FloodRain",
@@ -860,7 +850,8 @@
     "automationExample": "Evacuate basement contents when flood rain alert goes red",
     "enabledByDefault": false,
     "domains": ["Forecast", "Flood"],
-    "weatherParams": ["Precipitation"]
+    "weatherParams": ["Precipitation"],
+    "options": [{ "name": "HeavyRainThreshold", "type": "number", "default": 30 }, { "name": "ForecastDays", "type": "number", "default": 7 }]
   },
   {
     "key": "FloodTimeline",

@@ -7,6 +7,7 @@ public sealed class ClearSkyUvConfig : IConfigSection, IHasArrayDefaults
     private const string SectionName = "Njord:Features:ClearSkyUv";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
+    public int WindowHours { get; set; } = 24;
     public double[] Thresholds { get; set; } = [];
     public static double[] DefaultThresholds => [6, 8, 10];
 

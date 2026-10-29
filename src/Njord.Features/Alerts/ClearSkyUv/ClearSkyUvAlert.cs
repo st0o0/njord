@@ -25,7 +25,7 @@ public sealed class ClearSkyUvAlert(IOptions<ClearSkyUvConfig> config) : Feature
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
         var thresholds = config.Value.Thresholds.ToSeverity(ScanDirection.Max);
-        var daytime = ctx.Current.Forecast.NextHoursInclusive(ctx.Now)
+        var daytime = ctx.Current.Forecast.NextHoursInclusive(ctx.Now, config.Value.WindowHours)
             .Where(p => p.IsDay is > 0)
             .ToList();
         if (daytime.HighestBy(p => p.UvIndexClearSky) is not { UvIndexClearSky: { } peak } highest)

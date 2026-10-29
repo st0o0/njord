@@ -23,7 +23,7 @@ public sealed class FogAlert(IOptions<FogConfig> config) : FeatureRule<ForecastI
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var fogPoints = ctx.Current.Forecast.NextHoursInclusive(ctx.Now)
+        var fogPoints = ctx.Current.Forecast.NextHoursInclusive(ctx.Now, config.Value.WindowHours)
             .Where(p => p.Temperature - p.DewPoint < 2.0 && p is { WindSpeed: < 3.0, Humidity: > 90.0 })
             .ToList();
         var fogHours = fogPoints.Count;

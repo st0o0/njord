@@ -36,18 +36,18 @@ public sealed class OpenMeteoClientTests
     private static ForecastClient Forecast(
         HttpClient http,
         ForecastParams flags = ForecastParams.Temperature,
-        SolarYieldOptions? solar = null,
+        SatelliteOptions? solar = null,
         ForecastOptions? options = null) =>
-        new(http, Options.Create(options ?? new ForecastOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: flags), NullLogger<ForecastClient>.Instance);
+        new(http, Options.Create(options ?? new ForecastOptions()), Options.Create(solar ?? new SatelliteOptions()), Needs(weather: flags), NullLogger<ForecastClient>.Instance);
 
     private static EnsembleClient Ensemble(
         HttpClient http,
         EnsembleParams ensemble = EnsembleParams.TemperatureSpread,
         ForecastParams weather = ForecastParams.None,
-        SolarYieldOptions? solar = null,
+        SatelliteOptions? solar = null,
         EnsembleOptions? options = null,
         string[]? models = null) =>
-        new(http, Options.Create(options ?? new EnsembleOptions { Models = models ?? [EnsembleOptions.DefaultModel] }), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: weather, ensemble: ensemble), NullLogger<EnsembleClient>.Instance);
+        new(http, Options.Create(options ?? new EnsembleOptions { Models = models ?? [EnsembleOptions.DefaultModel] }), Options.Create(solar ?? new SatelliteOptions()), Needs(weather: weather, ensemble: ensemble), NullLogger<EnsembleClient>.Instance);
 
     private static FloodClient Flood(HttpClient http, FloodOptions? options = null) =>
         new(http, Options.Create(options ?? new FloodOptions()), Needs(flood: FloodParams.Discharge));
@@ -152,7 +152,7 @@ public sealed class OpenMeteoClientTests
     [Fact(Timeout = 5000)]
     public async Task The_forecast_uri_carries_tilt_and_azimuth_when_global_tilted_irradiance_is_requested()
     {
-        var solar = new SolarYieldOptions { Tilt = 25, Azimuth = 135 };
+        var solar = new SatelliteOptions { Tilt = 25, Azimuth = 135 };
 
         var uri = await Capture("api", http => Forecast(http, ForecastParams.GlobalTiltedIrradiance, solar), TestContext.Current.CancellationToken);
 
@@ -222,7 +222,7 @@ public sealed class OpenMeteoClientTests
     public void The_forecast_call_weight_follows_the_resolved_variables_and_days()
     {
         var client = new ForecastClient(
-            new HttpClient(), Options.Create(new ForecastOptions { ForecastDays = 4 }), Options.Create(new SolarYieldOptions()), Options.Create(TestRequirements.All), NullLogger<ForecastClient>.Instance);
+            new HttpClient(), Options.Create(new ForecastOptions { ForecastDays = 4 }), Options.Create(new SatelliteOptions()), Options.Create(TestRequirements.All), NullLogger<ForecastClient>.Instance);
 
         var variables = TestRequirements.All.Forecast.ToApiNames();
 

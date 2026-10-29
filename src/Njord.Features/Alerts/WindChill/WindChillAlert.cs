@@ -25,7 +25,7 @@ public sealed class WindChillAlert(IOptions<WindChillConfig> config) : FeatureRu
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
         var thresholds = config.Value.Thresholds.ToSeverity(ScanDirection.Min);
-        if (ctx.Current.Forecast.NextHoursInclusive(ctx.Now).LowestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } low } coldest)
+        if (ctx.Current.Forecast.NextHoursInclusive(ctx.Now, config.Value.WindowHours).LowestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } low } coldest)
         {
             return null;
         }

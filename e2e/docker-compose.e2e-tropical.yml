@@ -29,9 +29,9 @@ services:
       - Njord__Ensemble__Models__2=ukmo_global_ensemble_mean_20km
 
       # ── Solar yield (tropical tilt) ───────────────────────
-      - Njord__SolarYield__PeakKw=8.0
-      - Njord__SolarYield__Tilt=15
-      - Njord__SolarYield__Azimuth=180
+      - Njord__Features__SolarYield__PeakKw=8.0
+      - Njord__Satellite__Tilt=15
+      - Njord__Satellite__Azimuth=180
 
       # ── Alert thresholds (lowered for tropical alerts) ────
       - Njord__Features__Heat__Thresholds__0=25

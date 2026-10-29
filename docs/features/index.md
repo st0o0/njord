@@ -1,6 +1,6 @@
 # Features
 
-njord evaluates 66 features across seven categories. Each feature polls one or more weather domains, evaluates a rule against the forecast data, and delivers the result to Home Assistant as an entity.
+njord evaluates 65 features across seven categories. Each feature polls one or more weather domains, evaluates a rule against the forecast data, and delivers the result to Home Assistant as an entity.
 
 Features are toggled with a single environment variable:
 
@@ -17,7 +17,7 @@ Use the [Config Builder](/builder) to pick features and preview the API budget.
 | [Weather Alerts](./weather-alerts) | Dangerous weather conditions | 22 alerts |
 | [Air Quality](./air-quality) | Pollen, particulates, smog | 10 features |
 | [Lifestyle](./lifestyle) | Daily life decisions | 17 features |
-| [Energy](./energy) | Solar and wind energy | 5 features |
+| [Energy](./energy) | Solar and wind energy | 4 features |
 | [Flood](./flood) | River discharge and flood risk | 3 features |
 | [Marine](./marine) | Waves, currents, coastal hazards | 3 features |
 | [Insights](./insights) | Trends, forecasts, model comparison | 8 features |
@@ -96,7 +96,6 @@ Every feature creates one or more Home Assistant entities. The table below shows
 | SatelliteRadiation | Off | Blends satellite observations with forecast | Satellite |
 | ElevatedWind | Off | 80 m and 120 m wind data for wind turbines | Forecast |
 | HeatPumpCop | Off | Heat pump COP estimate from outdoor temperature | Forecast |
-| SolarBatteryStrategy | Off | Battery charge vs feed-in strategy based on solar forecast | Forecast, Satellite |
 
 ### Flood
 

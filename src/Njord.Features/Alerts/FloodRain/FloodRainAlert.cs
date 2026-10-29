@@ -11,9 +11,6 @@ namespace Njord.Features.Alerts.FloodRain;
 
 public sealed class FloodRainAlert(IOptions<FloodRainConfig> config) : FeatureRule<FloodForecastInput>
 {
-    public const int ForecastDays = 7;
-    public const double HeavyRain24HourMillimeters = 30.0;
-
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Flood,
@@ -29,12 +26,12 @@ public sealed class FloodRainAlert(IOptions<FloodRainConfig> config) : FeatureRu
     protected override PipelineEvent? Evaluate(FeatureContext<FloodForecastInput> ctx)
     {
         var rain = ctx.Current.Forecast.NextHoursInclusive(ctx.Now).Sum(p => p.Precipitation);
-        if (rain < HeavyRain24HourMillimeters)
+        if (rain < config.Value.HeavyRainThreshold)
         {
             return null;
         }
 
-        var points = ctx.Current.Flood.NextDays(ctx.Now, ForecastDays).Where(p => p.Discharge is not null).ToList();
+        var points = ctx.Current.Flood.NextDays(ctx.Now, config.Value.ForecastDays).Where(p => p.Discharge is not null).ToList();
         if (points.MaxBy(p => p.Discharge) is not { Discharge: { } peakDischarge } peak)
         {
             return null;

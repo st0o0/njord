@@ -7,8 +7,20 @@ namespace Njord.Features.Alerts.Snow;
 
 public sealed class SnowConfigValidator : IValidateOptions<SnowConfig>
 {
-    public ValidateOptionsResult Validate(string? name, SnowConfig options) =>
-        ThresholdValidation.Violation($"{IConfigSection.SectionOf<SnowConfig>()}:Thresholds", options.Thresholds, ScanDirection.Max) is { } failure
-            ? ValidateOptionsResult.Fail(failure)
-            : ValidateOptionsResult.Success;
+    public ValidateOptionsResult Validate(string? name, SnowConfig options)
+    {
+        var section = IConfigSection.SectionOf<SnowConfig>();
+        var failures = new List<string>();
+        if (ThresholdValidation.Violation($"{section}:Thresholds", options.Thresholds, ScanDirection.Max) is { } failure)
+        {
+            failures.Add(failure);
+        }
+
+        if (options.WindowHours < 1)
+        {
+            failures.Add($"{section}:WindowHours must be at least 1, got {options.WindowHours}.");
+        }
+
+        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+    }
 }

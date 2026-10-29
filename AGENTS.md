@@ -44,7 +44,7 @@ src/
                         #   Gateway/ (OpenMeteoGateway, stream-based dispatch), Budget/ (GatewayBudgetGate),
                         #   Http/ (ClientRequest, OpenMeteoEndpoints, OpenMeteoJsonContext),
                         #   Mapping/ (shared: DomainKindMappingExtensions, ForecastTrimmingExtensions, SeriesAccess),
-                        #   Configuration/ (AirQuality/Marine/Seasonal/Satellite/SolarYield options)
+                        #   Configuration/ (AirQuality/Marine/Seasonal/Satellite options)
   Njord.Budget/         # BudgetTracker (persistent), usage accounting, health check
   Njord.Polling/        # PollManager, PollWorker (+ state, mappings), polling Telemetry, Configuration/ (BudgetGuard, PollingOptionsValidator)
   Njord.Pipeline/       # Stream/ (ForecastPipeline, FeatureEngine), Health/ (PipelineHealthCheck), Telemetry
@@ -151,7 +151,7 @@ SHARD REGIONS (Sharded Entity)
   (spread-only: 1 call), every other required domain 1.
 - **Per-domain forecast days.** `Njord:Forecast` (4, max 16), `Njord:Ensemble` (4, max 35), `Njord:AirQuality` (5,
   max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92, max 210).
-- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Name>` (66 features; categories in
+- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Name>` (65 features; categories in
   `docs/data/features.json` are UI metadata; env `Njord__Features__<Name>__Enabled`). 18 are on by default: the 14
   weather alerts (`Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`, `PressureDrop`, `Thunderstorm`,
   `Ice`, `WindChill`, `Visibility`, `TropicalNight`, `Humidity`), `Commute`, `Pollen`,
@@ -171,10 +171,10 @@ SHARD REGIONS (Sharded Entity)
   `temperature_2m_anomaly` (K) and `precipitation_anomaly` (mm; `SeasonalOutlook` converts to % of the normal
   month with `precipitation_mean`); confidence follows the lead time. `Njord:Seasonal:ForecastMonths` (3) limits the months kept.
 - **Satellite is a normal domain** (`DomainKind.Satellite`, `SatelliteRadiationPoint` in `Njord.Core/Solar`): the gateway
-  fetches `satellite-api.open-meteo.com/v1/archive` (GHI, direct, diffuse, DNI, GTI; tilt/azimuth from `SolarYieldOptions`,
+  fetches `satellite-api.open-meteo.com/v1/archive` (GHI, direct, diffuse, DNI, GTI; tilt/azimuth from `SatelliteOptions`,
   `Njord:Satellite:PastHours`) for `SatelliteRadiation` (off by default, about 720 calls/month/location, counted per poll
   cycle by `BudgetGuard`). `SolarIrradianceBlend` takes satellite GTI up to the newest observation (ignored when
-  older than 3 h) and ensemble GTI afterwards; `SolarYield` and `SatelliteRadiation` use it.
+  older than 3 h) and ensemble GTI afterwards; `SolarYield` (panel options and optional battery strategy in `Njord:Features:SolarYield`) and `SatelliteRadiation` use it.
 - **Base parameters.** `DomainRequirements.WithBaseParams` always requests `weather_code` for a required Forecast domain and `pm10` for a required AirQuality domain; `BudgetGuard` and the Config Builder count them.
 - **Failure backoff.** A failed fetch retries after 60 s, doubling per consecutive failure up to the poll interval (`FailureBackoff`); rate limit and budget rejections wait at least 5 min. The count is persisted in `DomainPolled.ConsecutiveFailures` and reset by a successful fetch.
 - Poll interval 60 min and discovery interval 20 min are config values.
@@ -330,7 +330,7 @@ Rules apply to production code.
 One `sealed` class per concern implementing `IConfigSection` (`static abstract SectionName`), registered with
 `AddNjordOptions<T>()` (`BindConfiguration(T.SectionName).ValidateOnStart()`) or `AddNjordOptions<T, TValidator>()`
 when it has cross-field rules (`IValidateOptions<T>`). Options live with their owner (Forecast/Ensemble/Flood/Polling/Health
-in `Njord.Core`, AirQuality/Marine/Seasonal/Satellite/SolarYield in `Njord.OpenMeteo`, `PollingOptionsValidator`
+in `Njord.Core`, AirQuality/Marine/Seasonal/Satellite in `Njord.OpenMeteo`, `PollingOptionsValidator`
 and `BudgetGuard` in `Njord.Polling`, `PersistenceOptions` in the Host, feature options in each `<Name>Config`).
 Defaults are property initializers. Naming: `private const string SectionName` + explicit interface implementation.
 
@@ -350,13 +350,28 @@ interface. Manual `PostConfigure` is reserved for derived values (`PollingOption
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..8) |
 | `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..6) |
-| `Njord:Satellite` | `SatelliteOptions` | `PastHours` (6, 1..48) |
+| `Njord:Satellite` | `SatelliteOptions` | `PastHours` (6, 1..48), `Tilt` (30), `Azimuth` (180); `PeakKw`, `SystemEfficiency`, `BatteryCapacityKwh` live in `Njord:Features:SolarYield` |
 | `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210), `IncludeEnsemble` (false) |
 | `Njord:Features:<Name>` | `<Name>Config` | `Enabled` (default from the descriptor) plus the feature's options |
-| `Njord:SolarYield` | `SolarYieldOptions` | `PeakKw` (5.0), `Azimuth` (180), `Tilt` (30) |
 | `Njord:Polling` | `PollingOptions` | `PollInterval` (60 min), `DiscoveryInterval` (20 min), `BudgetOverride` |
 | `Njord:Persistence` | `PersistenceOptions` | `Provider` (Sqlite/PostgreSql), `ConnectionString`, `DataPath` |
 | `Njord:Health` | `HealthOptions` | poll overdue/stalled factors, budget degraded % |
+
+### Config patterns
+
+**Domain options** live in the lowest project that reaches all consumers: `Njord.Core` when multiple
+feature libraries need them, `Njord.OpenMeteo` when only OpenMeteo clients use them, the Host when
+only the host needs them. Each has its own `<Type>Validator : IValidateOptions<T>`.
+
+**Feature configs** (`<Name>Config : IConfigSection`) follow tiers:
+- **Tier 1 (Enabled-only)**: just `Enabled`, no validator, no `IHasArrayDefaults`.
+- **Tier 2 (Scalar thresholds)**: `Enabled` + scalar properties, validator when invariants exist.
+- **Tier 3 (Array thresholds)**: `Enabled` + `Thresholds[]` + `IHasArrayDefaults` + validator
+  (ascending order, correct length). Every array-threshold alert has a validator.
+- **Tier 4 (Multi-parameter)**: `Enabled` + multiple properties + validator.
+
+Alerts that scan a forecast window expose `WindowHours` (default 24) so the operator can
+narrow the lookahead. Validators check `WindowHours >= 1`.
 
 The Config Builder (`docs/.vitepress/theme/builder`: `types.ts`, `budget.ts`, `serializer.ts`,
 `ConfigBuilder.vue`, data in `docs/data/features.json` (hand-maintained, incl. per-feature options)) mirrors the toggles, their required domains, per-feature marginal cost and the

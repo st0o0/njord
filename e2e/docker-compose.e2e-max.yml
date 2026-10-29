@@ -38,9 +38,9 @@ services:
       - Njord__Satellite__PastHours=48
 
       # ── Solar yield ────────────────────────────────────────
-      - Njord__SolarYield__PeakKw=10.0
-      - Njord__SolarYield__Tilt=45
-      - Njord__SolarYield__Azimuth=180
+      - Njord__Features__SolarYield__PeakKw=10.0
+      - Njord__Satellite__Tilt=45
+      - Njord__Satellite__Azimuth=180
 
       # ── Polling (no BudgetOverride - test the real guard) ──
       # - Njord__Polling__BudgetOverride=600000

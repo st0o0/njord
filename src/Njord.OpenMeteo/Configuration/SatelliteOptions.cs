@@ -9,4 +9,6 @@ public sealed class SatelliteOptions : IConfigSection
 
     // Hours of observed radiation requested per fetch; the blend only needs the recent hours.
     public int PastHours { get; set; } = 6;
+    public int Tilt { get; set; } = 30;
+    public int Azimuth { get; set; } = 180;
 }

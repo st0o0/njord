@@ -59,14 +59,10 @@ export function mergeWithDefaults(partial: Partial<NjordConfig>): NjordConfig {
     airQuality: { ...d.airQuality, ...partial.airQuality },
     marine: { ...d.marine, ...partial.marine },
     flood: { ...d.flood, ...partial.flood },
-    solarYield: { ...d.solarYield, ...partial.solarYield },
+    satellite: { ...d.satellite, ...partial.satellite },
     persistence: { ...d.persistence, ...partial.persistence },
     deploy: { limits: { ...d.deploy.limits, ...partial.deploy?.limits } },
   }
-}
-
-function solarYieldEnabled(config: NjordConfig): boolean {
-  return !!config.features['Energy:SolarYield']
 }
 
 function parseBool(value: unknown): boolean {
@@ -100,13 +96,10 @@ export function exportAsJson(config: NjordConfig): string {
   if (config.flood.forecastDays !== defaults.flood.forecastDays) flood.ForecastDays = config.flood.forecastDays
   if (config.flood.includeEnsemble) flood.IncludeEnsemble = true
   if (Object.keys(flood).length) n.Flood = flood
-  if (solarYieldEnabled(config)) {
-    const solar: Record<string, unknown> = {}
-    if (config.solarYield.peakKw !== defaults.solarYield.peakKw) solar.PeakKw = config.solarYield.peakKw
-    if (config.solarYield.azimuth !== defaults.solarYield.azimuth) solar.Azimuth = config.solarYield.azimuth
-    if (config.solarYield.tilt !== defaults.solarYield.tilt) solar.Tilt = config.solarYield.tilt
-    if (Object.keys(solar).length) n.SolarYield = solar
-  }
+  const satellite: Record<string, unknown> = {}
+  if (config.satellite.tilt !== defaults.satellite.tilt) satellite.Tilt = config.satellite.tilt
+  if (config.satellite.azimuth !== defaults.satellite.azimuth) satellite.Azimuth = config.satellite.azimuth
+  if (Object.keys(satellite).length) n.Satellite = satellite
   const features: Record<string, Record<string, unknown>> = {}
   for (const [key, enabled] of changedFeatures(config.features)) {
     ;(features[key] ??= {}).Enabled = enabled
@@ -164,11 +157,8 @@ export function exportAsEnvVars(config: NjordConfig): string {
     if (loc.longitude !== undefined) add(`Njord__Locations__${i}__Longitude`, String(loc.longitude))
   })
 
-  if (solarYieldEnabled(config)) {
-    if (config.solarYield.peakKw !== defaults.solarYield.peakKw) add('Njord__SolarYield__PeakKw', String(config.solarYield.peakKw))
-    if (config.solarYield.azimuth !== defaults.solarYield.azimuth) add('Njord__SolarYield__Azimuth', String(config.solarYield.azimuth))
-    if (config.solarYield.tilt !== defaults.solarYield.tilt) add('Njord__SolarYield__Tilt', String(config.solarYield.tilt))
-  }
+  if (config.satellite.tilt !== defaults.satellite.tilt) add('Njord__Satellite__Tilt', String(config.satellite.tilt))
+  if (config.satellite.azimuth !== defaults.satellite.azimuth) add('Njord__Satellite__Azimuth', String(config.satellite.azimuth))
 
   if (config.budgetOverride) {
     add('Njord__Polling__BudgetOverride__RequestsPerMonth', String(config.budgetOverride.requestsPerMonth))
@@ -244,12 +234,11 @@ export function importFromJson(json: string): Partial<NjordConfig> {
         : defaultConfig().ensemble.models,
     }
   }
-  if (n.SolarYield) {
-    const d = defaultConfig().solarYield
-    config.solarYield = {
-      peakKw: Number(n.SolarYield.PeakKw) || d.peakKw,
-      azimuth: n.SolarYield.Azimuth !== undefined ? Number(n.SolarYield.Azimuth) : d.azimuth,
-      tilt: n.SolarYield.Tilt !== undefined ? Number(n.SolarYield.Tilt) : d.tilt,
+  if (n.Satellite) {
+    const d = defaultConfig().satellite
+    config.satellite = {
+      tilt: n.Satellite.Tilt !== undefined ? Number(n.Satellite.Tilt) : d.tilt,
+      azimuth: n.Satellite.Azimuth !== undefined ? Number(n.Satellite.Azimuth) : d.azimuth,
     }
   }
   if (n.AirQuality) config.airQuality = { forecastDays: Number(n.AirQuality.ForecastDays) || 5, region: n.AirQuality.Region ?? 'Global' }
@@ -332,12 +321,11 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     else if (parts[0] === 'Flood' && parts[1] === 'IncludeEnsemble') {
       config.flood.includeEnsemble = value.toLowerCase() === 'true'
     }
-    else if (parts[0] === 'SolarYield') {
+    else if (parts[0] === 'Satellite') {
       const num = parseFloat(value)
       if (!Number.isNaN(num)) {
-        if (parts[1] === 'PeakKw') config.solarYield.peakKw = num
-        else if (parts[1] === 'Azimuth') config.solarYield.azimuth = num
-        else if (parts[1] === 'Tilt') config.solarYield.tilt = num
+        if (parts[1] === 'Azimuth') config.satellite.azimuth = num
+        else if (parts[1] === 'Tilt') config.satellite.tilt = num
       }
     }
     else if (parts[0] === 'AirQuality' && parts[1] === 'ForecastDays') config.airQuality.forecastDays = parseInt(value) || 5

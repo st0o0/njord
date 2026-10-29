@@ -27,7 +27,7 @@ public sealed class DustAlert(IOptions<DustConfig> config) : FeatureRule<AqInput
         var thresholds = config.Value.Thresholds.ToSeverity(ScanDirection.Max);
         AirQualityPoint? peakPoint = null;
         var peak = 0.0;
-        foreach (var point in ctx.Current.AirQuality.NextHoursInclusive(ctx.Now))
+        foreach (var point in ctx.Current.AirQuality.NextHoursInclusive(ctx.Now, config.Value.WindowHours))
         {
             if (point.Dust is { } dust && dust > peak)
             {

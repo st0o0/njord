@@ -71,7 +71,7 @@ services:
       # Energy
       #- Njord__Features__HeatPumpCop__Enabled=true
       #- Njord__Features__HeatPumpCop__TargetTemperature=35
-      #- Njord__Features__SolarBatteryStrategy__Enabled=true
+      #- Njord__Features__SolarYield__BatteryCapacityKwh=10
       # Health & Wellness
       #- Njord__Features__MigraineRisk__Enabled=true
       #- Njord__Features__SleepQuality__Enabled=true

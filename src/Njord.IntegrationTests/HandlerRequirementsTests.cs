@@ -2,6 +2,7 @@ using Njord.Core;
 using Njord.Core.AirQuality;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
+using Njord.Core.Solar;
 using Njord.Messages.Results;
 using Njord.Tests.Shared;
 
@@ -58,7 +59,7 @@ public sealed class HandlerRequirementsTests
     public void Should_declare_the_radiation_params_the_solar_yield_reads()
     {
         Assert.Equal(
-            new DomainRequirements(Forecast: ForecastParams.GlobalTiltedIrradiance),
+            new DomainRequirements(Forecast: ForecastParams.GlobalTiltedIrradiance, OptionalSatellite: SatelliteParams.GlobalTilted),
             Features["SolarYield"].Descriptor.Requirements);
     }
 

@@ -24,7 +24,7 @@ public sealed class SnowAlert(IOptions<SnowConfig> config) : FeatureRule<Forecas
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
-        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
+        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now, config.Value.WindowHours);
         if (!window.Any(p => p.Snowfall is not null))
         {
             return null;

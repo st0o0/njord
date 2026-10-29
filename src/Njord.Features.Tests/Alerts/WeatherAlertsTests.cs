@@ -108,7 +108,7 @@ public sealed class WeatherAlertsTests
     [InlineData(6.0, AlertSeverity.Orange)]
     [InlineData(8.0, AlertSeverity.Red)]
     public void Uv_severity_follows_the_uv_index(double value, AlertSeverity expected) =>
-        Assert.Equal(expected, Severity(new UvAlert(Opts(new UvConfig())), Uniform(p => p with { UvIndex = value })));
+        Assert.Equal(expected, Severity(new UvAlert(Opts(new UvConfig { Thresholds = UvConfig.DefaultThresholds })), Uniform(p => p with { UvIndex = value })));
 
     [Theory]
     [InlineData(9.9, AlertSeverity.None)]

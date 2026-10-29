@@ -136,7 +136,7 @@ and what to cite as evidence on failure.
   Evidence: tick numbers with high miss counts.
 
 - **P3 (FAIL)**: For ticks where `in_restart_window == false` and
-  `grpc_status.reachable == true`: `grpc_status.enrichment_count == 66`.
+  `grpc_status.reachable == true`: `grpc_status.enrichment_count == 65`.
   Evidence: tick numbers with wrong count.
 
 #### Streams and Metrics (S1, M1-M3)
@@ -206,7 +206,7 @@ Generate a structured report:
 ### Polling Lifecycle (3/3 passed)
 - [PASS] P1: STEADY reached at 12 min
 - [PASS] P2: Max miss count: 0
-- [PASS] P3: All enrichments (66)
+- [PASS] P3: All enrichments (65)
 
 ### Streams and Metrics (4/4 passed)
 - [PASS] S1: Streams always connected

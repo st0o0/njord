@@ -25,7 +25,7 @@ public sealed class FeatureRegistrationTests
     {
         var rules = FeatureServices.AllFeatureRules();
 
-        Assert.Equal(66, rules.Count);
+        Assert.Equal(65, rules.Count);
         foreach (var rule in rules)
         {
             Assert.Equal($"Njord:Features:{rule.Descriptor.Name}", ConfigSectionOf(rule));

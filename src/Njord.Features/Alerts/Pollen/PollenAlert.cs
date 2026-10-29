@@ -10,12 +10,6 @@ namespace Njord.Features.Alerts.Pollen;
 
 public sealed class PollenAlert(IOptions<PollenConfig> config) : FeatureRule<AqInput>
 {
-    public const double YellowThreshold = 20.0;
-    public const double OrangeThreshold = 50.0;
-    public const double RedThreshold = 100.0;
-
-    private static readonly SeverityThresholds Thresholds = new(YellowThreshold, OrangeThreshold, RedThreshold, ScanDirection.Max);
-
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.AirQuality,
@@ -47,7 +41,12 @@ public sealed class PollenAlert(IOptions<PollenConfig> config) : FeatureRule<AqI
             return null;
         }
 
-        var (severity, threshold) = Thresholds.Classify(peak);
+        if (!SeverityThresholds.TryCreate(config.Value.Thresholds, ScanDirection.Max, out var thresholds))
+        {
+            return null;
+        }
+
+        var (severity, threshold) = thresholds.Classify(peak);
         if (severity == AlertSeverity.None)
         {
             return null;
