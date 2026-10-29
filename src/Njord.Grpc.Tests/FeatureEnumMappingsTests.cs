@@ -1,7 +1,4 @@
 using Njord.Grpc.Mapping;
-using Njord.Messages.Results.Alerts;
-using Njord.Messages.Results.Conditions;
-using Njord.Messages.Results.Trends;
 
 namespace Njord.Grpc.Tests;
 

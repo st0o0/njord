@@ -1,7 +1,6 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Njord.Core;
-using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Messages.Fetch;
 using Njord.Messages.Stream;

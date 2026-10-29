@@ -4,7 +4,6 @@ using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
-using Njord.Core.Domain;
 using Njord.Messages.Results;
 using Njord.Messages.Stream;
 

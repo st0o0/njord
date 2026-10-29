@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
-using Njord.Features.Alerts.Shared;
 using Njord.Messages.Alerts;
 using Njord.Messages.Results;
 using Njord.Messages.Results.Alerts;

@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using Njord.Core;
-using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Core.Solar;
 using Njord.Messages.Fetch;

@@ -1,5 +1,4 @@
 using Njord.Core;
-using Njord.Core.Domain;
 using Njord.Messages.Results;
 
 namespace Njord.Messages.Stream;

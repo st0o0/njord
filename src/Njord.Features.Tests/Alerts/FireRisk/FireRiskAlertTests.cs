@@ -1,6 +1,4 @@
 using Microsoft.Extensions.Options;
-using Njord.Core;
-using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Features.Alerts.FireRisk;
 using Njord.Messages.Alerts;

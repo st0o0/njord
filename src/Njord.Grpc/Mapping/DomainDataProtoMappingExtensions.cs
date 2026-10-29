@@ -1,7 +1,6 @@
 using Google.Protobuf.WellKnownTypes;
 using Njord.Core;
 using Njord.Core.AirQuality;
-using Njord.Core.Domain;
 using Njord.Core.Flood;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;

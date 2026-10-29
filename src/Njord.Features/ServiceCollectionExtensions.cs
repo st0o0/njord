@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
-using Njord.Core.Domain;
 using Njord.Features.Alerts.ClearSkyUv;
 using Njord.Features.Alerts.CoastalFlood;
 using Njord.Features.Alerts.CompoundHeatStress;
@@ -140,7 +139,7 @@ public static class ServiceCollectionExtensions
         services.AddFeature<AtmosphericStabilityCondition, AtmosphericStabilityConfig>();
         services.AddFeature<CloudCeilingCondition, CloudCeilingConfig>();
         services.AddFeature<CommuteSafety, CommuteSafetyConfig>();
-        services.AddFeature<Features.Conditions.ElevatedWind.ElevatedWind, ElevatedWindConfig>();
+        services.AddFeature<ElevatedWind, ElevatedWindConfig>();
         services.AddFeature<Evapotranspiration, EvapotranspirationConfig>();
         services.AddFeature<ExerciseAdvisory, ExerciseAdvisoryConfig>();
         services.AddFeature<FloodTimeline, FloodTimelineConfig>();

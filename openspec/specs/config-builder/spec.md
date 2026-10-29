@@ -49,36 +49,48 @@ The builder SHALL compute and display projected monthly API usage using the same
 - **THEN** a warning is displayed with suggestions to reduce usage
 
 ### Requirement: Export as appsettings.json
-The builder SHALL generate a complete `appsettings.json` matching the njord configuration schema. A copy-to-clipboard button SHALL be provided. The JSON SHALL include only non-default values to keep the output concise.
+The builder SHALL generate a complete `appsettings.json` matching the njord configuration schema. Feature toggles and options SHALL be exported under a flat `Features` object keyed by feature name. Weather settings SHALL be under `Njord.Weather`. Only non-default values SHALL be included.
 
-#### Scenario: Copy appsettings.json
-- **WHEN** a user clicks "Copy as appsettings.json"
-- **THEN** valid JSON is copied to the clipboard that njord can consume directly
+#### Scenario: Feature toggle in JSON export
+- **WHEN** a user disables Frost (default enabled)
+- **THEN** the exported JSON SHALL contain `"Features": { "Frost": { "Enabled": false } }`
+
+#### Scenario: Feature option in JSON export
+- **WHEN** a user changes Frost thresholds to `[-1, -10, -20]`
+- **THEN** the exported JSON SHALL contain `"Features": { "Frost": { "Thresholds": [-1, -10, -20] } }`
+
+#### Scenario: Weather section in JSON export
+- **WHEN** a user changes forecast days to 7
+- **THEN** the exported JSON SHALL contain `"Weather": { "ForecastDays": 7 }`
 
 ### Requirement: Export as environment variables
-The builder SHALL generate the equivalent configuration as environment variables using the .NET `__` separator convention (e.g., `Njord__Models__0=icon_d2`). A copy-to-clipboard button SHALL be provided.
+The builder SHALL generate the equivalent configuration as environment variables using the .NET `__` separator convention. Feature env vars SHALL use the flat path `Njord__Features__<Name>__<Setting>`.
 
-#### Scenario: Copy env vars
-- **WHEN** a user clicks "Copy as env vars"
-- **THEN** a newline-separated list of `KEY=VALUE` pairs is copied to the clipboard
+#### Scenario: Feature toggle as env var
+- **WHEN** a user disables Frost
+- **THEN** the exported env var SHALL be `Njord__Features__Frost__Enabled=false`
+
+#### Scenario: Feature threshold array as env vars
+- **WHEN** a user sets Frost thresholds to `[-1, -10, -20]`
+- **THEN** the exported env vars SHALL be `Njord__Features__Frost__Thresholds__0=-1`, `...__1=-10`, `...__2=-20`
+
+#### Scenario: Weather env var
+- **WHEN** a user changes forecast days
+- **THEN** the exported env var SHALL be `Njord__Weather__ForecastDays=7`
 
 ### Requirement: Import existing appsettings.json
-The builder SHALL accept a pasted `appsettings.json` and populate all builder fields from it. Unknown keys SHALL be ignored. Invalid JSON SHALL show an error message.
+The builder SHALL accept a pasted `appsettings.json` and populate all builder fields from it. Feature settings SHALL be read from the flat `Features` object. Unknown keys SHALL be ignored.
 
-#### Scenario: Import populates builder
-- **WHEN** a user pastes a valid appsettings.json with 2 locations and 5 models
-- **THEN** the builder shows those 2 locations and 5 models with all other settings populated
+#### Scenario: Import flat feature config
+- **WHEN** a user pastes JSON containing `"Features": { "Frost": { "Enabled": false } }`
+- **THEN** the builder SHALL show Frost as disabled
 
 ### Requirement: Import existing environment variables
-The builder SHALL accept pasted environment variables (one `KEY=VALUE` per line, keys starting with `Njord__`) and populate the builder fields. Non-Njord keys SHALL be ignored. The builder SHALL also accept docker-compose `environment:` syntax where lines are prefixed with `- ` and optional whitespace.
+The builder SHALL accept pasted environment variables and populate the builder fields. Feature env vars SHALL be parsed from the flat path `Njord__Features__<Name>__<Setting>`.
 
-#### Scenario: Import env vars
-- **WHEN** a user pastes lines containing `Njord__Mqtt__Host=192.168.1.1` and `Njord__Models__0=icon_d2`
-- **THEN** the builder shows MQTT host as 192.168.1.1 and icon_d2 in the model list
-
-#### Scenario: Import compose-style env vars
-- **WHEN** a user pastes lines like `      - Njord__Horizons__0=3` with leading whitespace and list markers
-- **THEN** the builder strips the formatting and imports the horizons correctly
+#### Scenario: Import flat feature env var
+- **WHEN** a user pastes `Njord__Features__Frost__Enabled=false`
+- **THEN** the builder SHALL show Frost as disabled
 
 ### Requirement: Import docker-compose environment blocks
 The builder SHALL accept pasted docker-compose YAML containing an `environment:` block with `- KEY=VALUE` list items. Lines with leading whitespace and `- ` prefix SHALL be stripped before parsing. Non-`Njord__` lines SHALL be ignored. The full compose service block (including `image:`, `volumes:`, etc.) SHALL be accepted — only environment lines are extracted. The builder SHALL read and write the per-concern keys (`Njord__Polling__PollInterval`, `Njord__OpenMeteo__BaseUrl`, `Njord__Storage__PersistencePath`); the removed root-level keys SHALL be reported as outdated on import.
@@ -100,14 +112,22 @@ The builder SHALL accept pasted docker-compose YAML containing an `environment:`
 - **THEN** the builder reports the key as outdated and names `Njord__Polling__PollInterval`
 
 ### Requirement: Builder state persists in URL hash
-The builder SHALL encode its current state in the URL fragment (hash) so that configurations can be shared via link. Loading a URL with a hash SHALL restore the builder state.
+The builder SHALL encode its current state in the URL fragment (hash) so that configurations can be shared via link. Loading a URL with a hash SHALL restore the builder state. Feature keys in the hash SHALL use flat names.
 
-#### Scenario: Shareable link
-- **WHEN** a user configures 2 locations and 3 models
-- **THEN** the URL hash updates and sharing that URL restores the same configuration
+#### Scenario: Shareable link with flat keys
+- **WHEN** a user configures features and shares the URL
+- **THEN** the hash SHALL contain flat feature keys and the recipient SHALL see the same configuration
 
 ### Requirement: Features are grouped by category with per-feature cost
-The builder SHALL list all features grouped by feature category. Each feature SHALL show its name, description, required domains and its marginal cost as "+N calls/month", or "+0" when its domains are already active.
+The builder SHALL list all features grouped by feature category. Each feature SHALL show its name, description, required domains and its marginal cost. Feature keys in `features.json` SHALL be the feature name only (e.g. `"Frost"`), with `category` as a separate metadata field used for UI grouping.
+
+#### Scenario: Feature key is flat
+- **WHEN** `features.json` is inspected
+- **THEN** each entry's `key` SHALL be the feature name without a category prefix (e.g. `"Frost"`, not `"Forecast:Frost"`)
+
+#### Scenario: Category is metadata only
+- **WHEN** the builder groups features for display
+- **THEN** it SHALL use the `category` field from `features.json`, not the feature key
 
 #### Scenario: Cost of a feature that enables a new domain
 - **WHEN** no enabled feature needs AirQuality and a user views PollenAlert for one location

@@ -3,7 +3,6 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core;
-using Njord.Core.Domain;
 using Njord.Messages.Fetch;
 using Njord.Messages.Results;
 using Njord.Messages.Results.Scores;

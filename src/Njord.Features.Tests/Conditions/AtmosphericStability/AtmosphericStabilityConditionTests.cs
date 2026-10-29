@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using Njord.Core.Domain;
 using Njord.Features.Conditions.AtmosphericStability;
 using Njord.Messages.Results.Conditions;
 using Njord.Messages.Stream;

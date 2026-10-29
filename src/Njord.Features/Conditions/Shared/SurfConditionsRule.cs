@@ -1,4 +1,3 @@
-using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;

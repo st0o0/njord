@@ -1,6 +1,5 @@
 using Google.Protobuf.WellKnownTypes;
 using Njord.Core;
-using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;

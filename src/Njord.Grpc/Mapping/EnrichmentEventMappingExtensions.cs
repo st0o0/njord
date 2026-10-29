@@ -1,6 +1,5 @@
 using Google.Protobuf.WellKnownTypes;
 using Njord.Core;
-using Njord.Core.Domain;
 using Njord.Grpc.V2;
 using Njord.Messages.Results;
 using Njord.Messages.Results.Alerts;

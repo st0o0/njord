@@ -2,8 +2,6 @@ using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
-using Njord.Core.Actors;
-using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Grpc;
 using Njord.Messages.Fetch;

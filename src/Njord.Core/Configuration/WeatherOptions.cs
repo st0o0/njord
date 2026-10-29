@@ -14,6 +14,9 @@ public sealed class WeatherOptions : IConfigSection, IHasArrayDefaults
 
     public void ApplyDefaults()
     {
-        if (Models is { Length: 0 }) Models = [DefaultModel];
+        if (Models is { Length: 0 })
+        {
+            Models = [DefaultModel];
+        }
     }
 }
