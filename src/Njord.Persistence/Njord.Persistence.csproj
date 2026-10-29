@@ -4,8 +4,4 @@
         <InternalsVisibleTo Include="Njord.Persistence.Tests" />
     </ItemGroup>
 
-    <ItemGroup>
-        <PackageReference Include="Newtonsoft.Json" />
-    </ItemGroup>
-
 </Project>

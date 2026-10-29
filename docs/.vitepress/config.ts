@@ -15,7 +15,7 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
       { text: 'Home Assistant', link: '/home-assistant/' },
       { text: 'Config', link: '/configuration/' },
       { text: 'Reference', link: '/models' },
-      { text: 'Dev', link: '/development/setup' },
+      { text: 'Builder', link: '/builder' },
     ],
 
     sidebar: [

@@ -23,7 +23,6 @@ src/
     Marine/             #   MarinePoint, MarineParams
     Seasonal/           #   SeasonalPoint, SeasonalParams
     Solar/              #   SatelliteRadiationPoint, SatelliteParams
-    Horizon/            #   Horizon, HorizonKind
     ActorKeys.cs        #   marker interfaces for every resolvable actor
     Actors/             #   IActorRegistration, StreamSupervision, Forecast/Pipeline stream handshakes shared across
                         #   libraries (actor plumbing used by one library lives there: ShardMessageExtractor in

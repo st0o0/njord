@@ -84,8 +84,4 @@ public sealed class GrpcChannelTests : IAsyncLifetime
             Assert.Equal("luzern", call.ResponseStream.Current.Location);
         }, ct);
     }
-
-    private sealed class SilentActor : ReceiveActor
-    {
-    }
 }
