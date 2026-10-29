@@ -5,7 +5,7 @@ njord evaluates 65 features across seven categories. Each feature polls one or m
 Features are toggled with a single environment variable:
 
 ```
-Njord__Features__<Category>__<Name>__Enabled=true
+Njord__Features__<Name>__Enabled=true
 ```
 
 Use the [Config Builder](/builder) to pick features and preview the API budget.
@@ -16,7 +16,7 @@ Use the [Config Builder](/builder) to pick features and preview the API budget.
 |----------|---------------|----------|
 | [Weather Alerts](./weather-alerts) | Dangerous weather conditions | 22 alerts |
 | [Air Quality](./air-quality) | Pollen, particulates, smog | 10 features |
-| [Lifestyle](./lifestyle) | Daily life decisions | 17 features |
+| [Lifestyle](./lifestyle) | Daily life decisions | 15 features |
 | [Energy](./energy) | Solar and wind energy | 4 features |
 | [Flood](./flood) | River discharge and flood risk | 3 features |
 | [Marine](./marine) | Waves, currents, coastal hazards | 3 features |
@@ -66,6 +66,7 @@ Every feature creates one or more Home Assistant entities. The table below shows
 | GranularAqi | Off | Per-pollutant European AQI sub-indices | AirQuality |
 | AllergySeverity | Off | Combined allergy severity score with weather amplifiers | Forecast, AirQuality |
 | AsthmaRisk | Off | Asthma risk score from PM2.5, ozone, pollen and weather | Forecast, AirQuality |
+| PollenBlast | Off | Warns when a sudden pollen explosion is likely after a rain-to-dry weather change | Forecast, AirQuality |
 
 ### Lifestyle
 
@@ -82,7 +83,6 @@ Every feature creates one or more Home Assistant entities. The table below shows
 | SoilMoisture | Off | Reports topsoil moisture status | Forecast |
 | Evapotranspiration | Off | Guides daily irrigation needs | Forecast |
 | SnowDepthWatch | Off | Reports snow accumulation depth | Forecast |
-| ElevatedWind | Off | Reports hub-height wind for wind energy | Forecast |
 | SleepQuality | Off | Sleep condition score for the coming night | Forecast, AirQuality |
 | SprayWindow | Off | Optimal spray windows based on wind, rain, temperature | Forecast |
 | IrrigationNeed | Off | Irrigation advice from evapotranspiration and soil moisture | Forecast |

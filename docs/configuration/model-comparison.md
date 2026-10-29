@@ -5,11 +5,11 @@
 ```json
 {
   "Njord": {
-    "Weather": {
+    "Ensemble": {
       "Models": ["ecmwf_ifs025_ensemble_mean", "ecmwf_aifs025_ensemble_mean"]
     },
     "Features": {
-      "Weather": { "ModelComparison": { "Enabled": true } }
+      "ModelComparison": { "Enabled": true }
     }
   }
 }

@@ -1,6 +1,6 @@
 # Enrichment
 
-Alerts, scores, conditions, trends and forecasts are all features. Each feature is a rule that declares the domains it reads and is evaluated only when one of them has new data. A feature is switched with `Njord:Features:<Category>:<Name>:Enabled` and carries its own options (thresholds) in the same section; see [Features and domains](./#features-and-domains).
+Alerts, scores, conditions, trends and forecasts are all features. Each feature is a rule that declares the domains it reads and is evaluated only when one of them has new data. A feature is switched with `Njord:Features:<Name>:Enabled` and carries its own options (thresholds) in the same section; see [Features and domains](./#features-and-domains).
 
 ::: tip Detailed feature documentation
 For full descriptions, configuration examples, and automation ideas for all 65 features, see the [Features reference](/features/).
@@ -14,23 +14,19 @@ Alert rules run on the high-resolution deterministic forecast from the Forecast 
 {
   "Njord": {
     "Features": {
-      "Weather": {
-        "Frost": { "Enabled": true, "Thresholds": [0, -5, -15] },
-        "Heat": { "Thresholds": [30, 35, 40] },
-        "Storm": { "GustThresholds": [17, 25, 33] },
-        "HeavyRain": { "HourlyThreshold": 10.0, "DailyThreshold": 25.0 },
-        "PressureDrop": { "Threshold": 5.0, "SevereThreshold": 10.0 },
-        "Fog": { "PersistentHours": 4 },
-        "Thunderstorm": { "CapeThresholds": [1000, 1500, 2500], "PrecipThreshold": 5.0, "GustThreshold": 20.0 },
-        "Ice": { "Threshold": 2.0 },
-        "WindChill": { "Thresholds": [-10, -20, -30] },
-        "Visibility": { "Thresholds": [1000, 200, 50] },
-        "TropicalNight": { "Thresholds": [20, 23, 25] },
-        "Humidity": { "Thresholds": [16, 21, 24] }
-      },
-      "AirQuality": {
-        "Dust": { "Thresholds": [50, 150, 500] }
-      }
+      "Frost": { "Enabled": true, "Thresholds": [0, -5, -15] },
+      "Heat": { "Thresholds": [30, 35, 40] },
+      "Storm": { "GustThresholds": [17, 25, 33] },
+      "HeavyRain": { "HourlyThreshold": 10.0, "DailyThreshold": 25.0 },
+      "PressureDrop": { "Threshold": 5.0, "SevereThreshold": 10.0 },
+      "Fog": { "PersistentHours": 4 },
+      "Thunderstorm": { "CapeThresholds": [1000, 1500, 2500], "PrecipThreshold": 5.0, "GustThreshold": 20.0 },
+      "Ice": { "Threshold": 2.0 },
+      "WindChill": { "Thresholds": [-10, -20, -30] },
+      "Visibility": { "Thresholds": [1000, 200, 50] },
+      "TropicalNight": { "Thresholds": [20, 23, 25] },
+      "Humidity": { "Thresholds": [16, 21, 24] },
+      "Dust": { "Thresholds": [50, 150, 500] }
     }
   }
 }

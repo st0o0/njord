@@ -152,9 +152,9 @@ SHARD REGIONS (Sharded Entity)
 - **Per-domain forecast days.** `Njord:Forecast` (4, max 16), `Njord:Ensemble` (4, max 35), `Njord:AirQuality` (5,
   max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92, max 210).
 - **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Name>` (65 features; categories in
-  `docs/data/features.json` are UI metadata; env `Njord__Features__<Name>__Enabled`). 18 are on by default: the 14
+  `docs/data/features.json` are UI metadata; env `Njord__Features__<Name>__Enabled`). 18 are on by default: the 15
   weather alerts (`Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`, `PressureDrop`, `Thunderstorm`,
-  `Ice`, `WindChill`, `Visibility`, `TropicalNight`, `Humidity`), `Commute`, `Pollen`,
+  `Ice`, `WindChill`, `Visibility`, `TropicalNight`, `Humidity`, `RainProbability`), `Commute`, `Pollen`,
   `Pm25`; everything else is off. The entity set follows locations x enabled features.
 - **Per-domain discovery.** Every domain of a location learns its own cycle and polls independently.
 - **Domains:** `Forecast`, `Ensemble`, `AirQuality`, `Flood`, `Marine`, `Seasonal`, `Satellite` (`DomainKind`); the gateway fetches all of them.

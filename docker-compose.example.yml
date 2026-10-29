@@ -31,7 +31,7 @@ services:
       #- Njord__Flood__IncludeEnsemble=false # 50 GloFAS members, adds confidence to FloodRisk, costs 5 calls per flood request
       # Features decide which domains are polled (the union of what the enabled ones read).
       # 7 domains: Forecast, Ensemble (spread + comparison), AirQuality, Flood, Marine, Seasonal, Satellite.
-      # On by default: the 14 weather alerts (Frost, Heat, ...), Commute, Pollen, Pm25.
+      # On by default: the 15 weather alerts (Frost, Heat, ..., RainProbability), Commute, Pollen, Pm25.
       # Switch single features on (adds their domain) or off:
       #- Njord__Features__Frost__Enabled=false
       #- Njord__Features__FloodRisk__Enabled=true

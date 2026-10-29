@@ -17,7 +17,7 @@ Configuration is **static**: it is read once at startup. There is no runtime con
       "BudgetOverride": null
     },
     "Persistence": { "DataPath": "data/njord.db" },
-    "Features": { "Flood": { "FloodRisk": { "Enabled": true } } }
+    "Features": { "FloodRisk": { "Enabled": true } }
   }
 }
 ```
@@ -40,7 +40,7 @@ A minimal setup for Lucerne:
 | `AirQuality:ForecastDays` | `5` | Days of air quality forecast to request (1 to 7) |
 | `Marine:ForecastDays` | `8` | Days of marine forecast to request (1 to 8) |
 | `Flood:ForecastDays` | `92` | Days of river discharge forecast to request (1 to 210) |
-| `Features:<Category>:<Name>:Enabled` | 18 features on by default (14 original weather alerts + RainProbability + Commute + Pollen + PM2.5); all others off | Switches one feature on or off. The domains that are polled are derived from the enabled features (see below) |
+| `Features:<Name>:Enabled` | 18 features on by default (14 original weather alerts + RainProbability + Commute + Pollen + PM2.5); all others off | Switches one feature on or off. The domains that are polled are derived from the enabled features (see below) |
 | `Persistence:DataPath` | `data/njord.db` | SQLite database file |
 
 ## Defaults
@@ -51,7 +51,7 @@ List-valued defaults (the feature threshold arrays) are built in: a list you con
 
 ## Features and domains
 
-You switch features on, njord derives which API domains to poll. Each feature has its own section `Njord:Features:<Category>:<Name>` with an `Enabled` toggle (environment variable `Njord__Features__<Category>__<Name>__Enabled`) and, where it has any, its options such as `Thresholds` (see [Enrichment](./enrichment)); the polled domains are the union of the domains the enabled features read. A feature that is not listed keeps its default. The [Config Builder](/builder) shows the extra API calls per day each feature costs.
+You switch features on, njord derives which API domains to poll. Each feature has its own section `Njord:Features:<Name>` with an `Enabled` toggle (environment variable `Njord__Features__<Name>__Enabled`) and, where it has any, its options such as `Thresholds` (see [Enrichment](./enrichment)); the polled domains are the union of the domains the enabled features read. A feature that is not listed keeps its default. The [Config Builder](/builder) shows the extra API calls per day each feature costs.
 
 See [Features](/features/) for the complete list of all 65 features, their domains and defaults.
 
@@ -62,7 +62,7 @@ The defaults (18 features on) poll Forecast, Ensemble and Air Quality. Enabling 
 A disabled feature is not evaluated even when its domain data is present because another feature needs it, so each alert can be switched off individually. At least one feature must be enabled.
 
 ```json
-{ "Njord": { "Features": { "Flood": { "FloodRisk": { "Enabled": true } }, "AirQuality": { "Pollen": { "Enabled": false } }, "Weather": { "Heat": { "Enabled": false } } } } }
+{ "Njord": { "Features": { "FloodRisk": { "Enabled": true }, "Pollen": { "Enabled": false }, "Heat": { "Enabled": false } } } }
 ```
 
 ## Environment variable overrides

@@ -49,7 +49,7 @@ Actors own lifecycle (polling, stream materialization, SourceRef handshakes); st
 
 ## Feature rules
 
-A feature rule declares its required domains and fields in a `FeatureDescriptor` and runs reactively when one of them is updated. It is switched with `Njord:Features:<Category>:<Name>:Enabled`.
+A feature rule declares its required domains and fields in a `FeatureDescriptor` and runs reactively when one of them is updated. It is switched with `Njord:Features:<Name>:Enabled`.
 
 | Group | Domains | Rules |
 |-------|---------|-------|
