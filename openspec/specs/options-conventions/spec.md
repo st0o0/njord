@@ -21,6 +21,33 @@ When configuration or the environment contains `Njord:PollInterval`, `Njord:Disc
 - **WHEN** the override file contains `"PollInterval": "00:45:00"` at the `Njord` level
 - **THEN** the effective value is read from `Njord:Polling:PollInterval` and the file is rewritten with the new key on the next write
 
+### Requirement: No Effective* workaround properties
+Options classes SHALL NOT use nullable properties with computed Effective* fallback properties. Default values SHALL be applied via PostConfigure<T> registrations so that IOptions<T>.Value always carries the resolved value.
+
+#### Scenario: ForecastOptions exposes Models directly
+- **WHEN** IOptions<ForecastOptions>.Value is accessed
+- **THEN** Models is a non-nullable string[] (never null at runtime)
+- **THEN** EffectiveModels and PrimaryModel properties do not exist
+- **THEN** the first element of Models is the primary model
+
+#### Scenario: Feature config Thresholds are non-nullable after startup
+- **WHEN** no Thresholds are configured for a feature
+- **THEN** IOptions<TConfig>.Value.Thresholds returns the feature's default threshold array
+
+### Requirement: ForecastOptions.Model migration shim removed
+ForecastOptions SHALL NOT have a `Model` (singular) property. The 0.4.x migration path is in the changelog, not in runtime code.
+
+#### Scenario: ForecastOptions.Model does not exist
+- **WHEN** ForecastOptions is inspected
+- **THEN** there is no `Model` (singular) property
+
+### Requirement: Single source of truth for SolarYield PeakKw
+PeakKw and SystemEfficiency SHALL be configured only through SolarYieldOptions (section Njord:SolarYield). SolarYieldConfig SHALL NOT duplicate these properties; the host copies them via PostConfigure.
+
+#### Scenario: Single source of truth for PeakKw
+- **WHEN** the SolarYield feature computes yield
+- **THEN** it reads PeakKw from SolarYieldOptions only (section Njord:SolarYield)
+
 ### Requirement: Example defaults match appsettings.json
 Every `# Default:` value in `docker-compose.example.yml` SHALL equal the value of the same key in `appsettings.json` (or the code default for list-valued options). A spec SHALL fail on any mismatch.
 

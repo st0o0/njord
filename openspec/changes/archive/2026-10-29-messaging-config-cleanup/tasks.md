@@ -53,12 +53,12 @@ dotnet run --project src/Njord.Polling.Tests/Njord.Polling.Tests.csproj
 
 ## 4. Delete dead code
 
-- [ ] 4.1 Delete `src/Njord.Messages/Budget/QueryBudgetUsage.cs` (entire file: QueryBudgetUsage, BudgetUsageResponse, BudgetUsageResult, BudgetUsageFailed)
-- [ ] 4.2 Remove `BudgetStatusFailed` from `src/Njord.Messages/Budget/QueryBudgetStatus.cs` and `BudgetStatusResponse` base type if no longer needed
-- [ ] 4.3 Remove `PollStatesFailed` from `src/Njord.Messages/Polling/QueryPollStates.cs` (moved in step 3) and `PollStatesResponse` base if unneeded
-- [ ] 4.4 Remove `ToWireName` method from `src/Njord.Messages/Alerts/AlertSeverityExtensions.cs` and `src/Njord.Messages/Alerts/ConfidenceLevelExtensions.cs`. Delete `src/Njord.Messages.Tests/Alerts/AlertWireNamesTests.cs` test file
-- [ ] 4.5 Remove `FetchRejectionReason.Budget` and `FetchRejectionReason.Expired` enum members. Update match arms in `src/Njord.Polling/PollWorker.cs` (remove the two dead cases)
-- [ ] 4.6 Delete `src/Njord.Core/Domain/FloodMarineForecastInput` if still present (was deleted earlier, verify)
+- [x] 4.1 Delete `src/Njord.Messages/Budget/QueryBudgetUsage.cs` (entire file: QueryBudgetUsage, BudgetUsageResponse, BudgetUsageResult, BudgetUsageFailed)
+- [x] 4.2 Remove `BudgetStatusFailed` from `src/Njord.Messages/Budget/QueryBudgetStatus.cs` and `BudgetStatusResponse` base type if no longer needed
+- [x] 4.3 Remove `PollStatesFailed` from `src/Njord.Messages/Polling/QueryPollStates.cs` (moved in step 3) and `PollStatesResponse` base if unneeded
+- [x] 4.4 Remove `ToWireName` method from `src/Njord.Messages/Alerts/AlertSeverityExtensions.cs` and `src/Njord.Messages/Alerts/ConfidenceLevelExtensions.cs`. Delete `src/Njord.Messages.Tests/Alerts/AlertWireNamesTests.cs` test file
+- [x] 4.5 Remove `FetchRejectionReason.Budget` and `FetchRejectionReason.Expired` enum members. Update match arms in `src/Njord.Polling/PollWorker.cs` (remove the two dead cases)
+- [x] 4.6 Delete `src/Njord.Core/Domain/FloodMarineForecastInput` if still present (was deleted earlier, verify)
 
 ### Validation
 ```
@@ -70,12 +70,12 @@ dotnet run --project src/Njord.Polling.Tests/Njord.Polling.Tests.csproj
 
 ## 5. Configuration cleanup
 
-- [ ] 5.1 Delete `ForecastOptions.Model` property and its validator branch in `src/Njord.OpenMeteo/Configuration/OpenMeteoOptionsValidator.cs`
-- [ ] 5.2 Implement PostConfigure for `ForecastOptions`: register `PostConfigure<ForecastOptions>` that sets `Models` to `[DefaultModel]` when null or empty. Make `Models` non-nullable `string[]` with default `[DefaultModel]`. Remove `EffectiveModels` and `PrimaryModel` properties. Update all callers (grep for `EffectiveModels` and `PrimaryModel`)
-- [ ] 5.3 Implement PostConfigure for `PollingOptions`: register `PostConfigure<PollingOptions>` for `BudgetOverride`. Remove `EffectiveBudget`. Update callers
-- [ ] 5.4 Implement PostConfigure for feature Thresholds: create a generic helper or loop that registers PostConfigure for each feature config type with nullable Thresholds. Remove `EffectiveThresholds` from all 15 feature configs. Update callers in each alert rule
-- [ ] 5.5 Consolidate SolarYield config: remove `PeakKw` and `SystemEfficiency` from `src/Njord.Features/Conditions/SolarYield/SolarYieldConfig.cs`. Add `IOptions<SolarYieldOptions>` constructor parameter to the SolarYield rule. Update `src/Njord.Features.Tests/Conditions/SolarYield/SolarYieldTests.cs`
-- [ ] 5.6 Update `src/Njord.OpenMeteo/Configuration/OpenMeteoOptionsValidator.cs` to validate `SolarYieldOptions.SystemEfficiency` is between 0 and 1
+- [x] 5.1 Delete `ForecastOptions.Model` property and its validator branch in `src/Njord.OpenMeteo/Configuration/OpenMeteoOptionsValidator.cs`
+- [x] 5.2 Implement PostConfigure for `ForecastOptions`: register `PostConfigure<ForecastOptions>` that sets `Models` to `[DefaultModel]` when null or empty. Make `Models` non-nullable `string[]` with default `[DefaultModel]`. Remove `EffectiveModels` and `PrimaryModel` properties. Update all callers (grep for `EffectiveModels` and `PrimaryModel`)
+- [x] 5.3 Implement PostConfigure for `PollingOptions`: register `PostConfigure<PollingOptions>` for `BudgetOverride`. Remove `EffectiveBudget`. Update callers
+- [x] 5.4 Implement PostConfigure for feature Thresholds: create a generic helper or loop that registers PostConfigure for each feature config type with nullable Thresholds. Remove `EffectiveThresholds` from all 15 feature configs. Update callers in each alert rule
+- [x] 5.5 Consolidate SolarYield config: remove `PeakKw` and `SystemEfficiency` from `src/Njord.Features/Conditions/SolarYield/SolarYieldConfig.cs`. Add `IOptions<SolarYieldOptions>` constructor parameter to the SolarYield rule. Update `src/Njord.Features.Tests/Conditions/SolarYield/SolarYieldTests.cs`
+- [x] 5.6 Update `src/Njord.OpenMeteo/Configuration/OpenMeteoOptionsValidator.cs` to validate `SolarYieldOptions.SystemEfficiency` is between 0 and 1
 
 ### Validation
 ```
@@ -90,11 +90,11 @@ dotnet run --project src/Njord.IntegrationTests/Njord.IntegrationTests.csproj
 
 ## 6. Final verification
 
-- [ ] 6.1 Run all test projects sequentially, verify 0 failures
-- [ ] 6.2 Run `dotnet format src/Njord.slnx --verify-no-changes`
-- [ ] 6.3 Verify no remaining `using Njord.Messages.Pipeline` or `using Njord.Messages.Forecast` anywhere in src/
-- [ ] 6.4 Verify no remaining `Njord.Core.Domain.DomainDataReceived`, `Njord.Core.Domain.PipelineEvent`, or `Njord.Core.Actors.Request*` references
-- [ ] 6.5 Update `AGENTS.md` to reflect the new namespace structure and the Akka.Streams dependency in Messages
+- [x] 6.1 Run all test projects sequentially, verify 0 failures
+- [x] 6.2 Run `dotnet format src/Njord.slnx --verify-no-changes`
+- [x] 6.3 Verify no remaining `using Njord.Messages.Pipeline` or `using Njord.Messages.Forecast` anywhere in src/
+- [x] 6.4 Verify no remaining `Njord.Core.Domain.DomainDataReceived`, `Njord.Core.Domain.PipelineEvent`, or `Njord.Core.Actors.Request*` references
+- [x] 6.5 Update `AGENTS.md` to reflect the new namespace structure and the Akka.Streams dependency in Messages
 
 ### Validation
 ```
