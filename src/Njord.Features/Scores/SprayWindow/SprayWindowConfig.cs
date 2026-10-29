@@ -4,7 +4,7 @@ namespace Njord.Features.Scores.SprayWindow;
 
 public sealed class SprayWindowConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Lifestyle:SprayWindow";
+    private const string SectionName = "Njord:Features:SprayWindow";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public double MaxWindSpeed { get; set; } = 3.0;

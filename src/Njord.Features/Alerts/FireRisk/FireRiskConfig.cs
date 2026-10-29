@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.FireRisk;
 
 public sealed class FireRiskConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Lifestyle:FireRisk";
+    private const string SectionName = "Njord:Features:FireRisk";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public double TemperatureThreshold { get; set; } = 30.0;

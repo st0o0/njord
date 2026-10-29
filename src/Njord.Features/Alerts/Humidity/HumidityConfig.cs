@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.Humidity;
 
 public sealed class HumidityConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Forecast:Humidity";
+    private const string SectionName = "Njord:Features:Humidity";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
     public double[] Thresholds { get; set; } = [];

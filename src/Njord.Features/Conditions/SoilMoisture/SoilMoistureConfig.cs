@@ -4,7 +4,7 @@ namespace Njord.Features.Conditions.SoilMoisture;
 
 public sealed class SoilMoistureConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Lifestyle:SoilMoisture";
+    private const string SectionName = "Njord:Features:SoilMoisture";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public double DryThreshold { get; set; } = 0.15;

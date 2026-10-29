@@ -36,25 +36,25 @@ public sealed class OpenMeteoClientTests
         Options.Create(new FeatureRequirementsOptions
         {
             Requirements = new DomainRequirements(Forecast: weather, AirQuality: air, Flood: flood, Marine: marine, Ensemble: ensemble),
-            WeatherModels = [.. models ?? [ForecastOptions.DefaultModel]],
-            EnsembleModels = [.. ensembleModels ?? [ForecastOptions.DefaultModel]],
+            WeatherModels = [.. models ?? [WeatherOptions.DefaultModel]],
+            EnsembleModels = [.. ensembleModels ?? [WeatherOptions.DefaultModel]],
         });
 
     private static ForecastClient Forecast(
         HttpClient http,
         ForecastParams flags = ForecastParams.Temperature,
         SolarYieldOptions? solar = null,
-        ForecastOptions? options = null) =>
-        new(http, Options.Create(options ?? new ForecastOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: flags), NullLogger<ForecastClient>.Instance);
+        WeatherOptions? options = null) =>
+        new(http, Options.Create(options ?? new WeatherOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: flags), NullLogger<ForecastClient>.Instance);
 
     private static EnsembleClient Ensemble(
         HttpClient http,
         EnsembleParams ensemble = EnsembleParams.TemperatureSpread,
         ForecastParams weather = ForecastParams.None,
         SolarYieldOptions? solar = null,
-        ForecastOptions? options = null,
+        WeatherOptions? options = null,
         string[]? models = null) =>
-        new(http, Options.Create(options ?? new ForecastOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: weather, ensemble: ensemble, ensembleModels: models), NullLogger<EnsembleClient>.Instance);
+        new(http, Options.Create(options ?? new WeatherOptions()), Options.Create(solar ?? new SolarYieldOptions()), Needs(weather: weather, ensemble: ensemble, ensembleModels: models), NullLogger<EnsembleClient>.Instance);
 
     private static FloodClient Flood(HttpClient http, FloodOptions? options = null) =>
         new(http, Options.Create(options ?? new FloodOptions()), Needs(flood: FloodParams.Discharge));
@@ -82,7 +82,7 @@ public sealed class OpenMeteoClientTests
         var uri = await Capture("api", http => Forecast(http, ForecastParams.Rain | ForecastParams.Temperature), TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            $"/v1/forecast?latitude=47.05&longitude=8.31&hourly=temperature_2m,rain&wind_speed_unit=ms&forecast_days={new ForecastOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
+            $"/v1/forecast?latitude=47.05&longitude=8.31&hourly=temperature_2m,rain&wind_speed_unit=ms&forecast_days={new WeatherOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
@@ -92,7 +92,7 @@ public sealed class OpenMeteoClientTests
         var uri = await Capture("ensemble-api", http => Ensemble(http, EnsembleParams.TemperatureSpread | EnsembleParams.PrecipitationSpread), TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            $"/v1/ensemble?latitude=47.05&longitude=8.31&hourly=temperature_2m_spread,precipitation_spread&models={ForecastOptions.DefaultModel}&wind_speed_unit=ms&forecast_days={new ForecastOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
+            $"/v1/ensemble?latitude=47.05&longitude=8.31&hourly=temperature_2m_spread,precipitation_spread&models={WeatherOptions.DefaultModel}&wind_speed_unit=ms&forecast_days={new WeatherOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
@@ -139,7 +139,7 @@ public sealed class OpenMeteoClientTests
         var uri = await Capture("api", http => Forecast(http, ForecastParams.GlobalTiltedIrradiance, solar), TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            $"/v1/forecast?latitude=47.05&longitude=8.31&hourly=global_tilted_irradiance&wind_speed_unit=ms&tilt=25&azimuth=-45&forecast_days={new ForecastOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
+            $"/v1/forecast?latitude=47.05&longitude=8.31&hourly=global_tilted_irradiance&wind_speed_unit=ms&tilt=25&azimuth=-45&forecast_days={new WeatherOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
@@ -204,7 +204,7 @@ public sealed class OpenMeteoClientTests
     public void The_forecast_call_weight_follows_the_resolved_variables_and_days()
     {
         var client = new ForecastClient(
-            new HttpClient(), Options.Create(new ForecastOptions { ForecastDays = 4 }), Options.Create(new SolarYieldOptions()), Options.Create(new FeatureRequirementsOptions { Requirements = TestRequirements.All, WeatherModels = [ForecastOptions.DefaultModel] }), NullLogger<ForecastClient>.Instance);
+            new HttpClient(), Options.Create(new WeatherOptions { ForecastDays = 4 }), Options.Create(new SolarYieldOptions()), Options.Create(new FeatureRequirementsOptions { Requirements = TestRequirements.All, WeatherModels = [WeatherOptions.DefaultModel] }), NullLogger<ForecastClient>.Instance);
 
         var variables = TestRequirements.All.Forecast.ToApiNames();
 

@@ -38,7 +38,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         Assert.Multiple(
             () => Assert.Equal("Lucerne", location.Name),
             () => Assert.Equal(47.05, location.Latitude),
-            () => Assert.Equal([ForecastOptions.DefaultModel], location.Models));
+            () => Assert.Equal([WeatherOptions.DefaultModel], location.Models));
     }
 
     [Fact(Timeout = 30_000)]
@@ -212,7 +212,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         ActorRegistry.Register<IGrpcConsumer>(
             Sys.ActorOf(Props.Create(() => new FakeConsumer(domainEvent, analysis))), overwrite: true);
         return new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Opts(Options),
-            TestServiceInfo.Opts(new FeatureRequirementsOptions { WeatherModels = models ?? [ForecastOptions.DefaultModel] }), TimeProvider.System);
+            TestServiceInfo.Opts(new FeatureRequirementsOptions { WeatherModels = models ?? [WeatherOptions.DefaultModel] }), TimeProvider.System);
     }
 
     private sealed class FakeConsumer : ReceiveActor

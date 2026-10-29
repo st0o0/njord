@@ -4,7 +4,7 @@ namespace Njord.Features.Scores.SleepQuality;
 
 public sealed class SleepQualityConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Lifestyle:SleepQuality";
+    private const string SectionName = "Njord:Features:SleepQuality";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public bool PollenSensitive { get; set; }

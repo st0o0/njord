@@ -34,7 +34,7 @@ public sealed class BudgetGuardTests
     private static readonly ImmutableArray<string> ThreeModels = ["a", "b", "c"];
 
     private static string? Violation(NjordOptions scope, PollingOptions polling, FeatureRequirementsOptions requirements, FloodOptions? flood = null) =>
-        BudgetGuard.Violation(scope, polling, requirements, new ForecastOptions(), flood);
+        BudgetGuard.Violation(scope, polling, requirements, new WeatherOptions(), flood);
 
     private static PollingOptions WithMonthlyBudget(int perMonth) => new() { Budget = new RequestBudget(perMonth, 600) };
 

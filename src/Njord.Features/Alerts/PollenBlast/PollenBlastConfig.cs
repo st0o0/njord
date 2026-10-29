@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.PollenBlast;
 
 public sealed class PollenBlastConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:AirQuality:PollenBlast";
+    private const string SectionName = "Njord:Features:PollenBlast";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public double TemperatureThreshold { get; set; } = 15.0;

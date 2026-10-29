@@ -22,7 +22,7 @@ public sealed class ForecastClient : IDomainClient
     private readonly int _forecastDays;
     private readonly int _pastHours;
 
-    public ForecastClient(HttpClient httpClient, IOptions<ForecastOptions> options, IOptions<SolarYieldOptions> solar, IOptions<FeatureRequirementsOptions> requirements, ILogger<ForecastClient> logger)
+    public ForecastClient(HttpClient httpClient, IOptions<WeatherOptions> options, IOptions<SolarYieldOptions> solar, IOptions<FeatureRequirementsOptions> requirements, ILogger<ForecastClient> logger)
     {
         _httpClient = httpClient;
         _solar = solar.Value;

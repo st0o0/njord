@@ -29,12 +29,7 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddNjordOptions<ForecastOptions, OpenMeteoOptionsValidator>();
-        services.PostConfigure<ForecastOptions>(options =>
-        {
-            if (options.Models is { Length: 0 })
-                options.Models = [ForecastOptions.DefaultModel];
-        });
+        services.AddNjordOptions<WeatherOptions, OpenMeteoOptionsValidator>();
         services.AddNjordOptions<AirQualityOptions, OpenMeteoOptionsValidator>();
         services.AddNjordOptions<MarineOptions, OpenMeteoOptionsValidator>();
         services.AddNjordOptions<FloodOptions, OpenMeteoOptionsValidator>();

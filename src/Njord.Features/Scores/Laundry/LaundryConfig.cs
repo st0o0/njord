@@ -4,7 +4,7 @@ namespace Njord.Features.Scores.Laundry;
 
 public sealed class LaundryConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Lifestyle:Laundry";
+    private const string SectionName = "Njord:Features:Laundry";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public int MinWindowScore { get; set; } = 50;

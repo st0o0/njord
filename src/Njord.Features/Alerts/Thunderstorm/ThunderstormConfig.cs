@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.Thunderstorm;
 
 public sealed class ThunderstormConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Forecast:Thunderstorm";
+    private const string SectionName = "Njord:Features:Thunderstorm";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
     public double[] CapeThresholds { get; set; } = [];

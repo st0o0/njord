@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.ClearSkyUv;
 
 public sealed class ClearSkyUvConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Lifestyle:ClearSkyUv";
+    private const string SectionName = "Njord:Features:ClearSkyUv";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public double[] Thresholds { get; set; } = [];

@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.PressureDrop;
 
 public sealed class PressureDropConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Forecast:PressureDrop";
+    private const string SectionName = "Njord:Features:PressureDrop";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
     public double Threshold { get; set; } = 5.0;

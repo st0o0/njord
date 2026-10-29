@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.MigraineRisk;
 
 public sealed class MigraineRiskConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Forecast:MigraineRisk";
+    private const string SectionName = "Njord:Features:MigraineRisk";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public double PressureThreshold6h { get; set; } = 5.0;

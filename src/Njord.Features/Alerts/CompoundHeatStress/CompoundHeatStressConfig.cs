@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.CompoundHeatStress;
 
 public sealed class CompoundHeatStressConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Forecast:CompoundHeatStress";
+    private const string SectionName = "Njord:Features:CompoundHeatStress";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public double WetBulbWarning { get; set; } = 28;

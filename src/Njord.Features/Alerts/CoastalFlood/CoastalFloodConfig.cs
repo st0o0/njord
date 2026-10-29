@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.CoastalFlood;
 
 public sealed class CoastalFloodConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Marine:CoastalFlood";
+    private const string SectionName = "Njord:Features:CoastalFlood";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public double SeaLevelThresholdM { get; set; } = 0.3;

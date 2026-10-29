@@ -4,7 +4,7 @@ namespace Njord.Features.Scores.AsthmaRisk;
 
 public sealed class AsthmaRiskConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:AirQuality:AsthmaRisk";
+    private const string SectionName = "Njord:Features:AsthmaRisk";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public int Pm25Weight { get; set; } = 35;

@@ -27,12 +27,12 @@ public sealed class EnsembleClient : IDomainClient
     private readonly string _primaryModel;
     private readonly bool _needsModels;
 
-    public EnsembleClient(HttpClient httpClient, IOptions<ForecastOptions> options, IOptions<SolarYieldOptions> solar, IOptions<FeatureRequirementsOptions> requirements, ILogger<EnsembleClient> logger)
+    public EnsembleClient(HttpClient httpClient, IOptions<WeatherOptions> options, IOptions<SolarYieldOptions> solar, IOptions<FeatureRequirementsOptions> requirements, ILogger<EnsembleClient> logger)
     {
         _httpClient = httpClient;
         var resolved = requirements.Value;
         _modelIds = resolved.EnsembleModels;
-        _primaryModel = _modelIds.IsDefaultOrEmpty ? ForecastOptions.DefaultModel : _modelIds[0];
+        _primaryModel = _modelIds.IsDefaultOrEmpty ? WeatherOptions.DefaultModel : _modelIds[0];
         _needsModels = resolved.AllEnsemble.HasFlag(EnsembleParams.Models);
 
         var ignored = options.Value.Models.Except(_modelIds).ToArray();

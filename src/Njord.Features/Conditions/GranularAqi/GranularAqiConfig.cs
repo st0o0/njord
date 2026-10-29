@@ -4,7 +4,7 @@ namespace Njord.Features.Conditions.GranularAqi;
 
 public sealed class GranularAqiConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:AirQuality:GranularAqi";
+    private const string SectionName = "Njord:Features:GranularAqi";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
 }

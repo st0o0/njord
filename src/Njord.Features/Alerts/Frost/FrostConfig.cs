@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.Frost;
 
 public sealed class FrostConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Forecast:Frost";
+    private const string SectionName = "Njord:Features:Frost";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
     public double[] Thresholds { get; set; } = [];

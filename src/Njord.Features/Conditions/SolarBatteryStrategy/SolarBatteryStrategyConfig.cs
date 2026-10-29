@@ -4,7 +4,7 @@ namespace Njord.Features.Conditions.SolarBatteryStrategy;
 
 public sealed class SolarBatteryStrategyConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Energy:SolarBatteryStrategy";
+    private const string SectionName = "Njord:Features:SolarBatteryStrategy";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public double PeakKw { get; set; } = 5.0;

@@ -67,12 +67,32 @@ using Njord.Features.Scores.Outdoor;
 using Njord.Features.Scores.SleepQuality;
 using Njord.Features.Scores.SprayWindow;
 using Njord.Features.Trends.ConfidenceTrend;
+using Microsoft.Extensions.Options;
 using Njord.Messages.Results;
 
 namespace Njord.Features;
 
 public static class ServiceCollectionExtensions
 {
+    public static IServiceCollection AddFeature<TRule, TConfig>(this IServiceCollection services)
+        where TRule : class, IFeatureRule
+        where TConfig : class, IConfigSection
+    {
+        services.AddNjordOptions<TConfig>();
+        services.AddSingleton<IFeatureRule, TRule>();
+        return services;
+    }
+
+    public static IServiceCollection AddFeature<TRule, TConfig, TValidator>(this IServiceCollection services)
+        where TRule : class, IFeatureRule
+        where TConfig : class, IConfigSection
+        where TValidator : class, IValidateOptions<TConfig>
+    {
+        services.AddNjordOptions<TConfig, TValidator>();
+        services.AddSingleton<IFeatureRule, TRule>();
+        return services;
+    }
+
     public static IServiceCollection AddFeatures(this IServiceCollection services)
     {
         // Alerts

@@ -4,7 +4,7 @@ namespace Njord.Features.Alerts.Shower;
 
 public sealed class ShowerConfig : IConfigSection
 {
-    private const string SectionName = "Njord:Features:Forecast:Shower";
+    private const string SectionName = "Njord:Features:Shower";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public int WindowHours { get; set; } = 6;

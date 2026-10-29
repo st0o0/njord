@@ -18,7 +18,7 @@ internal static class BudgetGuard
     private static readonly TimeSpan Month = TimeSpan.FromDays(30);
 
     internal static string? Violation(
-        NjordOptions scope, PollingOptions polling, FeatureRequirementsOptions featureRequirements, ForecastOptions weather,
+        NjordOptions scope, PollingOptions polling, FeatureRequirementsOptions featureRequirements, WeatherOptions weather,
         FloodOptions? flood = null)
     {
         var requirements = featureRequirements.Requirements;
