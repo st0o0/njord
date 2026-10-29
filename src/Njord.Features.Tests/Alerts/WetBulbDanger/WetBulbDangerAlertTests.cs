@@ -15,7 +15,7 @@ public sealed class WetBulbDangerAlertTests
 
     private static AlertSeverity Severity(double wetBulb)
     {
-        var rule = new WetBulbDangerAlert(Opts(new WetBulbDangerConfig { Enabled = true }));
+        var rule = new WetBulbDangerAlert(Opts(new WetBulbDangerConfig { Enabled = true, Thresholds = WetBulbDangerConfig.DefaultThresholds }));
         var weather = Uniform(p => p with { WetBulbTemperature = wetBulb });
         var result = Run(rule, Now, ForecastWithEnsemble(weather, EnsembleDay()));
         return result is null
@@ -34,7 +34,7 @@ public sealed class WetBulbDangerAlertTests
     [Fact]
     public void Returns_null_when_no_wet_bulb()
     {
-        var rule = new WetBulbDangerAlert(Opts(new WetBulbDangerConfig { Enabled = true }));
+        var rule = new WetBulbDangerAlert(Opts(new WetBulbDangerConfig { Enabled = true, Thresholds = WetBulbDangerConfig.DefaultThresholds }));
         var weather = Uniform(p => p with { WetBulbTemperature = null });
         var result = Run(rule, Now, ForecastWithEnsemble(weather, EnsembleDay()));
         Assert.Null(result);
@@ -43,7 +43,7 @@ public sealed class WetBulbDangerAlertTests
     [Fact]
     public void Result_carries_peak_wet_bulb()
     {
-        var rule = new WetBulbDangerAlert(Opts(new WetBulbDangerConfig { Enabled = true }));
+        var rule = new WetBulbDangerAlert(Opts(new WetBulbDangerConfig { Enabled = true, Thresholds = WetBulbDangerConfig.DefaultThresholds }));
         var weather = Uniform(p => p with { WetBulbTemperature = 30.5 });
         var result = Run(rule, Now, ForecastWithEnsemble(weather, EnsembleDay()));
         var alert = Assert.IsType<WetBulbDangerAlertResult>(result);

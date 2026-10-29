@@ -57,7 +57,7 @@ public sealed class ForecastPipelineSettingsTests : Akka.Hosting.TestKit.TestKit
         CancellationToken ct, FrostConfig? frost = null)
     {
         var time = new FakeTimeProvider(Start);
-        var rule = new FrostAlert(Options.Create(frost ?? new FrostConfig()));
+        var rule = new FrostAlert(Options.Create(frost ?? new FrostConfig { Thresholds = FrostConfig.DefaultThresholds }));
         var pipeline = Sys.ActorOf(Props.Create(() => new ForecastPipeline(time, new IFeatureRule[] { rule })), $"pipeline-{Guid.NewGuid():N}");
 
         var output = await pipeline.Ask<RequestPipelineOutputResponse>(new RequestPipelineOutput(1), TimeSpan.FromSeconds(9), ct);

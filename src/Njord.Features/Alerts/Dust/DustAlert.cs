@@ -25,7 +25,7 @@ public sealed class DustAlert(IOptions<DustConfig> config) : FeatureRule<AqInput
 
     protected override PipelineEvent? Evaluate(FeatureContext<AqInput> ctx)
     {
-        var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Max);
+        var thresholds = config.Value.Thresholds.ToSeverity(ScanDirection.Max);
         AirQualityPoint? peakPoint = null;
         var peak = 0.0;
         foreach (var point in ctx.Current.AirQuality.NextHoursInclusive(ctx.Now))

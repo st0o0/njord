@@ -25,7 +25,7 @@ public sealed class FrostAlert(IOptions<FrostConfig> config) : FeatureRule<Forec
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
-        var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Min);
+        var thresholds = config.Value.Thresholds.ToSeverity(ScanDirection.Min);
         var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
         if (window.LowestBy(p => p.Temperature) is not { Temperature: { } lowest } coldest)
         {

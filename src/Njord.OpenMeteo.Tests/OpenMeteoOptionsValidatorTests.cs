@@ -14,7 +14,7 @@ public sealed class OpenMeteoOptionsValidatorTests
     [InlineData(17)]
     public void Should_reject_weather_forecast_days_outside_one_to_sixteen(int days)
     {
-        var result = _validator.Validate(null, new ForecastOptions { ForecastDays = days });
+        var result = _validator.Validate(null, new ForecastOptions { ForecastDays = days, Models = [ForecastOptions.DefaultModel] });
 
         Assert.Contains("Forecast.ForecastDays must be between 1 and 16", ValidationAssert.SingleFailure(result));
     }
@@ -43,13 +43,6 @@ public sealed class OpenMeteoOptionsValidatorTests
         Assert.Contains("Forecast.Models entry 'gfs_ensemble' is not a known model", ValidationAssert.SingleFailure(result));
     }
 
-    [Fact]
-    public void Should_reject_the_legacy_model_key_pointing_to_models()
-    {
-        var result = _validator.Validate(null, new ForecastOptions { Model = "ecmwf_ifs025_ensemble_mean" });
-
-        Assert.Contains("Njord:Forecast:Models", ValidationAssert.SingleFailure(result));
-    }
 
     [Fact]
     public void Should_accept_all_catalog_models()
@@ -126,6 +119,17 @@ public sealed class OpenMeteoOptionsValidatorTests
     }
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(-0.5)]
+    [InlineData(1.1)]
+    public void Should_reject_a_solar_system_efficiency_outside_zero_to_one(double efficiency)
+    {
+        var result = _validator.Validate(null, new SolarYieldOptions { SystemEfficiency = efficiency });
+
+        Assert.Contains("SolarYield.SystemEfficiency must be greater than 0", ValidationAssert.SingleFailure(result));
+    }
+
+    [Theory]
     [InlineData(-1)]
     [InlineData(361)]
     public void Should_reject_a_solar_azimuth_outside_zero_to_360(int azimuth)
@@ -149,7 +153,7 @@ public sealed class OpenMeteoOptionsValidatorTests
     public void Should_accept_the_default_options()
     {
         Assert.Multiple(
-            () => Assert.True(_validator.Validate(null, new ForecastOptions()).Succeeded),
+            () => Assert.True(_validator.Validate(null, new ForecastOptions { Models = [ForecastOptions.DefaultModel] }).Succeeded),
             () => Assert.True(_validator.Validate(null, new AirQualityOptions()).Succeeded),
             () => Assert.True(_validator.Validate(null, new FloodOptions()).Succeeded),
             () => Assert.True(_validator.Validate(null, new MarineOptions()).Succeeded),

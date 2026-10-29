@@ -8,7 +8,7 @@
 - [x] 1.6 Move `src/Njord.Core/Domain/PipelineEvent.cs` to `src/Njord.Messages/Stream/PipelineEvent.cs`, un-nest the 8 subtypes into top-level sealed records, namespace `Njord.Messages.Stream`
 - [x] 1.7 Move `src/Njord.Core/Domain/FeatureResult.cs` to `src/Njord.Messages/Results/FeatureResult.cs`, namespace `Njord.Messages.Results`
 - [x] 1.8 Update all `using` statements across src/ for the moved types. Fix compilation errors in Njord.Core, Njord.Pipeline, Njord.OpenMeteo, Njord.Grpc, Njord.Polling, Njord.Features, Njord/ (Host), and all test projects
-- [ ] 1.9 Add ArchUnit rule in `src/Njord.Architecture.Tests/ArchitectureTests.cs`: Njord.Messages may reference Akka.Streams but not Akka.Actor, Akka.Cluster, Akka.Persistence, or Akka.Hosting
+- [x] 1.9 Add ArchUnit rule in `src/Njord.Architecture.Tests/ArchitectureTests.cs`: Njord.Messages may reference Akka.Streams but not Akka.Actor, Akka.Cluster, Akka.Persistence, or Akka.Hosting
 
 ### Validation
 ```
@@ -20,9 +20,9 @@ dotnet run --project src/Njord.Grpc.Tests/Njord.Grpc.Tests.csproj
 
 ## 2. Move FetchResult hierarchy and rename Forecast to Fetch
 
-- [ ] 2.1 Move `src/Njord.Core/Domain/FetchResult.cs`, `FetchSuccess.cs`, `FetchEmpty.cs`, `FetchError.cs` to `src/Njord.Messages/Fetch/`, namespace `Njord.Messages.Fetch`. Also move `PollFailureReason` if it lives in Core
-- [ ] 2.2 Rename `src/Njord.Messages/Forecast/` directory to `src/Njord.Messages/Fetch/`. Update namespace from `Njord.Messages.Forecast` to `Njord.Messages.Fetch` in all files: FetchDomain.cs, FetchDomainCompleted.cs, FetchDomainFailed.cs, FetchDomainRejected.cs, FetchRejectionReason.cs, QueryDomainData.cs
-- [ ] 2.3 Update all `using Njord.Messages.Forecast` to `using Njord.Messages.Fetch` across src/
+- [x] 2.1 Move `src/Njord.Core/Domain/FetchResult.cs`, `FetchSuccess.cs`, `FetchEmpty.cs`, `FetchError.cs` to `src/Njord.Messages/Fetch/`, namespace `Njord.Messages.Fetch`. Also move `PollFailureReason` if it lives in Core
+- [x] 2.2 Rename `src/Njord.Messages/Forecast/` directory to `src/Njord.Messages/Fetch/`. Update namespace from `Njord.Messages.Forecast` to `Njord.Messages.Fetch` in all files: FetchDomain.cs, FetchDomainCompleted.cs, FetchDomainFailed.cs, FetchDomainRejected.cs, FetchRejectionReason.cs, QueryDomainData.cs
+- [x] 2.3 Update all `using Njord.Messages.Forecast` to `using Njord.Messages.Fetch` across src/
 
 ### Validation
 ```
@@ -33,14 +33,14 @@ dotnet run --project src/Njord.Polling.Tests/Njord.Polling.Tests.csproj
 
 ## 3. Split Pipeline into Polling and Results
 
-- [ ] 3.1 Create `src/Njord.Messages/Polling/` directory. Move polling messages from `src/Njord.Messages/Pipeline/`: StartPolling.cs, StopPolling.cs, TriggerImmediatePoll.cs, TriggerLocationPoll.cs, PollWorkerReport.cs, QueryPollStates.cs, QueryPollHealth.cs, PollStateEntry.cs, PollPhase.cs, PollTarget.cs, IWithLocationId.cs. Update namespace to `Njord.Messages.Polling`
-- [ ] 3.2 Move `src/Njord.Messages/Pipeline/QueryLatestAnalysis.cs` to `src/Njord.Messages/Stream/QueryLatestAnalysis.cs`, namespace `Njord.Messages.Stream`
-- [ ] 3.3 Create `src/Njord.Messages/Results/Alerts/AlertResults.cs` -- move alert result records from `src/Njord.Messages/Pipeline/AlertResults.cs`, namespace `Njord.Messages.Results.Alerts`. Move `src/Njord.Messages/Pipeline/TypedFeatureResults.cs` base types to `src/Njord.Messages/Results/TypedFeatureResults.cs`
-- [ ] 3.4 Split `src/Njord.Messages/Pipeline/NonAlertResults.cs` into: `src/Njord.Messages/Results/Scores/ScoreResults.cs`, `src/Njord.Messages/Results/Conditions/ConditionResults.cs`, `src/Njord.Messages/Results/Trends/TrendResults.cs`, `src/Njord.Messages/Results/Forecasts/ForecastResults.cs` -- each with its OutputKind namespace
-- [ ] 3.5 Split `src/Njord.Messages/Pipeline/FeatureEnums.cs` -- move each enum into the result file that uses it (e.g., UvLevel into AlertResults.cs, CommuteLevel into ConditionResults.cs)
-- [ ] 3.6 Move `src/Njord.Messages/Pipeline/ActivityWindow.cs` to `src/Njord.Messages/Results/ActivityWindow.cs`, namespace `Njord.Messages.Results`
-- [ ] 3.7 Delete the now-empty `src/Njord.Messages/Pipeline/` directory
-- [ ] 3.8 Update all `using Njord.Messages.Pipeline` across src/ to the new namespaces. Bulk find-replace then fix compilation
+- [x] 3.1 Create `src/Njord.Messages/Polling/` directory. Move polling messages from `src/Njord.Messages/Pipeline/`: StartPolling.cs, StopPolling.cs, TriggerImmediatePoll.cs, TriggerLocationPoll.cs, PollWorkerReport.cs, QueryPollStates.cs, QueryPollHealth.cs, PollStateEntry.cs, PollPhase.cs, PollTarget.cs, IWithLocationId.cs. Update namespace to `Njord.Messages.Polling`
+- [x] 3.2 Move `src/Njord.Messages/Pipeline/QueryLatestAnalysis.cs` to `src/Njord.Messages/Stream/QueryLatestAnalysis.cs`, namespace `Njord.Messages.Stream`
+- [x] 3.3 Create `src/Njord.Messages/Results/Alerts/AlertResults.cs` -- move alert result records from `src/Njord.Messages/Pipeline/AlertResults.cs`, namespace `Njord.Messages.Results.Alerts`. Move `src/Njord.Messages/Pipeline/TypedFeatureResults.cs` base types to `src/Njord.Messages/Results/TypedFeatureResults.cs`
+- [x] 3.4 Split `src/Njord.Messages/Pipeline/NonAlertResults.cs` into: `src/Njord.Messages/Results/Scores/ScoreResults.cs`, `src/Njord.Messages/Results/Conditions/ConditionResults.cs`, `src/Njord.Messages/Results/Trends/TrendResults.cs`, `src/Njord.Messages/Results/Forecasts/ForecastResults.cs` -- each with its OutputKind namespace
+- [x] 3.5 Split `src/Njord.Messages/Pipeline/FeatureEnums.cs` -- move each enum into the result file that uses it (e.g., UvLevel into AlertResults.cs, CommuteLevel into ConditionResults.cs)
+- [x] 3.6 Move `src/Njord.Messages/Pipeline/ActivityWindow.cs` to `src/Njord.Messages/Results/ActivityWindow.cs`, namespace `Njord.Messages.Results`
+- [x] 3.7 Delete the now-empty `src/Njord.Messages/Pipeline/` directory
+- [x] 3.8 Update all `using Njord.Messages.Pipeline` across src/ to the new namespaces. Bulk find-replace then fix compilation
 
 ### Validation
 ```

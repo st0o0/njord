@@ -8,6 +8,6 @@ public sealed class ShowerConfig : IConfigSection
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
     public int WindowHours { get; set; } = 6;
-    public double[]? Thresholds { get; set; }
-    public double[] EffectiveThresholds => Thresholds ?? [3, 5, 10];
+    public double[] Thresholds { get; set; } = [];
+    public static double[] DefaultThresholds => [3, 5, 10];
 }

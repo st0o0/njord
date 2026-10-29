@@ -7,6 +7,6 @@ public sealed class VisibilityConfig : IConfigSection
     private const string SectionName = "Njord:Features:Forecast:Visibility";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
-    public double[]? Thresholds { get; set; }
-    public double[] EffectiveThresholds => Thresholds ?? [1000, 200, 50];
+    public double[] Thresholds { get; set; } = [];
+    public static double[] DefaultThresholds => [1000, 200, 50];
 }

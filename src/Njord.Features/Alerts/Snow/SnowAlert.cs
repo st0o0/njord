@@ -35,7 +35,7 @@ public sealed class SnowAlert(IOptions<SnowConfig> config) : FeatureRule<Forecas
         var snowiest = window.HighestBy(p => p.Snowfall);
         var freezingLevels = window.Select(p => p.FreezingLevelHeight).OfType<double>().Order().ToList();
 
-        var (severity, snowThreshold) = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Max).Classify(totalSum);
+        var (severity, snowThreshold) = config.Value.Thresholds.ToSeverity(ScanDirection.Max).Classify(totalSum);
 
         if (severity == AlertSeverity.None)
         {

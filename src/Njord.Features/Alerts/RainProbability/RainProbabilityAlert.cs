@@ -25,7 +25,7 @@ public sealed class RainProbabilityAlert(IOptions<RainProbabilityConfig> config)
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
-        var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Max);
+        var thresholds = config.Value.Thresholds.ToSeverity(ScanDirection.Max);
         var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now, config.Value.WindowHours);
         if (window.HighestBy(p => p.PrecipitationProbability) is not { PrecipitationProbability: { } peak } highest)
         {

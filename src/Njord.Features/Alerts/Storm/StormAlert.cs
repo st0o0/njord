@@ -25,7 +25,7 @@ public sealed class StormAlert(IOptions<StormConfig> config) : FeatureRule<Forec
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
-        var thresholds = config.Value.EffectiveGustThresholds.ToSeverity(ScanDirection.Max);
+        var thresholds = config.Value.GustThresholds.ToSeverity(ScanDirection.Max);
         if (ctx.Current.Forecast.NextHoursInclusive(ctx.Now).HighestBy(p => p.WindGusts) is not { WindGusts: { } gust } peak)
         {
             return null;

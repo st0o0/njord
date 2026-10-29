@@ -25,7 +25,7 @@ public sealed class TropicalNightAlert(IOptions<TropicalNightConfig> config) : F
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
-        var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Max);
+        var thresholds = config.Value.Thresholds.ToSeverity(ScanDirection.Max);
         var night = ctx.Current.Forecast.NextHoursInclusive(ctx.Now).Where(p => p is { IsDay: <= 0.5, Temperature: not null }).ToList();
         if (night.Count == 0)
         {

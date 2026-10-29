@@ -13,5 +13,5 @@ public sealed class PollingOptions : IConfigSection
 
     public RequestBudget? BudgetOverride { get; set; }
 
-    public RequestBudget EffectiveBudget => BudgetOverride ?? RequestBudget.OpenMeteoFreeTier;
+    public RequestBudget Budget { get; set; } = RequestBudget.OpenMeteoFreeTier;
 }

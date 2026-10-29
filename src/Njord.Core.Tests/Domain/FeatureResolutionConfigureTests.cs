@@ -33,7 +33,7 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [Frost, Pollen], new ForecastOptions());
+        FeatureResolution.Configure(options, [Frost, Pollen], new ForecastOptions { Models = [ForecastOptions.DefaultModel] });
 
         Assert.True(options.Requirements.Requires(DomainKind.Forecast));
         Assert.True(options.Requirements.Requires(DomainKind.AirQuality));
@@ -45,7 +45,7 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [Frost, Pollen], new ForecastOptions());
+        FeatureResolution.Configure(options, [Frost, Pollen], new ForecastOptions { Models = [ForecastOptions.DefaultModel] });
 
         Assert.Equal([DomainKind.Forecast, DomainKind.AirQuality, DomainKind.Ensemble], options.Domains.Order().ToList());
     }
@@ -55,7 +55,7 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [], new ForecastOptions());
+        FeatureResolution.Configure(options, [], new ForecastOptions { Models = [ForecastOptions.DefaultModel] });
 
         Assert.Equal(default, options.Requirements);
         Assert.Empty(options.Domains);
@@ -92,7 +92,7 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [Frost], new ForecastOptions());
+        FeatureResolution.Configure(options, [Frost], new ForecastOptions { Models = [ForecastOptions.DefaultModel] });
 
         Assert.True(options.Requirements.AllForecast.HasFlag(ForecastParams.WeatherCode));
     }
@@ -102,7 +102,7 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [Frost], new ForecastOptions());
+        FeatureResolution.Configure(options, [Frost], new ForecastOptions { Models = [ForecastOptions.DefaultModel] });
 
         Assert.False(options.Requirements.Requires(DomainKind.AirQuality));
     }
@@ -112,7 +112,7 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [Frost], new ForecastOptions());
+        FeatureResolution.Configure(options, [Frost], new ForecastOptions { Models = [ForecastOptions.DefaultModel] });
 
         Assert.True(options.Requirements.Requires(DomainKind.Ensemble));
         Assert.Contains(DomainKind.Ensemble, options.Domains);
@@ -145,7 +145,7 @@ public sealed class FeatureResolutionConfigureTests
     {
         var options = new FeatureRequirementsOptions();
 
-        FeatureResolution.Configure(options, [Pollen], new ForecastOptions());
+        FeatureResolution.Configure(options, [Pollen], new ForecastOptions { Models = [ForecastOptions.DefaultModel] });
 
         Assert.True(options.EnsembleModels.IsDefaultOrEmpty);
     }

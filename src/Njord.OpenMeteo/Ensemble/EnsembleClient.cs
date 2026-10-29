@@ -35,7 +35,7 @@ public sealed class EnsembleClient : IDomainClient
         _primaryModel = _modelIds.IsDefaultOrEmpty ? ForecastOptions.DefaultModel : _modelIds[0];
         _needsModels = resolved.AllEnsemble.HasFlag(EnsembleParams.Models);
 
-        var ignored = options.Value.EffectiveModels.Except(_modelIds).ToArray();
+        var ignored = options.Value.Models.Except(_modelIds).ToArray();
         if (ignored.Length > 0)
         {
             logger.LogWarning("Ensemble models ignored because no enabled feature uses them: {Models}", string.Join(", ", ignored));

@@ -35,13 +35,13 @@ public sealed class OpsGrpcService(
         var uptime = timeProvider.GetUtcNow() - ProcessStart;
 
         // Without an answer from the tracker the status reports zero usage against the configured budget.
-        var budget = new BudgetStatusResult(0, 0, polling.Value.EffectiveBudget.RequestsPerMonth,
-            polling.Value.EffectiveBudget.DailyLimit);
+        var budget = new BudgetStatusResult(0, 0, polling.Value.Budget.RequestsPerMonth,
+            polling.Value.Budget.DailyLimit);
         var budgetPartial = false;
         try
         {
             var response =
-                await actorRegistry.AskAsync<IBudgetTracker, BudgetStatusResponse>(new QueryBudgetStatus(), context);
+                await actorRegistry.AskAsync<IBudgetTracker, BudgetStatusResult>(new QueryBudgetStatus(), context);
             if (response is BudgetStatusResult result)
             {
                 budget = result;
@@ -122,7 +122,7 @@ public sealed class OpsGrpcService(
         try
         {
             var response =
-                await actorRegistry.AskAsync<IPollManager, PollStatesResponse>(new QueryPollStates(), context);
+                await actorRegistry.AskAsync<IPollManager, PollStatesResult>(new QueryPollStates(), context);
             return response is PollStatesResult result ? result.Entries : null;
         }
         catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded)

@@ -43,7 +43,6 @@ public sealed class BudgetTracker : ReceivePersistentActor
         Recover<RecoveryCompleted>(_ => PublishState());
 
         Command<RecordApiCall>(OnRecordApiCall);
-        Command<QueryBudgetUsage>(_ => Sender.Tell(_state.ToBudgetUsage(), Self));
         Command<QueryBudgetStatus>(_ => Sender.Tell(GetStatus(), Self));
         Command<SaveSnapshotSuccess>(success =>
         {

@@ -231,7 +231,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
                 new DomainPolled((int)domain, PersistedDomainPollOutcome.Unchanged, null, now, null),
             FetchDomainRejected { Reason: FetchRejectionReason.PipelineUnavailable } =>
                 new DomainPolled((int)domain, PersistedDomainPollOutcome.Failed, null, now, PollWorkerState.PipelineUnavailableRetry, failures),
-            FetchDomainFailed { Reason: PollFailureReason.RateLimited } or FetchDomainRejected { Reason: FetchRejectionReason.Budget } =>
+            FetchDomainFailed { Reason: PollFailureReason.RateLimited } =>
                 new DomainPolled((int)domain, PersistedDomainPollOutcome.Failed, null, now,
                     FailureBackoff.RateLimited(failures + 1, _pollInterval), failures + 1),
             _ =>

@@ -71,7 +71,7 @@ public sealed class PollingOptionsValidatorTests
         var options = new PollingOptions
         {
             PollInterval = TimeSpan.FromMinutes(1),
-            BudgetOverride = new RequestBudget(10_000, 600),
+            Budget = new RequestBudget(10_000, 600),
         };
 
         var result = validator.Validate(null, options);
@@ -82,7 +82,7 @@ public sealed class PollingOptionsValidatorTests
     [Fact]
     public void Should_count_ensemble_models_in_the_budget_projection()
     {
-        var options = new PollingOptions { BudgetOverride = new RequestBudget(2_500, 600) };
+        var options = new PollingOptions { Budget = new RequestBudget(2_500, 600) };
         (string, string)[] scope =
         [
             ("Njord:Locations:0:Name", "Lucerne"),

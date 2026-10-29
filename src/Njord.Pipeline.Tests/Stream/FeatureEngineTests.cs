@@ -264,7 +264,7 @@ public sealed class FeatureEngineTests
     [Fact]
     public void A_real_frost_feature_raises_its_alert_after_the_domain_event()
     {
-        var engine = Engine(new FrostAlert(Options.Create(new FrostConfig())));
+        var engine = Engine(new FrostAlert(Options.Create(new FrostConfig { Thresholds = FrostConfig.DefaultThresholds })));
 
         engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Ensemble(Start)));
         var events = engine.Process(

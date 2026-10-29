@@ -7,6 +7,6 @@ public sealed class ClearSkyUvConfig : IConfigSection
     private const string SectionName = "Njord:Features:Lifestyle:ClearSkyUv";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
-    public double[]? Thresholds { get; set; }
-    public double[] EffectiveThresholds => Thresholds ?? [6, 8, 10];
+    public double[] Thresholds { get; set; } = [];
+    public static double[] DefaultThresholds => [6, 8, 10];
 }

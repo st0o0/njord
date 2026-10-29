@@ -25,7 +25,7 @@ public sealed class HumidityAlert(IOptions<HumidityConfig> config) : FeatureRule
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Max);
+        var thresholds = config.Value.Thresholds.ToSeverity(ScanDirection.Max);
         var day = ctx.Current.Forecast.NextHoursInclusive(ctx.Now).Where(p => p is { IsDay: > 0.5, DewPoint: not null }).ToList();
         if (day.MaxBy(p => p.DewPoint) is not { DewPoint: { } dewPoint } muggiest)
         {

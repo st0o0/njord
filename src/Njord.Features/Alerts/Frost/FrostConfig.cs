@@ -7,6 +7,6 @@ public sealed class FrostConfig : IConfigSection
     private const string SectionName = "Njord:Features:Forecast:Frost";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
-    public double[]? Thresholds { get; set; }
-    public double[] EffectiveThresholds => Thresholds ?? [0, -5, -15];
+    public double[] Thresholds { get; set; } = [];
+    public static double[] DefaultThresholds => [0, -5, -15];
 }

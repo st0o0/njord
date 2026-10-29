@@ -16,14 +16,14 @@ public sealed class AlertConfigValidatorsTests
     public void Should_accept_unset_thresholds_for_every_alert()
     {
         Assert.Multiple(
-            () => Assert.True(new DustConfigValidator().Validate(null, new DustConfig()).Succeeded),
-            () => Assert.True(new FrostConfigValidator().Validate(null, new FrostConfig()).Succeeded),
-            () => Assert.True(new HeatConfigValidator().Validate(null, new HeatConfig()).Succeeded),
-            () => Assert.True(new HumidityConfigValidator().Validate(null, new HumidityConfig()).Succeeded),
-            () => Assert.True(new StormConfigValidator().Validate(null, new StormConfig()).Succeeded),
-            () => Assert.True(new TropicalNightConfigValidator().Validate(null, new TropicalNightConfig()).Succeeded),
-            () => Assert.True(new VisibilityConfigValidator().Validate(null, new VisibilityConfig()).Succeeded),
-            () => Assert.True(new WindChillConfigValidator().Validate(null, new WindChillConfig()).Succeeded));
+            () => Assert.True(new DustConfigValidator().Validate(null, new DustConfig { Thresholds = DustConfig.DefaultThresholds }).Succeeded),
+            () => Assert.True(new FrostConfigValidator().Validate(null, new FrostConfig { Thresholds = FrostConfig.DefaultThresholds }).Succeeded),
+            () => Assert.True(new HeatConfigValidator().Validate(null, new HeatConfig { Thresholds = HeatConfig.DefaultThresholds }).Succeeded),
+            () => Assert.True(new HumidityConfigValidator().Validate(null, new HumidityConfig { Thresholds = HumidityConfig.DefaultThresholds }).Succeeded),
+            () => Assert.True(new StormConfigValidator().Validate(null, new StormConfig { GustThresholds = StormConfig.DefaultGustThresholds }).Succeeded),
+            () => Assert.True(new TropicalNightConfigValidator().Validate(null, new TropicalNightConfig { Thresholds = TropicalNightConfig.DefaultThresholds }).Succeeded),
+            () => Assert.True(new VisibilityConfigValidator().Validate(null, new VisibilityConfig { Thresholds = VisibilityConfig.DefaultThresholds }).Succeeded),
+            () => Assert.True(new WindChillConfigValidator().Validate(null, new WindChillConfig { Thresholds = WindChillConfig.DefaultThresholds }).Succeeded));
     }
 
     [Fact]

@@ -20,7 +20,7 @@ public sealed class OptionsBudgetProviderTests
     public void A_budget_override_scales_the_rate_to_eighty_percent_of_the_per_minute_limit()
     {
         var provider = new OptionsBudgetProvider(Options.Create(
-            AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(300_000, 100))));
+            AppSettingsDefaults.Options<PollingOptions>(o => o.Budget = new RequestBudget(300_000, 100))));
 
         Assert.Equal(80, provider.GetCurrentRate().CostPerMinute);
     }

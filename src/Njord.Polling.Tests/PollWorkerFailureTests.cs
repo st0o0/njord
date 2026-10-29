@@ -135,9 +135,7 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
     }
 
     [Theory(Timeout = 30_000)]
-    [InlineData(FetchRejectionReason.Budget, 300)]
     [InlineData(FetchRejectionReason.QueueFull, 60)]
-    [InlineData(FetchRejectionReason.Expired, 60)]
     [InlineData(FetchRejectionReason.PipelineUnavailable, 5)]
     public async Task A_rejection_is_reported_as_failed_with_its_backoff(FetchRejectionReason reason, int delaySeconds)
     {

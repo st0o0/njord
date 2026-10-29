@@ -7,6 +7,6 @@ public sealed class StormConfig : IConfigSection
     private const string SectionName = "Njord:Features:Forecast:Storm";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; } = true;
-    public double[]? GustThresholds { get; set; }
-    public double[] EffectiveGustThresholds => GustThresholds ?? [17, 25, 33];
+    public double[] GustThresholds { get; set; } = [];
+    public static double[] DefaultGustThresholds => [17, 25, 33];
 }

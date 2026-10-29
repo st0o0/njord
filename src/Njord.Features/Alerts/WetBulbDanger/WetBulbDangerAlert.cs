@@ -25,7 +25,7 @@ public sealed class WetBulbDangerAlert(IOptions<WetBulbDangerConfig> config) : F
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
-        var thresholds = config.Value.EffectiveThresholds.ToSeverity(ScanDirection.Max);
+        var thresholds = config.Value.Thresholds.ToSeverity(ScanDirection.Max);
         var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
         if (window.HighestBy(p => p.WetBulbTemperature) is not { WetBulbTemperature: { } peak } hottest)
         {

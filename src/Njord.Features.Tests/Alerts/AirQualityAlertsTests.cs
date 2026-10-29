@@ -17,7 +17,7 @@ public sealed class AirQualityAlertsTests
 
     private static Pm25Alert Pm25() => new(Options.Create(new Pm25Config()));
 
-    private static DustAlert Dust() => new(Options.Create(new DustConfig { Enabled = true }));
+    private static DustAlert Dust() => new(Options.Create(new DustConfig { Enabled = true, Thresholds = DustConfig.DefaultThresholds }));
 
     private static LocationForecast With(Func<int, AirQualityPoint, AirQualityPoint>? shape = null) =>
         new(Lucerne, AirQuality: Day(shape));

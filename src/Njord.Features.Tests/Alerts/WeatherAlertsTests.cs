@@ -53,7 +53,7 @@ public sealed class WeatherAlertsTests
     [InlineData(-5.0, AlertSeverity.Orange)]
     [InlineData(-15.0, AlertSeverity.Red)]
     public void Frost_severity_follows_the_lowest_temperature(double value, AlertSeverity expected) =>
-        Assert.Equal(expected, Severity(new FrostAlert(Opts(new FrostConfig())), Uniform(p => p with { Temperature = value })));
+        Assert.Equal(expected, Severity(new FrostAlert(Opts(new FrostConfig { Thresholds = FrostConfig.DefaultThresholds })), Uniform(p => p with { Temperature = value })));
 
     [Theory]
     [InlineData(29.9, AlertSeverity.None)]
@@ -61,7 +61,7 @@ public sealed class WeatherAlertsTests
     [InlineData(35.0, AlertSeverity.Orange)]
     [InlineData(40.0, AlertSeverity.Red)]
     public void Heat_severity_follows_the_highest_temperature(double value, AlertSeverity expected) =>
-        Assert.Equal(expected, Severity(new HeatAlert(Opts(new HeatConfig())), Uniform(p => p with { Temperature = value })));
+        Assert.Equal(expected, Severity(new HeatAlert(Opts(new HeatConfig { Thresholds = HeatConfig.DefaultThresholds })), Uniform(p => p with { Temperature = value })));
 
     [Theory]
     [InlineData(16.9, AlertSeverity.None)]
@@ -69,7 +69,7 @@ public sealed class WeatherAlertsTests
     [InlineData(25.0, AlertSeverity.Orange)]
     [InlineData(33.0, AlertSeverity.Red)]
     public void Storm_severity_follows_the_wind_gusts(double value, AlertSeverity expected) =>
-        Assert.Equal(expected, Severity(new StormAlert(Opts(new StormConfig())), Uniform(p => p with { WindGusts = value })));
+        Assert.Equal(expected, Severity(new StormAlert(Opts(new StormConfig { GustThresholds = StormConfig.DefaultGustThresholds })), Uniform(p => p with { WindGusts = value })));
 
     [Theory]
     [InlineData(-9.9, AlertSeverity.None)]
@@ -77,7 +77,7 @@ public sealed class WeatherAlertsTests
     [InlineData(-20.0, AlertSeverity.Orange)]
     [InlineData(-30.0, AlertSeverity.Red)]
     public void Wind_chill_severity_follows_the_apparent_temperature(double value, AlertSeverity expected) =>
-        Assert.Equal(expected, Severity(new WindChillAlert(Opts(new WindChillConfig())), Uniform(p => p with { ApparentTemperature = value })));
+        Assert.Equal(expected, Severity(new WindChillAlert(Opts(new WindChillConfig { Thresholds = WindChillConfig.DefaultThresholds })), Uniform(p => p with { ApparentTemperature = value })));
 
     [Theory]
     [InlineData(1000.0, AlertSeverity.None)]
@@ -85,7 +85,7 @@ public sealed class WeatherAlertsTests
     [InlineData(199.0, AlertSeverity.Orange)]
     [InlineData(49.0, AlertSeverity.Red)]
     public void Visibility_severity_follows_the_lowest_visibility(double value, AlertSeverity expected) =>
-        Assert.Equal(expected, Severity(new VisibilityAlert(Opts(new VisibilityConfig())), Uniform(p => p with { Visibility = value })));
+        Assert.Equal(expected, Severity(new VisibilityAlert(Opts(new VisibilityConfig { Thresholds = VisibilityConfig.DefaultThresholds })), Uniform(p => p with { Visibility = value })));
 
     [Theory]
     [InlineData(20.0, AlertSeverity.None)]
@@ -93,7 +93,7 @@ public sealed class WeatherAlertsTests
     [InlineData(23.1, AlertSeverity.Orange)]
     [InlineData(25.1, AlertSeverity.Red)]
     public void Tropical_night_severity_follows_the_night_temperature(double value, AlertSeverity expected) =>
-        Assert.Equal(expected, Severity(new TropicalNightAlert(Opts(new TropicalNightConfig())), Uniform(p => p with { IsDay = 0, Temperature = value })));
+        Assert.Equal(expected, Severity(new TropicalNightAlert(Opts(new TropicalNightConfig { Thresholds = TropicalNightConfig.DefaultThresholds })), Uniform(p => p with { IsDay = 0, Temperature = value })));
 
     [Theory]
     [InlineData(15.9, AlertSeverity.None)]
@@ -101,7 +101,7 @@ public sealed class WeatherAlertsTests
     [InlineData(21.0, AlertSeverity.Orange)]
     [InlineData(24.0, AlertSeverity.Red)]
     public void Humidity_severity_follows_the_daytime_dew_point(double value, AlertSeverity expected) =>
-        Assert.Equal(expected, Severity(new HumidityAlert(Opts(new HumidityConfig())), Uniform(p => p with { IsDay = 1, DewPoint = value })));
+        Assert.Equal(expected, Severity(new HumidityAlert(Opts(new HumidityConfig { Thresholds = HumidityConfig.DefaultThresholds })), Uniform(p => p with { IsDay = 1, DewPoint = value })));
 
     [Theory]
     [InlineData(2.9, AlertSeverity.None)]
@@ -148,7 +148,7 @@ public sealed class WeatherAlertsTests
     [InlineData(6.0, AlertSeverity.Orange)]
     [InlineData(16.0, AlertSeverity.Red)]
     public void Snow_severity_follows_the_accumulation(double value, AlertSeverity expected) =>
-        Assert.Equal(expected, Severity(new SnowAlert(Opts(new SnowConfig())), Day((h, p) => p with { Snowfall = h == 0 ? value : 0.0 })));
+        Assert.Equal(expected, Severity(new SnowAlert(Opts(new SnowConfig { Thresholds = SnowConfig.DefaultThresholds })), Day((h, p) => p with { Snowfall = h == 0 ? value : 0.0 })));
 
     [Theory]
     [InlineData(999.0, 0.0, 0.0, AlertSeverity.None)]
@@ -159,14 +159,14 @@ public sealed class WeatherAlertsTests
     [InlineData(2500.0, 0.0, 25.0, AlertSeverity.Red)]
     [InlineData(2500.0, 1.0, 10.0, AlertSeverity.Yellow)]
     public void Thunderstorm_severity_follows_the_peak_hour(double cape, double precip, double gusts, AlertSeverity expected) =>
-        Assert.Equal(expected, Severity(new ThunderstormAlert(Opts(new ThunderstormConfig())), Uniform(p => p with { Cape = cape, Precipitation = precip, WindGusts = gusts })));
+        Assert.Equal(expected, Severity(new ThunderstormAlert(Opts(new ThunderstormConfig { CapeThresholds = ThunderstormConfig.DefaultCapeThresholds })), Uniform(p => p with { Cape = cape, Precipitation = precip, WindGusts = gusts })));
 
     [Fact]
     public void Thunderstorm_with_a_strong_cap_is_downgraded_one_step()
     {
         var weather = Uniform(p => p with { Cape = 2500.0, Precipitation = 10.0, WindGusts = 10.0, ConvectiveInhibition = 250.0 });
 
-        Assert.Equal(AlertSeverity.Orange, Severity(new ThunderstormAlert(Opts(new ThunderstormConfig())), weather));
+        Assert.Equal(AlertSeverity.Orange, Severity(new ThunderstormAlert(Opts(new ThunderstormConfig { CapeThresholds = ThunderstormConfig.DefaultCapeThresholds })), weather));
     }
 
     [Theory]
@@ -189,7 +189,7 @@ public sealed class WeatherAlertsTests
     public void A_cold_forecast_produces_an_orange_frost_alert_for_the_location()
     {
         var frost = Assert.IsType<FrostAlertResult>(
-            Run(new FrostAlert(Opts(new FrostConfig())), Now, ForecastWithEnsemble(Uniform(p => p with { Temperature = -6.0 }), EnsembleDay())));
+            Run(new FrostAlert(Opts(new FrostConfig { Thresholds = FrostConfig.DefaultThresholds })), Now, ForecastWithEnsemble(Uniform(p => p with { Temperature = -6.0 }), EnsembleDay())));
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Orange, frost.Severity),
@@ -199,13 +199,13 @@ public sealed class WeatherAlertsTests
     [Fact]
     public void Missing_weather_produces_no_alert()
     {
-        Assert.Null(Run(new FrostAlert(Opts(new FrostConfig())), Now, new LocationForecast(Lucerne)));
+        Assert.Null(Run(new FrostAlert(Opts(new FrostConfig { Thresholds = FrostConfig.DefaultThresholds })), Now, new LocationForecast(Lucerne)));
     }
 
     [Fact]
     public void Missing_ensemble_produces_no_alert_for_ensemble_requiring_alerts()
     {
-        Assert.Null(Run(new FrostAlert(Opts(new FrostConfig())), Now, ForecastOnly(Uniform(p => p with { Temperature = -6.0 }))));
+        Assert.Null(Run(new FrostAlert(Opts(new FrostConfig { Thresholds = FrostConfig.DefaultThresholds })), Now, ForecastOnly(Uniform(p => p with { Temperature = -6.0 }))));
     }
 
     [Fact]
@@ -220,14 +220,14 @@ public sealed class WeatherAlertsTests
         var forecast = ForecastWithEnsemble(weather, EnsembleHourly(48));
 
         Assert.Multiple(
-            () => Assert.IsType<FrostAlertResult>(Run(new FrostAlert(Opts(new FrostConfig())), Now, forecast)),
-            () => Assert.IsType<HeatAlertResult>(Run(new HeatAlert(Opts(new HeatConfig())), Now, forecast)));
+            () => Assert.IsType<FrostAlertResult>(Run(new FrostAlert(Opts(new FrostConfig { Thresholds = FrostConfig.DefaultThresholds })), Now, forecast)),
+            () => Assert.IsType<HeatAlertResult>(Run(new HeatAlert(Opts(new HeatConfig { Thresholds = HeatConfig.DefaultThresholds })), Now, forecast)));
     }
 
     [Fact]
     public void A_disabled_feature_reports_itself_as_disabled()
     {
-        Assert.False(new FrostAlert(Opts(new FrostConfig { Enabled = false })).Enabled);
+        Assert.False(new FrostAlert(Opts(new FrostConfig { Enabled = false, Thresholds = FrostConfig.DefaultThresholds })).Enabled);
     }
 
     [Fact]

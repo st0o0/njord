@@ -29,7 +29,7 @@ public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : Fea
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {
         var cfg = config.Value;
-        var capes = cfg.EffectiveCapeThresholds;
+        var capes = cfg.CapeThresholds;
         var evaluable = ctx.Current.Forecast.NextHoursInclusive(ctx.Now).Where(p => p.Cape is not null && p.WindGusts is not null).ToList();
         if (evaluable.Count == 0)
         {

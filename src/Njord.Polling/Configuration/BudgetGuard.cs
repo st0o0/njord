@@ -52,7 +52,7 @@ internal static class BudgetGuard
         var seasonalCalls = requirements.Requires(DomainKind.Seasonal) ? locationCount * SeasonalCallsPerMonth : 0;
         var projectedMonthly = (long)Math.Round(callsPerCycle * cyclesPerMonth) + seasonalCalls;
 
-        var limit = polling.EffectiveBudget.RequestsPerMonth;
+        var limit = polling.Budget.RequestsPerMonth;
         var usagePercent = limit > 0 ? (double)projectedMonthly / limit * 100 : 0;
         if (usagePercent <= MonthlyBudgetGuardFactor * 100)
         {

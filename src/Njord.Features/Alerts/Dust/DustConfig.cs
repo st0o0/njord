@@ -7,6 +7,6 @@ public sealed class DustConfig : IConfigSection
     private const string SectionName = "Njord:Features:AirQuality:Dust";
     static string IConfigSection.SectionName => SectionName;
     public bool Enabled { get; set; }
-    public double[]? Thresholds { get; set; }
-    public double[] EffectiveThresholds => Thresholds ?? [50, 150, 500];
+    public double[] Thresholds { get; set; } = [];
+    public static double[] DefaultThresholds => [50, 150, 500];
 }

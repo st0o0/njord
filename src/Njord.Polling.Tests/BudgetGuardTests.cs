@@ -36,7 +36,7 @@ public sealed class BudgetGuardTests
     private static string? Violation(NjordOptions scope, PollingOptions polling, FeatureRequirementsOptions requirements, FloodOptions? flood = null) =>
         BudgetGuard.Violation(scope, polling, requirements, new ForecastOptions(), flood);
 
-    private static PollingOptions WithMonthlyBudget(int perMonth) => new() { BudgetOverride = new RequestBudget(perMonth, 600) };
+    private static PollingOptions WithMonthlyBudget(int perMonth) => new() { Budget = new RequestBudget(perMonth, 600) };
 
     [Fact]
     public void Should_accept_usage_within_eighty_percent_of_the_budget()

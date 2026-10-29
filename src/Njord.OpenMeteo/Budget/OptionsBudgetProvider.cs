@@ -14,7 +14,7 @@ internal sealed class OptionsBudgetProvider : IBudgetProvider
 
     public BudgetRate GetCurrentRate()
     {
-        var budget = _options.Value.EffectiveBudget;
+        var budget = _options.Value.Budget;
         var costPerMinute = (int)(budget.RequestsPerMinute * 0.8);
         var maxBurst = Math.Max(costPerMinute / 30, 16);
         return new BudgetRate(costPerMinute, maxBurst);

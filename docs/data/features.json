@@ -780,7 +780,7 @@
     "enabledByDefault": false,
     "domains": ["Forecast"],
     "weatherParams": ["GlobalTiltedIrradiance"],
-    "options": [{ "name": "PeakKw", "type": "number", "default": 5 }, { "name": "SystemEfficiency", "type": "number", "default": 0.8 }]
+    "options": []
   },
   {
     "key": "Energy:SatelliteRadiation",
@@ -820,7 +820,7 @@
     "enabledByDefault": false,
     "domains": ["Forecast", "Satellite"],
     "weatherParams": ["ShortwaveRadiation"],
-    "options": [{ "name": "PeakKw", "type": "number", "default": 5 }, { "name": "BatteryCapacityKwh", "type": "number", "default": 10 }, { "name": "SystemEfficiency", "type": "number", "default": 0.85 }]
+    "options": []
   },
   {
     "key": "Energy:ElevatedWind",

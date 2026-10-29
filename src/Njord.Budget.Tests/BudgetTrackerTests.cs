@@ -25,8 +25,11 @@ public sealed class BudgetTrackerTests : Akka.Hosting.TestKit.TestKit
     private IActorRef CreateTracker() =>
         Sys.ActorOf(Props.Create(() => new BudgetTracker(_time, _polling)), $"budget-tracker-{Guid.NewGuid():N}");
 
-    private async Task<BudgetUsageResult> UsageOf(IActorRef tracker, CancellationToken ct) =>
-        await tracker.Ask<BudgetUsageResult>(new QueryBudgetUsage(), TimeSpan.FromSeconds(5), ct);
+    private static async Task<(long Monthly, long Daily)> UsageOf(IActorRef tracker, CancellationToken ct)
+    {
+        var status = await tracker.Ask<BudgetStatusResult>(new QueryBudgetStatus(), TimeSpan.FromSeconds(5), ct);
+        return (status.MonthlyUsed, status.DailyUsed);
+    }
 
     private async Task StopAsync(IActorRef tracker)
     {
@@ -43,18 +46,18 @@ public sealed class BudgetTrackerTests : Akka.Hosting.TestKit.TestKit
         tracker.Tell(new RecordApiCall(4));
         tracker.Tell(new RecordApiCall(2));
 
-        Assert.Equal(new BudgetUsageResult(6, 6), await UsageOf(tracker, TestContext.Current.CancellationToken));
+        Assert.Equal((6, 6), await UsageOf(tracker, TestContext.Current.CancellationToken));
     }
 
     [Fact(Timeout = 30000)]
     public async Task Status_pairs_the_usage_with_the_effective_limits()
     {
-        _polling = Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(250_000, 60)));
+        _polling = Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.Budget = new RequestBudget(250_000, 60)));
         var tracker = CreateTracker();
 
         tracker.Tell(new RecordApiCall(2));
 
-        var status = await tracker.Ask<BudgetStatusResponse>(new QueryBudgetStatus(), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        var status = await tracker.Ask<BudgetStatusResult>(new QueryBudgetStatus(), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         Assert.Equal(new BudgetStatusResult(MonthlyUsed: 2, DailyUsed: 2, MonthlyLimit: 250_000, DailyLimit: 10_000), status);
     }
@@ -69,7 +72,7 @@ public sealed class BudgetTrackerTests : Akka.Hosting.TestKit.TestKit
         _time.Advance(TimeSpan.FromDays(1));
         tracker.Tell(new RecordApiCall(2));
 
-        Assert.Equal(new BudgetUsageResult(MonthlyUsed: 7, DailyUsed: 2), await UsageOf(tracker, TestContext.Current.CancellationToken));
+        Assert.Equal((7, 2), await UsageOf(tracker, TestContext.Current.CancellationToken));
     }
 
     [Fact(Timeout = 30000)]
@@ -83,7 +86,7 @@ public sealed class BudgetTrackerTests : Akka.Hosting.TestKit.TestKit
 
         var recovered = CreateTracker();
 
-        Assert.Equal(new BudgetUsageResult(7, 7), await UsageOf(recovered, TestContext.Current.CancellationToken));
+        Assert.Equal((7, 7), await UsageOf(recovered, TestContext.Current.CancellationToken));
     }
 
     [Fact(Timeout = 30000)]
@@ -97,6 +100,6 @@ public sealed class BudgetTrackerTests : Akka.Hosting.TestKit.TestKit
 
         var recovered = CreateTracker();
 
-        Assert.Equal(new BudgetUsageResult(0, 0), await UsageOf(recovered, TestContext.Current.CancellationToken));
+        Assert.Equal((0, 0), await UsageOf(recovered, TestContext.Current.CancellationToken));
     }
 }

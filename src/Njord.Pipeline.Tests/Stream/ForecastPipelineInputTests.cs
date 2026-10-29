@@ -30,7 +30,7 @@ public sealed class ForecastPipelineInputTests : Akka.Hosting.TestKit.TestKit
     }
 
     private static IReadOnlyList<IFeatureRule> AllFeaturesOff() =>
-        [new FrostAlert(Options.Create(new FrostConfig { Enabled = false }))];
+        [new FrostAlert(Options.Create(new FrostConfig { Enabled = false, Thresholds = FrostConfig.DefaultThresholds }))];
 
     private static DomainDataReceived Forecast(Location location, double temperature = 10.0) =>
         DomainData.Received(location, DomainData.Forecast(Start, 48, (_, p) => p with { Temperature = temperature }));
