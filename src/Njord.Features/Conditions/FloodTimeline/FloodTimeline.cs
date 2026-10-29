@@ -5,7 +5,7 @@ using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Conditions.FloodTimeline;
 
-public sealed class FloodTimeline(IOptions<FloodTimelineConfig> config) : FeatureRule<FloodForecastInput>
+public sealed class FloodTimeline(IOptions<FloodTimelineConfig> config) : FeatureRule<FloodInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
@@ -16,10 +16,10 @@ public sealed class FloodTimeline(IOptions<FloodTimelineConfig> config) : Featur
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override FloodForecastInput? Project(LocationForecast forecast) =>
-        forecast is { Flood: { } f, Forecast: { } w } ? new(f, w) : null;
+    protected override FloodInput? Project(LocationForecast forecast) =>
+        forecast is { Flood: { } f } ? new(f) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<FloodForecastInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<FloodInput> ctx)
     {
         var flood = ctx.Current.Flood;
         if (flood.Points.IsDefaultOrEmpty)

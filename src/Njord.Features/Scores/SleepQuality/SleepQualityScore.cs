@@ -21,9 +21,10 @@ public sealed class SleepQualityScore(IOptions<SleepQualityConfig> config) : Fea
         Name: "SleepQuality",
         DefaultEnabled: false,
         new DomainRequirements(
-            Forecast: ForecastParams.Temperature | ForecastParams.ApparentTemperature | ForecastParams.Humidity
+            Forecast: ForecastParams.Temperature | ForecastParams.Humidity
                 | ForecastParams.WindGusts | ForecastParams.Cape | ForecastParams.Precipitation,
-            AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen | AirQualityParams.Pm25));
+            AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen | AirQualityParams.Pm25,
+            OptionalForecast: ForecastParams.ApparentTemperature));
 
     public override bool Enabled => config.Value.Enabled;
 

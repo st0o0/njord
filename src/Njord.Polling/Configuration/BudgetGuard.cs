@@ -15,8 +15,6 @@ internal static class BudgetGuard
 
     internal const int SeasonalCallsPerMonth = 30;
 
-    internal const int EnsembleSpreadVariableCount = 3;
-
     private static readonly TimeSpan Month = TimeSpan.FromDays(30);
 
     internal static string? Violation(
@@ -38,9 +36,10 @@ internal static class BudgetGuard
         {
             var ensembleModels = featureRequirements.EnsembleModels;
             var hasModels = requirements.AllEnsemble.HasFlag(EnsembleParams.Models);
+            var spreadVarCount = BitOperations.PopCount((ulong)(requirements.AllEnsemble & ~EnsembleParams.Models));
             var ensembleVars = hasModels
-                ? BitOperations.PopCount((ulong)requirements.AllForecast) + EnsembleSpreadVariableCount
-                : EnsembleSpreadVariableCount;
+                ? BitOperations.PopCount((ulong)requirements.AllForecast) + spreadVarCount
+                : spreadVarCount;
             var ensembleModelCount = hasModels ? ensembleModels.Length : 1;
             ensembleCallWeight = CallWeight.Of(ensembleVars, weather.ForecastDays) * ensembleModelCount;
         }

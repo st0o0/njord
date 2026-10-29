@@ -6,7 +6,7 @@ using Njord.Messages.Pipeline;
 
 namespace Njord.Features.Alerts.SwimmingConditions;
 
-public sealed class SwimmingConditionsAlert(IOptions<SwimmingConditionsConfig> config) : FeatureRule<MarineForecastInput>
+public sealed class SwimmingConditionsAlert(IOptions<SwimmingConditionsConfig> config) : FeatureRule<MarineInput>
 {
     public const int WindowHours = 24;
     public const double ModerateWaveHeightMeters = 1.0;
@@ -24,10 +24,10 @@ public sealed class SwimmingConditionsAlert(IOptions<SwimmingConditionsConfig> c
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override MarineForecastInput? Project(LocationForecast forecast) =>
-        forecast is { Marine: { } m, Forecast: { } w } ? new(m, w) : null;
+    protected override MarineInput? Project(LocationForecast forecast) =>
+        forecast is { Marine: { } m } ? new(m) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<MarineForecastInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<MarineInput> ctx)
     {
         var best = (Severity: AlertSeverity.None, Trigger: 0.0, Threshold: 0.0, HoursUntil: 0);
 

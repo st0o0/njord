@@ -101,6 +101,6 @@ public sealed class HeatPumpCopConditionTests
     [Fact]
     public void The_requirements_ask_for_temperature_and_humidity()
     {
-        Assert.Equal(ForecastParams.Temperature | ForecastParams.Humidity, Feature().Descriptor.Requirements.Forecast);
+        Assert.Equal(ForecastParams.Temperature, Feature().Descriptor.Requirements.Forecast);
     }
 }

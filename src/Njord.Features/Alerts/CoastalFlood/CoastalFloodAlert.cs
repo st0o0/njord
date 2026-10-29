@@ -15,9 +15,11 @@ public sealed class CoastalFloodAlert(IOptions<CoastalFloodConfig> config) : Fea
         Name: "CoastalFlood",
         DefaultEnabled: false,
         new DomainRequirements(
-            Marine: MarineParams.SeaLevelHeight | MarineParams.WaveHeight | MarineParams.WaveDirection,
-            Forecast: ForecastParams.WindSpeed | ForecastParams.WindDirection,
-            Ensemble: EnsembleParams.TemperatureSpread));
+            Marine: MarineParams.SeaLevelHeight | MarineParams.WaveHeight,
+            Forecast: ForecastParams.WindSpeed,
+            Ensemble: EnsembleParams.TemperatureSpread,
+            OptionalMarine: MarineParams.WaveDirection,
+            OptionalForecast: ForecastParams.WindDirection));
 
     public override bool Enabled => config.Value.Enabled;
 

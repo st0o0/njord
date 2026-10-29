@@ -120,9 +120,9 @@ public sealed class FloodAlertsTests
     }
 
     [Fact]
-    public void Flood_risk_needs_weather_alongside_flood_data()
+    public void Flood_risk_fires_with_only_flood_data()
     {
-        Assert.Null(Run(Risk(), Now, new LocationForecast(Lucerne, Flood: FloodForecast(Point(0, 160)))));
+        Assert.NotNull(Run(Risk(), Now, new LocationForecast(Lucerne, Flood: FloodForecast(Point(0, 160, median: 100, p75: 150)))));
     }
 
     [Fact]

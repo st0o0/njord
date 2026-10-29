@@ -13,8 +13,9 @@ public sealed class InversionDetectionCondition(IOptions<InversionDetectionConfi
         FeatureCategory.Insight,
         Name: "InversionDetection",
         DefaultEnabled: false,
-        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.Temperature80m | ForecastParams.Temperature120m
-            | ForecastParams.BoundaryLayerHeight | ForecastParams.Visibility | ForecastParams.CloudCover | ForecastParams.WindSpeed));
+        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.Temperature80m
+            | ForecastParams.BoundaryLayerHeight | ForecastParams.CloudCover | ForecastParams.WindSpeed,
+            OptionalForecast: ForecastParams.Temperature120m | ForecastParams.Visibility));
 
     public override bool Enabled => config.Value.Enabled;
 

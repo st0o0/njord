@@ -13,7 +13,7 @@ public sealed class HeatPumpCopCondition(IOptions<HeatPumpCopConfig> config) : F
         FeatureCategory.Energy,
         Name: "HeatPumpCop",
         DefaultEnabled: false,
-        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.Humidity));
+        new DomainRequirements(Forecast: ForecastParams.Temperature));
 
     public override bool Enabled => config.Value.Enabled;
 

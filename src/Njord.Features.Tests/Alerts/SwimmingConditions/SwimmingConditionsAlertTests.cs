@@ -68,9 +68,9 @@ public sealed class SwimmingConditionsAlertTests
     }
 
     [Fact]
-    public void Marine_data_without_weather_raises_nothing()
+    public void Marine_data_without_weather_fires_on_waves()
     {
-        Assert.Null(Run(Feature(), Now, new LocationForecast(Lucerne, Marine: M.MarineForecast(M.Point(0, 2.6)))));
+        Assert.NotNull(Run(Feature(), Now, new LocationForecast(Lucerne, Marine: M.MarineForecast(M.Point(0, 2.6)))));
     }
 
     [Fact]

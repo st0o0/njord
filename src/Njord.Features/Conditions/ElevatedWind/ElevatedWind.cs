@@ -12,7 +12,8 @@ public sealed class ElevatedWind(IOptions<ElevatedWindConfig> config) : FeatureR
         FeatureCategory.Energy,
         Name: "ElevatedWind",
         DefaultEnabled: false,
-        new DomainRequirements(Forecast: ForecastParams.WindSpeed80m | ForecastParams.WindDirection80m | ForecastParams.WindSpeed120m | ForecastParams.WindDirection120m));
+        new DomainRequirements(Forecast: ForecastParams.WindSpeed80m | ForecastParams.WindDirection80m,
+            OptionalForecast: ForecastParams.WindSpeed120m | ForecastParams.WindDirection120m));
 
     public override bool Enabled => config.Value.Enabled;
 
