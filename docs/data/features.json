@@ -1,6 +1,6 @@
 [
   {
-    "key": "Forecast:Frost",
+    "key": "Frost",
     "name": "Frost",
     "category": "Forecast",
     "output": "Alert",
@@ -15,7 +15,7 @@
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [0, -5, -15] }]
   },
   {
-    "key": "Forecast:Heat",
+    "key": "Heat",
     "name": "Heat",
     "category": "Forecast",
     "output": "Alert",
@@ -30,7 +30,7 @@
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [30, 35, 40] }]
   },
   {
-    "key": "Forecast:Storm",
+    "key": "Storm",
     "name": "Storm",
     "category": "Forecast",
     "output": "Alert",
@@ -45,7 +45,7 @@
     "options": [{ "name": "GustThresholds", "type": "numberArray", "default": [17, 25, 33] }]
   },
   {
-    "key": "Forecast:HeavyRain",
+    "key": "HeavyRain",
     "name": "HeavyRain",
     "category": "Forecast",
     "output": "Alert",
@@ -60,7 +60,7 @@
     "options": [{ "name": "HourlyThreshold", "type": "number", "default": 10 }, { "name": "DailyThreshold", "type": "number", "default": 25 }]
   },
   {
-    "key": "Forecast:Uv",
+    "key": "Uv",
     "name": "Uv",
     "category": "Forecast",
     "output": "Alert",
@@ -73,7 +73,7 @@
     "weatherParams": ["UvIndex"]
   },
   {
-    "key": "Forecast:Fog",
+    "key": "Fog",
     "name": "Fog",
     "category": "Forecast",
     "output": "Alert",
@@ -87,7 +87,7 @@
     "options": [{ "name": "PersistentHours", "type": "number", "default": 4 }]
   },
   {
-    "key": "Forecast:Snow",
+    "key": "Snow",
     "name": "Snow",
     "category": "Forecast",
     "output": "Alert",
@@ -102,7 +102,7 @@
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [1, 5, 15] }]
   },
   {
-    "key": "Forecast:PressureDrop",
+    "key": "PressureDrop",
     "name": "PressureDrop",
     "category": "Forecast",
     "output": "Alert",
@@ -116,7 +116,7 @@
     "options": [{ "name": "Threshold", "type": "number", "default": 5 }, { "name": "SevereThreshold", "type": "number", "default": 10 }]
   },
   {
-    "key": "Forecast:Thunderstorm",
+    "key": "Thunderstorm",
     "name": "Thunderstorm",
     "category": "Forecast",
     "output": "Alert",
@@ -132,7 +132,7 @@
     "options": [{ "name": "CapeThresholds", "type": "numberArray", "default": [1000, 1500, 2500] }, { "name": "PrecipThreshold", "type": "number", "default": 5 }, { "name": "GustThreshold", "type": "number", "default": 20 }, { "name": "CinThreshold", "type": "number", "default": 200 }]
   },
   {
-    "key": "Forecast:Ice",
+    "key": "Ice",
     "name": "Ice",
     "category": "Forecast",
     "output": "Alert",
@@ -148,7 +148,7 @@
     "options": [{ "name": "Threshold", "type": "number", "default": 2 }]
   },
   {
-    "key": "Forecast:WindChill",
+    "key": "WindChill",
     "name": "WindChill",
     "category": "Forecast",
     "output": "Alert",
@@ -163,7 +163,7 @@
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [-10, -20, -30] }]
   },
   {
-    "key": "Forecast:Visibility",
+    "key": "Visibility",
     "name": "Visibility",
     "category": "Forecast",
     "output": "Alert",
@@ -177,7 +177,7 @@
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [1000, 200, 50] }]
   },
   {
-    "key": "Forecast:TropicalNight",
+    "key": "TropicalNight",
     "name": "TropicalNight",
     "category": "Forecast",
     "output": "Alert",
@@ -192,7 +192,7 @@
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [20, 23, 25] }]
   },
   {
-    "key": "Forecast:Humidity",
+    "key": "Humidity",
     "name": "Humidity",
     "category": "Forecast",
     "output": "Alert",
@@ -206,7 +206,7 @@
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [16, 21, 24] }]
   },
   {
-    "key": "Forecast:RainProbability",
+    "key": "RainProbability",
     "name": "RainProbability",
     "category": "Forecast",
     "output": "Alert",
@@ -221,7 +221,7 @@
     "options": [{ "name": "WindowHours", "type": "number", "default": 6 }, { "name": "Thresholds", "type": "numberArray", "default": [50, 70, 90] }]
   },
   {
-    "key": "Forecast:WetBulbDanger",
+    "key": "WetBulbDanger",
     "name": "WetBulbDanger",
     "category": "Forecast",
     "output": "Alert",
@@ -236,7 +236,7 @@
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [26, 28, 32] }]
   },
   {
-    "key": "Forecast:CompoundHeatStress",
+    "key": "CompoundHeatStress",
     "name": "CompoundHeatStress",
     "category": "Forecast",
     "output": "Alert",
@@ -251,7 +251,7 @@
     "options": [{ "name": "WetBulbWarning", "type": "number", "default": 28 }, { "name": "WetBulbSevere", "type": "number", "default": 32 }, { "name": "WetBulbExtreme", "type": "number", "default": 35 }, { "name": "ApparentTempThreshold", "type": "number", "default": 40 }, { "name": "Pm25Threshold", "type": "number", "default": 25 }, { "name": "BoundaryLayerLow", "type": "number", "default": 500 }]
   },
   {
-    "key": "Forecast:MigraineRisk",
+    "key": "MigraineRisk",
     "name": "MigraineRisk",
     "category": "Forecast",
     "output": "Alert",
@@ -265,7 +265,7 @@
     "options": [{ "name": "PressureThreshold6h", "type": "number", "default": 5 }, { "name": "PressureThreshold24h", "type": "number", "default": 10 }, { "name": "TempSwingThreshold", "type": "number", "default": 8 }, { "name": "HumiditySwingThreshold", "type": "number", "default": 30 }]
   },
   {
-    "key": "Forecast:Shower",
+    "key": "Shower",
     "name": "Shower",
     "category": "Forecast",
     "output": "Alert",
@@ -280,7 +280,7 @@
     "options": [{ "name": "WindowHours", "type": "number", "default": 6 }, { "name": "Thresholds", "type": "numberArray", "default": [3, 5, 10] }]
   },
   {
-    "key": "Forecast:SnowDepthWatch",
+    "key": "SnowDepthWatch",
     "name": "SnowDepthWatch",
     "category": "Forecast",
     "output": "Condition",
@@ -294,7 +294,7 @@
     "options": [{ "name": "LightThreshold", "type": "number", "default": 2 }, { "name": "ModerateThreshold", "type": "number", "default": 10 }, { "name": "HeavyThreshold", "type": "number", "default": 25 }, { "name": "ExtremeThreshold", "type": "number", "default": 50 }]
   },
   {
-    "key": "AirQuality:Pollen",
+    "key": "Pollen",
     "name": "Pollen",
     "category": "AirQuality",
     "output": "Alert",
@@ -307,7 +307,7 @@
     "airQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
   },
   {
-    "key": "AirQuality:Pm25",
+    "key": "Pm25",
     "name": "Pm25",
     "category": "AirQuality",
     "output": "Alert",
@@ -320,7 +320,7 @@
     "airQualityParams": ["Pm25"]
   },
   {
-    "key": "AirQuality:Dust",
+    "key": "Dust",
     "name": "Dust",
     "category": "AirQuality",
     "output": "Alert",
@@ -334,7 +334,7 @@
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [50, 150, 500] }]
   },
   {
-    "key": "AirQuality:PollenTrend",
+    "key": "PollenTrend",
     "name": "PollenTrend",
     "category": "AirQuality",
     "output": "Condition",
@@ -347,7 +347,7 @@
     "airQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
   },
   {
-    "key": "AirQuality:SmogRisk",
+    "key": "SmogRisk",
     "name": "SmogRisk",
     "category": "AirQuality",
     "output": "Alert",
@@ -362,7 +362,7 @@
     "options": [{ "name": "BoundaryLayerThresholdM", "type": "number", "default": 500 }, { "name": "Pm25ThresholdUgm3", "type": "number", "default": 25.0 }]
   },
   {
-    "key": "AirQuality:AllergySeverity",
+    "key": "AllergySeverity",
     "name": "AllergySeverity",
     "category": "AirQuality",
     "output": "Score",
@@ -376,7 +376,7 @@
     "airQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
   },
   {
-    "key": "AirQuality:AsthmaRisk",
+    "key": "AsthmaRisk",
     "name": "AsthmaRisk",
     "category": "AirQuality",
     "output": "Score",
@@ -391,7 +391,7 @@
     "options": [{ "name": "Pm25Weight", "type": "number", "default": 35 }, { "name": "OzoneWeight", "type": "number", "default": 25 }, { "name": "PollenWeight", "type": "number", "default": 20 }, { "name": "HumidityWeight", "type": "number", "default": 10 }, { "name": "BoundaryLayerWeight", "type": "number", "default": 10 }, { "name": "MinWindowScore", "type": "number", "default": 50 }, { "name": "MinWindowHours", "type": "number", "default": 2 }, { "name": "MaxWindows", "type": "number", "default": 3 }]
   },
   {
-    "key": "Lifestyle:SleepQuality",
+    "key": "SleepQuality",
     "name": "SleepQuality",
     "category": "Lifestyle",
     "output": "Score",
@@ -407,7 +407,7 @@
     "options": [{ "name": "NightStartHour", "type": "number", "default": 22 }, { "name": "NightEndHour", "type": "number", "default": 6 }, { "name": "MinWindowScore", "type": "number", "default": 50 }, { "name": "MinWindowHours", "type": "number", "default": 2 }, { "name": "MaxWindows", "type": "number", "default": 3 }]
   },
   {
-    "key": "AirQuality:RagweedPollen",
+    "key": "RagweedPollen",
     "name": "RagweedPollen",
     "category": "AirQuality",
     "output": "Condition",
@@ -421,7 +421,7 @@
     "options": []
   },
   {
-    "key": "AirQuality:GranularAqi",
+    "key": "GranularAqi",
     "name": "GranularAqi",
     "category": "AirQuality",
     "output": "Condition",
@@ -435,7 +435,7 @@
     "options": []
   },
   {
-    "key": "AirQuality:PollenBlast",
+    "key": "PollenBlast",
     "name": "PollenBlast",
     "category": "AirQuality",
     "output": "Alert",
@@ -450,7 +450,7 @@
     "options": [{ "name": "TemperatureThreshold", "type": "number", "default": 15.0 }, { "name": "WindSpeedThreshold", "type": "number", "default": 1.4 }, { "name": "PollenDelta", "type": "number", "default": 10.0 }]
   },
   {
-    "key": "Lifestyle:Commute",
+    "key": "Commute",
     "name": "Commute",
     "category": "Lifestyle",
     "output": "Condition",
@@ -463,7 +463,7 @@
     "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "Humidity", "DewPoint"]
   },
   {
-    "key": "Lifestyle:Exercise",
+    "key": "Exercise",
     "name": "Exercise",
     "category": "Lifestyle",
     "output": "Condition",
@@ -478,7 +478,7 @@
     "airQualityParams": ["Pm25", "Ozone"]
   },
   {
-    "key": "Lifestyle:Laundry",
+    "key": "Laundry",
     "name": "Laundry",
     "category": "Lifestyle",
     "output": "Score",
@@ -492,7 +492,7 @@
     "optionalWeatherParams": ["SunshineDuration", "IsDay"]
   },
   {
-    "key": "Lifestyle:IrrigationNeed",
+    "key": "IrrigationNeed",
     "name": "IrrigationNeed",
     "category": "Lifestyle",
     "output": "Condition",
@@ -506,7 +506,7 @@
     "options": [{ "name": "WetThresholdPercent", "type": "number", "default": 60 }, { "name": "DryThresholdPercent", "type": "number", "default": 25 }]
   },
   {
-    "key": "Lifestyle:FrostDepth",
+    "key": "FrostDepth",
     "name": "FrostDepth",
     "category": "Lifestyle",
     "output": "Condition",
@@ -520,7 +520,7 @@
     "options": [{ "name": "PipeDepthCm", "type": "number", "default": 60 }]
   },
   {
-    "key": "Lifestyle:SprayWindow",
+    "key": "SprayWindow",
     "name": "SprayWindow",
     "category": "Lifestyle",
     "output": "Score",
@@ -534,7 +534,7 @@
     "options": [{ "name": "MaxWindSpeed", "type": "number", "default": 3 }, { "name": "RainFreeHours", "type": "number", "default": 4 }, { "name": "MinTemp", "type": "number", "default": 10 }, { "name": "MaxTemp", "type": "number", "default": 25 }, { "name": "MinWindowScore", "type": "number", "default": 80 }, { "name": "MinWindowHours", "type": "number", "default": 2 }, { "name": "MaxWindows", "type": "number", "default": 3 }]
   },
   {
-    "key": "Lifestyle:Outdoor",
+    "key": "Outdoor",
     "name": "Outdoor",
     "category": "Lifestyle",
     "output": "Score",
@@ -550,7 +550,7 @@
     "optionalAirQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
   },
   {
-    "key": "Lifestyle:Bbq",
+    "key": "Bbq",
     "name": "Bbq",
     "category": "Lifestyle",
     "output": "Score",
@@ -564,7 +564,7 @@
     "optionalWeatherParams": ["IsDay"]
   },
   {
-    "key": "Lifestyle:NightVentilation",
+    "key": "NightVentilation",
     "name": "NightVentilation",
     "category": "Lifestyle",
     "output": "Condition",
@@ -577,7 +577,7 @@
     "weatherParams": ["Temperature"]
   },
   {
-    "key": "Lifestyle:Ventilation",
+    "key": "Ventilation",
     "name": "Ventilation",
     "category": "Lifestyle",
     "output": "Condition",
@@ -592,7 +592,7 @@
     "optionalAirQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
   },
   {
-    "key": "Lifestyle:Gardening",
+    "key": "Gardening",
     "name": "Gardening",
     "category": "Lifestyle",
     "output": "Condition",
@@ -605,7 +605,7 @@
     "weatherParams": ["Temperature", "WindSpeed", "Precipitation"]
   },
   {
-    "key": "Lifestyle:SoilMoisture",
+    "key": "SoilMoisture",
     "name": "SoilMoisture",
     "category": "Lifestyle",
     "output": "Condition",
@@ -619,7 +619,7 @@
     "options": [{ "name": "DryThreshold", "type": "number", "default": 0.15 }, { "name": "WetThreshold", "type": "number", "default": 0.35 }]
   },
   {
-    "key": "Lifestyle:Evapotranspiration",
+    "key": "Evapotranspiration",
     "name": "Evapotranspiration",
     "category": "Lifestyle",
     "output": "Condition",
@@ -633,7 +633,7 @@
     "options": [{ "name": "LowMm", "type": "number", "default": 2.0 }, { "name": "HighMm", "type": "number", "default": 5.0 }]
   },
   {
-    "key": "Lifestyle:ClearSkyUv",
+    "key": "ClearSkyUv",
     "name": "ClearSkyUv",
     "category": "Lifestyle",
     "output": "Alert",
@@ -647,7 +647,7 @@
     "options": [{ "name": "Thresholds", "type": "numberArray", "default": [6, 8, 10] }]
   },
   {
-    "key": "Lifestyle:FireRisk",
+    "key": "FireRisk",
     "name": "FireRisk",
     "category": "Lifestyle",
     "output": "Alert",
@@ -663,7 +663,7 @@
     "options": [{ "name": "TemperatureThreshold", "type": "number", "default": 30.0 }, { "name": "HumidityThreshold", "type": "number", "default": 30.0 }, { "name": "WindSpeedThreshold", "type": "number", "default": 5.6 }, { "name": "SoilMoistureThreshold", "type": "number", "default": 0.10 }, { "name": "RedThreshold", "type": "number", "default": 0.7 }, { "name": "OrangeThreshold", "type": "number", "default": 0.4 }, { "name": "YellowThreshold", "type": "number", "default": 0.2 }]
   },
   {
-    "key": "Lifestyle:GrowingDegree",
+    "key": "GrowingDegree",
     "name": "GrowingDegree",
     "category": "Lifestyle",
     "output": "Forecast",
@@ -677,7 +677,7 @@
     "options": [{ "name": "BaseTemperature", "type": "number", "default": 5.0 }]
   },
   {
-    "key": "Insight:ConfidenceTrend",
+    "key": "ConfidenceTrend",
     "name": "ConfidenceTrend",
     "category": "Insight",
     "output": "Trend",
@@ -690,7 +690,7 @@
     "ensembleParams": ["TemperatureSpread"]
   },
   {
-    "key": "Insight:FrontApproaching",
+    "key": "FrontApproaching",
     "name": "FrontApproaching",
     "category": "Insight",
     "output": "Condition",
@@ -703,7 +703,7 @@
     "weatherParams": ["Temperature", "Pressure", "WindDirection"]
   },
   {
-    "key": "Insight:InversionDetection",
+    "key": "InversionDetection",
     "name": "InversionDetection",
     "category": "Insight",
     "output": "Condition",
@@ -717,7 +717,7 @@
     "optionalWeatherParams": ["Temperature120m", "Visibility"]
   },
   {
-    "key": "Insight:AtmosphericStability",
+    "key": "AtmosphericStability",
     "name": "AtmosphericStability",
     "category": "Insight",
     "output": "Condition",
@@ -730,7 +730,7 @@
     "weatherParams": ["Cape", "ConvectiveInhibition", "LiftedIndex"]
   },
   {
-    "key": "Insight:CloudCeiling",
+    "key": "CloudCeiling",
     "name": "CloudCeiling",
     "category": "Insight",
     "output": "Condition",
@@ -743,7 +743,7 @@
     "weatherParams": ["CloudCoverLow", "CloudCoverMid", "CloudCoverHigh", "FreezingLevelHeight", "BoundaryLayerHeight"]
   },
   {
-    "key": "Insight:SeasonalOutlook",
+    "key": "SeasonalOutlook",
     "name": "SeasonalOutlook",
     "category": "Insight",
     "output": "Forecast",
@@ -755,7 +755,7 @@
     "domains": ["Seasonal"]
   },
   {
-    "key": "Forecast:ModelComparison",
+    "key": "ModelComparison",
     "name": "ModelComparison",
     "category": "Forecast",
     "output": "Forecast",
@@ -769,7 +769,7 @@
     "ensembleParams": ["Models"]
   },
   {
-    "key": "Energy:SolarYield",
+    "key": "SolarYield",
     "name": "SolarYield",
     "category": "Energy",
     "output": "Condition",
@@ -783,7 +783,7 @@
     "options": []
   },
   {
-    "key": "Energy:SatelliteRadiation",
+    "key": "SatelliteRadiation",
     "name": "SatelliteRadiation",
     "category": "Energy",
     "output": "Condition",
@@ -795,7 +795,7 @@
     "domains": ["Satellite"]
   },
   {
-    "key": "Energy:HeatPumpCop",
+    "key": "HeatPumpCop",
     "name": "HeatPumpCop",
     "category": "Energy",
     "output": "Condition",
@@ -809,7 +809,7 @@
     "options": [{ "name": "TargetTemperature", "type": "number", "default": 35 }, { "name": "ForecastHours", "type": "number", "default": 24 }]
   },
   {
-    "key": "Energy:SolarBatteryStrategy",
+    "key": "SolarBatteryStrategy",
     "name": "SolarBatteryStrategy",
     "category": "Energy",
     "output": "Condition",
@@ -823,7 +823,7 @@
     "options": []
   },
   {
-    "key": "Energy:ElevatedWind",
+    "key": "ElevatedWind",
     "name": "ElevatedWind",
     "category": "Energy",
     "output": "Condition",
@@ -838,7 +838,7 @@
     "options": []
   },
   {
-    "key": "Flood:FloodRisk",
+    "key": "FloodRisk",
     "name": "FloodRisk",
     "category": "Flood",
     "output": "Alert",
@@ -850,7 +850,7 @@
     "domains": ["Flood"]
   },
   {
-    "key": "Flood:FloodRain",
+    "key": "FloodRain",
     "name": "FloodRain",
     "category": "Flood",
     "output": "Alert",
@@ -863,7 +863,7 @@
     "weatherParams": ["Precipitation"]
   },
   {
-    "key": "Flood:FloodTimeline",
+    "key": "FloodTimeline",
     "name": "FloodTimeline",
     "category": "Flood",
     "output": "Condition",
@@ -875,7 +875,7 @@
     "domains": ["Flood"]
   },
   {
-    "key": "Marine:Swimming",
+    "key": "Swimming",
     "name": "Swimming",
     "category": "Marine",
     "output": "Alert",
@@ -889,7 +889,7 @@
     "optionalMarineParams": ["WaterTemperature"]
   },
   {
-    "key": "Marine:Surf",
+    "key": "Surf",
     "name": "Surf",
     "category": "Marine",
     "output": "Condition",
@@ -904,7 +904,7 @@
     "optionalMarineParams": ["SwellWaveDirection", "WindWaveHeight"]
   },
   {
-    "key": "Marine:OceanCurrents",
+    "key": "OceanCurrents",
     "name": "OceanCurrents",
     "category": "Marine",
     "output": "Condition",
@@ -918,7 +918,7 @@
     "options": [{ "name": "StrongCurrentThresholdKmh", "type": "number", "default": 3.0 }]
   },
   {
-    "key": "Marine:CoastalFlood",
+    "key": "CoastalFlood",
     "name": "CoastalFlood",
     "category": "Marine",
     "output": "Alert",

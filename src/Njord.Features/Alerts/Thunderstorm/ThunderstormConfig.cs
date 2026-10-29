@@ -2,7 +2,7 @@ using Njord.Core.Configuration;
 
 namespace Njord.Features.Alerts.Thunderstorm;
 
-public sealed class ThunderstormConfig : IConfigSection
+public sealed class ThunderstormConfig : IConfigSection, IHasArrayDefaults
 {
     private const string SectionName = "Njord:Features:Thunderstorm";
     static string IConfigSection.SectionName => SectionName;
@@ -12,4 +12,9 @@ public sealed class ThunderstormConfig : IConfigSection
     public double PrecipThreshold { get; set; } = 5.0;
     public double GustThreshold { get; set; } = 20.0;
     public double CinThreshold { get; set; } = 200.0;
+
+    public void ApplyDefaults()
+    {
+        if (CapeThresholds is { Length: 0 }) CapeThresholds = DefaultCapeThresholds;
+    }
 }

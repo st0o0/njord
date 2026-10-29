@@ -50,7 +50,7 @@ export const USER_GROUPS: { key: string; label: string; icon: string; categories
   { key: 'insights', label: 'Insights & Forecasts', icon: '📊', categories: ['Insight', 'Forecast'], outputs: ['Forecast', 'Trend', 'Condition'] },
 ]
 
-// A per-feature setting below Njord:Features:<Category>:<Name>; null/absent in the config means the built-in default.
+// A per-feature setting below Njord:Features:<Name>; null/absent in the config means the built-in default.
 export interface FeatureOption {
   name: string
   type: 'number' | 'numberArray'
@@ -61,11 +61,11 @@ export type OptionValue = number | number[]
 
 // docs/data/features.json mirrors the registered FeatureRules (descriptor requirements plus the options of each
 // feature config class) and is maintained by hand together with them (see the njord-enrichment-feature skill).
-// Config keys are Njord:Features:<category>:<name>:Enabled and Njord:Features:<category>:<name>:<option>.
+// Config keys are Njord:Features:<name>:Enabled and Njord:Features:<name>:<option>.
 export const FEATURES: FeatureEntry[] = featureData as FeatureEntry[]
 
 export function featureLabel(key: string): string {
-  return key.slice(key.indexOf(':') + 1).replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace('Pm25', 'PM2.5')
+  return key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace('Pm25', 'PM2.5')
 }
 
 export function defaultFeatures(): Record<string, boolean> {
@@ -87,12 +87,12 @@ export function userFeatureGroups(): FeatureGroup[] {
 
 export function recommendedFeatures(): Record<string, boolean> {
   const recommended = new Set([
-    'Forecast:Frost', 'Forecast:Heat', 'Forecast:Storm', 'Forecast:HeavyRain',
-    'Forecast:Uv', 'Forecast:Fog', 'Forecast:Snow', 'Forecast:PressureDrop',
-    'Forecast:Thunderstorm', 'Forecast:Ice', 'Forecast:WindChill', 'Forecast:Visibility',
-    'Forecast:TropicalNight', 'Forecast:Humidity', 'Forecast:RainProbability',
-    'AirQuality:Pollen', 'AirQuality:Pm25',
-    'Lifestyle:Commute',
+    'Frost', 'Heat', 'Storm', 'HeavyRain',
+    'Uv', 'Fog', 'Snow', 'PressureDrop',
+    'Thunderstorm', 'Ice', 'WindChill', 'Visibility',
+    'TropicalNight', 'Humidity', 'RainProbability',
+    'Pollen', 'Pm25',
+    'Commute',
   ])
   return Object.fromEntries(FEATURES.map(f => [f.key, recommended.has(f.key)]))
 }
@@ -146,7 +146,7 @@ export interface NjordConfig {
   discoveryInterval: string
   features: Record<string, boolean>
   locations: LocationConfig[]
-  // Only values that differ from the feature default: featureOptions['Forecast:Frost'].Thresholds = [0, -5, -15]
+  // Only values that differ from the feature default: featureOptions['Frost'].Thresholds = [0, -5, -15]
   featureOptions: Record<string, Record<string, OptionValue>>
   budgetOverride: { requestsPerMonth: number; requestsPerMinute: number } | null
   persistence: { provider: string; connectionString: string }

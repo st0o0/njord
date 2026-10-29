@@ -101,14 +101,12 @@ export function exportAsJson(config: NjordConfig): string {
     if (config.solarYield.tilt !== defaults.solarYield.tilt) solar.Tilt = config.solarYield.tilt
     if (Object.keys(solar).length) n.SolarYield = solar
   }
-  const features: Record<string, Record<string, Record<string, unknown>>> = {}
+  const features: Record<string, Record<string, unknown>> = {}
   for (const [key, enabled] of changedFeatures(config.features)) {
-    const [category, name] = key.split(':')
-    ;((features[category] ??= {})[name] ??= {}).Enabled = enabled
+    ;(features[key] ??= {}).Enabled = enabled
   }
   for (const [key, option, value] of changedOptions(config)) {
-    const [category, name] = key.split(':')
-    ;((features[category] ??= {})[name] ??= {})[option] = value
+    ;(features[key] ??= {})[option] = value
   }
   if (Object.keys(features).length) n.Features = features
   if (config.locations.length) {
@@ -143,10 +141,10 @@ export function exportAsEnvVars(config: NjordConfig): string {
   if (config.flood.forecastDays !== defaults.flood.forecastDays) add('Njord__Flood__ForecastDays', String(config.flood.forecastDays))
   if (config.flood.includeEnsemble) add('Njord__Flood__IncludeEnsemble', 'true')
   for (const [key, enabled] of changedFeatures(config.features)) {
-    add(`Njord__Features__${key.replace(':', '__')}__Enabled`, String(enabled))
+    add(`Njord__Features__${key}__Enabled`, String(enabled))
   }
   for (const [key, option, value] of changedOptions(config)) {
-    const prefix = `Njord__Features__${key.replace(':', '__')}__${option}`
+    const prefix = `Njord__Features__${key}__${option}`
     if (Array.isArray(value)) value.forEach((v, i) => add(`${prefix}__${i}`, String(v)))
     else add(prefix, String(value))
   }
@@ -248,20 +246,17 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   }
   if (discoveryInterval) config.discoveryInterval = discoveryInterval
   if (n.Features && typeof n.Features === 'object') {
-    for (const [category, section] of Object.entries(n.Features as Record<string, unknown>)) {
-      if (!section || typeof section !== 'object') continue
-      for (const [name, settings] of Object.entries(section as Record<string, unknown>)) {
-        const key = parseFeatureKey(`${category}:${name}`)
-        if (!key || !settings || typeof settings !== 'object') continue
-        for (const [setting, value] of Object.entries(settings as Record<string, unknown>)) {
-          if (setting.toLowerCase() === 'enabled') {
-            config.features[key] = typeof value === 'boolean' ? value : parseBool(value)
-            continue
-          }
-          const option = optionName(key, setting)
-          const parsed = option ? parseOptionValue(key, option, value) : null
-          if (option && parsed !== null) (config.featureOptions[key] ??= {})[option] = parsed
+    for (const [name, settings] of Object.entries(n.Features as Record<string, unknown>)) {
+      const key = parseFeatureKey(name)
+      if (!key || !settings || typeof settings !== 'object') continue
+      for (const [setting, value] of Object.entries(settings as Record<string, unknown>)) {
+        if (setting.toLowerCase() === 'enabled') {
+          config.features[key] = typeof value === 'boolean' ? value : parseBool(value)
+          continue
         }
+        const option = optionName(key, setting)
+        const parsed = option ? parseOptionValue(key, option, value) : null
+        if (option && parsed !== null) (config.featureOptions[key] ??= {})[option] = parsed
       }
     }
   }
@@ -325,23 +320,23 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     else if (parts[0] === 'AirQuality' && parts[1] === 'Region') config.airQuality.region = value
     else if (parts[0] === 'Marine' && parts[1] === 'ForecastDays') config.marine.forecastDays = parseInt(value) || 8
     else if (parts[0] === 'Flood' && parts[1] === 'ForecastDays') config.flood.forecastDays = parseInt(value) || 92
-    else if (parts[0] === 'Features' && parts.length >= 4) {
-      const key = parseFeatureKey(`${parts[1]}:${parts[2]}`)
+    else if (parts[0] === 'Features' && parts.length >= 3) {
+      const key = parseFeatureKey(parts[1])
       if (!key) continue
-      if (parts[3].toLowerCase() === 'enabled') {
+      if (parts[2].toLowerCase() === 'enabled') {
         config.features[key] = parseBool(value)
         continue
       }
-      const option = optionName(key, parts[3])
+      const option = optionName(key, parts[2])
       if (!option) continue
       const num = Number(value)
       if (Number.isNaN(num)) continue
-      if (parts.length === 5 && /^\d+$/.test(parts[4])) {
+      if (parts.length === 4 && /^\d+$/.test(parts[3])) {
         const current = config.featureOptions[key]?.[option]
         const arr = Array.isArray(current) ? current : []
-        arr[Number(parts[4])] = num
+        arr[Number(parts[3])] = num
         ;(config.featureOptions[key] ??= {})[option] = arr
-      } else if (parts.length === 4) {
+      } else if (parts.length === 3) {
         ;(config.featureOptions[key] ??= {})[option] = num
       }
     }

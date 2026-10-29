@@ -42,7 +42,7 @@ dotnet build src/Njord.slnx
 
 ## 4. Implement IHasArrayDefaults on feature configs
 
-- [ ] 4.1 Add `IHasArrayDefaults` implementation to all ~14 feature configs that currently use PostConfigure for array defaults: `DustConfig`, `FrostConfig`, `HeatConfig`, `HumidityConfig`, `RainProbabilityConfig`, `ShowerConfig`, `SnowConfig`, `StormConfig`, `ThunderstormConfig`, `TropicalNightConfig`, `VisibilityConfig`, `WetBulbDangerConfig`, `WindChillConfig`, `ClearSkyUvConfig`
+- [x] 4.1 Add `IHasArrayDefaults` implementation to all ~14 feature configs that currently use PostConfigure for array defaults: `DustConfig`, `FrostConfig`, `HeatConfig`, `HumidityConfig`, `RainProbabilityConfig`, `ShowerConfig`, `SnowConfig`, `StormConfig`, `ThunderstormConfig`, `TropicalNightConfig`, `VisibilityConfig`, `WetBulbDangerConfig`, `WindChillConfig`, `ClearSkyUvConfig`
 
 ### Validation
 ```
@@ -51,9 +51,9 @@ dotnet build src/Njord.slnx
 
 ## 5. Rewrite AddFeatures registration
 
-- [ ] 5.1 Replace all PostConfigure lambdas and multi-line registrations in `src/Njord.Features/ServiceCollectionExtensions.cs` with `AddFeature<TRule, TConfig>()` / `AddFeature<TRule, TConfig, TValidator>()` one-liners
-- [ ] 5.2 Remove the `PostConfigure<PollingOptions>` for `Budget` from `PollingSetupContainer` — keep this one, it is a derived value not an array default
-- [ ] 5.3 Verify `DomainSetupContainer` PostConfigure for `SolarYieldConfig` still works (it copies from `SolarYieldOptions`, not an array default)
+- [x] 5.1 Replace all PostConfigure lambdas and multi-line registrations in `src/Njord.Features/ServiceCollectionExtensions.cs` with `AddFeature<TRule, TConfig>()` / `AddFeature<TRule, TConfig, TValidator>()` one-liners
+- [x] 5.2 Remove the `PostConfigure<PollingOptions>` for `Budget` from `PollingSetupContainer` — keep this one, it is a derived value not an array default
+- [x] 5.3 Verify `DomainSetupContainer` PostConfigure for `SolarYieldConfig` still works (it copies from `SolarYieldOptions`, not an array default)
 - [ ] 5.4 Test feature registration: run `src/Njord.Features.Tests/` to verify all features resolve correctly
 
 ### Validation
@@ -64,10 +64,10 @@ dotnet run --project src/Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj
 
 ## 6. Update Config Builder
 
-- [ ] 6.1 Update `docs/data/features.json`: change all `key` values from `"Category:Name"` to `"Name"` (e.g. `"Forecast:Frost"` to `"Frost"`); keep `category` field unchanged
-- [ ] 6.2 Update `docs/.vitepress/theme/builder/types.ts`: adapt `featureLabel`, `defaultFeatures`, `recommendedFeatures`, `userFeatureGroups` and any other code that splits feature keys on `:`
-- [ ] 6.3 Update `docs/.vitepress/theme/builder/serializer.ts`: remove `split(':')` from JSON export/import; flatten env var export/import paths; fix `n.Weather` references to match (already correct)
-- [ ] 6.4 Update `docs/.vitepress/theme/builder/budget.ts` if it references feature keys with `:` separator
+- [x] 6.1 Update `docs/data/features.json`: change all `key` values from `"Category:Name"` to `"Name"` (e.g. `"Forecast:Frost"` to `"Frost"`); keep `category` field unchanged
+- [x] 6.2 Update `docs/.vitepress/theme/builder/types.ts`: adapt `featureLabel`, `defaultFeatures`, `recommendedFeatures`, `userFeatureGroups` and any other code that splits feature keys on `:`
+- [x] 6.3 Update `docs/.vitepress/theme/builder/serializer.ts`: remove `split(':')` from JSON export/import; flatten env var export/import paths; fix `n.Weather` references to match (already correct)
+- [x] 6.4 Update `docs/.vitepress/theme/builder/budget.ts` if it references feature keys with `:` separator
 - [ ] 6.5 Verify the Config Builder builds: `cd docs && npm run build`
 
 ### Validation

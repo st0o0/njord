@@ -2,7 +2,7 @@ using Njord.Core.Configuration;
 
 namespace Njord.Features.Alerts.RainProbability;
 
-public sealed class RainProbabilityConfig : IConfigSection
+public sealed class RainProbabilityConfig : IConfigSection, IHasArrayDefaults
 {
     private const string SectionName = "Njord:Features:RainProbability";
     static string IConfigSection.SectionName => SectionName;
@@ -10,4 +10,9 @@ public sealed class RainProbabilityConfig : IConfigSection
     public int WindowHours { get; set; } = 6;
     public double[] Thresholds { get; set; } = [];
     public static double[] DefaultThresholds => [50, 70, 90];
+
+    public void ApplyDefaults()
+    {
+        if (Thresholds is { Length: 0 }) Thresholds = DefaultThresholds;
+    }
 }
