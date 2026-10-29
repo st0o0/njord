@@ -12,10 +12,10 @@ namespace Njord.Tests.Shared;
 public static class TestRequirements
 {
     public static DomainRequirements All { get; } = new(
-        Enum.GetValues<ForecastParams>().Aggregate(ForecastParams.None, (a, b) => a | b),
-        Enum.GetValues<AirQualityParams>().Aggregate(AirQualityParams.None, (a, b) => a | b),
-        Enum.GetValues<FloodParams>().Aggregate(FloodParams.None, (a, b) => a | b),
-        Enum.GetValues<MarineParams>().Aggregate(MarineParams.None, (a, b) => a | b),
+        Forecast: Enum.GetValues<ForecastParams>().Aggregate(ForecastParams.None, (a, b) => a | b),
+        AirQuality: Enum.GetValues<AirQualityParams>().Aggregate(AirQualityParams.None, (a, b) => a | b),
+        Flood: Enum.GetValues<FloodParams>().Aggregate(FloodParams.None, (a, b) => a | b),
+        Marine: Enum.GetValues<MarineParams>().Aggregate(MarineParams.None, (a, b) => a | b),
         Seasonal: Enum.GetValues<SeasonalParams>().Aggregate(SeasonalParams.None, (a, b) => a | b),
         Satellite: Enum.GetValues<SatelliteParams>().Aggregate(SatelliteParams.None, (a, b) => a | b));
 

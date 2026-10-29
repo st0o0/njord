@@ -121,7 +121,7 @@ public sealed class DomainRequirementsTests
     public void Should_never_require_the_solar_domain()
     {
         var everything = new DomainRequirements(
-            ForecastParams.Temperature, AirQualityParams.Pm25, FloodParams.Discharge, MarineParams.WaveHeight);
+            Forecast: ForecastParams.Temperature, AirQuality: AirQualityParams.Pm25, Flood: FloodParams.Discharge, Marine: MarineParams.WaveHeight);
 
         Assert.False(everything.Requires(DomainKind.Seasonal));
     }

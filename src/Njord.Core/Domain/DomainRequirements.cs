@@ -9,19 +9,19 @@ namespace Njord.Core.Domain;
 
 public sealed record DomainRequirements(
     ForecastParams Forecast = default,
-    AirQualityParams AirQuality = default,
-    FloodParams Flood = default,
-    MarineParams Marine = default,
     ForecastParams OptionalForecast = default,
+    EnsembleParams Ensemble = default,
+    EnsembleParams OptionalEnsemble = default,
+    AirQualityParams AirQuality = default,
     AirQualityParams OptionalAirQuality = default,
+    FloodParams Flood = default,
     FloodParams OptionalFlood = default,
+    MarineParams Marine = default,
     MarineParams OptionalMarine = default,
     SeasonalParams Seasonal = default,
     SeasonalParams OptionalSeasonal = default,
     SatelliteParams Satellite = default,
-    SatelliteParams OptionalSatellite = default,
-    EnsembleParams Ensemble = default,
-    EnsembleParams OptionalEnsemble = default)
+    SatelliteParams OptionalSatellite = default)
 {
     public DomainRequirements WithBaseParams() => this with
     {
@@ -45,19 +45,19 @@ public sealed record DomainRequirements(
 
     public static DomainRequirements operator |(DomainRequirements a, DomainRequirements b) => new(
         a.Forecast | b.Forecast,
-        a.AirQuality | b.AirQuality,
-        a.Flood | b.Flood,
-        a.Marine | b.Marine,
         a.OptionalForecast | b.OptionalForecast,
+        a.Ensemble | b.Ensemble,
+        a.OptionalEnsemble | b.OptionalEnsemble,
+        a.AirQuality | b.AirQuality,
         a.OptionalAirQuality | b.OptionalAirQuality,
+        a.Flood | b.Flood,
         a.OptionalFlood | b.OptionalFlood,
+        a.Marine | b.Marine,
         a.OptionalMarine | b.OptionalMarine,
         a.Seasonal | b.Seasonal,
         a.OptionalSeasonal | b.OptionalSeasonal,
         a.Satellite | b.Satellite,
-        a.OptionalSatellite | b.OptionalSatellite,
-        a.Ensemble | b.Ensemble,
-        a.OptionalEnsemble | b.OptionalEnsemble);
+        a.OptionalSatellite | b.OptionalSatellite);
 
     public bool Requires(DomainKind domain) => domain switch
     {
