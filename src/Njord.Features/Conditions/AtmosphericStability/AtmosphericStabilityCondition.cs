@@ -14,7 +14,6 @@ public sealed class AtmosphericStabilityCondition(IOptions<AtmosphericStabilityC
         OutputKind.Condition,
         FeatureCategory.Insight,
         Name: "AtmosphericStability",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.Cape | ForecastParams.ConvectiveInhibition | ForecastParams.LiftedIndex));
 
     public override bool Enabled => config.Value.Enabled;

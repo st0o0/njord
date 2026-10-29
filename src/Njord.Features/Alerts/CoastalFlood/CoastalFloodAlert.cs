@@ -15,7 +15,6 @@ public sealed class CoastalFloodAlert(IOptions<CoastalFloodConfig> config) : Fea
         OutputKind.Alert,
         FeatureCategory.Marine,
         Name: "CoastalFlood",
-        DefaultEnabled: false,
         new DomainRequirements(
             Marine: MarineParams.SeaLevelHeight | MarineParams.WaveHeight,
             Forecast: ForecastParams.WindSpeed,

@@ -13,7 +13,6 @@ public sealed class GranularAqi(IOptions<GranularAqiConfig> config) : FeatureRul
         OutputKind.Condition,
         FeatureCategory.AirQuality,
         Name: "GranularAqi",
-        DefaultEnabled: false,
         new DomainRequirements(AirQuality: AirQualityParams.EuropeanAqiPm25 | AirQualityParams.EuropeanAqiPm10
             | AirQualityParams.EuropeanAqiNitrogenDioxide | AirQualityParams.EuropeanAqiOzone
             | AirQualityParams.EuropeanAqiSulphurDioxide));

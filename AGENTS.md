@@ -75,7 +75,7 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 - **Feature-driven config.** The operator sets locations and feature toggles; the rest is derived.
   Fetched domains = union of the `Requirements` of the enabled features (`DomainRequirements`, OR-ed at startup and registered as `IOptions<DomainRequirements>`).
 - **Every feature is a `FeatureRule<TInput>`** (an `IFeatureRule`) in `Njord.Features/<OutputKind>/<Feature>/`: a
-  `FeatureDescriptor` (`Output` (`OutputKind`), `Category`, `Name` (the config section name), `DefaultEnabled`, `Requirements`: a `DomainRequirements` of
+  `FeatureDescriptor` (`Output` (`OutputKind`), `Category`, `Name` (the config section name), `Requirements`: a `DomainRequirements` of
   per-domain `XxxParams` flags, `PollDepth`), `Enabled` from its own config, `Project(LocationForecast)` to a typed
   input (null skips the rule) and `Evaluate(FeatureContext<TInput>)` returning one result event or null. Required
   flags gate dispatch (missing data skips the rule), `Optional*` flags are requested from the API but never gate.

@@ -18,7 +18,6 @@ public sealed class AllergySeverityScore(IOptions<AllergySeverityConfig> config)
         OutputKind.Score,
         FeatureCategory.AirQuality,
         Name: "AllergySeverity",
-        DefaultEnabled: false,
         new DomainRequirements(
             Forecast: ForecastParams.WindSpeed | ForecastParams.Humidity | ForecastParams.Rain | ForecastParams.BoundaryLayerHeight,
             AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen | AirQualityParams.Alder | AirQualityParams.Mugwort));

@@ -15,7 +15,6 @@ public sealed class ConfidenceTrend(IOptions<ConfidenceTrendConfig> config) : Fe
         OutputKind.Trend,
         FeatureCategory.Insight,
         Name: "ConfidenceTrend",
-        DefaultEnabled: false,
         new DomainRequirements(Ensemble: EnsembleParams.TemperatureSpread),
         PollDepth: 1);
 

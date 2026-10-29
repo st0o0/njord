@@ -10,7 +10,7 @@ public sealed class DomainRequirementsResolutionTests
 {
     private sealed class StubRule(string name, bool enabled, DomainRequirements requirements) : IFeatureRule
     {
-        public FeatureDescriptor Descriptor { get; } = new(OutputKind.Condition, FeatureCategory.Forecast, name, enabled, requirements);
+        public FeatureDescriptor Descriptor { get; } = new(OutputKind.Condition, FeatureCategory.Forecast, name, requirements);
         public bool Enabled { get; } = enabled;
         public PipelineEvent? Execute(RingBuffer<LocationForecast> ring, DateTimeOffset now) => null;
     }

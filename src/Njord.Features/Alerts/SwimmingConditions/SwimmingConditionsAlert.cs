@@ -20,7 +20,6 @@ public sealed class SwimmingConditionsAlert(IOptions<SwimmingConditionsConfig> c
         OutputKind.Alert,
         FeatureCategory.Marine,
         Name: "Swimming",
-        DefaultEnabled: false,
         new DomainRequirements(Marine: MarineParams.WaveHeight,
             OptionalMarine: MarineParams.WaterTemperature));
 

@@ -14,7 +14,6 @@ public sealed class IceAlert(IOptions<IceConfig> config) : FeatureRule<ForecastE
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Ice",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.Precipitation,
             OptionalForecast: ForecastParams.Rain | ForecastParams.SoilTemperature | ForecastParams.WeatherCode,
             Ensemble: EnsembleParams.PrecipitationSpread));

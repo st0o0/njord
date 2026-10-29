@@ -13,7 +13,6 @@ public sealed class FloodTimeline(IOptions<FloodTimelineConfig> config) : Featur
         OutputKind.Condition,
         FeatureCategory.Flood,
         Name: "FloodTimeline",
-        DefaultEnabled: false,
         new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeP75));
 
     public override bool Enabled => config.Value.Enabled;

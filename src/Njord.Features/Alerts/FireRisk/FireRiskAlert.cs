@@ -18,7 +18,6 @@ public sealed class FireRiskAlert(IOptions<FireRiskConfig> config) : FeatureRule
         OutputKind.Alert,
         FeatureCategory.Lifestyle,
         Name: "FireRisk",
-        DefaultEnabled: false,
         new DomainRequirements(
             Forecast: ForecastParams.Temperature | ForecastParams.Humidity | ForecastParams.WindSpeed
                 | ForecastParams.SoilMoisture0To1cm | ForecastParams.Precipitation,

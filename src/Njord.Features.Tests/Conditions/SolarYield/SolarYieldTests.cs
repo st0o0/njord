@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core;
+using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Core.Solar;
@@ -17,7 +18,7 @@ public sealed class SolarYieldTests
     private const double PeakKw = 5.0;
 
     private static Features.Conditions.SolarYield.SolarYield Feature() =>
-        new(Options.Create(new SolarYieldConfig { Enabled = true, PeakKw = PeakKw, SystemEfficiency = Efficiency }));
+        new(Options.Create(new SolarYieldConfig { Enabled = true }), Options.Create(new SolarYieldOptions { PeakKw = PeakKw, SystemEfficiency = Efficiency }));
 
     private static LocationForecast Sunny() => ForecastOnly(Day((hour, point) => point with
     {

@@ -17,7 +17,6 @@ public sealed class IrrigationNeedCondition(IOptions<IrrigationNeedConfig> confi
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
         Name: "IrrigationNeed",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.Evapotranspiration | ForecastParams.SoilMoisture0To1cm
             | ForecastParams.VapourPressureDeficit | ForecastParams.Rain | ForecastParams.PrecipitationProbability
             | ForecastParams.Temperature));

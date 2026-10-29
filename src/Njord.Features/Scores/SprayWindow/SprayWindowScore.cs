@@ -20,7 +20,6 @@ public sealed class SprayWindowScore(IOptions<SprayWindowConfig> config) : Featu
         OutputKind.Score,
         FeatureCategory.Lifestyle,
         Name: "SprayWindow",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.WindSpeed | ForecastParams.Rain
             | ForecastParams.PrecipitationProbability | ForecastParams.Temperature | ForecastParams.Humidity));
 

@@ -22,7 +22,6 @@ public sealed class VentilationWindow(IOptions<VentilationWindowConfig> config) 
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
         Name: "Ventilation",
-        DefaultEnabled: false,
         new DomainRequirements(
         Forecast: ForecastParams.Temperature | ForecastParams.Precipitation,
         AirQuality: AirQualityParams.Pm25,

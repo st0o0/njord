@@ -30,12 +30,12 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
     {
         services.AddNjordOptions<ForecastOptions, ForecastOptionsValidator>();
         services.AddNjordOptions<EnsembleOptions, EnsembleOptionsValidator>();
-        services.AddNjordOptions<AirQualityOptions, OpenMeteoOptionsValidator>();
-        services.AddNjordOptions<MarineOptions, OpenMeteoOptionsValidator>();
-        services.AddNjordOptions<FloodOptions, OpenMeteoOptionsValidator>();
-        services.AddNjordOptions<SeasonalOptions, OpenMeteoOptionsValidator>();
-        services.AddNjordOptions<SatelliteOptions, OpenMeteoOptionsValidator>();
-        services.AddNjordOptions<SolarYieldOptions, OpenMeteoOptionsValidator>();
+        services.AddNjordOptions<AirQualityOptions, AirQualityOptionsValidator>();
+        services.AddNjordOptions<MarineOptions, MarineOptionsValidator>();
+        services.AddNjordOptions<FloodOptions, FloodOptionsValidator>();
+        services.AddNjordOptions<SeasonalOptions, SeasonalOptionsValidator>();
+        services.AddNjordOptions<SatelliteOptions, SatelliteOptionsValidator>();
+        services.AddNjordOptions<SolarYieldOptions, SolarYieldOptionsValidator>();
 
         services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
         services.TryAddSingleton(FetchTimeouts.Default);

@@ -17,7 +17,6 @@ public sealed class PressureDropAlert(IOptions<PressureDropConfig> config) : Fea
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "PressureDrop",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.Pressure));
 
     public override bool Enabled => config.Value.Enabled;

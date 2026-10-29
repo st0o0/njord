@@ -15,7 +15,6 @@ public sealed class CloudCeilingCondition(IOptions<CloudCeilingConfig> config) :
         OutputKind.Condition,
         FeatureCategory.Insight,
         Name: "CloudCeiling",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.CloudCoverLow | ForecastParams.CloudCoverMid | ForecastParams.CloudCoverHigh
             | ForecastParams.FreezingLevelHeight | ForecastParams.BoundaryLayerHeight));
 

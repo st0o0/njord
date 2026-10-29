@@ -15,7 +15,6 @@ public sealed class WindChillAlert(IOptions<WindChillConfig> config) : FeatureRu
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "WindChill",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.ApparentTemperature, Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;

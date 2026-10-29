@@ -15,7 +15,6 @@ public sealed class HeatAlert(IOptions<HeatConfig> config) : FeatureRule<Forecas
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Heat",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.ApparentTemperature, Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;

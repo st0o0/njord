@@ -18,7 +18,6 @@ public sealed class FloodRainAlert(IOptions<FloodRainConfig> config) : FeatureRu
         OutputKind.Alert,
         FeatureCategory.Flood,
         Name: "FloodRain",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.Precipitation,
             Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75));
 

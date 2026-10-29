@@ -15,7 +15,6 @@ public sealed class StormAlert(IOptions<StormConfig> config) : FeatureRule<Forec
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Storm",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.WindGusts, Ensemble: EnsembleParams.WindSpeedSpread));
 
     public override bool Enabled => config.Value.Enabled;

@@ -28,7 +28,7 @@ public sealed class FeatureEngineTests
         public List<Seen> Calls { get; } = [];
 
         public override FeatureDescriptor Descriptor { get; } =
-            new(OutputKind.Alert, FeatureCategory.Forecast, "Test", true, requirements, PollDepth: pollDepth);
+            new(OutputKind.Alert, FeatureCategory.Forecast, "Test", requirements, PollDepth: pollDepth);
 
         public override bool Enabled => enabled;
 
@@ -68,7 +68,7 @@ public sealed class FeatureEngineTests
     private sealed class SilentRule : FeatureRule<ForecastInput>
     {
         public override FeatureDescriptor Descriptor { get; } =
-            new(OutputKind.Alert, FeatureCategory.Forecast, "Silent", true, Temperature);
+            new(OutputKind.Alert, FeatureCategory.Forecast, "Silent", Temperature);
 
         public override bool Enabled => true;
 
@@ -270,7 +270,7 @@ public sealed class FeatureEngineTests
         public List<ForecastEnsembleInput> Calls { get; } = [];
 
         public override FeatureDescriptor Descriptor { get; } =
-            new(OutputKind.Alert, FeatureCategory.Forecast, "EnsembleProbe", true,
+            new(OutputKind.Alert, FeatureCategory.Forecast, "EnsembleProbe",
                 new DomainRequirements(Forecast: ForecastParams.Temperature, Ensemble: EnsembleParams.TemperatureSpread));
 
         public override bool Enabled => true;
@@ -327,7 +327,7 @@ public sealed class FeatureEngineTests
         public List<ModelComparisonInput> Calls { get; } = [];
 
         public override FeatureDescriptor Descriptor { get; } =
-            new(OutputKind.Forecast, FeatureCategory.Forecast, "Probe", true, new DomainRequirements(Forecast: ForecastParams.Temperature));
+            new(OutputKind.Forecast, FeatureCategory.Forecast, "Probe", new DomainRequirements(Forecast: ForecastParams.Temperature));
 
         public override bool Enabled => true;
 

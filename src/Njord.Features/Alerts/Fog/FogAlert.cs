@@ -14,7 +14,6 @@ public sealed class FogAlert(IOptions<FogConfig> config) : FeatureRule<ForecastI
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Fog",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.DewPoint | ForecastParams.WindSpeed | ForecastParams.Humidity));
 
     public override bool Enabled => config.Value.Enabled;

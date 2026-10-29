@@ -14,7 +14,6 @@ public sealed class SatelliteRadiation(IOptions<SatelliteRadiationConfig> config
         OutputKind.Condition,
         FeatureCategory.Energy,
         Name: "SatelliteRadiation",
-        DefaultEnabled: false,
         new DomainRequirements(
             Satellite: SatelliteParams.GlobalTilted,
             OptionalSatellite: SatelliteParams.GlobalHorizontal));

@@ -18,7 +18,6 @@ public sealed class NightVentilation(IOptions<NightVentilationConfig> config) : 
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
         Name: "NightVentilation",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.Temperature));
 
     public override bool Enabled => config.Value.Enabled;

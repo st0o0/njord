@@ -20,7 +20,6 @@ public sealed class MigraineRiskAlert(IOptions<MigraineRiskConfig> config) : Fea
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "MigraineRisk",
-        DefaultEnabled: false,
         new DomainRequirements(
             Forecast: ForecastParams.Pressure | ForecastParams.Temperature | ForecastParams.Humidity
                 | ForecastParams.DewPoint | ForecastParams.WindDirection),

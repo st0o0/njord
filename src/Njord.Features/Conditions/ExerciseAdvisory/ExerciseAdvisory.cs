@@ -24,7 +24,6 @@ public sealed class ExerciseAdvisory(IOptions<ExerciseAdvisoryConfig> config) : 
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
         Name: "Exercise",
-        DefaultEnabled: false,
         new DomainRequirements(
         Forecast: ForecastParams.Temperature | ForecastParams.Humidity,
         AirQuality: AirQualityParams.Pm25 | AirQualityParams.Ozone,

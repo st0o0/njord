@@ -15,7 +15,6 @@ public sealed class DustAlert(IOptions<DustConfig> config) : FeatureRule<AqInput
         OutputKind.Alert,
         FeatureCategory.AirQuality,
         Name: "Dust",
-        DefaultEnabled: false,
         new DomainRequirements(AirQuality: AirQualityParams.Dust));
 
     public override bool Enabled => config.Value.Enabled;

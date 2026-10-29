@@ -15,7 +15,6 @@ public sealed class ClearSkyUvAlert(IOptions<ClearSkyUvConfig> config) : Feature
         OutputKind.Alert,
         FeatureCategory.Lifestyle,
         Name: "ClearSkyUv",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.UvIndexClearSky | ForecastParams.IsDay));
 
     public override bool Enabled => config.Value.Enabled;

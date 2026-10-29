@@ -20,7 +20,6 @@ public sealed class Pm25Alert(IOptions<Pm25Config> config) : FeatureRule<AqInput
         OutputKind.Alert,
         FeatureCategory.AirQuality,
         Name: "Pm25",
-        DefaultEnabled: true,
         new DomainRequirements(AirQuality: AirQualityParams.Pm25));
 
     public override bool Enabled => config.Value.Enabled;

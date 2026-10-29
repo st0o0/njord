@@ -15,7 +15,6 @@ public sealed class FrostAlert(IOptions<FrostConfig> config) : FeatureRule<Forec
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Frost",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.Temperature, Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;

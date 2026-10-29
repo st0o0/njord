@@ -17,7 +17,6 @@ public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : 
         OutputKind.Condition,
         FeatureCategory.Insight,
         Name: "FrontApproaching",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.Pressure | ForecastParams.Temperature | ForecastParams.WindDirection),
         PollDepth: 1);
 

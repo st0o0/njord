@@ -16,7 +16,6 @@ public sealed class BbqScore(IOptions<BbqConfig> config) : FeatureRule<ForecastI
         OutputKind.Score,
         FeatureCategory.Lifestyle,
         Name: "Bbq",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.Precipitation | ForecastParams.Temperature | ForecastParams.WindSpeed
             | ForecastParams.PrecipitationProbability | ForecastParams.CloudCover,
             OptionalForecast: ForecastParams.IsDay));

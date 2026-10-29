@@ -24,7 +24,6 @@ public sealed class PollenTrend(IOptions<PollenTrendConfig> config) : FeatureRul
         OutputKind.Condition,
         FeatureCategory.AirQuality,
         Name: "PollenTrend",
-        DefaultEnabled: false,
         new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
         | AirQualityParams.Alder | AirQualityParams.Mugwort),
         PollDepth: 1);

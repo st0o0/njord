@@ -20,7 +20,6 @@ public sealed class PollenAlert(IOptions<PollenConfig> config) : FeatureRule<AqI
         OutputKind.Alert,
         FeatureCategory.AirQuality,
         Name: "Pollen",
-        DefaultEnabled: true,
         new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
             | AirQualityParams.Alder | AirQualityParams.Mugwort));
 

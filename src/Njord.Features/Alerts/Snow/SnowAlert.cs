@@ -15,7 +15,6 @@ public sealed class SnowAlert(IOptions<SnowConfig> config) : FeatureRule<Forecas
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Snow",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.Snowfall | ForecastParams.FreezingLevelHeight, Ensemble: EnsembleParams.PrecipitationSpread));
 
     public override bool Enabled => config.Value.Enabled;

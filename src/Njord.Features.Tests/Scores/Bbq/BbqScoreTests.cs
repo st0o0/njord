@@ -65,7 +65,6 @@ public sealed class BbqScoreTests
     {
         Assert.Multiple(
             () => Assert.False(Feature(false).Enabled),
-            () => Assert.True(Feature().Enabled),
-            () => Assert.False(Feature().Descriptor.DefaultEnabled));
+            () => Assert.True(Feature().Enabled));
     }
 }

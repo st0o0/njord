@@ -21,7 +21,6 @@ public sealed class SleepQualityScore(IOptions<SleepQualityConfig> config) : Fea
         OutputKind.Score,
         FeatureCategory.Lifestyle,
         Name: "SleepQuality",
-        DefaultEnabled: false,
         new DomainRequirements(
             Forecast: ForecastParams.Temperature | ForecastParams.Humidity
                 | ForecastParams.WindGusts | ForecastParams.Cape | ForecastParams.Precipitation,

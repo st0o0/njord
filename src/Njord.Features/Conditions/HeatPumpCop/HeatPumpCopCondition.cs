@@ -14,7 +14,6 @@ public sealed class HeatPumpCopCondition(IOptions<HeatPumpCopConfig> config) : F
         OutputKind.Condition,
         FeatureCategory.Energy,
         Name: "HeatPumpCop",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.Temperature));
 
     public override bool Enabled => config.Value.Enabled;

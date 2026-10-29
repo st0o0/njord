@@ -14,7 +14,6 @@ public sealed class SnowDepthWatch(IOptions<SnowDepthWatchConfig> config) : Feat
         OutputKind.Condition,
         FeatureCategory.Forecast,
         Name: "SnowDepthWatch",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.SnowDepth));
 
     public override bool Enabled => config.Value.Enabled;

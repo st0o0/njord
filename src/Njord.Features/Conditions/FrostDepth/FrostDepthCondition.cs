@@ -18,7 +18,6 @@ public sealed class FrostDepthCondition(IOptions<FrostDepthConfig> config) : Fea
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
         Name: "FrostDepth",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.SoilTemperature
             | ForecastParams.SnowDepth | ForecastParams.WindSpeed));
 

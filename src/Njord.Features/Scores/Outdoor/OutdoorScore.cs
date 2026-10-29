@@ -17,7 +17,6 @@ public sealed class OutdoorScore(IOptions<OutdoorConfig> config) : FeatureRule<F
         OutputKind.Score,
         FeatureCategory.Lifestyle,
         Name: "Outdoor",
-        DefaultEnabled: false,
         new DomainRequirements(
         Forecast: ForecastParams.Temperature | ForecastParams.Precipitation | ForecastParams.PrecipitationProbability
             | ForecastParams.WindSpeed | ForecastParams.CloudCover,

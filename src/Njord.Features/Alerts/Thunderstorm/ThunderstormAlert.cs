@@ -14,7 +14,6 @@ public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : Fea
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Thunderstorm",
-        DefaultEnabled: true,
         new DomainRequirements(
             Forecast: ForecastParams.Cape | ForecastParams.Precipitation | ForecastParams.WindGusts,
             OptionalForecast: ForecastParams.ConvectiveInhibition,

@@ -17,7 +17,6 @@ public sealed class Gardening(IOptions<GardeningConfig> config) : FeatureRule<Fo
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
         Name: "Gardening",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.WindSpeed | ForecastParams.Precipitation));
 
     public override bool Enabled => config.Value.Enabled;

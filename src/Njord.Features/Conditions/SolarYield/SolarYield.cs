@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Features.Conditions.Shared;
@@ -8,13 +9,12 @@ using Njord.Messages.Stream;
 
 namespace Njord.Features.Conditions.SolarYield;
 
-public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<ForecastSolarInput>
+public sealed class SolarYield(IOptions<SolarYieldConfig> config, IOptions<SolarYieldOptions> solar) : FeatureRule<ForecastSolarInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Energy,
         Name: "SolarYield",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.GlobalTiltedIrradiance));
 
     public override bool Enabled => config.Value.Enabled;
@@ -32,7 +32,7 @@ public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<
         }
 
         var kwhPerSquareMeter = hours.Sum(hour => hour.Radiation) / 1000.0;
-        var yield = kwhPerSquareMeter * config.Value.SystemEfficiency * config.Value.PeakKw;
+        var yield = kwhPerSquareMeter * solar.Value.SystemEfficiency * solar.Value.PeakKw;
         var peak = hours.MaxBy(hour => hour.Radiation);
         return new SolarYieldResult(ctx.Location, Math.Round(yield, 2), peak.ValidFrom.Hour);
     }

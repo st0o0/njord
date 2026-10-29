@@ -14,7 +14,6 @@ public sealed class GrowingDegree(IOptions<GrowingDegreeConfig> config) : Featur
         OutputKind.Forecast,
         FeatureCategory.Lifestyle,
         Name: "GrowingDegree",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.Temperature));
 
     public override bool Enabled => config.Value.Enabled;

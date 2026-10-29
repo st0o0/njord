@@ -19,7 +19,6 @@ public sealed class CommuteSafety(IOptions<CommuteSafetyConfig> config) : Featur
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
         Name: "Commute",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.DewPoint | ForecastParams.Humidity
             | ForecastParams.Precipitation | ForecastParams.WindSpeed));
 

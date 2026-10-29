@@ -14,7 +14,6 @@ public sealed class SoilMoisture(IOptions<SoilMoistureConfig> config) : FeatureR
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
         Name: "SoilMoisture",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.SoilMoisture0To1cm));
 
     public override bool Enabled => config.Value.Enabled;

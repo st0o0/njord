@@ -15,7 +15,6 @@ public sealed class HeavyRainAlert(IOptions<HeavyRainConfig> config) : FeatureRu
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "HeavyRain",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.Precipitation, Ensemble: EnsembleParams.PrecipitationSpread));
 
     public override bool Enabled => config.Value.Enabled;

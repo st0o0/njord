@@ -16,7 +16,6 @@ public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<F
         OutputKind.Score,
         FeatureCategory.Lifestyle,
         Name: "Laundry",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.Precipitation | ForecastParams.Temperature | ForecastParams.Humidity
             | ForecastParams.WindSpeed | ForecastParams.PrecipitationProbability | ForecastParams.CloudCover,
         OptionalForecast: ForecastParams.SunshineDuration | ForecastParams.IsDay));

@@ -15,7 +15,6 @@ public sealed class TropicalNightAlert(IOptions<TropicalNightConfig> config) : F
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "TropicalNight",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.IsDay, Ensemble: EnsembleParams.TemperatureSpread));
 
     public override bool Enabled => config.Value.Enabled;

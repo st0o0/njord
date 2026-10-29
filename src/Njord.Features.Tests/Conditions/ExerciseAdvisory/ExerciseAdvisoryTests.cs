@@ -49,10 +49,4 @@ public sealed class ExerciseAdvisoryTests
     {
         Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
     }
-
-    [Fact]
-    public void The_feature_is_off_by_default()
-    {
-        Assert.False(Feature().Descriptor.DefaultEnabled);
-    }
 }

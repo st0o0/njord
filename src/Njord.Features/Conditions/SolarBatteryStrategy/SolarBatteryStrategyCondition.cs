@@ -18,7 +18,6 @@ public sealed class SolarBatteryStrategyCondition(IOptions<SolarBatteryStrategyC
         OutputKind.Condition,
         FeatureCategory.Energy,
         Name: "SolarBatteryStrategy",
-        DefaultEnabled: false,
         new DomainRequirements(
             Forecast: ForecastParams.ShortwaveRadiation,
             Satellite: SatelliteParams.GlobalTilted));

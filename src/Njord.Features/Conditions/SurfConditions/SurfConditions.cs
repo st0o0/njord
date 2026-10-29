@@ -15,7 +15,6 @@ public sealed class SurfConditions(IOptions<SurfConditionsConfig> config) : Feat
         OutputKind.Condition,
         FeatureCategory.Marine,
         Name: "Surf",
-        DefaultEnabled: false,
         new DomainRequirements(
         Marine: MarineParams.SwellWaveHeight | MarineParams.SwellWavePeriod,
         OptionalMarine: MarineParams.SwellWaveDirection | MarineParams.WindWaveHeight,

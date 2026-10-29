@@ -20,7 +20,6 @@ public sealed class CompoundHeatStressAlert(IOptions<CompoundHeatStressConfig> c
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "CompoundHeatStress",
-        DefaultEnabled: false,
         new DomainRequirements(
             Forecast: ForecastParams.ApparentTemperature | ForecastParams.WetBulbTemperature | ForecastParams.UvIndex
                 | ForecastParams.BoundaryLayerHeight | ForecastParams.Humidity,

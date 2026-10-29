@@ -15,7 +15,6 @@ public sealed class VisibilityAlert(IOptions<VisibilityConfig> config) : Feature
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Visibility",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.Visibility));
 
     public override bool Enabled => config.Value.Enabled;

@@ -15,7 +15,6 @@ public sealed class PollenBlastAlert(IOptions<PollenBlastConfig> config) : Featu
         OutputKind.Alert,
         FeatureCategory.AirQuality,
         Name: "PollenBlast",
-        DefaultEnabled: false,
         new DomainRequirements(
             Forecast: ForecastParams.Temperature | ForecastParams.WindSpeed | ForecastParams.Precipitation,
             AirQuality: AirQualityParams.GrassPollen | AirQualityParams.BirchPollen),

@@ -18,7 +18,6 @@ public sealed class SeasonalOutlook(IOptions<SeasonalOutlookConfig> config) : Fe
         OutputKind.Forecast,
         FeatureCategory.Insight,
         Name: "SeasonalOutlook",
-        DefaultEnabled: false,
         new DomainRequirements(Seasonal: SeasonalParams.TemperatureAnomaly | SeasonalParams.PrecipitationAnomaly | SeasonalParams.PrecipitationMean));
 
     public override bool Enabled => config.Value.Enabled;

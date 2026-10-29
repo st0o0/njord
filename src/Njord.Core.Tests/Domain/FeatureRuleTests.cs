@@ -86,7 +86,7 @@ public sealed class FeatureRuleTests
 
     private sealed class SkippingRule : FeatureRule<ForecastInput>
     {
-        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Forecast, "Test", true, default);
+        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Forecast, "Test", default);
         public override bool Enabled => true;
         protected override ForecastInput? Project(LocationForecast f) => null;
         protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) => throw new InvalidOperationException("Should not be called");
@@ -94,7 +94,7 @@ public sealed class FeatureRuleTests
 
     private sealed class NullEvalRule : FeatureRule<ForecastInput>
     {
-        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Forecast, "Test", true, default);
+        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Forecast, "Test", default);
         public override bool Enabled => true;
         protected override ForecastInput? Project(LocationForecast f) => f.Forecast is { } w ? new(w) : null;
         protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) => null;
@@ -102,7 +102,7 @@ public sealed class FeatureRuleTests
 
     private sealed class ProducingRule : FeatureRule<ForecastInput>
     {
-        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Forecast, "Test", true, default);
+        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Forecast, "Test", default);
         public override bool Enabled => true;
         protected override ForecastInput? Project(LocationForecast f) => f.Forecast is { } w ? new(w) : null;
         protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) => new TestFeatureResult(TestLocation);
@@ -111,7 +111,7 @@ public sealed class FeatureRuleTests
     private sealed class HistoryCapturingRule(int pollDepth) : FeatureRule<ForecastInput>
     {
         public IReadOnlyList<ForecastInput>? CapturedHistory { get; private set; }
-        public override FeatureDescriptor Descriptor => new(OutputKind.Trend, FeatureCategory.Insight, "Test", true, default, PollDepth: pollDepth);
+        public override FeatureDescriptor Descriptor => new(OutputKind.Trend, FeatureCategory.Insight, "Test", default, PollDepth: pollDepth);
         public override bool Enabled => true;
         protected override ForecastInput? Project(LocationForecast f) => f.Forecast is { } w ? new(w) : null;
         protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)

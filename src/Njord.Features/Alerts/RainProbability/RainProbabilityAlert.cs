@@ -15,7 +15,6 @@ public sealed class RainProbabilityAlert(IOptions<RainProbabilityConfig> config)
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "RainProbability",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.PrecipitationProbability, Ensemble: EnsembleParams.PrecipitationSpread));
 
     public override bool Enabled => config.Value.Enabled;

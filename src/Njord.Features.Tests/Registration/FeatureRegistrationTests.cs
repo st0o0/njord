@@ -12,8 +12,9 @@ public sealed class FeatureRegistrationTests
     {
         var configType = rule.GetType().GetConstructors().Single().GetParameters()
             .Select(static p => p.ParameterType)
-            .Single(static t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IOptions<>))
-            .GetGenericArguments()[0];
+            .Where(static t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IOptions<>))
+            .Select(static t => t.GetGenericArguments()[0])
+            .Single(static t => t.Name.EndsWith("Config", StringComparison.Ordinal));
         var method = typeof(IConfigSection).GetMethod(nameof(IConfigSection.SectionOf), BindingFlags.Public | BindingFlags.Static);
         Assert.NotNull(method);
         return Assert.IsType<string>(method.MakeGenericMethod(configType).Invoke(null, null));

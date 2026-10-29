@@ -17,7 +17,6 @@ public sealed class ModelComparison(IOptions<ModelComparisonConfig> config) : Fe
         OutputKind.Forecast,
         FeatureCategory.Forecast,
         Name: FeatureName,
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.Precipitation, Ensemble: EnsembleParams.Models));
 
     public override bool Enabled => config.Value.Enabled;

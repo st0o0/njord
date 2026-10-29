@@ -24,7 +24,6 @@ public sealed class AsthmaRiskScore(IOptions<AsthmaRiskConfig> config) : Feature
         OutputKind.Score,
         FeatureCategory.AirQuality,
         Name: "AsthmaRisk",
-        DefaultEnabled: false,
         new DomainRequirements(
             Forecast: ForecastParams.Temperature | ForecastParams.Humidity | ForecastParams.BoundaryLayerHeight,
             AirQuality: AirQualityParams.Pm25 | AirQualityParams.Ozone | AirQualityParams.BirchPollen | AirQualityParams.GrassPollen));

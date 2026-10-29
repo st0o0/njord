@@ -15,7 +15,6 @@ public sealed class HumidityAlert(IOptions<HumidityConfig> config) : FeatureRule
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Humidity",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.DewPoint | ForecastParams.IsDay));
 
     public override bool Enabled => config.Value.Enabled;

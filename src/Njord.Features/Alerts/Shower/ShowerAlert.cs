@@ -15,7 +15,6 @@ public sealed class ShowerAlert(IOptions<ShowerConfig> config) : FeatureRule<For
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Shower",
-        DefaultEnabled: false,
         new DomainRequirements(Forecast: ForecastParams.Showers, Ensemble: EnsembleParams.PrecipitationSpread));
 
     public override bool Enabled => config.Value.Enabled;

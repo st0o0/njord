@@ -13,7 +13,6 @@ public sealed class RagweedPollen(IOptions<RagweedPollenConfig> config) : Featur
         OutputKind.Condition,
         FeatureCategory.AirQuality,
         Name: "RagweedPollen",
-        DefaultEnabled: false,
         new DomainRequirements(AirQuality: AirQualityParams.RagweedPollen));
 
     public override bool Enabled => config.Value.Enabled;

@@ -9,14 +9,14 @@ Rules (static entity set, `TimeProvider`, toggleable features) live in `AGENTS.m
 
 ## Where things live
 
-- **`Njord.Core/Domain`**: `IFeatureRule` (`Descriptor`, `Enabled`, `Execute(ring, now)`), `FeatureRule<TInput>` (base class: `Project(LocationForecast)` builds a typed input, `Evaluate(FeatureContext<TInput>)` returns one `PipelineEvent` or null), `FeatureDescriptor(Output, Category, DefaultEnabled, Requirements, PollDepth)`, `DomainRequirements` (per-domain `XxxParams` flags, `Optional*` flags are requested but never gate), `FeatureInputs`.
+- **`Njord.Core/Domain`**: `IFeatureRule` (`Descriptor`, `Enabled`, `Execute(ring, now)`), `FeatureRule<TInput>` (base class: `Project(LocationForecast)` builds a typed input, `Evaluate(FeatureContext<TInput>)` returns one `PipelineEvent` or null), `FeatureDescriptor(Output, Category, Name, Requirements, PollDepth)`, `DomainRequirements` (per-domain `XxxParams` flags, `Optional*` flags are requested but never gate), `FeatureInputs`.
 - **`Njord.Messages`**: result records per feature in a domain folder (`Alerts/`, ...), `OutputKind`, `FeatureResult` family (`AlertResult`, `ScoreResult`, `ConditionResult`, `TrendResult`, `ForecastResult`). No rule or formula.
 - **`Njord.Features/<OutputKind>/<Feature>/`**: the rule, its `<Name>Config` and an optional `<Name>ConfigValidator` side by side (`Alerts/ Scores/ Conditions/ Trends/ Forecasts/`; shared helpers in `<Kind>/Shared/` and top-level `Shared/`).
 - **`Njord.Pipeline/Stream/FeatureEngine`** runs the enabled rules whose domain got new data and whose required fields are present.
 
 ## Checklist
 
-1. **Config** - `<Name>Config : IConfigSection` with `const string SectionName = "Njord:Features:<Category>:<Name>"`, `bool Enabled` (default = descriptor `DefaultEnabled`) and the options as property initializers (arrays: nullable property plus `Effective*`). Cross-field rules go in `<Name>ConfigValidator : IValidateOptions<<Name>Config>`.
+1. **Config** - `<Name>Config : IConfigSection` with `const string SectionName = "Njord:Features:<Category>:<Name>"`, `bool Enabled` and the options as property initializers (arrays: nullable property plus `Effective*`). Cross-field rules go in `<Name>ConfigValidator : IValidateOptions<<Name>Config>`.
 2. **Result type** - record in `src/Njord.Messages/<Feature>/` (alerts) or one of the existing `ScoreResult`, `ConditionResult`, `TrendResult`, `ForecastResult` shapes; add the proto message and the `EnrichmentEvent.feature` oneof case in `protos/njord/v2/weather.proto` (extend-only, use the field range of the output kind).
 3. **Rule** - `public sealed class <Name> : FeatureRule<TInput>` taking `IOptions<<Name>Config>`; `Descriptor`, `Enabled => config.Value.Enabled`, `Project`, `Evaluate`. Use `TimeProvider` through `ctx.Now`, never the clock directly.
 4. **Register** in `src/Njord.Features/ServiceCollectionExtensions.cs` (`AddFeatures`): `services.AddNjordOptions<XConfig>()` (or `<XConfig, XConfigValidator>`) and `services.AddSingleton<IFeatureRule, X>()` in the block of its output kind.
@@ -31,7 +31,7 @@ Rules (static entity set, `TimeProvider`, toggleable features) live in `AGENTS.m
 public sealed class FrostAlert(IOptions<FrostConfig> config) : FeatureRule<WeatherInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
-        OutputKind.Alert, FeatureCategory.Weather, DefaultEnabled: true,
+        OutputKind.Alert, FeatureCategory.Weather,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.EnsembleStdDev));
 
     public override bool Enabled => config.Value.Enabled;

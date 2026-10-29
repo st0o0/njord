@@ -13,7 +13,6 @@ public sealed class OceanCurrents(IOptions<OceanCurrentsConfig> config) : Featur
         OutputKind.Condition,
         FeatureCategory.Marine,
         Name: "OceanCurrents",
-        DefaultEnabled: false,
         new DomainRequirements(Marine: MarineParams.OceanCurrentVelocity | MarineParams.OceanCurrentDirection));
 
     public override bool Enabled => config.Value.Enabled;

@@ -180,8 +180,6 @@ public sealed class FloodAlertsTests
             () => Assert.Equal(
                 new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75
                     | FloodParams.DischargeMax),
-                Risk().Descriptor.Requirements),
-            () => Assert.False(Risk().Descriptor.DefaultEnabled),
-            () => Assert.False(RainAlert().Descriptor.DefaultEnabled));
+                Risk().Descriptor.Requirements));
     }
 }

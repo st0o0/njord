@@ -15,7 +15,6 @@ public sealed class UvAlert(IOptions<UvConfig> config) : FeatureRule<ForecastInp
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Uv",
-        DefaultEnabled: true,
         new DomainRequirements(Forecast: ForecastParams.UvIndex));
 
     public override bool Enabled => config.Value.Enabled;
