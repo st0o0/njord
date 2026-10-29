@@ -2,7 +2,6 @@ using Njord.Core;
 
 namespace Njord.Messages.Polling;
 
-// A null location triggers every configured location.
 public sealed record TriggerImmediatePoll(Location? Location);
 
 public abstract record TriggerImmediatePollResponse;

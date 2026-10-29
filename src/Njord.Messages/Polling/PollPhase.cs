@@ -1,3 +1,7 @@
 namespace Njord.Messages.Polling;
 
-public enum PollPhase { Discovery, Steady }
+public enum PollPhase
+{
+    Discovery,
+    Steady
+}
