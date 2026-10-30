@@ -121,7 +121,6 @@ export function exportAsJson(config: NjordConfig): string {
 
   const persistence: Record<string, unknown> = {}
   if (config.persistence.provider !== 'Sqlite') {
-    persistence.Provider = config.persistence.provider
     persistence.ConnectionString = config.persistence.connectionString
   }
   if (config.dataPath !== defaults.dataPath) persistence.DataPath = config.dataPath
@@ -170,7 +169,6 @@ export function exportAsEnvVars(config: NjordConfig): string {
   }
 
   if (config.persistence.provider !== 'Sqlite') {
-    add('Njord__Persistence__Provider', config.persistence.provider)
     if (config.persistence.connectionString) add('Njord__Persistence__ConnectionString', config.persistence.connectionString)
   }
 
@@ -278,7 +276,8 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   }
   if (budgetOverride) config.budgetOverride = budgetOverride
   if (n.Persistence) {
-    config.persistence = { provider: n.Persistence.Provider ?? 'Sqlite', connectionString: n.Persistence.ConnectionString ?? '' }
+    const hasConn = !!n.Persistence.ConnectionString
+    config.persistence = { provider: hasConn ? 'PostgreSql' : 'Sqlite', connectionString: n.Persistence.ConnectionString ?? '' }
     if (n.Persistence.DataPath) config.dataPath = n.Persistence.DataPath
   }
 
@@ -376,8 +375,10 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
       }
     }
     else if (parts[0] === 'Persistence') {
-      if (parts[1] === 'Provider') config.persistence.provider = value
-      else if (parts[1] === 'ConnectionString') config.persistence.connectionString = value
+      if (parts[1] === 'ConnectionString') {
+        config.persistence.connectionString = value
+        config.persistence.provider = 'PostgreSql'
+      }
       else if (parts[1] === 'DataPath') config.dataPath = value
     }
   }

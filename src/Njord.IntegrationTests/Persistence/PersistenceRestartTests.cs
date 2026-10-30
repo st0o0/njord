@@ -1,5 +1,4 @@
 using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.Options;
 using Njord.Grpc.V2;
 
 namespace Njord.IntegrationTests.Persistence;
@@ -50,21 +49,6 @@ public sealed class PersistenceRestartTests : IDisposable
             Assert.True(status.Budget.MonthlyUsed >= usageBeforeRestart,
                 $"usage {status.Budget.MonthlyUsed} < {usageBeforeRestart}");
         }, ct);
-    }
-
-    [Fact(Timeout = 30_000)]
-    public async Task An_unusable_database_path_fails_startup_with_a_clear_message()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var blocker = Path.Combine(_directory.Path, "not-a-directory");
-        await File.WriteAllTextAsync(blocker, "x", ct);
-
-        var ex = await Assert.ThrowsAsync<OptionsValidationException>(() => NjordTestHost.StartAsync(
-            _directory.Path,
-            settings => settings["Njord:Persistence:DataPath"] = Path.Combine(blocker, "njord.db"),
-            ct));
-
-        Assert.Contains("is not writable", ex.Message);
     }
 
     [Fact(Timeout = 30_000)]

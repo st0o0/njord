@@ -3,6 +3,7 @@ using Akka.Cluster.Hosting;
 using Akka.Hosting;
 using Akka.Persistence.Sql.Hosting;
 using Akka.Remote.Hosting;
+using LinqToDB;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
@@ -17,33 +18,30 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
     protected override void BuildSystem(AkkaConfigurationBuilder builder, IServiceProvider serviceProvider)
     {
         var persistence = serviceProvider.GetRequiredService<IOptions<PersistenceOptions>>().Value;
-        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        ConfigureLogging(builder, configuration);
-        ConfigureInfrastructure(builder, persistence, persistence.DataPath, configuration);
 
-        foreach (var registration in serviceProvider.GetServices<IActorRegistration>())
+        string connectionString;
+        string providerName;
+
+        if (!string.IsNullOrEmpty(persistence.ConnectionString))
         {
-            registration.Configure(builder, serviceProvider);
+            connectionString = persistence.ConnectionString;
+            providerName = ProviderName.PostgreSQL;
         }
-    }
-
-    internal static AkkaConfigurationBuilder ConfigureLogging(AkkaConfigurationBuilder builder, IConfiguration configuration) =>
-        builder.ConfigureLoggers(loggers =>
+        else
         {
-            loggers.LogLevel = AkkaLogLevel.From(configuration);
-            loggers.ClearLoggers();
-            loggers.AddLoggerFactory();
-        });
+            connectionString = $"Data Source={Path.GetFullPath(persistence.DataPath)}";
+            providerName = ProviderName.SQLiteMS;
+        }
 
-    internal static void ConfigureInfrastructure(
-        AkkaConfigurationBuilder builder, PersistenceOptions persistence, string persistencePath,
-        IConfiguration configuration)
-    {
-        var selection = PersistenceSelection.From(persistence, persistencePath);
-        var port = configuration.GetValue("Akka:RemotingPort", 2552);
+        var port = serviceProvider.GetRequiredService<IConfiguration>().GetValue("Akka:RemotingPort", 2552);
 
         builder
-            .WithSqlPersistence(selection.ConnectionString, selection.ProviderName, autoInitialize: true,
+            .ConfigureLoggers(loggers =>
+            {
+                loggers.ClearLoggers();
+                loggers.AddLoggerFactory();
+            })
+            .WithSqlPersistence(connectionString, providerName, autoInitialize: true,
                 journalBuilder: journal => journal.WithHealthCheck(),
                 snapshotBuilder: snapshot => snapshot.WithHealthCheck())
             .WithActorSystemLivenessCheck()
@@ -60,6 +58,11 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
                 var cluster = Cluster.Get(system);
                 cluster.Join(cluster.SelfAddress);
             });
+        }
+
+        foreach (var registration in serviceProvider.GetServices<IActorRegistration>())
+        {
+            registration.Configure(builder, serviceProvider);
         }
     }
 }

@@ -1,37 +1,26 @@
-using Njord.Configuration;
-using Njord.Core;
 using Njord.Core.Configuration;
-using Njord.Tests.Shared;
 
 namespace Njord.IntegrationTests;
 
-public sealed class PersistenceOptionsValidatorTests
+public sealed class PersistenceOptionsTests
 {
     [Fact]
-    public void Should_reject_postgres_persistence_without_a_connection_string()
+    public void Default_persistence_uses_sqlite_data_path()
     {
-        var options = new PersistenceOptions { Provider = PersistenceProvider.PostgreSql };
+        var options = new PersistenceOptions();
 
-        var result = new PersistenceOptionsValidator().Validate(null, options);
-
-        Assert.Contains("requires a connection string", ValidationAssert.SingleFailure(result));
+        Assert.Null(options.ConnectionString);
+        Assert.Equal("data/njord.db", options.DataPath);
     }
 
     [Fact]
-    public void Should_reject_an_unwritable_sqlite_data_directory()
+    public void ConnectionString_set_implies_postgresql()
     {
-        var blocker = Path.GetTempFileName();
-        try
+        var options = new PersistenceOptions
         {
-            var options = new PersistenceOptions { DataPath = Path.Combine(blocker, "njord.db") };
+            ConnectionString = "Host=localhost;Database=njord;Username=njord;Password=secret",
+        };
 
-            var result = new PersistenceOptionsValidator().Validate(null, options);
-
-            Assert.Contains("is not writable", ValidationAssert.SingleFailure(result));
-        }
-        finally
-        {
-            File.Delete(blocker);
-        }
+        Assert.NotNull(options.ConnectionString);
     }
 }

@@ -56,10 +56,8 @@ services:
       #- Njord__Polling__DiscoveryInterval=00:20:00
 
       # ── Persistence ───────────────────────────────────────────
-      #- Njord__Persistence__Provider=Sqlite
       #- Njord__Persistence__DataPath=data/njord.db
-      ## Alternative for PostgreSQL (not defaults):
-      #- Njord__Persistence__Provider=PostgreSql
+      ## For PostgreSQL (ConnectionString present = PostgreSQL, absent = SQLite):
       #- Njord__Persistence__ConnectionString=Host=db;Database=njord;Username=njord;Password=secret
 
       # ── Budget (self-throttle below Open-Meteo free tier) ─────

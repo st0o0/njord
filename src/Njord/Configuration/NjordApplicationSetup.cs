@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Njord.Grpc;
-using Prometheus;
 using Servus.Application.Startup;
 
 namespace Njord.Configuration;
@@ -16,8 +15,7 @@ public sealed class NjordApplicationSetup : ApplicationSetupContainer<WebApplica
     {
         app.UseRequestTimeouts();
         ExposeHealthEndpoints(app);
-        app.UseHttpMetrics();
-        app.MapMetrics();
+        app.MapPrometheusScrapingEndpoint();
         app.MapNjordGrpc();
     }
 

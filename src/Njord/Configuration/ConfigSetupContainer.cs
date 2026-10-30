@@ -13,6 +13,6 @@ public sealed class ConfigSetupContainer : IServiceSetupContainer
             o.ResolvedLocations = o.Locations
                 .Select(l => new Location(l.Name, l.Latitude.GetValueOrDefault(), l.Longitude.GetValueOrDefault()))
                 .ToList());
-        services.AddNjordOptions<PersistenceOptions, PersistenceOptionsValidator>();
+        services.AddNjordOptions<PersistenceOptions>();
     }
 }

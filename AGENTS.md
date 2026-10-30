@@ -4,7 +4,7 @@
 
 njord - Multi-domain weather intelligence for Home Assistant. A .NET service (Docker container)
 on Akka.NET + Akka.Streams: polls the Open-Meteo APIs (weather forecast, ensemble, air quality,
-flood, flood, marine) per location, evaluates feature rules on the data, and serves it to Home Assistant
+flood, marine) per location, evaluates feature rules on the data, and serves it to Home Assistant
 over gRPC (the ha-njord integration).
 
 ## Solution structure
@@ -50,8 +50,8 @@ src/
   Njord.Features/       # (-> Core) every feature: <OutputKind>/<Feature>/ with FeatureRule + <Name>Config (+ validator)
                         #   side by side (Alerts/ Scores/ Conditions/ Trends/ Forecasts/), <Kind>/Shared/ and top-level
                         #   Shared/ (Scoring), ServiceCollectionExtensions.AddFeatures; typed inputs stay in Core
-  Njord.Grpc/           # (temporary ref to OpenMeteo for EnsembleOptions until the Catalog change) WeatherGrpcService, OpsGrpcService, ActorAsk, GrpcConsumer, Mapping/
-  Njord/                # Host: Program.cs, NjordHost, Configuration/ (setup containers, PersistenceOptions), Health/
+  Njord.Grpc/           # WeatherGrpcService, OpsGrpcService, ActorAsk, GrpcConsumer, Mapping/
+  Njord/                # Host: Program.cs, NjordHost, Configuration/ (setup containers), Health/
 
   Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
   Njord.OpenMeteo.Tests/ Njord.Budget.Tests/ Njord.Pipeline.Tests/ Njord.Polling.Tests/
@@ -119,12 +119,12 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 SINGLETONS (Cluster Singleton)
 ├─ PollManager (non-persistent, BackoffOnFailure, IWithTimers)    [Polling]
 │  └─ one target per location; StartPolling/StopPolling, poll states + health from reports
-├─ OpenMeteoGateway (non-persistent)                              [OpenMeteo]
+├─ OpenMeteoGateway (non-persistent, BackoffOnFailure)             [OpenMeteo]
 │  └─ GatewayBudgetGate -> typed clients: Forecast, Ensemble, AirQuality, Flood, Marine, Seasonal
-├─ ForecastPipeline (non-persistent)                              [Pipeline]
+├─ ForecastPipeline (non-persistent, BackoffOnFailure)             [Pipeline]
 │  └─ MergeHub<DomainDataReceived> -> FeatureEngine -> IFeatureRule[] -> BroadcastHub<PipelineEvent>
-├─ BudgetTracker (persistent)                                     [Budget]
-└─ GrpcConsumer (SourceRef consumer of the pipeline)              [Grpc]
+├─ BudgetTracker (persistent, BackoffOnFailure)                    [Budget]
+└─ GrpcConsumer (SourceRef consumer, BackoffOnFailure)             [Grpc]
 
 SHARD REGIONS (Sharded Entity)
 └─ PollWorker (persistent, entity = location, "poll-worker", no passivation)  [Polling]
@@ -150,7 +150,7 @@ SHARD REGIONS (Sharded Entity)
   Seasonal is 30 requests/month at `max(formula, 1.3)`.
 - **Per-domain forecast days.** `Njord:Forecast` (4, max 16), `Njord:Ensemble` (4, max 35), `Njord:AirQuality` (5,
   max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92, max 210).
-- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Name>` (65 features; categories in
+- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Name>` (64 features; categories in
   `docs/data/features.json` are UI metadata; env `Njord__Features__<Name>__Enabled`). 18 are on by default: the 15
   weather alerts (`Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`, `PressureDrop`, `Thunderstorm`,
   `Ice`, `WindChill`, `Visibility`, `TropicalNight`, `Humidity`, `RainProbability`), `Commute`, `Pollen`,
@@ -289,7 +289,7 @@ Rules apply to production code.
 - Class suffix `Tests`, `public sealed`. Layout mirrors production 1:1: `Foo.cs` -> `FooTests.cs`,
   `FooState.cs` -> `FooStateTests.cs`. Topic splits (`FooRetryTests`) only when one file gets large.
   Names are `Snake_case_sentences` describing behavior.
-- Actor tests derive from `Akka.TestKit.Xunit.TestKit`. Collaborators are `CreateTestProbe()` probes
+- Actor tests derive from `Akka.Hosting.TestKit.TestKit`. Collaborators are `CreateTestProbe()` probes
   registered in `ActorRegistry.For(Sys).Register<IMarker>(probe)` (register every marker the actor
   resolves); many probes go in a `TestProbes` record. Create the actor with
   `Sys.ActorOf(Props.Create(() => new X(...)))`; never `resolver.Props<T>()`, never an `ActorSystem` by hand.
@@ -315,9 +315,9 @@ Rules apply to production code.
 
 - One `Meter("Njord.<Domain>")` per library (`OpenMeteo`, `Budget`, `Polling`, `Pipeline`) in an
   `internal static class Telemetry` with `MeterName` and `internal static readonly` instruments;
-  `CoreSetupContainer.NjordMeters` is built from the constants, so a new meter is added there.
+  `TelemetrySetupContainer` registers them via `.AddMeter()`, so a new meter is added there.
 - Names `njord_<area>_<name>` in snake_case; counters end `_total`, time histograms `_seconds`. Bounded tag
-  cardinality. Exported via prometheus-net.
+  cardinality. Exported via OpenTelemetry Prometheus exporter.
 
 ## Options
 
@@ -325,7 +325,7 @@ One `sealed` class per concern implementing `IConfigSection` (`static abstract S
 `AddNjordOptions<T>()` (`BindConfiguration(T.SectionName).ValidateOnStart()`) or `AddNjordOptions<T, TValidator>()`
 when it has cross-field rules (`IValidateOptions<T>`). Options live with their owner (Polling/Health
 in `Njord.Core`, Forecast/Ensemble/Flood/AirQuality/Marine/Seasonal/Solar in `Njord.OpenMeteo`, `PollingOptionsValidator`
-and `BudgetGuard` in `Njord.Polling`, `PersistenceOptions` in the Host, feature options in each `<Name>Config`).
+and `BudgetGuard` in `Njord.Polling`, `PersistenceOptions` in `Njord.Core`, feature options in each `<Name>Config`).
 Defaults are property initializers. Naming: `private const string SectionName` + explicit interface implementation.
 
 **Array defaults**: .NET's config binder appends to existing arrays instead of replacing (dotnet/runtime#36569).
@@ -341,14 +341,14 @@ interface. Manual `PostConfigure` is reserved for derived values (`PollingOption
 | `Njord` | `NjordOptions` | `Locations` (`Name`, `Latitude`, `Longitude`, all required) |
 | `Njord:Forecast` | `ForecastOptions` | `ForecastDays` (4, 1..16), `PastHours` (0, 0..96), `Models` (empty = best_match) |
 | `Njord:Ensemble` | `EnsembleOptions` | `ForecastDays` (4, 1..35), `Models` (`ecmwf_ifs025_ensemble_mean`, required, non-empty, no duplicates) |
-| `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7) |
+| `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7), `Region` (`Global`, enum) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..8) |
 | `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..6) |
 | `Njord:Solar` | `SolarOptions` | `Tilt` (30, 0..90), `Azimuth` (180, 0..360); used by Forecast/Ensemble clients for GTI |
 | `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210), `IncludeEnsemble` (false) |
 | `Njord:Features:<Name>` | `<Name>Config` | `Enabled` (default from the descriptor) plus the feature's options |
-| `Njord:Polling` | `PollingOptions` | `PollInterval` (60 min), `DiscoveryInterval` (20 min), `BudgetOverride` |
-| `Njord:Persistence` | `PersistenceOptions` | `Provider` (Sqlite/PostgreSql), `ConnectionString`, `DataPath` |
+| `Njord:Polling` | `PollingOptions` | `PollInterval` (60 min), `DiscoveryInterval` (20 min), `BudgetOverride`, `Budget` (derived, default `OpenMeteoFreeTier`) |
+| `Njord:Persistence` | `PersistenceOptions` | `ConnectionString` (set = PostgreSQL, absent = SQLite), `DataPath` |
 | `Njord:Health` | `HealthOptions` | poll overdue/stalled factors, budget degraded % |
 
 ### Config patterns

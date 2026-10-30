@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Health;
 using Servus.Application.Startup;
@@ -18,7 +17,7 @@ public sealed class HealthSetupContainer : IServiceSetupContainer
 
         var healthChecks = services.AddHealthChecks();
 
-        if (persistence.Provider == PersistenceProvider.Sqlite)
+        if (string.IsNullOrEmpty(persistence.ConnectionString))
         {
             healthChecks.AddCheck<DataDirectoryHealthCheck>("data-directory",
                 failureStatus: HealthStatus.Unhealthy);
