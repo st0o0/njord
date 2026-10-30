@@ -53,7 +53,7 @@ public sealed class BudgetGuardTests
         // 0.286 x 3 models + 0.357 = 1.214 x 720 = 874; guard 800 of 1000. One model: 463.
         Assert.Multiple(
             () => Assert.Null(Violation(Scope(), WithMonthlyBudget(1_000), Resolved())),
-            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(1_000), Resolved(), new DomainCallConfig(ForecastModelCount: 3))));
+            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(1_000), Resolved(), new DomainCallConfig { ForecastModelCount = 3 })));
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public sealed class BudgetGuardTests
         // forecast 0.286 + ensemble spread 1 var x 16/14 = 1.429 x 720 = 1029; guard 960 of 1200. 4 days: 411.
         Assert.Multiple(
             () => Assert.Null(Violation(Scope(), WithMonthlyBudget(1_200), resolved)),
-            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(1_200), resolved, new DomainCallConfig(EnsembleDays: 16))));
+            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(1_200), resolved, new DomainCallConfig { EnsembleDays = 16 })));
     }
 
     [Fact]
@@ -78,8 +78,8 @@ public sealed class BudgetGuardTests
         Assert.Multiple(
             () => Assert.NotNull(Violation(Scope(2), WithMonthlyBudget(30), resolved)),
             () => Assert.Null(Violation(Scope(2), WithMonthlyBudget(40), resolved)),
-            () => Assert.NotNull(Violation(Scope(2), WithMonthlyBudget(250), resolved, new DomainCallConfig(SatellitePastHours: 48))),
-            () => Assert.Null(Violation(Scope(2), WithMonthlyBudget(300), resolved, new DomainCallConfig(SatellitePastHours: 48))));
+            () => Assert.NotNull(Violation(Scope(2), WithMonthlyBudget(250), resolved, new DomainCallConfig { SatellitePastHours = 48 })),
+            () => Assert.Null(Violation(Scope(2), WithMonthlyBudget(300), resolved, new DomainCallConfig { SatellitePastHours = 48 })));
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public sealed class BudgetGuardTests
     public void Should_charge_at_least_the_documented_seasonal_estimate_per_request()
     {
         var resolved = new DomainRequirements(Seasonal: SeasonalParams.TemperatureAnomaly);
-        var oneMonth = new DomainCallConfig(SeasonalMonths: 1);
+        var oneMonth = new DomainCallConfig { SeasonalMonths = 1 };
 
         // 1 location x 30 requests x max(30/14 = 2.14, 1.3) = 64 calls; guard 48 of 60, 72 of 90.
         Assert.Multiple(
@@ -120,7 +120,7 @@ public sealed class BudgetGuardTests
         // forecast 0.286 + flood 1 var x 92/14 = 6.571 -> 4937 calls; guard 4800 of 6000. 14 days: 925.
         Assert.Multiple(
             () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(6_000), resolved)),
-            () => Assert.Null(Violation(Scope(), WithMonthlyBudget(6_000), resolved, new DomainCallConfig(FloodDays: 14))));
+            () => Assert.Null(Violation(Scope(), WithMonthlyBudget(6_000), resolved, new DomainCallConfig { FloodDays = 14 })));
     }
 
     [Fact]
@@ -131,8 +131,8 @@ public sealed class BudgetGuardTests
 
         // 14 days plain: (0.286 + 1) x 720 = 926 <= 960; ensemble: (0.286 + 1 + 4) x 720 = 3806.
         Assert.Multiple(
-            () => Assert.Null(Violation(Scope(), polling, resolved, new DomainCallConfig(FloodDays: 14))),
-            () => Assert.NotNull(Violation(Scope(), polling, resolved, new DomainCallConfig(FloodDays: 14, FloodIncludeEnsemble: true))));
+            () => Assert.Null(Violation(Scope(), polling, resolved, new DomainCallConfig { FloodDays = 14 })),
+            () => Assert.NotNull(Violation(Scope(), polling, resolved, new DomainCallConfig { FloodDays = 14, FloodIncludeEnsemble = true })));
     }
 
     [Fact]
@@ -151,7 +151,7 @@ public sealed class BudgetGuardTests
     {
         // 14 days: 1 var x 14/14 x 720 = 720 calls, guard 640 of 800. 5 days: 463 calls.
         Assert.Multiple(
-            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(800), Resolved(), new DomainCallConfig(AirQualityDays: 14))),
+            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(800), Resolved(), new DomainCallConfig { AirQualityDays = 14 })),
             () => Assert.Null(Violation(Scope(), WithMonthlyBudget(800), Resolved())));
     }
 
@@ -175,8 +175,8 @@ public sealed class BudgetGuardTests
 
         // forecast 0.286 + ensemble (2 vars -> 1 x 4/14 x 3 models = 0.857) = 1.143 x 720 = 823; guard 800 of 1000. One model: 411.
         Assert.Multiple(
-            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(1_000), resolved, new DomainCallConfig(EnsembleModelCount: 3))),
-            () => Assert.Null(Violation(Scope(), WithMonthlyBudget(1_000), resolved, new DomainCallConfig(EnsembleModelCount: 1))));
+            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(1_000), resolved, new DomainCallConfig { EnsembleModelCount = 3 })),
+            () => Assert.Null(Violation(Scope(), WithMonthlyBudget(1_000), resolved, new DomainCallConfig { EnsembleModelCount = 1 })));
     }
 
     [Fact]

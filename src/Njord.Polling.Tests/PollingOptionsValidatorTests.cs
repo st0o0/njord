@@ -25,7 +25,7 @@ public sealed class PollingOptionsValidatorTests
         };
         return new(
             Options.Create(scope),
-            Options.Create(new DomainCallConfig(EnsembleModelCount: ensembleModels?.Length ?? 0)),
+            Options.Create(new DomainCallConfig { EnsembleModelCount = ensembleModels?.Length ?? 0 }),
             Options.Create(new DomainRequirements(
                 Forecast: ForecastParams.Temperature,
                 AirQuality: AirQualityParams.Pm25,

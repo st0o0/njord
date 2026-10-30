@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Features.Alerts.ClearSkyUv;
 using Njord.Features.Alerts.CoastalFlood;
 using Njord.Features.Alerts.CompoundHeatStress;
@@ -93,6 +94,9 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddFeatures(this IServiceCollection services)
     {
+        services.AddOptions<DomainRequirements>();
+        services.AddSingleton<IOptionsFactory<DomainRequirements>, DomainRequirementsFactory>();
+
         // Alerts
         services.AddFeature<ClearSkyUvAlert, ClearSkyUvConfig, ClearSkyUvConfigValidator>();
         services.AddFeature<CoastalFloodAlert, CoastalFloodConfig, CoastalFloodConfigValidator>();
