@@ -106,4 +106,4 @@ dotnet run --project Njord.Core.Tests/Njord.Core.Tests.csproj   # xUnit v3 via M
 
 ## License
 
-[MIT](LICENSE). Weather data from [Open-Meteo](https://open-meteo.com/) is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+[MIT](LICENSE). Weather data from [Open-Meteo](https://open-meteo.com/) is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). njord enriches and transforms the raw forecast data. Open-Meteo aggregates data from national weather services (DWD, ECMWF, NOAA, and [others](https://open-meteo.com/en/licence)) under their respective licences.

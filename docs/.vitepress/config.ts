@@ -68,6 +68,12 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
         ],
       },
       {
+        text: 'Legal',
+        items: [
+          { text: 'Attribution', link: '/attribution' },
+        ],
+      },
+      {
         text: 'Development',
         items: [
           { text: 'Setup & Service', link: '/development/setup' },
@@ -82,7 +88,7 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
     ],
 
     footer: {
-      message: 'Open-Meteo data is licensed under CC BY 4.0.',
+      message: 'Weather data by <a href="https://open-meteo.com/">Open-Meteo.com</a>, licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Data is enriched and transformed by njord.',
     },
 
     search: { provider: 'local' },
