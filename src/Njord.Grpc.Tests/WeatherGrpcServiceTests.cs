@@ -13,7 +13,6 @@ using Njord.Messages.Fetch;
 using Njord.Messages.Results.Alerts;
 using Njord.Messages.Results.Conditions;
 using Njord.Messages.Stream;
-using Njord.OpenMeteo.Configuration;
 using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;
@@ -39,7 +38,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         Assert.Multiple(
             () => Assert.Equal("Lucerne", location.Name),
             () => Assert.Equal(47.05, location.Latitude),
-            () => Assert.Equal([EnsembleOptions.DefaultModel], location.Models));
+            () => Assert.Equal([ActiveModels.BestMatch, "ecmwf_ifs025_ensemble_mean"], location.Models));
     }
 
     [Fact(Timeout = 30_000)]
@@ -104,7 +103,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
             new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Forecast },
             TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
-        Assert.Equal("ecmwf_ifs025_ensemble_mean", response.Model);
+        Assert.Equal(ActiveModels.BestMatch, response.Model);
     }
 
     [Fact(Timeout = 30_000)]
@@ -128,8 +127,29 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         var response = await service.GetCatalog(new GetCatalogRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Equal(
-            ["ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"],
-            response.Models.Where(m => m.Enabled).Select(m => m.Id).Order());
+            ["best_match", "ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"],
+            response.Models.Where(m => m.Enabled).Select(m => m.Id));
+    }
+
+    [Fact(Timeout = 30_000)]
+    public async Task GetCatalog_includes_secondary_forecast_models()
+    {
+        var activeModels = new ActiveModels
+        {
+            PrimaryForecastModel = "icon_d2",
+            ForecastModels = ["icon_d2", "icon_eu"],
+            EnsembleModels = ["ecmwf_ifs025_ensemble_mean"],
+        };
+        ActorRegistry.Register<IGrpcConsumer>(
+            Sys.ActorOf(Props.Create(() => new FakeConsumer(null, null))), overwrite: true);
+        var service = new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Opts(Options),
+            TestServiceInfo.Opts(activeModels), TimeProvider.System);
+
+        var response = await service.GetCatalog(new GetCatalogRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            ["icon_d2", "icon_eu", "ecmwf_ifs025_ensemble_mean"],
+            response.Locations[0].Models);
     }
 
     [Fact(Timeout = 30_000)]
@@ -212,8 +232,9 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     {
         ActorRegistry.Register<IGrpcConsumer>(
             Sys.ActorOf(Props.Create(() => new FakeConsumer(domainEvent, analysis))), overwrite: true);
+        var activeModels = new ActiveModels { EnsembleModels = [.. models ?? ["ecmwf_ifs025_ensemble_mean"]] };
         return new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Opts(Options),
-            TestServiceInfo.Opts(new EnsembleOptions { Models = models ?? [EnsembleOptions.DefaultModel] }), TimeProvider.System);
+            TestServiceInfo.Opts(activeModels), TimeProvider.System);
     }
 
     private sealed class FakeConsumer : ReceiveActor

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Features;
@@ -20,6 +21,18 @@ public sealed class DomainSetupContainer : IServiceSetupContainer
                     .Where(r => r.Enabled)
                     .Aggregate(new DomainRequirements(), (all, f) => all | f.Descriptor.Requirements)
                     .WithBaseParams()));
+
+        services.AddSingleton<IOptions<ActiveModels>>(sp =>
+        {
+            var forecast = sp.GetRequiredService<IOptions<ForecastOptions>>().Value;
+            var ensemble = sp.GetRequiredService<IOptions<EnsembleOptions>>().Value;
+            return Options.Create(new ActiveModels
+            {
+                PrimaryForecastModel = forecast.Models.Length > 0 ? forecast.Models[0] : ActiveModels.BestMatch,
+                ForecastModels = [.. forecast.Models],
+                EnsembleModels = [.. ensemble.Models],
+            });
+        });
 
         services.AddSingleton<IOptions<DomainCallConfig>>(sp =>
         {

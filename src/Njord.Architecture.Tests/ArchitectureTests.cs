@@ -40,10 +40,6 @@ public sealed class ArchitectureTests
     private static readonly IObjectProvider<IType> PersistenceLayer = InAssembly(PersistenceAssembly);
     private static readonly IObjectProvider<IType> CoreLayer = InAssembly(CoreAssembly);
     private static readonly IObjectProvider<IType> OpenMeteoLayer = InAssembly(OpenMeteoAssembly);
-    private static readonly IObjectProvider<IType> OpenMeteoLayerWithoutCatalogDebt =
-        Types().That().ResideInAssembly(OpenMeteoAssembly)
-            .And().DoNotHaveFullName("Njord.OpenMeteo.Configuration.EnsembleOptions")
-            .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage");
     private static readonly IObjectProvider<IType> BudgetLayer = InAssembly(BudgetAssembly);
     private static readonly IObjectProvider<IType> PollingLayer = InAssembly(PollingAssembly);
     private static readonly IObjectProvider<IType> PipelineLayer = InAssembly(PipelineAssembly);
@@ -175,9 +171,8 @@ public sealed class ArchitectureTests
     [Fact]
     public void Grpc_should_not_depend_on_feature_libraries()
     {
-        // Tech debt: Grpc may use OpenMeteo's EnsembleOptions until the Catalog change removes the reference.
         Types().That().Are(GrpcLayer)
-            .Should().NotDependOnAnyTypesThat().Are(OpenMeteoLayerWithoutCatalogDebt)
+            .Should().NotDependOnAnyTypesThat().Are(OpenMeteoLayer)
             .AndShould().NotDependOnAnyTypesThat().Are(BudgetLayer)
             .AndShould().NotDependOnAnyTypesThat().Are(PollingLayer)
             .AndShould().NotDependOnAnyTypesThat().Are(PipelineLayer)

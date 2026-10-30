@@ -11,7 +11,6 @@ using Njord.Grpc.V2;
 using Njord.Messages.Config;
 using Njord.Messages.Fetch;
 using Njord.Messages.Stream;
-using Njord.OpenMeteo.Configuration;
 using ActorSystem = Akka.Actor.ActorSystem;
 using GrpcStatus = Grpc.Core.Status;
 
@@ -21,10 +20,10 @@ public sealed class WeatherGrpcService(
     ActorRegistry actorRegistry,
     ActorSystem actorSystem,
     IOptions<NjordOptions> scope,
-    IOptions<EnsembleOptions> ensemble,
+    IOptions<ActiveModels> models,
     TimeProvider timeProvider) : WeatherService.WeatherServiceBase
 {
-    private readonly CatalogResult _catalog = scope.Value.ToCatalog(ensemble.Value);
+    private readonly CatalogResult _catalog = scope.Value.ToCatalog(models.Value);
 
     public override async Task<GetCatalogResponse> GetCatalog(GetCatalogRequest request, ServerCallContext context)
     {
