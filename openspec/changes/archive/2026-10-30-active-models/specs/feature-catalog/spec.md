@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Catalog includes forecast and ensemble models
 The GetCatalog response SHALL list all active models from both ForecastOptions and
