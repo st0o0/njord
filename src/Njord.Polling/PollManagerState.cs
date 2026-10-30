@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using Akka.Actor;
 using Njord.Core;
-using Njord.Core.Configuration;
 using Njord.Messages.Polling;
 
 namespace Njord.Polling;
@@ -10,14 +9,14 @@ internal sealed record PollManagerConfig(
     IReadOnlyList<PollTarget> Targets,
     IReadOnlyDictionary<string, PollTarget> TargetsById)
 {
-    public static PollManagerConfig Create(IList<LocationOptions> locations)
+    public static PollManagerConfig Create(IReadOnlyList<Location> locations)
     {
         var targets = new List<PollTarget>();
         var targetsById = new Dictionary<string, PollTarget>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var location in locations)
         {
-            var target = new PollTarget(new Location(location.Name, location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault()));
+            var target = new PollTarget(location);
             targets.Add(target);
             targetsById[target.Id] = target;
         }

@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using Akka.Actor;
 using Njord.Core;
-using Njord.Core.Configuration;
 using Njord.Messages.Polling;
 
 namespace Njord.Polling.Tests;
@@ -12,8 +11,8 @@ public sealed class PollManagerStateTests
 
     private static readonly PollManagerConfig Config = PollManagerConfig.Create(
         [
-            new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 },
-            new LocationOptions { Name = "zurich", Latitude = 47.37, Longitude = 8.54 },
+            new Location("lucerne", 47.05, 8.31),
+            new Location("zurich", 47.37, 8.54),
         ]);
 
     private static readonly PollTarget Lucerne = new(new Location("lucerne", 0, 0));

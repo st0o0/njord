@@ -12,6 +12,15 @@ public sealed class NjordOptionsValidatorTests
         Locations = [new LocationOptions { Name = "Lucerne", Latitude = 47.05, Longitude = 8.31 }],
     };
 
+    private static NjordOptions Resolved()
+    {
+        var options = Valid();
+        options.ResolvedLocations = options.Locations
+            .Select(l => new Location(l.Name, l.Latitude.GetValueOrDefault(), l.Longitude.GetValueOrDefault()))
+            .ToList();
+        return options;
+    }
+
     [Fact]
     public void Should_accept_a_minimal_valid_scope()
     {
@@ -75,5 +84,36 @@ public sealed class NjordOptionsValidatorTests
         var result = _validator.Validate(null, options);
 
         Assert.Equal(expected, ValidationAssert.SingleFailure(result));
+    }
+
+    [Fact]
+    public void Resolved_locations_should_contain_validated_locations()
+    {
+        var options = Resolved();
+
+        var location = Assert.Single(options.ResolvedLocations);
+        Assert.Multiple(
+            () => Assert.Equal("Lucerne", location.Name),
+            () => Assert.Equal(47.05, location.Latitude),
+            () => Assert.Equal(8.31, location.Longitude));
+    }
+
+    [Fact]
+    public void Find_location_should_return_matching_location_case_insensitively()
+    {
+        var options = Resolved();
+
+        var found = options.FindLocation("lucerne");
+
+        Assert.NotNull(found);
+        Assert.Equal("Lucerne", found.Value.Name);
+    }
+
+    [Fact]
+    public void Find_location_should_return_null_for_unknown_name()
+    {
+        var options = Resolved();
+
+        Assert.Null(options.FindLocation("Unknown"));
     }
 }

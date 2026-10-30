@@ -1,3 +1,4 @@
+using Njord.Core;
 using Njord.Core.AirQuality;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
@@ -17,6 +18,7 @@ public sealed class BudgetGuardTests
     private static NjordOptions Scope(int locations = 1) => new()
     {
         Locations = [.. Enumerable.Range(0, locations).Select(i => new LocationOptions { Name = $"L{i}" })],
+        ResolvedLocations = [.. Enumerable.Range(0, locations).Select(i => new Location($"L{i}", 0, 0))],
     };
 
     private static DomainRequirements Resolved(ForecastParams weather = ForecastParams.Temperature) =>

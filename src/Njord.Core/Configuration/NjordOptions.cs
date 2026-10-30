@@ -7,6 +7,16 @@ public sealed class NjordOptions : IConfigSection
 
     public IList<LocationOptions> Locations { get; set; } = [];
 
-    public LocationOptions? FindLocation(string name) =>
-        Locations.FirstOrDefault(l => l.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    public IReadOnlyList<Location> ResolvedLocations { get; set; } = [];
+
+    public Location? FindLocation(string name)
+    {
+        foreach (var location in ResolvedLocations)
+        {
+            if (location.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                return location;
+        }
+
+        return null;
+    }
 }

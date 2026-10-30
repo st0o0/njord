@@ -38,6 +38,11 @@ public sealed class PollingClusterTests : Akka.Hosting.TestKit.TestKit
                 new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 },
                 new LocationOptions { Name = "zurich", Latitude = 47.37, Longitude = 8.54 },
             ],
+            ResolvedLocations =
+            [
+                new Location("lucerne", 47.05, 8.31),
+                new Location("zurich", 47.37, 8.54),
+            ],
         }));
         services.AddSingleton(Options.Create(AppSettingsDefaults.Options<PollingOptions>()));
     }

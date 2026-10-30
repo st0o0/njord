@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Njord.Core;
 using Njord.Core.AirQuality;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
@@ -20,6 +21,7 @@ public sealed class PollingOptionsValidatorTests
         var scope = new NjordOptions
         {
             Locations = [.. Enumerable.Range(0, locations).Select(i => new LocationOptions { Name = $"L{i}" })],
+            ResolvedLocations = [.. Enumerable.Range(0, locations).Select(i => new Location($"L{i}", 0, 0))],
         };
         return new(
             Options.Create(scope),

@@ -25,6 +25,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     private static readonly NjordOptions Options = new()
     {
         Locations = [new LocationOptions { Name = "Lucerne", Latitude = 47.05, Longitude = 8.31 }],
+        ResolvedLocations = [new Location("Lucerne", 47.05, 8.31)],
     };
 
     [Fact(Timeout = 30_000)]

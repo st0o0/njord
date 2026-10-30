@@ -40,7 +40,7 @@ public sealed class PollManager : ReceiveActor, IWithTimers
         TimeProvider timeProvider)
     {
         _timeProvider = timeProvider;
-        _config = PollManagerConfig.Create(options.Value.Locations);
+        _config = PollManagerConfig.Create(options.Value.ResolvedLocations);
         _state = PollManagerState.Create(_config, polling.Value.DiscoveryInterval, timeProvider.GetUtcNow());
 
         Receive<ResolveRegion>(_ => OnResolveRegion());

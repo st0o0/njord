@@ -46,7 +46,7 @@ public sealed class PollingOptionsValidator(
     {
         try
         {
-            return scope.Value.Locations.Count == 0 ? null : scope.Value;
+            return scope.Value.ResolvedLocations.Count == 0 ? null : scope.Value;
         }
         catch (OptionsValidationException)
         {

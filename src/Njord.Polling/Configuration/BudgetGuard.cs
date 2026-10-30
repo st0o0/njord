@@ -29,7 +29,7 @@ internal static class BudgetGuard
     internal static string? Violation(
         NjordOptions scope, PollingOptions polling, DomainRequirements requirements, DomainCallConfig callConfig)
     {
-        var locationCount = scope.Locations.Count;
+        var locationCount = scope.ResolvedLocations.Count;
 
         var domainCallsPerCycle = locationCount * PerCycleDomains.Count(requirements.Requires);
         var weightPerCycle = ForecastWeight(requirements, callConfig)

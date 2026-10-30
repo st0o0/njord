@@ -26,6 +26,7 @@ public sealed class PollManagerCycleTests : Akka.Hosting.TestKit.TestKit
         _njordOptions = Options.Create(new NjordOptions
         {
             Locations = [new LocationOptions { Name = _location, Latitude = 47.05, Longitude = 8.31 }],
+            ResolvedLocations = [new Location(_location, 47.05, 8.31)],
         });
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)

@@ -17,6 +17,7 @@ public sealed class PollManagerLateRegionTests : Akka.Hosting.TestKit.TestKit
     private readonly IOptions<NjordOptions> _njordOptions = Options.Create(new NjordOptions
     {
         Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
+        ResolvedLocations = [new Location("lucerne", 47.05, 8.31)],
     });
 
     private readonly IOptions<PollingOptions> _pollingOptions = Options.Create(AppSettingsDefaults.Options<PollingOptions>());
