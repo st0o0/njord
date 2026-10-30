@@ -1,3 +1,7 @@
+## Purpose
+
+The soak-test skill orchestrates the full soak test lifecycle: stack setup, collector execution, and automated evaluation of the JSONL results.
+
 ## Requirements
 
 ### Requirement: Soak test skill lifecycle

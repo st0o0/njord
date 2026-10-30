@@ -1,3 +1,7 @@
+## Purpose
+
+The soak-test collector is a Python script that samples njord's health, metrics, gRPC status and HA entities over a multi-hour run, producing structured JSONL output for automated evaluation.
+
 ## Requirements
 
 ### Requirement: Periodic data collection

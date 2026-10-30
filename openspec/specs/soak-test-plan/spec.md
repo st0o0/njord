@@ -1,3 +1,7 @@
+## Purpose
+
+The soak-test plan documents the 4-hour stability test design, configuration, evaluation criteria and container restart protocol.
+
 ## Requirements
 
 ### Requirement: Test plan documentation

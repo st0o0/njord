@@ -5,4 +5,10 @@ This capability has been replaced. The resolved feature requirements are now `Do
 
 ## Requirements
 
-None. All former requirements of this capability were removed.
+### Requirement: Capability superseded
+
+The system SHALL NOT contain any type named `FeatureRequirementsOptions` or `FeatureResolution`. This capability has been superseded by `domain-requirements`, `ensemble-api-options` and `forecast-api-options`.
+
+#### Scenario: No runtime effect
+- **WHEN** the system starts
+- **THEN** no `FeatureRequirementsOptions` or `FeatureResolution` type SHALL exist
