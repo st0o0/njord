@@ -1,83 +1,136 @@
 ---
 name: njord-actor-spec
-description: Use when writing or changing tests for actors, enrichment features or persistence DTOs in the src/Njord*.Tests projects — Akka.Hosting TestKit specs via NjordActorSpec, in-memory persistence, FakeTimeProvider, nested fake actors and Verify wire-format snapshots.
+description: Use when writing or changing tests for actors, enrichment features or persistence DTOs in the src/Njord*.Tests projects — Akka.Hosting TestKit, in-memory persistence, FakeTimeProvider, nested fake actors and Verify wire-format snapshots.
 ---
 
 # njord actor spec
 
-Test rules (`Spec` suffix, `sealed`, `[Fact(Timeout = ...)]` as outer safety net above the dilated TestKit waits (`TestTimeouts.Hosted` for hosted specs; TestKit dilates explicit durations too, so pass the un-dilated `TestTimeouts.AwaitAssertMax` to `AwaitAssert`/`AwaitCondition`/`ExpectMsg` and use `TestTimeouts.RealTimeWaitMax` for `Task.WaitAsync`), BDD-style names, assertion conventions) live in `AGENTS.md` — follow them. Run tests from `src/` with `dotnet run`, never `dotnet test`:
+Test rules (`Tests` suffix, `sealed`, `[Fact(Timeout = 30000)]` as outer safety net, BDD-style names, assertion conventions) live in `AGENTS.md` -- follow them. Run tests from `src/` with `dotnet run`, never `dotnet test`:
 
 ```powershell
-dotnet run --project Njord.Budget.Tests/Njord.Budget.Tests.csproj -- -class "Njord.Budget.Tests.BudgetTrackerSpec"
+dotnet run --project Njord.Budget.Tests/Njord.Budget.Tests.csproj -- -class "Njord.Budget.Tests.BudgetTrackerTests"
 ```
 
 Every `Njord.<Project>.Tests` project tests exactly one production project; shared fakes and helpers live in `Njord.Tests.Shared`.
 
-## Which kind of spec
+## Which kind of test
 
 | Subject | Base | Example |
 |---|---|---|
-| Actor (incl. persistent) | `NjordActorSpec` (`Njord.Tests.Shared`, derives from `Akka.Hosting.TestKit.TestKit`) | `src/Njord.Budget.Tests/BudgetTrackerSpec.cs`, `src/Njord.Polling.Tests/PollWorkerOutcomeSpec.cs` |
-| Analysis feature / pure logic | plain class, no TestKit | `src/Njord.Features.Tests/Alerts/WeatherAlertsSpec.cs` |
-| gRPC service (ask and map) | `NjordActorSpec` + a fake actor behind the marker | `src/Njord.Grpc.Tests/WeatherGrpcServiceSpec.cs` |
-| Persistence record wire format | plain class + Verify | `src/Njord.Persistence.Tests/PollWorkerRecordsSpec.cs` |
+| Actor (incl. persistent) | `Akka.Hosting.TestKit.TestKit` | `src/Njord.Budget.Tests/BudgetTrackerTests.cs`, `src/Njord.Polling.Tests/PollWorkerLifecycleTests.cs` |
+| Analysis feature / pure logic | plain class, no TestKit | `src/Njord.Features.Tests/` |
+| gRPC service (ask and map) | `Akka.Hosting.TestKit.TestKit` + fake actors behind markers | `src/Njord.Grpc.Tests/WeatherGrpcServiceTests.cs` |
+| Persistence record wire format | plain class + Verify | `src/Njord.Persistence.Tests/WireFormatTests.cs` |
 | Architecture rule | plain class, ArchUnitNET or reflection | `src/Njord.Architecture.Tests/` |
 
-## Actor spec skeleton (from `BudgetTrackerSpec`)
+## Actor test skeleton (from `BudgetTrackerTests`)
 
 ```csharp
-public sealed class BudgetTrackerSpec : NjordActorSpec
+public sealed class BudgetTrackerTests : Akka.Hosting.TestKit.TestKit
 {
-    private static readonly DateTimeOffset T0 = TestTimeConstants.BudgetEpoch;
-    private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(T0);   // Microsoft.Extensions.Time.Testing
-    private readonly BudgetUsageState _usage = new();
-    private readonly IOptions<PollingOptions> _polling = Options.Create(new PollingOptions());
+    private readonly FakeTimeProvider _time = new(TestTimeConstants.BudgetEpoch);
+    private IOptions<PollingOptions> _polling = Options.Create(AppSettingsDefaults.Options<PollingOptions>());
 
-    protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
-        => services.AddSingleton<TimeProvider>(_time);
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) =>
+        builder.AddTestPersistence();
 
-    private IActorRef CreateActor(string? name = null) => Sys.ActorOf(
-        Props.Create(() => new BudgetTracker(_time, _polling)),
-        name ?? $"budget-tracker-{Guid.NewGuid():N}");   // unique name per test
+    protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services) =>
+        services.AddSingleton<TimeProvider>(_time);
 
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Records_and_queries_usage()
+    private IActorRef CreateTracker() =>
+        Sys.ActorOf(Props.Create(() => new BudgetTracker(_time, _polling)), $"budget-tracker-{Guid.NewGuid():N}");
+
+    [Fact(Timeout = 30000)]
+    public async Task Recorded_calls_are_reported_as_weighted_usage()
     {
-        var actor = CreateActor();
-        actor.Tell(new RecordApiCall(1));
+        var tracker = CreateTracker();
+        tracker.Tell(new RecordApiCall(4));
 
-        var usage = await actor.Ask<BudgetUsageResult>(
-            new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+        var status = await tracker.Ask<BudgetStatusResult>(
+            new QueryBudgetStatus(), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
-        Assert.Equal(1, usage.DailyUsed);
+        Assert.Equal(4, status.DailyUsed);
     }
 }
 ```
 
-- `NjordActorSpec` registers in-memory persistence (`AddTestPersistence()`) and the test time factor; override `UseTestPersistence => false` for non-persistent actors and `ConfigureActors(...)` to add actors to the Akka configuration. `GetActor<TKey>()` resolves a registered marker.
-- Always pass `TestContext.Current.CancellationToken`; advance time with `_time.SetUtcNow(...)` / `Advance(...)`, never sleep. Use `TestTimeouts.AtEpoch()` for a `FakeTimeProvider` and `AppSettingsDefaults.Options<T>(...)` for options (never `new XOptions()` for values that have a shipped default).
-- Recovery test: `await actor.GracefulStop(...)`, then recreate the actor under a new unique name (never reuse a name after `GracefulStop`); recovery follows the persistence id, not the actor name. Assert the recovered state (see `BudgetTrackerSpec`).
-- Collaborators: a nested `private sealed class FakeXxx : ReceiveActor` registered under the marker interface in `ActorRegistry`, or `CreateTestProbe()` (examples: `src/Njord.Grpc.Tests/WeatherGrpcServiceSpec.cs`, `src/Njord.Grpc.Tests/OpsGrpcServiceSpec.cs`, `src/Njord.OpenMeteo.Tests/GatewayBudgetGateSpec.cs`).
-- Waiting for eventually-consistent state: `AwaitAssertAsync(..., TestTimeouts.AwaitAssertMax, cancellationToken: ct)`, never `Task.Delay`/`Thread.Sleep`.
-- Time: use the framework `FakeTimeProvider` everywhere; do not write your own. Helpers that need a clock take a `TimeProvider` parameter.
+- Derive from `Akka.Hosting.TestKit.TestKit` directly (no intermediate base class).
+- Override `ConfigureAkka` to call `builder.AddTestPersistence()` for persistent actors (in-memory journal + snapshot store via `Njord.Tests.Shared.TestAkkaExtensions`). Non-persistent actors: leave `ConfigureAkka` empty or omit the persistence call.
+- Override `ConfigureServices` to register `FakeTimeProvider` as `TimeProvider`.
+- Always pass `TestContext.Current.CancellationToken`; advance time with `_time.SetUtcNow(...)` / `_time.Advance(...)`, never sleep.
+- Use `AppSettingsDefaults.Options<T>()` for options that have shipped defaults (never `new XOptions()` for values that have a shipped default). Mutate with `AppSettingsDefaults.Options<T>(o => o.Prop = val)`.
+- Actor names: always unique per test via `$"name-{Guid.NewGuid():N}"`.
 
-## Verify wire-format snapshot (from `PollWorkerRecordsSpec`)
+## Collaborators
+
+Register probes or fake actors for every marker the actor under test resolves:
 
 ```csharp
-using static VerifyXunit.Verifier;
+private TestProbe _gateway = null!;
+private TestProbe _manager = null!;
 
-[Fact]
-public Task PersistedPollWorkerState_wire_format() =>
-    Verify(JsonConvert.SerializeObject(Snapshot, Formatting.Indented));
+protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+{
+    builder.AddTestPersistence();
+    builder.WithActors((_, registry) =>
+    {
+        _gateway = CreateTestProbe("gateway");
+        _manager = CreateTestProbe("manager");
+        registry.Register<IForecastGateway>(_gateway.Ref);
+        registry.Register<IPollManager>(_manager.Ref);
+    });
+}
 ```
 
-- Baselines sit next to the spec as `<Class>.<Method>.verified.txt`; a change in them is a wire-format change — review it against the persistence record rules in `AGENTS.md`.
-- `ModuleInitializer.cs` (in `Njord.Budget.Tests`, `Njord.Core.Tests`, `Njord.Grpc.Tests`, `Njord.Persistence.Tests`, `Njord.Pipeline.Tests`) disables the diff tool (`DiffRunner.Disabled = true`): failures print the diff, nothing launches.
+- `CreateTestProbe()` for message-level assertions (`ExpectMsgAsync`, `LastSender`).
+- Nested `private sealed class FakeXxx : ReceiveActor` registered under the marker for more complex fakes (examples: `src/Njord.Grpc.Tests/WeatherGrpcServiceTests.cs`, `src/Njord.Grpc.Tests/OpsGrpcServiceTests.cs`).
+
+## Recovery test pattern
+
+```csharp
+[Fact(Timeout = 30000)]
+public async Task A_restarted_tracker_recovers_usage_from_the_journal()
+{
+    var tracker = CreateTracker();
+    tracker.Tell(new RecordApiCall(4));
+    await UsageOf(tracker, TestContext.Current.CancellationToken);
+
+    Watch(tracker);
+    Sys.Stop(tracker);
+    await ExpectTerminatedAsync(tracker, cancellationToken: TestContext.Current.CancellationToken);
+
+    var recovered = CreateTracker();
+    Assert.Equal((4, 4), await UsageOf(recovered, TestContext.Current.CancellationToken));
+}
+```
+
+- Stop with `Sys.Stop` + `Watch`/`ExpectTerminatedAsync` (or `GracefulStop`).
+- Recreate under a new unique name (never reuse a name after stopping); recovery follows the persistence id, not the actor name.
+
+## Verify wire-format snapshot (from `WireFormatTests`)
+
+```csharp
+[Fact]
+public Task Poll_worker_state_shape() =>
+    Verify(JsonConvert.SerializeObject(State, Formatting.Indented));
+```
+
+- Baselines sit next to the test as `<Class>.<Method>.verified.txt`; a change in them is a wire-format change -- review it against the persistence record rules in `AGENTS.md`.
+- `ModuleInitializer.cs` (in test projects that use Verify) disables the diff tool (`DiffRunner.Disabled = true`): failures print the diff, nothing launches.
+
+## Shared helpers (`Njord.Tests.Shared`)
+
+| Helper | Purpose |
+|---|---|
+| `TestAkkaExtensions.AddTestPersistence()` | In-memory journal + snapshot store |
+| `TestTimeConstants` | Fixed epoch timestamps (`BudgetEpoch`, `PipelineEpoch`, `NoonAnchor`, `ForecastEpoch`, `EnrichmentEpoch`) |
+| `AppSettingsDefaults.Options<T>()` | Shipped option values bound like the host binds them |
+| `TestRequirements.For(domains)` | `DomainRequirements` for a given set of domains |
 
 ## Checklist
 
-1. Right base class (`NjordActorSpec` only for actors); unique actor names.
-2. Persistence via `NjordActorSpec` defaults, time via `FakeTimeProvider` registered as `TimeProvider`.
-3. Cancellation token and timeouts on every async call.
-4. Persistent actor: a recovery spec. Persistence record: a roundtrip and a Verify spec.
+1. Derive from `Akka.Hosting.TestKit.TestKit`; unique actor names.
+2. `AddTestPersistence()` for persistent actors, `FakeTimeProvider` registered as `TimeProvider`.
+3. `TestContext.Current.CancellationToken` and explicit timeouts on every async call.
+4. Persistent actor: a recovery test. Persistence record: a roundtrip test and a Verify wire-format test.
 5. Run the single class first, then the whole project.

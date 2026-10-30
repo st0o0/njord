@@ -18,8 +18,8 @@ All code, specs, docs, and communication in English.
 
 - `njord-enrichment-feature` -- **Load before adding/changing an enrichment.**
   `FeatureRule<TInput>`, `FeatureDescriptor`, `<Name>Config`, registration, result/contract, Config Builder.
-- `njord-actor-spec` -- **Load before writing actor, handler or persistence-record
-  tests.** `NjordActorSpec`, in-memory persistence, `FakeTimeProvider`, Verify.
+- `njord-actor-spec` -- **Load before writing actor or persistence-record
+  tests.** `Akka.Hosting.TestKit.TestKit`, in-memory persistence, `FakeTimeProvider`, Verify.
 - `e2e-test` -- Full-stack check (njord + ha-njord + Home Assistant) via Docker Compose.
 
 ### Akka.NET skills -- when to load
@@ -52,7 +52,7 @@ plugin, which is not installed on every machine; the routes do not resolve witho
 - Actor patterns: `dotnet-skills:csharp-concurrency-patterns`,
   `dotnet-skills:dotnet-concurrency-specialist` (agent)
 - C# coding: `dotnet-skills:csharp-coding-standards`, `dotnet-skills:csharp-type-design-performance`
-- Testing: `dotnet-skills:testcontainers` (Mosquitto), `dotnet-skills:snapshot-testing` (Verify)
+- Testing: `dotnet-skills:testcontainers`, `dotnet-skills:snapshot-testing` (Verify)
 - Project structure: `dotnet-skills:project-structure`, `dotnet-skills:package-management`
 - DI / Config: `dotnet-skills:microsoft-extensions-dependency-injection`,
   `dotnet-skills:microsoft-extensions-configuration`
