@@ -1,4 +1,6 @@
 using Njord.Configuration;
+using Njord.Core;
+using Njord.Core.Configuration;
 using Njord.Tests.Shared;
 
 namespace Njord.IntegrationTests;

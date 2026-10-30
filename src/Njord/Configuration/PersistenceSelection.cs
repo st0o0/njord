@@ -1,4 +1,3 @@
-
 using Njord.Core;
 using Njord.Core.Configuration;
 
@@ -9,10 +8,10 @@ internal sealed record PersistenceSelection(string ConnectionString, string Prov
     public static PersistenceSelection From(PersistenceOptions persistence, string persistencePath)
     {
         var connectionString = persistence.ConnectionString
-            ?? (persistence.Provider == PersistenceProvider.Sqlite
-                ? $"Data Source={Path.GetFullPath(persistencePath)}"
-                : throw new InvalidOperationException(
-                    "PostgreSQL persistence requires a connection string: set Njord:Persistence:ConnectionString."));
+                               ?? (persistence.Provider == PersistenceProvider.Sqlite
+                                   ? $"Data Source={Path.GetFullPath(persistencePath)}"
+                                   : throw new InvalidOperationException(
+                                       "PostgreSQL persistence requires a connection string: set Njord:Persistence:ConnectionString."));
 
         var providerName = persistence.Provider switch
         {

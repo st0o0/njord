@@ -1,5 +1,4 @@
-using Njord.Core.Configuration;
-namespace Njord.Configuration;
+namespace Njord.Core.Configuration;
 
 public sealed class PersistenceOptions : IConfigSection
 {

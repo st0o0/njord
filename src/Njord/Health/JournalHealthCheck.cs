@@ -2,6 +2,8 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
+using Njord.Core;
+using Njord.Core.Configuration;
 using Npgsql;
 
 namespace Njord.Health;

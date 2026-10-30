@@ -5,8 +5,7 @@ namespace Njord.Core.Configuration;
 
 public static class OptionsRegistrationExtensions
 {
-    public static OptionsBuilder<T> AddNjordOptions<T>(this IServiceCollection services)
-        where T : class, IConfigSection
+    public static OptionsBuilder<T> AddNjordOptions<T>(this IServiceCollection services) where T : class, IConfigSection
     {
         if (typeof(IHasArrayDefaults).IsAssignableFrom(typeof(T)))
         {
@@ -23,5 +22,4 @@ public static class OptionsRegistrationExtensions
         services.AddSingleton<IValidateOptions<T>, TValidator>();
         return services.AddNjordOptions<T>();
     }
-
 }
