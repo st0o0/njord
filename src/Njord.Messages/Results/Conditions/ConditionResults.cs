@@ -141,8 +141,6 @@ public sealed record CloudCeilingConditionResult(Location Location, CeilingCateg
 
 public sealed record SolarYieldResult(Location Location, double KwhPerKwp, int PeakHour) : ConditionFeatureResult(Location);
 
-public sealed record SatelliteRadiationResult(Location Location, DateTimeOffset ObservedAt, double Gti, double? Ghi, double? BlendedKwhPerSquareMeter) : ConditionFeatureResult(Location);
-
 public sealed record ApproachingFrontResult(Location Location, double EstimatedInHours, double PressureDrop, double TemperatureDrop) : ConditionFeatureResult(Location);
 
 public enum SnowDepthLevel { None, Light, Moderate, Heavy, Extreme }

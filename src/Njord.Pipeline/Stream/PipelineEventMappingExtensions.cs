@@ -4,7 +4,6 @@ using Njord.Core.Flood;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Core.Seasonal;
-using Njord.Core.Solar;
 using Njord.Messages.Stream;
 
 namespace Njord.Pipeline.Stream;
@@ -18,7 +17,6 @@ internal static class PipelineEventMappingExtensions
         DomainKind.Flood => new FloodDataReceived(received.Location, Typed<FloodPoint>(received)),
         DomainKind.Marine => new MarineDataReceived(received.Location, Typed<MarinePoint>(received)),
         DomainKind.Seasonal => new SeasonalDataReceived(received.Location, Typed<SeasonalPoint>(received)),
-        DomainKind.Satellite => new SatelliteDataReceived(received.Location, Typed<SatelliteRadiationPoint>(received)),
         DomainKind.Ensemble when received.ModelId is not null => new ForecastDataReceived(received.Location, Typed<ForecastPoint>(received), received.ModelId),
         DomainKind.Ensemble => new EnsembleDataReceived(received.Location, Typed<EnsemblePoint>(received)),
         _ => throw new ArgumentOutOfRangeException(nameof(received), received.Domain, null),

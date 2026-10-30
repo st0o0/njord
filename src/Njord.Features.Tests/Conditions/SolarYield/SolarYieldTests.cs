@@ -1,9 +1,7 @@
-using System.Collections.Immutable;
 using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
-using Njord.Core.Solar;
 using Njord.Features.Conditions.SolarYield;
 using Njord.Messages.Results.Conditions;
 using static Njord.Tests.Shared.AlertRuleFixture;
@@ -25,13 +23,6 @@ public sealed class SolarYieldTests
         GlobalTiltedIrradiance = hour == 3 ? 800.0 : 100.0,
     }));
 
-    private static LocationForecast WithSatellite(params (int HoursAgo, double Gti)[] hours) =>
-        Sunny() with
-        {
-            Satellite = new DomainForecast<SatelliteRadiationPoint>(DomainKind.Satellite, Now, TimeResolution.Hourly,
-                [.. hours.OrderByDescending(h => h.HoursAgo).Select(h => new SatelliteRadiationPoint(Now.AddHours(-h.HoursAgo), GTI: h.Gti))]),
-        };
-
     [Fact]
     public void Tilted_irradiance_is_summed_and_scaled_by_efficiency()
     {
@@ -51,33 +42,6 @@ public sealed class SolarYieldTests
     }
 
     [Fact]
-    public void Satellite_irradiance_is_used_up_to_the_newest_observation_and_the_ensemble_afterwards()
-    {
-        var yield = Assert.IsType<SolarYieldResult>(Run(Feature(), Now, WithSatellite((1, 50.0), (0, 400.0))));
-
-        Assert.Multiple(
-            () => Assert.Equal(Math.Round((400.0 + 800.0 + 22 * 100.0) / 1000.0 * Efficiency * PeakKw, 2), yield.KwhPerKwp),
-            () => Assert.Equal(Now.AddHours(3).Hour, yield.PeakHour));
-    }
-
-    [Fact]
-    public void A_measured_peak_wins_the_peak_hour()
-    {
-        var yield = Assert.IsType<SolarYieldResult>(Run(Feature(), Now, WithSatellite((0, 1000.0))));
-
-        Assert.Equal(Now.Hour, yield.PeakHour);
-    }
-
-    [Fact]
-    public void Satellite_data_older_than_three_hours_is_ignored()
-    {
-        var withStale = Assert.IsType<SolarYieldResult>(Run(Feature(), Now, WithSatellite((4, 900.0))));
-        var ensembleOnly = Assert.IsType<SolarYieldResult>(Run(Feature(), Now, Sunny()));
-
-        Assert.Equal(ensembleOnly, withStale);
-    }
-
-    [Fact]
     public void The_requirements_ask_for_global_tilted_irradiance()
     {
         Assert.Equal(ForecastParams.GlobalTiltedIrradiance, Feature().Descriptor.Requirements.Forecast);
@@ -89,22 +53,13 @@ public sealed class SolarYieldTests
         Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
     }
 
-    [Fact]
-    public void The_requirements_ask_for_tilted_satellite_irradiance_without_gating_on_it()
-    {
-        Assert.Equal(SatelliteParams.GlobalTilted, Feature().Descriptor.Requirements.OptionalSatellite);
-        Assert.Equal(SatelliteParams.None, Feature().Descriptor.Requirements.Satellite);
-    }
-
-    // 13 satellite hours today (00:00 to 12:00) and 24 forecast hours tomorrow, both as irradiance on the panel.
+    // 12 forecast hours today (12:00 to 23:00) and 24 forecast hours tomorrow, both as irradiance on the panel.
     private const double KwhPerWatt = PeakKw / 1000.0 * Efficiency;
 
     private static LocationForecast BatteryScenario(double todayGti, double tomorrowGti)
     {
-        var forecast = Hourly(36, (_, point) => point with { GlobalTiltedIrradiance = tomorrowGti });
-        var satellite = new DomainForecast<SatelliteRadiationPoint>(DomainKind.Satellite, Now, TimeResolution.Hourly,
-            [.. Enumerable.Range(0, 13).Select(hour => new SatelliteRadiationPoint(Now.AddHours(hour - 12), GTI: todayGti))]);
-        return new(Lucerne, forecast, Satellite: satellite);
+        var forecast = Hourly(36, (hour, point) => point with { GlobalTiltedIrradiance = hour < 12 ? todayGti : tomorrowGti });
+        return new(Lucerne, forecast);
     }
 
     private static SolarBatteryStrategyConditionResult Battery(double todayGti, double tomorrowGti)
@@ -131,7 +86,7 @@ public sealed class SolarYieldTests
 
         Assert.Multiple(
             () => Assert.Equal(BatteryStrategy.FeedIn, result.Strategy),
-            () => Assert.Equal(Math.Round(13 * 800.0 * KwhPerWatt, 2), result.TodayKwh),
+            () => Assert.Equal(Math.Round(12 * 800.0 * KwhPerWatt, 2), result.TodayKwh),
             () => Assert.Equal(Math.Round(24 * 1600.0 * KwhPerWatt, 2), result.TomorrowKwhEstimate));
     }
 
@@ -150,7 +105,7 @@ public sealed class SolarYieldTests
     [Fact]
     public void Similar_days_are_normal()
     {
-        Assert.Equal(BatteryStrategy.Normal, Battery(800.0, 800.0 * 13 / 24).Strategy);
+        Assert.Equal(BatteryStrategy.Normal, Battery(800.0, 800.0 * 12 / 24).Strategy);
     }
 
     [Fact]
@@ -177,20 +132,9 @@ public sealed class SolarYieldTests
     }
 
     [Fact]
-    public void No_battery_result_without_satellite_data_for_today()
-    {
-        var scenario = BatteryScenario(800.0, 800.0) with
-        {
-            Satellite = new DomainForecast<SatelliteRadiationPoint>(DomainKind.Satellite, Now, TimeResolution.Hourly, ImmutableArray<SatelliteRadiationPoint>.Empty),
-        };
-
-        Assert.IsType<SolarYieldResult>(Assert.Single(RunAll(Feature(10.0), Now, scenario)));
-    }
-
-    [Fact]
     public void No_battery_result_without_forecast_irradiance_for_tomorrow()
     {
-        var scenario = BatteryScenario(800.0, 800.0) with { Forecast = Hourly(36, (_, point) => point with { GlobalTiltedIrradiance = null }) };
+        var scenario = BatteryScenario(800.0, 800.0) with { Forecast = Hourly(36, (hour, point) => point with { GlobalTiltedIrradiance = hour < 12 ? 800.0 : null }) };
 
         Assert.IsType<SolarYieldResult>(Assert.Single(RunAll(Feature(10.0), Now, scenario)));
     }

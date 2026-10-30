@@ -3,7 +3,6 @@ using Njord.Core.Flood;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Core.Seasonal;
-using Njord.Core.Solar;
 
 namespace Njord.Core.Domain;
 
@@ -19,9 +18,7 @@ public sealed record DomainRequirements(
     MarineParams Marine = default,
     MarineParams OptionalMarine = default,
     SeasonalParams Seasonal = default,
-    SeasonalParams OptionalSeasonal = default,
-    SatelliteParams Satellite = default,
-    SatelliteParams OptionalSatellite = default)
+    SeasonalParams OptionalSeasonal = default)
 {
     public DomainRequirements WithBaseParams() => this with
     {
@@ -39,7 +36,6 @@ public sealed record DomainRequirements(
 
     public SeasonalParams AllSeasonal => Seasonal | OptionalSeasonal;
 
-    public SatelliteParams AllSatellite => Satellite | OptionalSatellite;
 
     public EnsembleParams AllEnsemble => Ensemble | OptionalEnsemble;
 
@@ -55,9 +51,7 @@ public sealed record DomainRequirements(
         a.Marine | b.Marine,
         a.OptionalMarine | b.OptionalMarine,
         a.Seasonal | b.Seasonal,
-        a.OptionalSeasonal | b.OptionalSeasonal,
-        a.Satellite | b.Satellite,
-        a.OptionalSatellite | b.OptionalSatellite);
+        a.OptionalSeasonal | b.OptionalSeasonal);
 
     public bool Requires(DomainKind domain) => domain switch
     {
@@ -66,7 +60,6 @@ public sealed record DomainRequirements(
         DomainKind.Flood => AllFlood != default,
         DomainKind.Marine => AllMarine != default,
         DomainKind.Seasonal => AllSeasonal != default,
-        DomainKind.Satellite => AllSatellite != default,
         DomainKind.Ensemble => AllEnsemble != default,
         _ => false,
     };

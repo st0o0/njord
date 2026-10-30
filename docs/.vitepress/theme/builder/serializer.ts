@@ -63,7 +63,7 @@ export function mergeWithDefaults(partial: Partial<NjordConfig>): NjordConfig {
     airQuality: { ...d.airQuality, ...partial.airQuality },
     marine: { ...d.marine, ...partial.marine },
     flood: { ...d.flood, ...partial.flood },
-    satellite: { ...d.satellite, ...partial.satellite },
+    solar: { ...d.solar, ...partial.solar },
     persistence: { ...d.persistence, ...partial.persistence },
     deploy: { limits: { ...d.deploy.limits, ...partial.deploy?.limits } },
   }
@@ -100,10 +100,10 @@ export function exportAsJson(config: NjordConfig): string {
   if (config.flood.forecastDays !== defaults.flood.forecastDays) flood.ForecastDays = config.flood.forecastDays
   if (config.flood.includeEnsemble) flood.IncludeEnsemble = true
   if (Object.keys(flood).length) n.Flood = flood
-  const satellite: Record<string, unknown> = {}
-  if (config.satellite.tilt !== defaults.satellite.tilt) satellite.Tilt = config.satellite.tilt
-  if (config.satellite.azimuth !== defaults.satellite.azimuth) satellite.Azimuth = config.satellite.azimuth
-  if (Object.keys(satellite).length) n.Satellite = satellite
+  const solar: Record<string, unknown> = {}
+  if (config.solar.tilt !== defaults.solar.tilt) solar.Tilt = config.solar.tilt
+  if (config.solar.azimuth !== defaults.solar.azimuth) solar.Azimuth = config.solar.azimuth
+  if (Object.keys(solar).length) n.Solar = solar
   const features: Record<string, Record<string, unknown>> = {}
   for (const [key, enabled] of changedFeatures(config.features)) {
     ;(features[key] ??= {}).Enabled = enabled
@@ -161,8 +161,8 @@ export function exportAsEnvVars(config: NjordConfig): string {
     if (loc.longitude !== undefined) add(`Njord__Locations__${i}__Longitude`, String(loc.longitude))
   })
 
-  if (config.satellite.tilt !== defaults.satellite.tilt) add('Njord__Satellite__Tilt', String(config.satellite.tilt))
-  if (config.satellite.azimuth !== defaults.satellite.azimuth) add('Njord__Satellite__Azimuth', String(config.satellite.azimuth))
+  if (config.solar.tilt !== defaults.solar.tilt) add('Njord__Solar__Tilt', String(config.solar.tilt))
+  if (config.solar.azimuth !== defaults.solar.azimuth) add('Njord__Solar__Azimuth', String(config.solar.azimuth))
 
   if (config.budgetOverride) {
     add('Njord__Polling__BudgetOverride__RequestsPerMonth', String(config.budgetOverride.requestsPerMonth))
@@ -238,11 +238,11 @@ export function importFromJson(json: string): Partial<NjordConfig> {
         : defaultConfig().ensemble.models,
     }
   }
-  if (n.Satellite) {
-    const d = defaultConfig().satellite
-    config.satellite = {
-      tilt: n.Satellite.Tilt !== undefined ? Number(n.Satellite.Tilt) : d.tilt,
-      azimuth: n.Satellite.Azimuth !== undefined ? Number(n.Satellite.Azimuth) : d.azimuth,
+  if (n.Solar) {
+    const d = defaultConfig().solar
+    config.solar = {
+      tilt: n.Solar.Tilt !== undefined ? Number(n.Solar.Tilt) : d.tilt,
+      azimuth: n.Solar.Azimuth !== undefined ? Number(n.Solar.Azimuth) : d.azimuth,
     }
   }
   if (n.AirQuality) config.airQuality = { forecastDays: Number(n.AirQuality.ForecastDays) || 5, region: n.AirQuality.Region ?? 'Global' }
@@ -325,11 +325,11 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     else if (parts[0] === 'Flood' && parts[1] === 'IncludeEnsemble') {
       config.flood.includeEnsemble = value.toLowerCase() === 'true'
     }
-    else if (parts[0] === 'Satellite') {
+    else if (parts[0] === 'Solar') {
       const num = parseFloat(value)
       if (!Number.isNaN(num)) {
-        if (parts[1] === 'Azimuth') config.satellite.azimuth = num
-        else if (parts[1] === 'Tilt') config.satellite.tilt = num
+        if (parts[1] === 'Azimuth') config.solar.azimuth = num
+        else if (parts[1] === 'Tilt') config.solar.tilt = num
       }
     }
     else if (parts[0] === 'AirQuality' && parts[1] === 'ForecastDays') config.airQuality.forecastDays = parseInt(value) || 5

@@ -252,25 +252,6 @@ internal static class FeatureResultMappingExtensions
         };
     }
 
-    public static V2.SatelliteRadiation ToProto(this SatelliteRadiationResult r)
-    {
-        var proto = new V2.SatelliteRadiation
-        {
-            Condition = new V2.ConditionData(),
-            ObservedAt = r.ObservedAt.ToTimestamp(),
-            Gti = r.Gti,
-        };
-        if (r.Ghi is { } ghi)
-        {
-            proto.Ghi = ghi;
-        }
-        if (r.BlendedKwhPerSquareMeter is { } blendedKwhPerSquareMeter)
-        {
-            proto.BlendedKwhPerSquareMeter = blendedKwhPerSquareMeter;
-        }
-        return proto;
-    }
-
     public static V2.SnowDepthWatchCondition ToProto(this SnowDepthWatchResult r)
     {
         return new V2.SnowDepthWatchCondition

@@ -7,6 +7,5 @@ public enum DomainKind
     Flood,
     Marine,
     Seasonal,
-    Satellite,
     Ensemble,
 }

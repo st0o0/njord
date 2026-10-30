@@ -8,7 +8,6 @@ using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Core.Polling;
 using Njord.Core.Seasonal;
-using Njord.Core.Solar;
 using Njord.Messages.Fetch;
 using Njord.Messages.Stream;
 using Njord.OpenMeteo.Gateway;
@@ -24,7 +23,6 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
     private readonly FakeFloodClient _flood = new();
     private readonly FakeMarineClient _marine = new();
     private readonly FakeSeasonalClient _seasonal = new();
-    private readonly FakeSatelliteRadiationClient _satellite = new();
     private readonly FakeEnsembleClient _ensemble = new();
     private Akka.TestKit.TestProbe _attached = null!;
     private Akka.TestKit.TestProbe _forecasts = null!;
@@ -50,7 +48,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
     }
 
     private IReadOnlyDictionary<DomainKind, IDomainClient> Clients(params DomainKind[] without) =>
-        new IDomainClient[] { _weather, _airQuality, _flood, _marine, _seasonal, _satellite, _ensemble }
+        new IDomainClient[] { _weather, _airQuality, _flood, _marine, _seasonal, _ensemble }
             .Where(c => !without.Contains(c.Domain))
             .ToDictionary(c => c.Domain);
 
@@ -132,20 +130,6 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
             () => Assert.Equal(1.0, forecast.Points[0].TemperatureAnomaly),
             () => Assert.Equal(1, _seasonal.Calls),
             () => Assert.Equal(0, _weather.Calls + _airQuality.Calls + _flood.Calls + _marine.Calls));
-    }
-
-    [Fact(Timeout = 30000)]
-    public async Task A_satellite_fetch_uses_the_satellite_client_and_delivers_hourly_points()
-    {
-        var (completed, received) = await FetchAsync(DomainKind.Satellite, TestContext.Current.CancellationToken);
-
-        var forecast = Assert.IsType<DomainForecast<SatelliteRadiationPoint>>(received.Data);
-        Assert.Multiple(
-            () => Assert.Equal(DomainKind.Satellite, completed.Domain),
-            () => Assert.Equal(TimeResolution.Hourly, forecast.Resolution),
-            () => Assert.Equal(350.0, forecast.Points[0].GTI),
-            () => Assert.Equal(1, _satellite.Calls),
-            () => Assert.Equal(0, _weather.Calls + _airQuality.Calls + _flood.Calls + _marine.Calls + _seasonal.Calls));
     }
 
     [Fact(Timeout = 30000)]

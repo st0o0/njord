@@ -4,7 +4,6 @@ using Njord.Core.Flood;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Core.Seasonal;
-using Njord.Core.Solar;
 
 namespace Njord.Core.Domain;
 
@@ -13,7 +12,6 @@ public readonly record struct ForecastInput(DomainForecast<ForecastPoint> Foreca
 public readonly record struct ForecastEnsembleInput(DomainForecast<ForecastPoint> Forecast, DomainForecast<EnsemblePoint> Ensemble);
 public readonly record struct AqInput(DomainForecast<AirQualityPoint> AirQuality);
 public readonly record struct ForecastAqInput(DomainForecast<ForecastPoint> Forecast, DomainForecast<AirQualityPoint> AirQuality);
-public readonly record struct ForecastSolarInput(DomainForecast<ForecastPoint> Forecast, DomainForecast<SatelliteRadiationPoint> Satellite);
 public readonly record struct FloodInput(DomainForecast<FloodPoint> Flood);
 public readonly record struct FloodForecastInput(DomainForecast<FloodPoint> Flood, DomainForecast<ForecastPoint> Forecast);
 public readonly record struct MarineInput(DomainForecast<MarinePoint> Marine);

@@ -548,28 +548,6 @@ public sealed class EnrichmentEventMappingsTests
     }
 
     [Fact]
-    public void Satellite_radiation_maps_to_the_satellite_radiation_case()
-    {
-        var evt = Map(new SatelliteRadiationResult(Lucerne, Anchor, 500.0, 410.0, 3.5));
-
-        Assert.Equal(Case.SatelliteRadiation, evt.FeatureCase);
-        Assert.Equal(Anchor.ToTimestamp(), evt.SatelliteRadiation.ObservedAt);
-        Assert.Equal(500.0, evt.SatelliteRadiation.Gti);
-        Assert.Equal(410.0, evt.SatelliteRadiation.Ghi);
-        Assert.Equal(3.5, evt.SatelliteRadiation.BlendedKwhPerSquareMeter);
-    }
-
-    [Fact]
-    public void Satellite_radiation_without_optional_values_leaves_them_unset()
-    {
-        var evt = Map(new SatelliteRadiationResult(Lucerne, Anchor, 500.0, null, null));
-
-        Assert.Multiple(
-            () => Assert.False(evt.SatelliteRadiation.HasGhi),
-            () => Assert.False(evt.SatelliteRadiation.HasBlendedKwhPerSquareMeter));
-    }
-
-    [Fact]
     public void Approaching_fronts_map_to_the_approaching_front_case()
     {
         var evt = Map(new ApproachingFrontResult(Lucerne, 2.0, 6.0, 3.0));

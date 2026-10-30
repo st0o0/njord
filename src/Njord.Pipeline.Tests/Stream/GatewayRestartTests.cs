@@ -28,7 +28,6 @@ public sealed class GatewayRestartTests : Akka.Hosting.TestKit.TestKit
     private readonly FakeFloodClient _flood = new();
     private readonly FakeMarineClient _marine = new();
     private readonly FakeSeasonalClient _seasonal = new();
-    private readonly FakeSatelliteRadiationClient _satellite = new();
     private readonly FakeEnsembleClient _ensemble = new();
     private readonly FaultyOnceBudgetProvider _budget = new();
 
@@ -106,7 +105,6 @@ public sealed class GatewayRestartTests : Akka.Hosting.TestKit.TestKit
             [DomainKind.Flood] = _flood,
             [DomainKind.Marine] = _marine,
             [DomainKind.Seasonal] = _seasonal,
-            [DomainKind.Satellite] = _satellite,
             [DomainKind.Ensemble] = _ensemble,
         };
         return Sys.ActorOf(

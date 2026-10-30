@@ -164,7 +164,6 @@ public sealed class ProtoMappingsTests
     [InlineData(DomainKind.AirQuality, Domain.AirQuality)]
     [InlineData(DomainKind.Flood, Domain.Flood)]
     [InlineData(DomainKind.Marine, Domain.Marine)]
-    [InlineData(DomainKind.Satellite, Domain.Satellite)]
     [InlineData(DomainKind.Ensemble, Domain.Ensemble)]
     public void Domain_kinds_map_to_their_proto_domain_and_back(DomainKind kind, Domain expected)
     {

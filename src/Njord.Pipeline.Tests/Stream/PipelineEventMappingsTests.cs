@@ -2,7 +2,6 @@ using Njord.Core;
 using Njord.Core.AirQuality;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;
-using Njord.Core.Solar;
 using Njord.Messages.Stream;
 using Njord.Pipeline.Stream;
 using Njord.Tests.Shared;
@@ -49,16 +48,6 @@ public sealed class PipelineEventMappingsTests
                 new DomainDataReceived(Lucerne, DomainKind.AirQuality, airQuality).ToPipelineEvent()).Forecast),
             () => Assert.Same(marine, Assert.IsType<MarineDataReceived>(
                 new DomainDataReceived(Lucerne, DomainKind.Marine, marine).ToPipelineEvent()).Forecast));
-    }
-
-    [Fact]
-    public void Satellite_data_maps_to_a_satellite_data_event()
-    {
-        var satellite = new DomainForecast<SatelliteRadiationPoint>(DomainKind.Satellite, Start, TimeResolution.Hourly, [new SatelliteRadiationPoint(Start, GTI: 400)]);
-
-        var mapped = new DomainDataReceived(Lucerne, DomainKind.Satellite, satellite).ToPipelineEvent();
-
-        Assert.Same(satellite, Assert.IsType<SatelliteDataReceived>(mapped).Forecast);
     }
 
     [Fact]

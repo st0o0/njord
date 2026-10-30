@@ -31,14 +31,13 @@ message GetCatalogResponse {
 // ═══════════════════════════════════════
 
 enum Domain {
-  reserved 4;
+  reserved 4, 7; // 7 was DOMAIN_SATELLITE
   DOMAIN_UNSPECIFIED = 0;
   DOMAIN_FORECAST = 1;
   DOMAIN_AIR_QUALITY = 2;
   DOMAIN_FLOOD = 3;
   DOMAIN_MARINE = 5;
   DOMAIN_SEASONAL = 6;
-  DOMAIN_SATELLITE = 7;
   DOMAIN_ENSEMBLE = 8;
 }
 
@@ -57,7 +56,7 @@ message StreamDomainDataRequest {
 }
 
 message DomainDataUpdate {
-  reserved 13;
+  reserved 13, 15; // 15 was satellite
   string location = 1;
   Domain domain = 2;
   google.protobuf.Timestamp model_run = 3;
@@ -68,7 +67,6 @@ message DomainDataUpdate {
     AirQualityData air_quality = 11;
     FloodData flood = 12;
     MarineData marine = 14;
-    SatelliteData satellite = 15;
     SeasonalData seasonal = 16;
     EnsembleData ensemble = 17;
   }
@@ -175,20 +173,6 @@ message FloodSample {
   optional double discharge_p75 = 11;
 }
 
-message SatelliteData {
-  repeated SatelliteSample points = 1;
-}
-
-// Satellite-observed irradiance in W/m2; a missing component is unset.
-message SatelliteSample {
-  google.protobuf.Timestamp valid_at = 1;
-  optional double ghi = 2;
-  optional double direct_radiation = 3;
-  optional double diffuse_radiation = 4;
-  optional double dni = 5;
-  optional double gti = 6;
-}
-
 // Monthly ensemble-mean anomalies (K, mm); a missing value is unset.
 message SeasonalData {
   repeated SeasonalSample points = 1;
@@ -264,7 +248,7 @@ message StreamEnrichmentsRequest {
 // One feature result. The oneof case identifies the feature. Field number ranges per output kind:
 // alerts 20-49 (+55), scores 50-58, conditions 60-79 (+82-84), trends 80-81, forecasts 90-99.
 message EnrichmentEvent {
-  reserved 2, 10, 11, 12, 13, 14, 15;
+  reserved 2, 10, 11, 12, 13, 14, 15, 67; // 67 was satellite_radiation
   reserved "type_name", "alerts", "lifestyle", "payload";
   string location = 1;
   google.protobuf.Timestamp updated_at = 3;
@@ -325,7 +309,6 @@ message EnrichmentEvent {
     Gardening gardening = 64;
     FloodTimeline flood_timeline = 65;
     SolarYield solar_yield = 66;
-    SatelliteRadiation satellite_radiation = 67;
     ApproachingFront approaching_front = 68;
     ConfidenceTrend confidence_trend = 80;
     PollenTrend pollen_trend = 81;
@@ -921,14 +904,6 @@ message SolarYield {
   ConditionData condition = 1;
   double kwh_per_kwp = 2;
   int32 peak_hour = 3;
-}
-
-message SatelliteRadiation {
-  ConditionData condition = 1;
-  google.protobuf.Timestamp observed_at = 2;
-  double gti = 3;
-  optional double ghi = 4;
-  optional double blended_kwh_per_square_meter = 5;
 }
 
 message ApproachingFront {

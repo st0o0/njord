@@ -15,14 +15,13 @@ over gRPC (the ha-njord integration).
 src/
   Njord.slnx
   Njord.Core/           # (-> Persistence) foundation: vocabulary, domain logic, actor infrastructure
-    DomainKind.cs       #   Forecast, Ensemble, AirQuality, Flood, Marine, Seasonal, Satellite
+    DomainKind.cs       #   Forecast, Ensemble, AirQuality, Flood, Marine, Seasonal
     Location.cs         #   Location record (Name, Latitude, Longitude)
     Forecast/           #   ForecastPoint, ForecastParams, EnsemblePoint, EnsembleParams, DomainForecast<T>
     AirQuality/         #   AirQualityPoint, AirQualityParams
     Flood/              #   FloodPoint, FloodParams
     Marine/             #   MarinePoint, MarineParams
     Seasonal/           #   SeasonalPoint, SeasonalParams
-    Solar/              #   SatelliteRadiationPoint, SatelliteParams
     ActorKeys.cs        #   marker interfaces for every resolvable actor
     Actors/             #   IActorRegistration, StreamSupervision, actor marker interfaces (ShardMessageExtractor in Polling)
     Domain/             #   FeatureDescriptor, FeatureCategory, FeatureContext,
@@ -39,12 +38,12 @@ src/
                         #   Results/ (FeatureResult, IFeatureRule, FeatureRule<T>,
                         #     Alerts/, Scores/, Conditions/, Trends/, Forecasts/)
   Njord.Persistence/    # Extend-only records, no Njord refs: Events/Budget, Events/Polling
-  Njord.OpenMeteo/      # (-> Core) folders per domain: Forecast/, Ensemble/, AirQuality/, Flood/, Marine/, Seasonal/, Satellite/
+  Njord.OpenMeteo/      # (-> Core) folders per domain: Forecast/, Ensemble/, AirQuality/, Flood/, Marine/, Seasonal/
                         #   (client, API variable enum, response DTO, mapping extensions per domain),
                         #   Gateway/ (OpenMeteoGateway, stream-based dispatch), Budget/ (GatewayBudgetGate),
                         #   Http/ (ClientRequest, OpenMeteoEndpoints, OpenMeteoJsonContext),
                         #   Mapping/ (shared: DomainKindMappingExtensions, ForecastTrimmingExtensions, SeriesAccess),
-                        #   Configuration/ (AirQuality/Marine/Seasonal/Satellite options)
+                        #   Configuration/ (AirQuality/Marine/Seasonal/Solar options)
   Njord.Budget/         # BudgetTracker (persistent), usage accounting, health check
   Njord.Polling/        # PollManager, PollWorker (+ state, mappings), polling Telemetry, Configuration/ (BudgetGuard, PollingOptionsValidator)
   Njord.Pipeline/       # Stream/ (ForecastPipeline, FeatureEngine), Health/ (PipelineHealthCheck), Telemetry
@@ -121,7 +120,7 @@ SINGLETONS (Cluster Singleton)
 ├─ PollManager (non-persistent, BackoffOnFailure, IWithTimers)    [Polling]
 │  └─ one target per location; StartPolling/StopPolling, poll states + health from reports
 ├─ OpenMeteoGateway (non-persistent)                              [OpenMeteo]
-│  └─ GatewayBudgetGate -> typed clients: Forecast, Ensemble, AirQuality, Flood, Marine, Seasonal, SatelliteRadiation
+│  └─ GatewayBudgetGate -> typed clients: Forecast, Ensemble, AirQuality, Flood, Marine, Seasonal
 ├─ ForecastPipeline (non-persistent)                              [Pipeline]
 │  └─ MergeHub<DomainDataReceived> -> FeatureEngine -> IFeatureRule[] -> BroadcastHub<PipelineEvent>
 ├─ BudgetTracker (persistent)                                     [Budget]
@@ -147,8 +146,8 @@ SHARD REGIONS (Sharded Entity)
   rule whose required fields are missing from the stream (`LocationForecast.HasFields`). `BudgetGuard`
   uses the same resolved requirements and `DomainCallConfig` (built by the Host from the per-domain Options): every required
   domain costs `ceil(variables / 10) * (days / 14.0)` (fractional days, `CallWeight.Of`); Forecast times
-  `max(1, modelCount)`, Ensemble times `modelCount` (spread-only: no model multiplier), Flood ensemble adds 4, Satellite uses
-  `PastHours / 336.0`, Seasonal is 30 requests/month at `max(formula, 1.3)`.
+  `max(1, modelCount)`, Ensemble times `modelCount` (spread-only: no model multiplier), Flood ensemble adds 4,
+  Seasonal is 30 requests/month at `max(formula, 1.3)`.
 - **Per-domain forecast days.** `Njord:Forecast` (4, max 16), `Njord:Ensemble` (4, max 35), `Njord:AirQuality` (5,
   max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92, max 210).
 - **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Name>` (65 features; categories in
@@ -157,7 +156,7 @@ SHARD REGIONS (Sharded Entity)
   `Ice`, `WindChill`, `Visibility`, `TropicalNight`, `Humidity`, `RainProbability`), `Commute`, `Pollen`,
   `Pm25`; everything else is off. The entity set follows locations x enabled features.
 - **Per-domain discovery.** Every domain of a location learns its own cycle and polls independently.
-- **Domains:** `Forecast`, `Ensemble`, `AirQuality`, `Flood`, `Marine`, `Seasonal`, `Satellite` (`DomainKind`); the gateway fetches all of them.
+- **Domains:** `Forecast`, `Ensemble`, `AirQuality`, `Flood`, `Marine`, `Seasonal` (`DomainKind`); the gateway fetches all of them.
 - **Explicit coordinates.** A location is `Name`, `Latitude` and `Longitude`, all required (`NjordOptionsValidator`).
 - **Free tier assumed** (non-commercial): budget defaults to 300k/month, 600/min, optional
   `Polling:BudgetOverride`. Startup validates projected usage (`BudgetGuard`: locations x required
@@ -169,11 +168,6 @@ SHARD REGIONS (Sharded Entity)
   counts it as 30 calls/month/location instead of once per poll cycle. The API delivers ensemble-mean
   `temperature_2m_anomaly` (K) and `precipitation_anomaly` (mm; `SeasonalOutlook` converts to % of the normal
   month with `precipitation_mean`); confidence follows the lead time. `Njord:Seasonal:ForecastMonths` (3) limits the months kept.
-- **Satellite is a normal domain** (`DomainKind.Satellite`, `SatelliteRadiationPoint` in `Njord.Core/Solar`): the gateway
-  fetches `satellite-api.open-meteo.com/v1/archive` (GHI, direct, diffuse, DNI, GTI; tilt/azimuth from `SatelliteOptions`,
-  `Njord:Satellite:PastHours`) for `SatelliteRadiation` (off by default, about 720 calls/month/location, counted per poll
-  cycle by `BudgetGuard`). `SolarIrradianceBlend` takes satellite GTI up to the newest observation (ignored when
-  older than 3 h) and ensemble GTI afterwards; `SolarYield` (panel options and optional battery strategy in `Njord:Features:SolarYield`) and `SatelliteRadiation` use it.
 - **Base parameters.** `DomainRequirements.WithBaseParams` always requests `weather_code` for a required Forecast domain and `pm10` for a required AirQuality domain; `BudgetGuard` and the Config Builder count them.
 - **Failure backoff.** A failed fetch retries after 60 s, doubling per consecutive failure up to the poll interval (`FailureBackoff`); rate limit and budget rejections wait at least 5 min. The count is persisted in `DomainPolled.ConsecutiveFailures` and reset by a successful fetch.
 - Poll interval 60 min and discovery interval 20 min are config values.
@@ -330,7 +324,7 @@ Rules apply to production code.
 One `sealed` class per concern implementing `IConfigSection` (`static abstract SectionName`), registered with
 `AddNjordOptions<T>()` (`BindConfiguration(T.SectionName).ValidateOnStart()`) or `AddNjordOptions<T, TValidator>()`
 when it has cross-field rules (`IValidateOptions<T>`). Options live with their owner (Polling/Health
-in `Njord.Core`, Forecast/Ensemble/Flood/AirQuality/Marine/Seasonal/Satellite in `Njord.OpenMeteo`, `PollingOptionsValidator`
+in `Njord.Core`, Forecast/Ensemble/Flood/AirQuality/Marine/Seasonal/Solar in `Njord.OpenMeteo`, `PollingOptionsValidator`
 and `BudgetGuard` in `Njord.Polling`, `PersistenceOptions` in the Host, feature options in each `<Name>Config`).
 Defaults are property initializers. Naming: `private const string SectionName` + explicit interface implementation.
 
@@ -350,7 +344,7 @@ interface. Manual `PostConfigure` is reserved for derived values (`PollingOption
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..8) |
 | `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..6) |
-| `Njord:Satellite` | `SatelliteOptions` | `PastHours` (6, 1..48), `Tilt` (30), `Azimuth` (180); `PeakKw`, `SystemEfficiency`, `BatteryCapacityKwh` live in `Njord:Features:SolarYield` |
+| `Njord:Solar` | `SolarOptions` | `Tilt` (30, 0..90), `Azimuth` (180, 0..360); used by Forecast/Ensemble clients for GTI |
 | `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210), `IncludeEnsemble` (false) |
 | `Njord:Features:<Name>` | `<Name>Config` | `Enabled` (default from the descriptor) plus the feature's options |
 | `Njord:Polling` | `PollingOptions` | `PollInterval` (60 min), `DiscoveryInterval` (20 min), `BudgetOverride` |

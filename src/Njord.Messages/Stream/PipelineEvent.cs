@@ -4,7 +4,6 @@ using Njord.Core.Flood;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Core.Seasonal;
-using Njord.Core.Solar;
 
 namespace Njord.Messages.Stream;
 
@@ -30,10 +29,6 @@ public sealed record MarineDataReceived(
 public sealed record SeasonalDataReceived(
     Location Location,
     DomainForecast<SeasonalPoint> Forecast) : PipelineEvent;
-
-public sealed record SatelliteDataReceived(
-    Location Location,
-    DomainForecast<SatelliteRadiationPoint> Forecast) : PipelineEvent;
 
 public sealed record EnsembleDataReceived(
     Location Location,

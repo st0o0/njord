@@ -7,7 +7,6 @@ using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Core.Polling;
 using Njord.Core.Seasonal;
-using Njord.Core.Solar;
 using Njord.Messages.Results;
 using Njord.Polling.Configuration;
 
@@ -67,19 +66,6 @@ public sealed class BudgetGuardTests
         Assert.Multiple(
             () => Assert.Null(Violation(Scope(), WithMonthlyBudget(1_200), resolved)),
             () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(1_200), resolved, new DomainCallConfig { EnsembleDays = 16 })));
-    }
-
-    [Fact]
-    public void Should_weigh_the_satellite_domain_by_past_hours_of_a_two_week_window()
-    {
-        var resolved = new DomainRequirements(Satellite: SatelliteParams.GlobalTilted);
-
-        // 2 locations x 1 var x 6/336 x 720 = 26 calls (guard 24 of 30); 48 past hours: 206 calls (guard 200 of 250).
-        Assert.Multiple(
-            () => Assert.NotNull(Violation(Scope(2), WithMonthlyBudget(30), resolved)),
-            () => Assert.Null(Violation(Scope(2), WithMonthlyBudget(40), resolved)),
-            () => Assert.NotNull(Violation(Scope(2), WithMonthlyBudget(250), resolved, new DomainCallConfig { SatellitePastHours = 48 })),
-            () => Assert.Null(Violation(Scope(2), WithMonthlyBudget(300), resolved, new DomainCallConfig { SatellitePastHours = 48 })));
     }
 
     [Fact]

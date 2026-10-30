@@ -3,12 +3,10 @@ using Njord.Core.Flood;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Core.Seasonal;
-using Njord.Core.Solar;
 using Njord.OpenMeteo.AirQuality;
 using Njord.OpenMeteo.Flood;
 using Njord.OpenMeteo.Forecast;
 using Njord.OpenMeteo.Marine;
-using Njord.OpenMeteo.Satellite;
 using Njord.OpenMeteo.Seasonal;
 
 namespace Njord.OpenMeteo.Tests.Mapping;
@@ -82,20 +80,6 @@ public sealed class ApiVariableMappingCompletenessTests
             () => Assert.Equal(flags.Count, variables.Distinct().Count()),
             () => Assert.Equal(Enum.GetValues<SeasonalApiVariable>().Length, variables.Count),
             () => Assert.Equal(variables.Count, ApiVariableNames.For<SeasonalApiVariable>().Count),
-            () => Assert.All(variables, v => Assert.False(string.IsNullOrEmpty(v.ToApiName()))));
-    }
-
-    [Fact]
-    public void Should_map_every_satellite_flag_to_a_distinct_named_api_variable()
-    {
-        var flags = Enum.GetValues<SatelliteParams>().Where(f => f != SatelliteParams.None).ToList();
-
-        var variables = flags.Select(f => f.ToApiVariable()).ToList();
-
-        Assert.Multiple(
-            () => Assert.Equal(flags.Count, variables.Distinct().Count()),
-            () => Assert.Equal(Enum.GetValues<SatelliteApiVariable>().Length, variables.Count),
-            () => Assert.Equal(variables.Count, ApiVariableNames.For<SatelliteApiVariable>().Count),
             () => Assert.All(variables, v => Assert.False(string.IsNullOrEmpty(v.ToApiName()))));
     }
 

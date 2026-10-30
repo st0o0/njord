@@ -1,15 +1,13 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
-using Njord.Core.Solar;
-using Njord.Features.Conditions.Shared;
 using Njord.Messages.Results;
 using Njord.Messages.Results.Conditions;
 using Njord.Messages.Stream;
 
 namespace Njord.Features.Conditions.SolarYield;
 
-public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<ForecastSolarInput>
+public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<ForecastInput>
 {
     private const double SunnierFactor = 1.2;
     private const double CloudierFactor = 0.8;
@@ -18,19 +16,19 @@ public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<
         OutputKind.Condition,
         FeatureCategory.Energy,
         Name: "SolarYield",
-        new DomainRequirements(
-            Forecast: ForecastParams.GlobalTiltedIrradiance,
-            OptionalSatellite: SatelliteParams.GlobalTilted));
+        new DomainRequirements(Forecast: ForecastParams.GlobalTiltedIrradiance));
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override ForecastSolarInput? Project(LocationForecast forecast) =>
-        forecast.Forecast is { } w ? new(w, forecast.Satellite!) : null;
+    protected override ForecastInput? Project(LocationForecast forecast) =>
+        forecast.Forecast is { } w ? new(w) : null;
 
-    protected override PipelineEvent? Evaluate(FeatureContext<ForecastSolarInput> ctx)
+    protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var locationForecast = new LocationForecast(ctx.Location, Forecast: ctx.Current.Forecast, Satellite: ctx.Current.Satellite);
-        var hours = SolarIrradianceBlend.Hours(locationForecast, ctx.Now, 24);
+        var hours = ForecastQueries.Upcoming(ctx.Current.Forecast, ctx.Now, 24)
+            .Where(point => point.GlobalTiltedIrradiance is not null)
+            .Select(point => (point.ValidFrom, Radiation: point.GlobalTiltedIrradiance!.Value))
+            .ToList();
         if (hours.Count == 0)
         {
             return null;
@@ -43,7 +41,7 @@ public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<
         return new SolarYieldResult(ctx.Location, Math.Round(yield, 2), peak.ValidFrom.Hour);
     }
 
-    protected override IReadOnlyList<PipelineEvent> EvaluateAll(FeatureContext<ForecastSolarInput> ctx)
+    protected override IReadOnlyList<PipelineEvent> EvaluateAll(FeatureContext<ForecastInput> ctx)
     {
         List<PipelineEvent> events = [];
         if (Evaluate(ctx) is { } yield)
@@ -59,16 +57,16 @@ public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<
         return events;
     }
 
-    // Today: observed satellite GTI up to now; tomorrow: forecast GTI. Both are irradiance on the panel (W/m2).
-    private SolarBatteryStrategyConditionResult? EvaluateBattery(FeatureContext<ForecastSolarInput> ctx)
+    // Remaining hours of today and tomorrow: forecast GTI, irradiance on the panel (W/m2).
+    private SolarBatteryStrategyConditionResult? EvaluateBattery(FeatureContext<ForecastInput> ctx)
     {
         var options = config.Value;
         var today = ctx.Now.UtcDateTime.Date;
         var tomorrow = today.AddDays(1);
 
-        var todayWatts = (ctx.Current.Satellite?.Points ?? [])
-            .Where(point => point.ValidFrom.UtcDateTime.Date == today && point.ValidFrom <= ctx.Now && point.GTI is not null)
-            .Select(point => point.GTI!.Value)
+        var todayWatts = ctx.Current.Forecast.Points
+            .Where(point => point.ValidFrom.UtcDateTime.Date == today && point.GlobalTiltedIrradiance is not null)
+            .Select(point => point.GlobalTiltedIrradiance!.Value)
             .ToList();
         var tomorrowWatts = ctx.Current.Forecast.Points
             .Where(point => point.ValidFrom.UtcDateTime.Date == tomorrow && point.GlobalTiltedIrradiance is not null)

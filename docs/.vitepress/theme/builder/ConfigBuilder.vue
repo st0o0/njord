@@ -289,13 +289,13 @@ onMounted(() => {
       </details>
     </div>
 
-    <!-- Satellite panel orientation -->
-    <div v-if="config.features['SolarYield'] || config.features['SatelliteRadiation']" class="section">
+    <!-- Solar panel orientation -->
+    <div v-if="config.features['SolarYield']" class="section">
       <h3>Solar panel orientation</h3>
-      <p class="section-hint">Tilt and azimuth of your panels (Njord:Satellite). Peak kW, efficiency and battery capacity are options of the SolarYield feature.</p>
+      <p class="section-hint">Tilt and azimuth of your panels (Njord:Solar). Peak kW, efficiency and battery capacity are options of the SolarYield feature.</p>
       <div class="general-row">
-        <label>Azimuth <input v-model.number="config.satellite.azimuth" type="number" min="0" max="360" /></label>
-        <label>Tilt <input v-model.number="config.satellite.tilt" type="number" min="0" max="90" /></label>
+        <label>Azimuth <input v-model.number="config.solar.azimuth" type="number" min="0" max="360" /></label>
+        <label>Tilt <input v-model.number="config.solar.tilt" type="number" min="0" max="90" /></label>
       </div>
       <p class="section-hint">Defaults: azimuth 180 (south-facing), tilt 30 degrees.</p>
     </div>

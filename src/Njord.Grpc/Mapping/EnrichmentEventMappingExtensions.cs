@@ -369,12 +369,6 @@ internal static class EnrichmentEventMappingExtensions
             UpdatedAt = now.ToTimestamp(),
             SolarYield = r.ToProto(),
         },
-        SatelliteRadiationResult r => new EnrichmentEvent
-        {
-            Location = r.Location.Name,
-            UpdatedAt = now.ToTimestamp(),
-            SatelliteRadiation = r.ToProto(),
-        },
         ApproachingFrontResult r => new EnrichmentEvent
         {
             Location = r.Location.Name,

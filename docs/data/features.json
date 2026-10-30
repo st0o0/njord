@@ -787,18 +787,6 @@
     "options": [{ "name": "PeakKw", "type": "number", "default": 5 }, { "name": "SystemEfficiency", "type": "number", "default": 0.8 }, { "name": "BatteryCapacityKwh", "type": "number", "default": 0 }]
   },
   {
-    "key": "SatelliteRadiation",
-    "name": "SatelliteRadiation",
-    "category": "Energy",
-    "output": "Condition",
-    "description": "Blends real satellite solar measurements with the forecast for accurate near-term prediction",
-    "longDescription": "Combines actual satellite-observed solar irradiance with the forecast model going forward. The satellite data is ground truth. This blend gives the most accurate short-term solar prediction available.",
-    "entities": ["sensor.{location}_satellite_radiation"],
-    "automationExample": "Use satellite-blended solar forecast for precise battery management",
-    "enabledByDefault": false,
-    "domains": ["Satellite"]
-  },
-  {
     "key": "HeatPumpCop",
     "name": "HeatPumpCop",
     "category": "Energy",

@@ -17,13 +17,11 @@ internal static class BudgetGuard
 
     internal const double SeasonalMinimumRequestWeight = 1.3;
 
-    private const double SatelliteWindowHours = 14 * 24;
-
     private static readonly TimeSpan Month = TimeSpan.FromDays(30);
 
     private static readonly DomainKind[] PerCycleDomains =
     [
-        DomainKind.Forecast, DomainKind.Ensemble, DomainKind.AirQuality, DomainKind.Flood, DomainKind.Marine, DomainKind.Satellite,
+        DomainKind.Forecast, DomainKind.Ensemble, DomainKind.AirQuality, DomainKind.Flood, DomainKind.Marine,
     ];
 
     internal static string? Violation(
@@ -36,8 +34,7 @@ internal static class BudgetGuard
             + EnsembleWeight(requirements, callConfig)
             + AirQualityWeight(requirements, callConfig)
             + FloodWeight(requirements, callConfig)
-            + MarineWeight(requirements, callConfig)
-            + SatelliteWeight(requirements, callConfig);
+            + MarineWeight(requirements, callConfig);
 
         var cyclesPerMonth = Month.TotalMinutes / polling.PollInterval.TotalMinutes;
         var seasonalCalls = locationCount * SeasonalWeightPerMonth(requirements, callConfig);
@@ -94,12 +91,6 @@ internal static class BudgetGuard
     private static double MarineWeight(DomainRequirements requirements, DomainCallConfig config) =>
         requirements.Requires(DomainKind.Marine)
             ? CallWeight.Of(BitOperations.PopCount((ulong)requirements.AllMarine), config.MarineDays)
-            : 0;
-
-    private static double SatelliteWeight(DomainRequirements requirements, DomainCallConfig config) =>
-        requirements.Requires(DomainKind.Satellite)
-            ? Math.Ceiling(BitOperations.PopCount((ulong)requirements.AllSatellite) / 10.0)
-                * (config.SatellitePastHours / SatelliteWindowHours)
             : 0;
 
     private static double SeasonalWeightPerMonth(DomainRequirements requirements, DomainCallConfig config)

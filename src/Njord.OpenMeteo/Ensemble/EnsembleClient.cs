@@ -18,7 +18,7 @@ public sealed class EnsembleClient : IDomainClient
     private const int MaxForecastDays = 35;
 
     private readonly HttpClient _httpClient;
-    private readonly SatelliteOptions _solar;
+    private readonly SolarOptions _solar;
     private readonly IReadOnlyList<string> _weatherVariables;
     private readonly IReadOnlyList<string> _spreadVariables;
     private readonly IReadOnlyList<string> _allVariables;
@@ -27,7 +27,7 @@ public sealed class EnsembleClient : IDomainClient
     private readonly string _primaryModel;
     private readonly bool _needsModels;
 
-    public EnsembleClient(HttpClient httpClient, IOptions<EnsembleOptions> options, IOptions<SatelliteOptions> solar, IOptions<DomainRequirements> requirements, ILogger<EnsembleClient> logger)
+    public EnsembleClient(HttpClient httpClient, IOptions<EnsembleOptions> options, IOptions<SolarOptions> solar, IOptions<DomainRequirements> requirements, ILogger<EnsembleClient> logger)
     {
         _httpClient = httpClient;
         var resolved = requirements.Value;

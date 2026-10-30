@@ -1,6 +1,6 @@
 import featureData from '../../../data/features.json'
 
-export const DOMAINS = ['Forecast', 'Ensemble', 'AirQuality', 'Flood', 'Marine', 'Seasonal', 'Satellite'] as const
+export const DOMAINS = ['Forecast', 'Ensemble', 'AirQuality', 'Flood', 'Marine', 'Seasonal'] as const
 
 export type DomainName = (typeof DOMAINS)[number]
 
@@ -152,7 +152,7 @@ export interface NjordConfig {
   budgetOverride: { requestsPerMonth: number; requestsPerMinute: number } | null
   persistence: { provider: string; connectionString: string }
   dataPath: string
-  satellite: { tilt: number; azimuth: number }
+  solar: { tilt: number; azimuth: number }
   deploy: { limits: DeployLimits }
 }
 
@@ -173,7 +173,7 @@ export function defaultConfig(): NjordConfig {
     budgetOverride: null,
     persistence: { provider: 'Sqlite', connectionString: '' },
     dataPath: 'data/njord.db',
-    satellite: { tilt: 30, azimuth: 180 },
+    solar: { tilt: 30, azimuth: 180 },
     deploy: { limits: { cpus: '', memory: '' } },
   }
 }

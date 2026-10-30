@@ -17,7 +17,6 @@ using Njord.OpenMeteo.Forecast;
 using Njord.OpenMeteo.Gateway;
 using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Marine;
-using Njord.OpenMeteo.Satellite;
 using Njord.OpenMeteo.Seasonal;
 using Servus.Akka;
 using Servus.Application.Startup;
@@ -34,7 +33,7 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
         services.AddNjordOptions<MarineOptions, MarineOptionsValidator>();
         services.AddNjordOptions<FloodOptions, FloodOptionsValidator>();
         services.AddNjordOptions<SeasonalOptions, SeasonalOptionsValidator>();
-        services.AddNjordOptions<SatelliteOptions, SatelliteOptionsValidator>();
+        services.AddNjordOptions<SolarOptions, SolarOptionsValidator>();
 
         services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
         services.TryAddSingleton(FetchTimeouts.Default);
@@ -45,8 +44,6 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
         AddDomainClient<FloodClient>(services, OpenMeteoEndpoints.FloodHost);
         AddDomainClient<MarineClient>(services, OpenMeteoEndpoints.MarineHost);
         AddDomainClient<SeasonalClient>(services, OpenMeteoEndpoints.SeasonalHost);
-        AddDomainClient<SatelliteRadiationClient>(services, OpenMeteoEndpoints.SatelliteHost);
-
         services.AddSingleton<IReadOnlyDictionary<DomainKind, IDomainClient>>(provider =>
             provider.GetServices<IDomainClient>().ToDictionary(c => c.Domain));
 

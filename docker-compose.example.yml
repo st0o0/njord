@@ -30,7 +30,7 @@ services:
       #- Njord__Flood__ForecastDays=92       # 1-210
       #- Njord__Flood__IncludeEnsemble=false # 50 GloFAS members, adds confidence to FloodRisk, costs 5 calls per flood request
       # Features decide which domains are polled (the union of what the enabled ones read).
-      # 7 domains: Forecast, Ensemble (spread + comparison), AirQuality, Flood, Marine, Seasonal, Satellite.
+      # 6 domains: Forecast, Ensemble (spread + comparison), AirQuality, Flood, Marine, Seasonal.
       # On by default: the 15 weather alerts (Frost, Heat, ..., RainProbability), Commute, Pollen, Pm25.
       # Switch single features on (adds their domain) or off:
       #- Njord__Features__Frost__Enabled=false
@@ -51,7 +51,6 @@ services:
       #- Njord__Ensemble__Models__1=ecmwf_aifs025_ensemble_mean # additional, only used with ModelComparison
       #- Njord__Features__ModelComparison__Enabled=true # compare all Models via the Ensemble domain
       #- Njord__Features__SeasonalOutlook__Enabled=true # 3-month outlook, one extra call per day and location
-      #- Njord__Features__SatelliteRadiation__Enabled=true # observed solar irradiance, about 720 extra calls per month and location
       #- Njord__Features__Pollen__Enabled=false
       # Poll interval of a model whose update cycle is not learned yet:
       #- Njord__Polling__DiscoveryInterval=00:20:00

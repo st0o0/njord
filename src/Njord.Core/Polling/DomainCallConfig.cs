@@ -10,6 +10,5 @@ public sealed record DomainCallConfig
     public int FloodDays { get; set; } = 92;
     public bool FloodIncludeEnsemble { get; set; }
     public int MarineDays { get; set; } = 8;
-    public int SatellitePastHours { get; set; } = 6;
     public int SeasonalMonths { get; set; } = 3;
 }

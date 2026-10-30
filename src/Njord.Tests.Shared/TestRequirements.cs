@@ -5,7 +5,6 @@ using Njord.Core.Flood;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Core.Seasonal;
-using Njord.Core.Solar;
 
 namespace Njord.Tests.Shared;
 
@@ -16,8 +15,7 @@ public static class TestRequirements
         AirQuality: Enum.GetValues<AirQualityParams>().Aggregate(AirQualityParams.None, (a, b) => a | b),
         Flood: Enum.GetValues<FloodParams>().Aggregate(FloodParams.None, (a, b) => a | b),
         Marine: Enum.GetValues<MarineParams>().Aggregate(MarineParams.None, (a, b) => a | b),
-        Seasonal: Enum.GetValues<SeasonalParams>().Aggregate(SeasonalParams.None, (a, b) => a | b),
-        Satellite: Enum.GetValues<SatelliteParams>().Aggregate(SatelliteParams.None, (a, b) => a | b));
+        Seasonal: Enum.GetValues<SeasonalParams>().Aggregate(SeasonalParams.None, (a, b) => a | b));
 
     public static DomainRequirements For(params IEnumerable<DomainKind> domains) =>
         domains.Aggregate(new DomainRequirements(), (all, domain) => all | domain switch
@@ -27,7 +25,6 @@ public static class TestRequirements
             DomainKind.Flood => new DomainRequirements(Flood: FloodParams.Discharge),
             DomainKind.Marine => new DomainRequirements(Marine: MarineParams.WaveHeight),
             DomainKind.Seasonal => new DomainRequirements(Seasonal: SeasonalParams.TemperatureAnomaly),
-            DomainKind.Satellite => new DomainRequirements(Satellite: SatelliteParams.GlobalHorizontal),
             DomainKind.Ensemble => new DomainRequirements(Ensemble: EnsembleParams.TemperatureSpread),
             _ => throw new ArgumentOutOfRangeException(nameof(domain)),
         });

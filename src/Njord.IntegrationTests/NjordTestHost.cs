@@ -94,7 +94,6 @@ public sealed class NjordTestHost : IAsyncDisposable
                     [DomainKind.Flood] = flood,
                     [DomainKind.Marine] = marine,
                     [DomainKind.Seasonal] = new FakeSeasonalClient(),
-                    [DomainKind.Satellite] = new FakeSatelliteRadiationClient(),
                 });
                 b.WebHost.UseTestServer();
                 app = b.Build();

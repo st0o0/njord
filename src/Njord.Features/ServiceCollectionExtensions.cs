@@ -50,7 +50,6 @@ using Njord.Features.Conditions.NightVentilation;
 using Njord.Features.Conditions.OceanCurrents;
 using Njord.Features.Conditions.PollenTrend;
 using Njord.Features.Conditions.RagweedPollen;
-using Njord.Features.Conditions.SatelliteRadiation;
 using Njord.Features.Conditions.SnowDepthWatch;
 using Njord.Features.Conditions.SoilMoisture;
 using Njord.Features.Conditions.SolarYield;
@@ -156,7 +155,6 @@ public static class ServiceCollectionExtensions
         services.AddFeature<OceanCurrents, OceanCurrentsConfig, OceanCurrentsConfigValidator>();
         services.AddFeature<PollenTrend, PollenTrendConfig>();
         services.AddFeature<RagweedPollen, RagweedPollenConfig>();
-        services.AddFeature<SatelliteRadiation, SatelliteRadiationConfig>();
         services.AddFeature<SnowDepthWatch, SnowDepthWatchConfig, SnowDepthWatchConfigValidator>();
         services.AddFeature<SoilMoisture, SoilMoistureConfig, SoilMoistureConfigValidator>();
         services.AddFeature<SolarYield, SolarYieldConfig, SolarYieldConfigValidator>();

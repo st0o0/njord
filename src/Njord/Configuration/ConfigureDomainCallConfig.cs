@@ -10,7 +10,6 @@ internal sealed class ConfigureDomainCallConfig(
     IOptions<AirQualityOptions> airQuality,
     IOptions<FloodOptions> flood,
     IOptions<MarineOptions> marine,
-    IOptions<SatelliteOptions> satellite,
     IOptions<SeasonalOptions> seasonal) : IConfigureOptions<DomainCallConfig>
 {
     public void Configure(DomainCallConfig config)
@@ -27,7 +26,6 @@ internal sealed class ConfigureDomainCallConfig(
         config.FloodDays = fl.ForecastDays;
         config.FloodIncludeEnsemble = fl.IncludeEnsemble;
         config.MarineDays = marine.Value.ForecastDays;
-        config.SatellitePastHours = satellite.Value.PastHours;
         config.SeasonalMonths = seasonal.Value.ForecastMonths;
     }
 }
