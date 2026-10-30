@@ -5,54 +5,38 @@
 Configurable persistence backend for Akka.NET journal and snapshot store, using `Akka.Persistence.Sql.Hosting` with typed C# configuration. Supports SQLite (default) and PostgreSQL providers without any HOCON configuration.
 ## Requirements
 ### Requirement: Persistence provider is configurable via options
-The system SHALL accept a `Njord:Persistence` options section, bound to `PersistenceOptions` (a sealed class, separate from `NjordOptions`), with a `Provider` field (enum `PersistenceProvider`: `Sqlite`, `PostgreSql`, default `Sqlite`) and an optional `ConnectionString` field. `AkkaSetupContainer` SHALL map the provider to the `LinqToDB.ProviderName` constant when configuring persistence.
+The system SHALL accept a `Njord:Persistence` options section, bound to `PersistenceOptions` (a sealed class), with an optional `ConnectionString` field and a `DataPath` field (default `data/njord.db`). When `ConnectionString` is set, the system SHALL use PostgreSQL (`LinqToDB.ProviderName.PostgreSQL`). When `ConnectionString` is not set, the system SHALL use SQLite (`LinqToDB.ProviderName.SQLiteMS`) with a connection string constructed from the `DataPath`.
 
-#### Scenario: Default provider is SQLite
-- **WHEN** no `Persistence` section is configured
-- **THEN** the effective provider is `Sqlite`
+#### Scenario: Default provider is SQLite when no ConnectionString
+- **WHEN** no `ConnectionString` is configured
+- **THEN** the effective provider is SQLite and the connection string is `Data Source={absolute path of DataPath}`
 
-#### Scenario: PostgreSQL provider selected
-- **WHEN** `Njord:Persistence:Provider` is set to `postgresql`
-- **THEN** the effective provider is `PostgreSql`
+#### Scenario: PostgreSQL selected via ConnectionString
+- **WHEN** `Njord:Persistence:ConnectionString` is set to a non-empty value
+- **THEN** the effective provider is PostgreSQL and the provided connection string is used
 
-#### Scenario: Invalid provider value rejected
-- **WHEN** `Njord:Persistence:Provider` is set to an unrecognized value
-- **THEN** options binding fails with a clear error
+#### Scenario: SQLite with explicit DataPath
+- **WHEN** `ConnectionString` is not set and `DataPath` is `custom/path.db`
+- **THEN** the resolved connection string is `Data Source={absolute path of custom/path.db}`
 
-### Requirement: SQLite uses PersistencePath as default connection string
-When the provider is `Sqlite` and no `ConnectionString` is configured, the system SHALL construct the connection string as `Data Source={full path of StorageOptions.PersistencePath}` (default `data/njord.db`, configured at `Njord:Storage:PersistencePath`). When an explicit `ConnectionString` is provided, it SHALL be used instead.
+### Requirement: SQLite uses DataPath as default connection string
+When no `ConnectionString` is configured, the system SHALL construct the SQLite connection string as `Data Source={Path.GetFullPath(DataPath)}` where `DataPath` defaults to `data/njord.db`.
 
-#### Scenario: SQLite without explicit connection string
-- **WHEN** provider is `Sqlite` and no `ConnectionString` is set
-- **THEN** the resolved connection string is `Data Source=` followed by the absolute path of `data/njord.db` (the default PersistencePath)
-
-#### Scenario: SQLite with explicit connection string
-- **WHEN** provider is `Sqlite` and `ConnectionString` is `Data Source=custom.db`
-- **THEN** the resolved connection string is `Data Source=custom.db`
-
-### Requirement: PostgreSQL requires an explicit connection string
-When the provider is `PostgreSql`, the system SHALL require a non-empty `ConnectionString`. Startup validation SHALL fail with an actionable message if the connection string is missing.
-
-#### Scenario: PostgreSQL without connection string fails validation
-- **WHEN** provider is `PostgreSql` and no `ConnectionString` is set
-- **THEN** startup validation fails with a message indicating that PostgreSQL requires a connection string
-
-#### Scenario: PostgreSQL with connection string succeeds
-- **WHEN** provider is `PostgreSql` and `ConnectionString` is `Host=localhost;Database=njord;Username=njord;Password=secret`
-- **THEN** startup validation succeeds and the connection string is used
+#### Scenario: Default DataPath resolves to absolute path
+- **WHEN** no `ConnectionString` and no `DataPath` override
+- **THEN** the connection string is `Data Source=` followed by the absolute path of `data/njord.db`
 
 ### Requirement: Persistence is configured via WithSqlPersistence without HOCON
 The actor system setup SHALL configure journal and snapshot store using `WithSqlPersistence()` from `Akka.Persistence.Sql.Hosting` with the resolved connection string, the mapped LinqToDB provider name, and `autoInitialize: true`. No `AddHocon()` calls SHALL be used for persistence configuration.
 
 #### Scenario: SQLite persistence configured without HOCON
-- **WHEN** the actor system starts with provider `Sqlite`
+- **WHEN** the actor system starts with SQLite (no ConnectionString)
 - **THEN** `WithSqlPersistence` is called with `LinqToDB.ProviderName.SQLiteMS` and the resolved connection string
 
 #### Scenario: PostgreSQL persistence configured without HOCON
-- **WHEN** the actor system starts with provider `PostgreSql`
-- **THEN** `WithSqlPersistence` is called with `LinqToDB.ProviderName.PostgreSQL` and the resolved connection string
+- **WHEN** the actor system starts with PostgreSQL (ConnectionString set)
+- **THEN** `WithSqlPersistence` is called with `LinqToDB.ProviderName.PostgreSQL` and the provided connection string
 
 #### Scenario: Actor persistence is provider-agnostic
 - **WHEN** a `PollWorker` or `BudgetTracker` persists and recovers events
 - **THEN** behavior is identical regardless of whether SQLite or PostgreSQL is the configured provider
-

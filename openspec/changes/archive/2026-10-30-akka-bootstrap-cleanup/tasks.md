@@ -37,4 +37,4 @@
 - [x] 5.1 `dotnet build src/Njord.slnx`
 - [x] 5.2 `dotnet format src/Njord.slnx --verify-no-changes`
 - [x] 5.3 Run all test projects: 1459 tests, 0 errors, 0 failures
-- [ ] 5.4 Verify `dotnet run --project src/Njord/Njord.csproj` starts without errors (manual smoke test)
+- [x] 5.4 Verify `dotnet run --project src/Njord/Njord.csproj` starts without errors (manual smoke test)
