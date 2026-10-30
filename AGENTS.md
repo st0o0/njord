@@ -287,7 +287,8 @@ Rules apply to production code.
 - **Health checks ask the actors** (`PipelineHealthCheck` -> `PollManager`, `BudgetHealthCheck` ->
   `BudgetTracker`) with a 3 s timeout, degrade when the
   actor is missing or silent, and keep the rule in an `internal static Evaluate(...)`. The host adds
-  `journal`. `/healthz`: 200 Healthy/Degraded, 503 Unhealthy; `/alive` is unconditional.
+  `data-directory` (Sqlite only). Akka.Hosting registers persistence (journal + snapshot), actor system
+  liveness and cluster readiness checks. `/healthz`: 200 Healthy/Degraded, 503 Unhealthy; `/alive` is unconditional.
 
 ### Tests
 
