@@ -20,7 +20,7 @@ public sealed class MultiModelTests : IAsyncLifetime
             {
                 settings["Njord:Ensemble:Models:0"] = Primary;
                 settings["Njord:Ensemble:Models:1"] = Secondary;
-                settings["Njord:Features:ModelComparison:Enabled"] = "true";
+                settings["Njord:Features:EnsembleModelComparison:Enabled"] = "true";
             },
             TestContext.Current.CancellationToken,
             [Primary, Secondary]);

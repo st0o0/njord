@@ -621,9 +621,29 @@ public sealed class EnrichmentEventMappingsTests
     }
 
     [Fact]
-    public void Model_comparisons_map_to_the_model_comparison_case_with_one_entry_per_model_and_day()
+    public void Ensemble_model_comparisons_map_to_the_ensemble_model_comparison_case()
     {
-        var evt = Map(new ModelComparisonResult(Lucerne,
+        var evt = Map(new EnsembleModelComparisonResult(Lucerne,
+        [
+            new ModelComparisonDay(new DateOnly(2026, 7, 11),
+            [
+                new ModelDayValues("a", 20.5, 11.0, 1.2),
+            ]),
+        ]));
+
+        Assert.Equal(Case.EnsembleModelComparison, evt.FeatureCase);
+        var day = Assert.Single(evt.EnsembleModelComparison.Days);
+        var a = Assert.Single(day.Models);
+        Assert.Multiple(
+            () => Assert.Equal((2026, 7, 11), (day.Year, day.Month, day.Day)),
+            () => Assert.Equal("a", a.Model),
+            () => Assert.Equal(20.5, a.MaxTemperature));
+    }
+
+    [Fact]
+    public void Forecast_model_comparisons_map_to_the_forecast_model_comparison_case_with_one_entry_per_model_and_day()
+    {
+        var evt = Map(new ForecastModelComparisonResult(Lucerne,
         [
             new ModelComparisonDay(new DateOnly(2026, 7, 11),
             [
@@ -632,8 +652,8 @@ public sealed class EnrichmentEventMappingsTests
             ]),
         ]));
 
-        Assert.Equal(Case.ModelComparison, evt.FeatureCase);
-        var day = Assert.Single(evt.ModelComparison.Days);
+        Assert.Equal(Case.ForecastModelComparison, evt.FeatureCase);
+        var day = Assert.Single(evt.ForecastModelComparison.Days);
         Assert.Equal(2, day.Models.Count);
         var a = day.Models[0];
         var b = day.Models[1];

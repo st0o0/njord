@@ -14,7 +14,7 @@ public static class EnsembleApiVariableMappingExtensions
 
     public static IReadOnlyList<EnsembleApiVariable> ToApiVariables(this EnsembleParams flags) =>
         [.. Enum.GetValues<EnsembleParams>()
-            .Where(p => p != EnsembleParams.None && p != EnsembleParams.Models && flags.HasFlag(p))
+            .Where(p => p != EnsembleParams.None && flags.HasFlag(p))
             .Select(ToApiVariable)];
 
     public static IReadOnlyList<string> ToApiNames(this EnsembleParams flags) =>

@@ -7,7 +7,6 @@ using Njord.Core.Seasonal;
 
 namespace Njord.Core.Domain;
 
-public readonly record struct ModelComparisonInput(DomainForecast<ForecastPoint> Forecast, ImmutableDictionary<string, DomainForecast<ForecastPoint>> Models);
 public readonly record struct ForecastInput(DomainForecast<ForecastPoint> Forecast);
 public readonly record struct ForecastEnsembleInput(DomainForecast<ForecastPoint> Forecast, DomainForecast<EnsemblePoint> Ensemble);
 public readonly record struct AqInput(DomainForecast<AirQualityPoint> AirQuality);
@@ -19,3 +18,5 @@ public readonly record struct MarineForecastInput(DomainForecast<MarinePoint> Ma
 public readonly record struct EnsembleInput(DomainForecast<EnsemblePoint> Ensemble);
 public readonly record struct SeasonalInput(DomainForecast<SeasonalPoint> Seasonal);
 public readonly record struct MarineForecastEnsembleInput(DomainForecast<MarinePoint> Marine, DomainForecast<ForecastPoint> Forecast, DomainForecast<EnsemblePoint> Ensemble);
+public readonly record struct ForecastModelsInput(ImmutableDictionary<string, DomainForecast<ForecastPoint>> Models);
+public readonly record struct EnsembleModelsInput(ImmutableDictionary<string, DomainForecast<ForecastPoint>> Models);

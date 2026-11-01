@@ -126,11 +126,11 @@ public sealed class DomainRequirementsTests
     public void Should_union_ensemble_params_with_the_or_operator()
     {
         var left = new DomainRequirements(Ensemble: EnsembleParams.TemperatureSpread);
-        var right = new DomainRequirements(Ensemble: EnsembleParams.Models);
+        var right = new DomainRequirements(Ensemble: EnsembleParams.PrecipitationSpread);
 
         var union = left | right;
 
-        Assert.Equal(EnsembleParams.TemperatureSpread | EnsembleParams.Models, union.Ensemble);
+        Assert.Equal(EnsembleParams.TemperatureSpread | EnsembleParams.PrecipitationSpread, union.Ensemble);
     }
 
     [Fact]
@@ -138,12 +138,12 @@ public sealed class DomainRequirementsTests
     {
         Assert.Multiple(
             () => Assert.True(new DomainRequirements(Ensemble: EnsembleParams.TemperatureSpread).Requires(DomainKind.Ensemble)),
-            () => Assert.True(new DomainRequirements(OptionalEnsemble: EnsembleParams.Models).Requires(DomainKind.Ensemble)),
+            () => Assert.True(new DomainRequirements(OptionalEnsemble: EnsembleParams.WindSpeedSpread).Requires(DomainKind.Ensemble)),
             () => Assert.False(new DomainRequirements().Requires(DomainKind.Ensemble)));
     }
 
     [Fact]
-    public void Should_add_weather_code_and_pm10_as_base_params_when_domains_are_required()
+    public void Should_add_weather_code_as_base_param_when_forecast_is_required()
     {
         var result = new DomainRequirements(
             Forecast: ForecastParams.Temperature,
@@ -151,7 +151,7 @@ public sealed class DomainRequirementsTests
 
         Assert.Multiple(
             () => Assert.Equal(ForecastParams.Temperature | ForecastParams.WeatherCode, result.Forecast),
-            () => Assert.Equal(AirQualityParams.Pm10, result.AirQuality),
+            () => Assert.Equal(default, result.AirQuality),
             () => Assert.Equal(AirQualityParams.BirchPollen, result.OptionalAirQuality));
     }
 

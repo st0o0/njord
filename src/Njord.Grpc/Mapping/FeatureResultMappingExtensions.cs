@@ -453,9 +453,16 @@ internal static class FeatureResultMappingExtensions
         return proto;
     }
 
-    public static V2.ModelComparison ToProto(this ModelComparisonResult r)
+    public static V2.ForecastModelComparison ToProto(this ForecastModelComparisonResult r)
     {
-        var proto = new V2.ModelComparison { Forecast = new V2.ForecastData() };
+        var proto = new V2.ForecastModelComparison { Forecast = new V2.ForecastData() };
+        proto.Days.AddRange(r.Days.Select(day => day.ToProto()));
+        return proto;
+    }
+
+    public static V2.EnsembleModelComparison ToProto(this EnsembleModelComparisonResult r)
+    {
+        var proto = new V2.EnsembleModelComparison { Forecast = new V2.ForecastData() };
         proto.Days.AddRange(r.Days.Select(day => day.ToProto()));
         return proto;
     }

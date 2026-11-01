@@ -1,9 +1,7 @@
 using System.Collections.Immutable;
 using System.Net.Http.Json;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Core;
-using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Messages.Fetch;
@@ -25,26 +23,20 @@ public sealed class EnsembleClient : IDomainClient
     private readonly int _forecastDays;
     private readonly ImmutableArray<string> _modelIds;
     private readonly string _primaryModel;
-    private readonly bool _needsModels;
+    private readonly bool _hasMultipleModels;
 
-    public EnsembleClient(HttpClient httpClient, IOptions<EnsembleOptions> options, IOptions<SolarOptions> solar, IOptions<DomainRequirements> requirements, ILogger<EnsembleClient> logger)
+    public EnsembleClient(HttpClient httpClient, IOptions<EnsembleOptions> options, IOptions<SolarOptions> solar, IOptions<DomainRequirements> requirements)
     {
         _httpClient = httpClient;
         var resolved = requirements.Value;
-        var configured = options.Value.Models.Length > 0 ? ImmutableArray.Create(options.Value.Models) : ImmutableArray.Create(EnsembleOptions.DefaultModel);
+        var configured = options.Value.Models.Length > 0 ? ImmutableArray.Create(options.Value.Models) : ImmutableArray.Create(EnsembleOptions.DefaultModels);
         _primaryModel = configured[0];
-        _needsModels = resolved.AllEnsemble.HasFlag(EnsembleParams.Models);
-
-        _modelIds = _needsModels ? configured : [_primaryModel];
-        var ignored = configured.Except(_modelIds).ToArray();
-        if (ignored.Length > 0)
-        {
-            logger.LogWarning("Ensemble models ignored because no enabled feature compares models: {Models}", string.Join(", ", ignored));
-        }
+        _hasMultipleModels = configured.Length > 1;
+        _modelIds = configured;
 
         _solar = solar.Value;
         _spreadVariables = resolved.AllEnsemble.ToApiNames();
-        _weatherVariables = _needsModels ? resolved.AllForecast.ToApiNames() : [];
+        _weatherVariables = _hasMultipleModels ? resolved.AllForecast.ToApiNames() : [];
         _allVariables = [.. _weatherVariables.Concat(_spreadVariables).Distinct()];
         _forecastDays = Math.Min(options.Value.ForecastDays, MaxForecastDays);
         CallWeight = (int)Math.Max(1, Math.Ceiling(Core.Polling.CallWeight.Of(_allVariables.Count, _forecastDays))) * _modelIds.Length;
@@ -62,7 +54,7 @@ public sealed class EnsembleClient : IDomainClient
             (ClientRequest.Models, ClientRequest.List(_modelIds)),
             (ClientRequest.WindSpeedUnit, ClientRequest.MetersPerSecond),
         };
-        if (_needsModels && _weatherVariables.Contains(ForecastApiVariable.GlobalTiltedIrradiance.ToApiName()))
+        if (_hasMultipleModels && _weatherVariables.Contains(ForecastApiVariable.GlobalTiltedIrradiance.ToApiName()))
         {
             query.Add((ClientRequest.Tilt, ClientRequest.Number(_solar.Tilt)));
             query.Add((ClientRequest.Azimuth, ClientRequest.Number(ClientRequest.ToApiAzimuth(_solar.Azimuth))));
@@ -86,7 +78,7 @@ public sealed class EnsembleClient : IDomainClient
 
         var result = new FetchSuccess(ensemble);
 
-        if (_needsModels)
+        if (_hasMultipleModels)
         {
             var modelForecasts = response.ToModelForecasts(now, _primaryModel);
             if (modelForecasts.Count > 0)

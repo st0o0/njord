@@ -1,3 +1,4 @@
+using Njord.Core;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Messages.Results;
@@ -35,7 +36,10 @@ internal sealed class FeatureEngine
         {
             if (received.Data is DomainForecast<ForecastPoint> modelWeather)
             {
-                var latest = (ring.Count > 0 ? ring[0] : new LocationForecast(received.Location)).WithModel(modelId, modelWeather);
+                var latest = ring.Count > 0 ? ring[0] : new LocationForecast(received.Location);
+                latest = received.Domain == DomainKind.Forecast
+                    ? latest.WithForecastModel(modelId, modelWeather)
+                    : latest.WithEnsembleModel(modelId, modelWeather);
                 if (ring.Count > 0)
                 {
                     ring.ReplaceNewest(latest);
@@ -50,19 +54,24 @@ internal sealed class FeatureEngine
         }
 
         var current = (ring.Count > 0 ? ring[0] : new LocationForecast(received.Location)).With(received.Domain, received.Data);
-        current = current with { ModelForecast = ring.Count > 0 ? ring[0].ModelForecast : null };
+        current = current with
+        {
+            ForecastModels = ring.Count > 0 ? ring[0].ForecastModels : null,
+            EnsembleModels = ring.Count > 0 ? ring[0].EnsembleModels : null,
+        };
         ring.Push(current);
 
         var now = _time.GetUtcNow();
         foreach (var feature in _enabled)
         {
             var requirements = feature.Descriptor.Requirements;
-            if (!requirements.Requires(received.Domain))
+            var passive = requirements is null || !requirements.RequiresAnyDomain();
+            if (!passive && !requirements!.Requires(received.Domain))
             {
                 continue;
             }
 
-            if (!current.HasFields(requirements))
+            if (!passive && !current.HasFields(requirements!))
             {
                 Telemetry.HandlerSkipped.Add(1,
                     new KeyValuePair<string, object?>("handler", feature.GetType().Name),

@@ -2,7 +2,6 @@ using System.Numerics;
 using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
-using Njord.Core.Forecast;
 using Njord.Core.Polling;
 
 namespace Njord.Polling.Configuration;
@@ -68,12 +67,11 @@ internal static class BudgetGuard
             return 0;
         }
 
-        var hasModels = requirements.AllEnsemble.HasFlag(EnsembleParams.Models);
-        var spreadVarCount = BitOperations.PopCount((ulong)(requirements.AllEnsemble & ~EnsembleParams.Models));
-        var ensembleVars = hasModels
+        var spreadVarCount = BitOperations.PopCount((ulong)requirements.AllEnsemble);
+        var modelCount = Math.Max(1, config.EnsembleModelCount);
+        var ensembleVars = modelCount > 1
             ? BitOperations.PopCount((ulong)requirements.AllForecast) + spreadVarCount
             : spreadVarCount;
-        var modelCount = hasModels ? Math.Max(1, config.EnsembleModelCount) : 1;
         return CallWeight.Of(ensembleVars, config.EnsembleDays) * modelCount;
     }
 

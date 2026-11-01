@@ -12,7 +12,7 @@ public sealed class EnsembleOptionsTests
 
         options.ApplyDefaults();
 
-        Assert.Equal([EnsembleOptions.DefaultModel], options.Models);
+        Assert.Equal(EnsembleOptions.DefaultModels, options.Models);
     }
 
     [Fact]

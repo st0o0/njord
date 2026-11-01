@@ -12,8 +12,7 @@ public sealed class EnsembleParamsTests
         Assert.Multiple(
             () => Assert.True(combined.HasFlag(EnsembleParams.TemperatureSpread)),
             () => Assert.True(combined.HasFlag(EnsembleParams.PrecipitationSpread)),
-            () => Assert.False(combined.HasFlag(EnsembleParams.WindSpeedSpread)),
-            () => Assert.False(combined.HasFlag(EnsembleParams.Models)));
+            () => Assert.False(combined.HasFlag(EnsembleParams.WindSpeedSpread)));
     }
 
     [Fact]

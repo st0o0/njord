@@ -47,7 +47,7 @@ public sealed class OpenMeteoClientTests
         SolarOptions? solar = null,
         EnsembleOptions? options = null,
         string[]? models = null) =>
-        new(http, Options.Create(options ?? new EnsembleOptions { Models = models ?? [EnsembleOptions.DefaultModel] }), Options.Create(solar ?? new SolarOptions()), Needs(weather: weather, ensemble: ensemble), NullLogger<EnsembleClient>.Instance);
+        new(http, Options.Create(options ?? new EnsembleOptions { Models = models ?? [EnsembleOptions.DefaultModels[0]] }), Options.Create(solar ?? new SolarOptions()), Needs(weather: weather, ensemble: ensemble));
 
     private static FloodClient Flood(HttpClient http, FloodOptions? options = null) =>
         new(http, Options.Create(options ?? new FloodOptions()), Needs(flood: FloodParams.Discharge));
@@ -110,7 +110,7 @@ public sealed class OpenMeteoClientTests
         var uri = await Capture("ensemble-api", http => Ensemble(http, EnsembleParams.TemperatureSpread | EnsembleParams.PrecipitationSpread), TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            $"/v1/ensemble?latitude=47.05&longitude=8.31&hourly=temperature_2m_spread,precipitation_spread&models={EnsembleOptions.DefaultModel}&wind_speed_unit=ms&forecast_days={new EnsembleOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
+            $"/v1/ensemble?latitude=47.05&longitude=8.31&hourly=temperature_2m_spread,precipitation_spread&models={EnsembleOptions.DefaultModels[0]}&wind_speed_unit=ms&forecast_days={new EnsembleOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
@@ -119,7 +119,7 @@ public sealed class OpenMeteoClientTests
     {
         string[] models = ["ecmwf_aifs025_ensemble_mean", "ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"];
 
-        var uri = await Capture("ensemble-api", http => Ensemble(http, EnsembleParams.TemperatureSpread | EnsembleParams.Models, ForecastParams.Temperature, models: models), TestContext.Current.CancellationToken);
+        var uri = await Capture("ensemble-api", http => Ensemble(http, EnsembleParams.TemperatureSpread, ForecastParams.Temperature, models: models), TestContext.Current.CancellationToken);
 
         Assert.Contains("&models=ecmwf_aifs025_ensemble_mean,ecmwf_ifs025_ensemble_mean,ukmo_global_ensemble_mean_20km&", uri);
     }
@@ -130,7 +130,7 @@ public sealed class OpenMeteoClientTests
         string[] models = ["ecmwf_ifs025_ensemble_mean", "ecmwf_aifs025_ensemble_mean"];
         var http = StubOpenMeteoHandler.ClientFor("ensemble-api", HttpStatusCode.OK, OpenMeteoFixtures.EnsembleMultiModel);
 
-        var result = await Ensemble(http, EnsembleParams.TemperatureSpread | EnsembleParams.Models, ForecastParams.Temperature, models: models).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
+        var result = await Ensemble(http, EnsembleParams.TemperatureSpread, ForecastParams.Temperature, models: models).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchSuccess>(result);
         var primary = Assert.IsType<DomainForecast<EnsemblePoint>>(success.Forecast);
@@ -143,8 +143,8 @@ public sealed class OpenMeteoClientTests
     public void The_ensemble_call_weight_is_multiplied_by_the_model_count()
     {
         string[] models = ["ecmwf_ifs025_ensemble_mean", "ecmwf_aifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"];
-        var single = Ensemble(new HttpClient(), EnsembleParams.TemperatureSpread | EnsembleParams.Models, ForecastParams.Temperature);
-        var triple = Ensemble(new HttpClient(), EnsembleParams.TemperatureSpread | EnsembleParams.Models, ForecastParams.Temperature, models: models);
+        var single = Ensemble(new HttpClient(), EnsembleParams.TemperatureSpread, ForecastParams.Temperature);
+        var triple = Ensemble(new HttpClient(), EnsembleParams.TemperatureSpread, ForecastParams.Temperature, models: models);
 
         Assert.Equal(single.CallWeight * 3, triple.CallWeight);
     }

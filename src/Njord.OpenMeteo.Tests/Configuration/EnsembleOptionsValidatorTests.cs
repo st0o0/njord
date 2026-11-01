@@ -11,7 +11,7 @@ public sealed class EnsembleOptionsValidatorTests
     [Fact]
     public void Should_accept_the_default_model()
     {
-        var result = _validator.Validate(null, new EnsembleOptions { Models = [EnsembleOptions.DefaultModel] });
+        var result = _validator.Validate(null, new EnsembleOptions { Models = [EnsembleOptions.DefaultModels[0]] });
 
         Assert.True(result.Succeeded);
     }
@@ -29,7 +29,7 @@ public sealed class EnsembleOptionsValidatorTests
     [InlineData(36)]
     public void Should_reject_forecast_days_outside_one_to_thirty_five(int days)
     {
-        var result = _validator.Validate(null, new EnsembleOptions { ForecastDays = days, Models = [EnsembleOptions.DefaultModel] });
+        var result = _validator.Validate(null, new EnsembleOptions { ForecastDays = days, Models = [EnsembleOptions.DefaultModels[0]] });
 
         Assert.Contains("Ensemble.ForecastDays must be between 1 and 35", ValidationAssert.SingleFailure(result));
     }

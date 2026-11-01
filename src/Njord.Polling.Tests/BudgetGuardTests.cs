@@ -157,7 +157,7 @@ public sealed class BudgetGuardTests
     {
         var resolved = new DomainRequirements(
             Forecast: ForecastParams.Temperature,
-            Ensemble: EnsembleParams.TemperatureSpread | EnsembleParams.Models);
+            Ensemble: EnsembleParams.TemperatureSpread);
 
         // forecast 0.286 + ensemble (2 vars -> 1 x 4/14 x 3 models = 0.857) = 1.143 x 720 = 823; guard 800 of 1000. One model: 411.
         Assert.Multiple(

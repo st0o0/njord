@@ -5,7 +5,7 @@ namespace Njord.OpenMeteo.Configuration;
 public sealed class EnsembleOptions : IConfigSection, IHasArrayDefaults
 {
     private const string SectionName = "Njord:Ensemble";
-    public const string DefaultModel = "ecmwf_ifs025_ensemble_mean";
+    public static readonly string[] DefaultModels = ["ecmwf_ifs025_ensemble_mean", "gfs025_ensemble_mean"];
     static string IConfigSection.SectionName => SectionName;
 
     public string[] Models { get; set; } = [];
@@ -16,7 +16,7 @@ public sealed class EnsembleOptions : IConfigSection, IHasArrayDefaults
     {
         if (Models is { Length: 0 })
         {
-            Models = [DefaultModel];
+            Models = [.. DefaultModels];
         }
     }
 }

@@ -17,7 +17,6 @@ public sealed record EnsemblePoint(
         EnsembleParams.TemperatureSpread => TemperatureSpread is not null,
         EnsembleParams.PrecipitationSpread => PrecipitationSpread is not null,
         EnsembleParams.WindSpeedSpread => WindSpeedSpread is not null,
-        EnsembleParams.Models => true,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

@@ -393,11 +393,17 @@ internal static class EnrichmentEventMappingExtensions
             UpdatedAt = now.ToTimestamp(),
             SeasonalOutlook = r.ToProto(),
         },
-        ModelComparisonResult r => new EnrichmentEvent
+        ForecastModelComparisonResult r => new EnrichmentEvent
         {
             Location = r.Location.Name,
             UpdatedAt = now.ToTimestamp(),
-            ModelComparison = r.ToProto(),
+            ForecastModelComparison = r.ToProto(),
+        },
+        EnsembleModelComparisonResult r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            UpdatedAt = now.ToTimestamp(),
+            EnsembleModelComparison = r.ToProto(),
         },
         GrowingDegreeResult r => new EnrichmentEvent
         {

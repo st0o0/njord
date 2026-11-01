@@ -55,8 +55,9 @@ using Njord.Features.Conditions.SoilMoisture;
 using Njord.Features.Conditions.SolarYield;
 using Njord.Features.Conditions.SurfConditions;
 using Njord.Features.Conditions.VentilationWindow;
+using Njord.Features.Forecasts.EnsembleModelComparison;
+using Njord.Features.Forecasts.ForecastModelComparison;
 using Njord.Features.Forecasts.GrowingDegree;
-using Njord.Features.Forecasts.ModelComparison;
 using Njord.Features.Forecasts.SeasonalOutlook;
 using Njord.Features.Scores.AllergySeverity;
 using Njord.Features.Scores.AsthmaRisk;
@@ -166,8 +167,9 @@ public static class ServiceCollectionExtensions
         services.AddFeature<ConfidenceTrend, ConfidenceTrendConfig>();
 
         // Forecasts
+        services.AddFeature<EnsembleModelComparison, EnsembleModelComparisonConfig>();
+        services.AddFeature<ForecastModelComparison, ForecastModelComparisonConfig>();
         services.AddFeature<GrowingDegree, GrowingDegreeConfig, GrowingDegreeConfigValidator>();
-        services.AddFeature<ModelComparison, ModelComparisonConfig>();
         services.AddFeature<SeasonalOutlook, SeasonalOutlookConfig>();
 
         return services;

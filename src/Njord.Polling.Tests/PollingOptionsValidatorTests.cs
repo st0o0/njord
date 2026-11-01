@@ -29,7 +29,7 @@ public sealed class PollingOptionsValidatorTests
             Options.Create(new DomainRequirements(
                 Forecast: ForecastParams.Temperature,
                 AirQuality: AirQualityParams.Pm25,
-                Ensemble: hasEnsemble ? EnsembleParams.TemperatureSpread | EnsembleParams.Models : EnsembleParams.None)));
+                Ensemble: hasEnsemble ? EnsembleParams.TemperatureSpread : EnsembleParams.None)));
     }
 
     [Theory]

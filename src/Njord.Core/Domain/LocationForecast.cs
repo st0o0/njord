@@ -15,12 +15,18 @@ public sealed record LocationForecast(
     DomainForecast<MarinePoint>? Marine = null,
     DomainForecast<SeasonalPoint>? Seasonal = null,
     DomainForecast<EnsemblePoint>? Ensemble = null,
-    ImmutableDictionary<string, DomainForecast<ForecastPoint>>? ModelForecast = null)
+    ImmutableDictionary<string, DomainForecast<ForecastPoint>>? ForecastModels = null,
+    ImmutableDictionary<string, DomainForecast<ForecastPoint>>? EnsembleModels = null)
 {
-    public ImmutableDictionary<string, DomainForecast<ForecastPoint>> Models => ModelForecast ?? ImmutableDictionary<string, DomainForecast<ForecastPoint>>.Empty;
+    public ImmutableDictionary<string, DomainForecast<ForecastPoint>> ForecastModelMap => ForecastModels ?? ImmutableDictionary<string, DomainForecast<ForecastPoint>>.Empty;
 
-    public LocationForecast WithModel(string modelId, DomainForecast<ForecastPoint> forecast) =>
-        this with { ModelForecast = Models.SetItem(modelId, forecast) };
+    public ImmutableDictionary<string, DomainForecast<ForecastPoint>> EnsembleModelMap => EnsembleModels ?? ImmutableDictionary<string, DomainForecast<ForecastPoint>>.Empty;
+
+    public LocationForecast WithForecastModel(string modelId, DomainForecast<ForecastPoint> forecast) =>
+        this with { ForecastModels = ForecastModelMap.SetItem(modelId, forecast) };
+
+    public LocationForecast WithEnsembleModel(string modelId, DomainForecast<ForecastPoint> forecast) =>
+        this with { EnsembleModels = EnsembleModelMap.SetItem(modelId, forecast) };
 
     public LocationForecast With(DomainKind domain, IDomainForecast forecast) => domain switch
     {

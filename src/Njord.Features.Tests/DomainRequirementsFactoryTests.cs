@@ -31,7 +31,7 @@ public sealed class DomainRequirementsFactoryTests
             () => Assert.True(result.Forecast.HasFlag(ForecastParams.Temperature)),
             () => Assert.True(result.Forecast.HasFlag(ForecastParams.WeatherCode)),
             () => Assert.True(result.AirQuality.HasFlag(AirQualityParams.Pm25)),
-            () => Assert.True(result.AirQuality.HasFlag(AirQualityParams.Pm10)),
+            () => Assert.False(result.AirQuality.HasFlag(AirQualityParams.Pm10)),
             () => Assert.False(result.Forecast.HasFlag(ForecastParams.WindSpeed)));
     }
 

@@ -248,8 +248,8 @@ message StreamEnrichmentsRequest {
 // One feature result. The oneof case identifies the feature. Field number ranges per output kind:
 // alerts 20-49 (+55), scores 50-58, conditions 60-79 (+82-84), trends 80-81, forecasts 90-99.
 message EnrichmentEvent {
-  reserved 2, 10, 11, 12, 13, 14, 15, 67; // 67 was satellite_radiation
-  reserved "type_name", "alerts", "lifestyle", "payload";
+  reserved 2, 10, 11, 12, 13, 14, 15, 67, 91; // 67 was satellite_radiation, 91 was model_comparison
+  reserved "type_name", "alerts", "lifestyle", "payload", "model_comparison";
   string location = 1;
   google.protobuf.Timestamp updated_at = 3;
   oneof feature {
@@ -316,8 +316,9 @@ message EnrichmentEvent {
     AtmosphericStabilityCondition atmospheric_stability = 83;
     CloudCeilingCondition cloud_ceiling = 84;
     SeasonalOutlook seasonal_outlook = 90;
-    ModelComparison model_comparison = 91;
     GrowingDegreeForecast growing_degree = 92;
+    ForecastModelComparison forecast_model_comparison = 93;
+    EnsembleModelComparison ensemble_model_comparison = 94;
   }
 }
 
@@ -958,7 +959,12 @@ message ModelComparisonDay {
   repeated ModelDayValues models = 4;
 }
 
-message ModelComparison {
+message ForecastModelComparison {
+  ForecastData forecast = 1;
+  repeated ModelComparisonDay days = 2;
+}
+
+message EnsembleModelComparison {
   ForecastData forecast = 1;
   repeated ModelComparisonDay days = 2;
 }

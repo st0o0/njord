@@ -12,7 +12,9 @@ public sealed record ModelDayValues(string ModelId, double? MaxTemperature, doub
 
 public sealed record ModelComparisonDay(DateOnly Date, ImmutableArray<ModelDayValues> Models);
 
-public sealed record ModelComparisonResult(Location Location, ImmutableArray<ModelComparisonDay> Days) : ForecastFeatureResult(Location);
+public sealed record ForecastModelComparisonResult(Location Location, ImmutableArray<ModelComparisonDay> Days) : ForecastFeatureResult(Location);
+
+public sealed record EnsembleModelComparisonResult(Location Location, ImmutableArray<ModelComparisonDay> Days) : ForecastFeatureResult(Location);
 
 public sealed record GrowingDegreeDay(DateOnly Date, double Gdd);
 

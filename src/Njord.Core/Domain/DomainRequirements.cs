@@ -23,7 +23,6 @@ public sealed record DomainRequirements(
     public DomainRequirements WithBaseParams() => this with
     {
         Forecast = AllForecast != default ? Forecast | ForecastParams.WeatherCode : Forecast,
-        AirQuality = AllAirQuality != default ? AirQuality | AirQualityParams.Pm10 : AirQuality,
     };
 
     public ForecastParams AllForecast => Forecast | OptionalForecast;
@@ -52,6 +51,10 @@ public sealed record DomainRequirements(
         a.OptionalMarine | b.OptionalMarine,
         a.Seasonal | b.Seasonal,
         a.OptionalSeasonal | b.OptionalSeasonal);
+
+    public bool RequiresAnyDomain() =>
+        AllForecast != default || AllAirQuality != default || AllFlood != default
+        || AllMarine != default || AllSeasonal != default || AllEnsemble != default;
 
     public bool Requires(DomainKind domain) => domain switch
     {

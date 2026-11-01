@@ -322,19 +322,19 @@ public sealed class FeatureEngineTests
         Assert.Equal("received", ex.ParamName);
     }
 
-    private sealed class ModelProbeRule : FeatureRule<ModelComparisonInput>
+    private sealed class ModelProbeRule : FeatureRule<ForecastModelsInput>
     {
-        public List<ModelComparisonInput> Calls { get; } = [];
+        public List<ForecastModelsInput> Calls { get; } = [];
 
         public override FeatureDescriptor Descriptor { get; } =
-            new(OutputKind.Forecast, FeatureCategory.Forecast, "Probe", new DomainRequirements(Forecast: ForecastParams.Temperature));
+            new(OutputKind.Forecast, FeatureCategory.Forecast, "Probe", new DomainRequirements());
 
         public override bool Enabled => true;
 
-        protected override ModelComparisonInput? Project(LocationForecast forecast) =>
-            forecast.Forecast is { } w ? new(w, forecast.Models) : null;
+        protected override ForecastModelsInput? Project(LocationForecast forecast) =>
+            new ForecastModelsInput(forecast.ForecastModelMap);
 
-        protected override PipelineEvent? Evaluate(FeatureContext<ModelComparisonInput> ctx)
+        protected override PipelineEvent? Evaluate(FeatureContext<ForecastModelsInput> ctx)
         {
             Calls.Add(ctx.Current);
             return new ProbeResult(ctx.Location);

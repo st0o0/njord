@@ -1,35 +1,20 @@
 using System.Collections.Immutable;
-using Microsoft.Extensions.Options;
-using Njord.Core.Domain;
 using Njord.Core.Forecast;
-using Njord.Messages.Results;
 using Njord.Messages.Results.Forecasts;
-using Njord.Messages.Stream;
 
-namespace Njord.Features.Forecasts.ModelComparison;
+namespace Njord.Features.Forecasts.Shared;
 
-public sealed class ModelComparison(IOptions<ModelComparisonConfig> config) : FeatureRule<ModelComparisonInput>
+internal static class ModelComparisonHelper
 {
-    public const string FeatureName = "ModelComparison";
-    public const int ComparedDays = 5;
+    internal const int ComparedDays = 5;
 
-    public override FeatureDescriptor Descriptor { get; } = new(
-        OutputKind.Forecast,
-        FeatureCategory.Forecast,
-        Name: FeatureName,
-        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.Precipitation, Ensemble: EnsembleParams.Models));
-
-    public override bool Enabled => config.Value.Enabled;
-
-    protected override ModelComparisonInput? Project(LocationForecast forecast) =>
-        forecast is { Forecast: { } w, Models.Count: >= 2 } ? new(w, forecast.Models) : null;
-
-    protected override PipelineEvent? Evaluate(FeatureContext<ModelComparisonInput> ctx)
+    internal static ImmutableArray<ModelComparisonDay> CompareDays(
+        ImmutableDictionary<string, DomainForecast<ForecastPoint>> models, DateTimeOffset now)
     {
-        var today = DateOnly.FromDateTime(ctx.Now.UtcDateTime);
-        var models = ctx.Current.Models.OrderBy(m => m.Key, StringComparer.Ordinal).ToList();
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        var ordered = models.OrderBy(m => m.Key, StringComparer.Ordinal).ToList();
 
-        var days = models
+        var days = ordered
             .SelectMany(m => m.Value.Points.Select(p => (Model: m.Key, Point: p, Date: DateOnly.FromDateTime(p.ValidFrom.UtcDateTime))))
             .Where(x => x.Date >= today && x.Date < today.AddDays(ComparedDays))
             .GroupBy(x => x.Date)
@@ -39,7 +24,7 @@ public sealed class ModelComparison(IOptions<ModelComparisonConfig> config) : Fe
                 [.. g.GroupBy(x => x.Model).OrderBy(m => m.Key, StringComparer.Ordinal).Select(m => Summarize(m.Key, m.Select(x => x.Point)))]))
             .ToImmutableArray();
 
-        return days.IsEmpty ? null : new ModelComparisonResult(ctx.Location, days);
+        return days;
     }
 
     private static ModelDayValues Summarize(string modelId, IEnumerable<ForecastPoint> points)
