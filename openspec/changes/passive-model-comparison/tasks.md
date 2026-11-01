@@ -51,10 +51,10 @@
 
 ## 7. Docs and config
 
-- [ ] 7.1 Update `docs/data/features.json`: remove `ModelComparison`, add `ForecastModelComparison` and `EnsembleModelComparison` (default-on)
-- [ ] 7.2 Update Config Builder (`docs/.vitepress/theme/builder/`) for new features and default ensemble models
-- [ ] 7.3 Update `appsettings.Example.json` and `docker-compose.example.yml` with new defaults
-- [ ] 7.4 Update `docs/configuration/model-comparison.md` for the two new features
+- [x] 7.1 Update `docs/data/features.json`: remove `ModelComparison`, add `ForecastModelComparison` and `EnsembleModelComparison` (default-on)
+- [x] 7.2 Update Config Builder (`docs/.vitepress/theme/builder/`) for new features and default ensemble models
+- [x] 7.3 Update `appsettings.Example.json` and `docker-compose.example.yml` with new defaults
+- [x] 7.4 Update `docs/configuration/model-comparison.md` for the two new features
 
 ## 8. ha-njord
 
@@ -72,6 +72,6 @@
 
 - [x] 9.1 Update `HandlerRequirementsTests` (`src/Njord.IntegrationTests/HandlerRequirementsTests.cs`)
 - [x] 9.2 Update `PipelineEventMappingsTests` if `ForecastDataReceived.ModelId` routing changed
-- [ ] 9.3 Update E2E test plan and docker-compose configs for new default models
+- [x] 9.3 Update E2E test plan and docker-compose configs for new default models
 - [x] 9.4 Update `PollingOptionsValidatorTests` if ensemble model references changed
 - [x] 9.5 Run all test projects, verify `dotnet format`

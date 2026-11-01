@@ -162,7 +162,7 @@ export function defaultConfig(): NjordConfig {
   return {
     pollInterval: '01:00:00',
     forecast: { forecastDays: 4, pastHours: 0, models: [] },
-    ensemble: { forecastDays: 4, models: ['ecmwf_ifs025_ensemble_mean'] },
+    ensemble: { forecastDays: 4, models: ['ecmwf_ifs025_ensemble_mean', 'gfs025_ensemble_mean'] },
     airQuality: { forecastDays: 5, region: 'Global' },
     marine: { forecastDays: 8 },
     flood: { forecastDays: 92, includeEnsemble: false },

@@ -43,7 +43,7 @@ gRPC + REST. Real Open-Meteo API. 6 domains (Weather, AirQuality, Flood, Marine,
 
 - **Location:** Barcelona (explicit coordinates 41.3874 / 2.1686 in the compose file, coastal for full Marine coverage)
 - **Weather:** ForecastDays=4, models `ecmwf_ifs025_ensemble_mean` (primary) + `ecmwf_aifs025_ensemble_mean`
-  (`Weather:ModelComparison` enabled)
+  (`EnsembleModelComparison` default-on with 2+ models)
 - **Features:** ALL enabled (65 feature toggles, `Njord__Features__*`; `HeatPumpCop` with `TargetTemperature=35`)
 - **Resolved domains:** Weather, AirQuality, Flood, Marine, Seasonal, Satellite (all domains resolve for coastal Barcelona)
 

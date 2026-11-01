@@ -279,7 +279,7 @@ onMounted(() => {
       </div>
       <details class="advanced">
         <summary>Ensemble models</summary>
-        <p class="section-hint">Select ensemble-mean models. The first is primary; additional models are only used when Model Comparison is enabled.</p>
+        <p class="section-hint">Select ensemble-mean models. The first is primary; EnsembleModelComparison compares all selected models. Each extra model multiplies the Ensemble call weight.</p>
         <div v-for="m in weatherModels" :key="m.id" class="general-row">
           <label>
             <input type="checkbox" :checked="config.ensemble.models.includes(m.id)" @change="toggleModel(m.id, ($event.target as HTMLInputElement).checked)" />

@@ -71,18 +71,13 @@ function ensembleSpreadVarCount(features: Record<string, boolean>): number {
   return params.size
 }
 
-function ensembleNeedsModels(features: Record<string, boolean>): boolean {
-  return FEATURES.some(f => features[f.key] && f.ensembleParams?.includes('Models'))
-}
-
 function ensembleWeight(config: NjordConfig, features: Record<string, boolean>): number {
   const domains = requiredDomains(features)
   if (!domains.includes('Ensemble')) return 0
   const modelCount = Math.max(1, config.ensemble.models.filter(Boolean).length)
-  if (ensembleNeedsModels(features)) {
-    return Math.ceil((weatherVariableCount(features) + ensembleSpreadVarCount(features)) / 10) * Math.ceil(config.ensemble.forecastDays / 14) * modelCount
-  }
-  return Math.ceil(ensembleSpreadVarCount(features) / 10) * Math.ceil(config.ensemble.forecastDays / 14)
+  // Several configured models are fetched together (passive comparison), so the weather variables ride along.
+  const variables = modelCount > 1 ? weatherVariableCount(features) + ensembleSpreadVarCount(features) : ensembleSpreadVarCount(features)
+  return Math.ceil(variables / 10) * Math.ceil(config.ensemble.forecastDays / 14) * modelCount
 }
 
 function callsPerLocationCycle(config: NjordConfig, features: Record<string, boolean>): number {

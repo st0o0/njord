@@ -759,18 +759,28 @@
     "domains": ["Seasonal"]
   },
   {
-    "key": "ModelComparison",
-    "name": "ModelComparison",
+    "key": "ForecastModelComparison",
+    "name": "ForecastModelComparison",
     "category": "Forecast",
     "output": "Forecast",
-    "description": "Shows how different weather models compare for your location",
-    "longDescription": "Displays temperature and precipitation forecasts from multiple ensemble models side by side. When models agree, confidence is high; when they diverge, the forecast is uncertain. Adds a secondary weather entity per model in Home Assistant.",
+    "description": "Shows how the configured forecast models compare for your location",
+    "longDescription": "Passively compares the per-day temperature and precipitation of the models listed in Njord:Forecast:Models. It requests no data of its own and adds no API calls; it only observes what is already fetched. Needs at least two forecast models.",
     "entities": ["weather.{location}_{model_name}"],
     "automationExample": "Check model agreement before planning a weekend trip",
-    "enabledByDefault": false,
-    "domains": ["Forecast", "Ensemble"],
-    "weatherParams": ["Temperature", "Precipitation"],
-    "ensembleParams": ["Models"]
+    "enabledByDefault": true,
+    "domains": []
+  },
+  {
+    "key": "EnsembleModelComparison",
+    "name": "EnsembleModelComparison",
+    "category": "Forecast",
+    "output": "Forecast",
+    "description": "Shows how the configured ensemble models compare for your location",
+    "longDescription": "Passively compares the per-day temperature and precipitation of the models listed in Njord:Ensemble:Models. It requests no data of its own and adds no API calls; it only observes what is already fetched. Works out of the box with the two default ensemble models.",
+    "entities": ["weather.{location}_{model_name}"],
+    "automationExample": "Check ensemble agreement before planning a weekend trip",
+    "enabledByDefault": true,
+    "domains": []
   },
   {
     "key": "SolarYield",

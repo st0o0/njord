@@ -139,7 +139,7 @@ SHARD REGIONS (Sharded Entity)
   from the Ensemble Mean API (`ensemble-api.open-meteo.com/v1/ensemble`, `EnsembleClient`,
   `DomainKind.Ensemble`). Each API has its own options: `Njord:Forecast` (`ForecastDays`, `PastHours`,
   optional `Models`, empty = best_match) and `Njord:Ensemble` (`ForecastDays`, `Models`, default
-  `ecmwf_ifs025_ensemble_mean`, the ensemble-mean models for comparison). The requested variables
+  `["ecmwf_ifs025_ensemble_mean", "gfs025_ensemble_mean"]`, the ensemble-mean models for comparison). The requested variables
   follow the enabled features: the `Requirements` of all enabled features are OR-ed into
   `DomainRequirements` (with base params; consumers take `IOptions<DomainRequirements>`) and mapped to
   API names by `ParamMappings.ToApiNames()`; the clients only build the URL. `FeatureEngine` skips a
@@ -150,11 +150,11 @@ SHARD REGIONS (Sharded Entity)
   Seasonal is 30 requests/month at `max(formula, 1.3)`.
 - **Per-domain forecast days.** `Njord:Forecast` (4, max 16), `Njord:Ensemble` (4, max 35), `Njord:AirQuality` (5,
   max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92, max 210).
-- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Name>` (64 features; categories in
-  `docs/data/features.json` are UI metadata; env `Njord__Features__<Name>__Enabled`). 18 are on by default: the 15
+- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Name>` (65 features; categories in
+  `docs/data/features.json` are UI metadata; env `Njord__Features__<Name>__Enabled`). 20 are on by default: the 15
   weather alerts (`Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`, `PressureDrop`, `Thunderstorm`,
   `Ice`, `WindChill`, `Visibility`, `TropicalNight`, `Humidity`, `RainProbability`), `Commute`, `Pollen`,
-  `Pm25`; everything else is off. The entity set follows locations x enabled features.
+  `Pm25`, `ForecastModelComparison`, `EnsembleModelComparison`; everything else is off. The entity set follows locations x enabled features.
 - **Per-domain discovery.** Every domain of a location learns its own cycle and polls independently.
 - **Domains:** `Forecast`, `Ensemble`, `AirQuality`, `Flood`, `Marine`, `Seasonal` (`DomainKind`); the gateway fetches all of them.
 - **Explicit coordinates.** A location is `Name`, `Latitude` and `Longitude`, all required (`NjordOptionsValidator`).
@@ -168,7 +168,7 @@ SHARD REGIONS (Sharded Entity)
   counts it as 30 calls/month/location instead of once per poll cycle. The API delivers ensemble-mean
   `temperature_2m_anomaly` (K) and `precipitation_anomaly` (mm; `SeasonalOutlook` converts to % of the normal
   month with `precipitation_mean`); confidence follows the lead time. `Njord:Seasonal:ForecastMonths` (3) limits the months kept.
-- **Base parameters.** `DomainRequirements.WithBaseParams` always requests `weather_code` for a required Forecast domain and `pm10` for a required AirQuality domain; `BudgetGuard` and the Config Builder count them.
+- **Base parameters.** `DomainRequirements.WithBaseParams` always requests `weather_code` for a required Forecast domain; `BudgetGuard` and the Config Builder count it.
 - **Failure backoff.** A failed fetch retries after 60 s, doubling per consecutive failure up to the poll interval (`FailureBackoff`); rate limit and budget rejections wait at least 5 min. The count is persisted in `DomainPolled.ConsecutiveFailures` and reset by a successful fetch.
 - Poll interval 60 min and discovery interval 20 min are config values.
 - Wire text for closed sets comes from explicit mappings, never `ToString()`.
@@ -340,7 +340,7 @@ interface. Manual `PostConfigure` is reserved for derived values (`PollingOption
 |---------|-------|---------|
 | `Njord` | `NjordOptions` | `Locations` (`Name`, `Latitude`, `Longitude`, all required) |
 | `Njord:Forecast` | `ForecastOptions` | `ForecastDays` (4, 1..16), `PastHours` (0, 0..96), `Models` (empty = best_match) |
-| `Njord:Ensemble` | `EnsembleOptions` | `ForecastDays` (4, 1..35), `Models` (`ecmwf_ifs025_ensemble_mean`, required, non-empty, no duplicates) |
+| `Njord:Ensemble` | `EnsembleOptions` | `ForecastDays` (4, 1..35), `Models` (`["ecmwf_ifs025_ensemble_mean", "gfs025_ensemble_mean"]`, required, non-empty, no duplicates) |
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7), `Region` (`Global`, enum) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..8) |
 | `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..6) |

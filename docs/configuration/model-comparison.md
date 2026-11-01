@@ -1,35 +1,47 @@
 # Model comparison
 
-`Forecast:ModelComparison` fetches several ensemble-mean weather models in one request and compares them. It is off by default.
+Two passive features compare models side by side: `ForecastModelComparison` (models of the Forecast API) and `EnsembleModelComparison` (ensemble-mean models). Both are on by default.
+
+They request no data of their own. No feature drives multi-model fetching: you choose the models in `Njord:Forecast:Models` and `Njord:Ensemble:Models`, and the comparison features observe whatever is fetched.
 
 ```json
 {
   "Njord": {
+    "Forecast": {
+      "Models": ["icon_seamless", "ecmwf_ifs025"]
+    },
     "Ensemble": {
-      "Models": ["ecmwf_ifs025_ensemble_mean", "ecmwf_aifs025_ensemble_mean"]
+      "Models": ["ecmwf_ifs025_ensemble_mean", "gfs025_ensemble_mean"]
     },
     "Features": {
-      "ModelComparison": { "Enabled": true }
+      "ForecastModelComparison": { "Enabled": true },
+      "EnsembleModelComparison": { "Enabled": true }
     }
   }
 }
 ```
 
-As environment variables: `Njord__Ensemble__Models__0=ecmwf_ifs025_ensemble_mean`, `Njord__Ensemble__Models__1=ecmwf_aifs025_ensemble_mean`, `Njord__Features__ModelComparison__Enabled=true`.
+As environment variables: `Njord__Ensemble__Models__0=ecmwf_ifs025_ensemble_mean`, `Njord__Ensemble__Models__1=gfs025_ensemble_mean`, `Njord__Features__EnsembleModelComparison__Enabled=true`, `Njord__Features__ForecastModelComparison__Enabled=true`.
 
-## Models
+## Defaults
+
+- `Njord:Ensemble:Models` defaults to `ecmwf_ifs025_ensemble_mean` and `gfs025_ensemble_mean`, so `EnsembleModelComparison` works out of the box.
+- `Njord:Forecast:Models` is empty by default (best_match). `ForecastModelComparison` has nothing to compare until you list at least two forecast models.
+
+## Ensemble models
 
 | Id | Provider | Region | Resolution | Forecast |
 |----|----------|--------|-----------:|---------:|
 | `ecmwf_ifs025_ensemble_mean` | ECMWF | Global | 25 km | 15 days |
+| `gfs025_ensemble_mean` | NOAA | Global | 25 km | 16 days |
 | `ecmwf_aifs025_ensemble_mean` | ECMWF | Global | 25 km | 15 days |
 | `ukmo_global_ensemble_mean_20km` | UK Met Office | Global | 20 km | 7 days |
 
-The first entry of `Models` is the primary model. All feature rules (alerts, scores, trends) evaluate the primary model only; the other models feed `ModelComparison` and the gRPC data stream.
+The first entry of `Models` is the primary model. All feature rules (alerts, scores, trends) evaluate the primary model only; the other models feed the comparison features and the gRPC data stream.
 
 ## Behaviour
 
-- With the feature off, only the primary model is requested. A startup warning names the ignored models.
-- With the feature on, all models are requested in one call; the weather API weight is multiplied by the model count (31 variables and 3 models give 12 instead of 4). The startup budget gate uses the multiplied figure.
-- `ModelComparison` reports the per-day temperature and precipitation of every model for the next days.
-- An unknown id, a duplicate or an empty list fails validation at startup.
+- Every configured model is requested in one call per domain, so the API call weight is multiplied by the model count. The startup budget gate and the Config Builder use the multiplied figure.
+- The comparison features add no calls themselves. Reduce `Models` to one entry to lower the cost; the comparison then reports nothing.
+- Each feature reports the per-day temperature and precipitation of every model for the next days.
+- An unknown id, a duplicate or an empty ensemble list fails validation at startup.
