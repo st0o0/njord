@@ -18,12 +18,12 @@ The `EnsembleClient` SHALL decide multi-model mode from the configured model cou
 - **WHEN** the `EnsembleClient` is constructed
 - **THEN** it SHALL request only that model with spread variables only
 
-### Requirement: Default ensemble models include two models
-The default value for `Njord:Ensemble:Models` SHALL be `["ecmwf_ifs025_ensemble_mean", "gfs025_ensemble_mean"]`, enabling model comparison out of the box.
+### Requirement: Default ensemble models include three models
+The default value for `Njord:Ensemble:Models` SHALL be `["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean", "google_weathernext2_ensemble_mean"]`, enabling model comparison out of the box.
 
 #### Scenario: No models configured
 - **WHEN** `Njord:Ensemble:Models` is not set
-- **THEN** the effective model list SHALL be `["ecmwf_ifs025_ensemble_mean", "gfs025_ensemble_mean"]`
+- **THEN** the effective model list SHALL be `["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean", "google_weathernext2_ensemble_mean"]`
 
 ### Requirement: LocationForecast has separate model dictionaries
 `LocationForecast` SHALL have `ForecastModels` (from Forecast API) and `EnsembleModels` (from Ensemble API) as separate dictionaries.

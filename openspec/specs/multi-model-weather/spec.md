@@ -6,11 +6,11 @@ Fetch, serve and compare several Open-Meteo ensemble-mean weather models per loc
 ## Requirements
 
 ### Requirement: Model selection configuration
-The system SHALL read ensemble model ids from `Njord:Ensemble:Models`, defaulting to `["ecmwf_ifs025_ensemble_mean", "gfs025_ensemble_mean"]`. The first entry SHALL be the primary model. No model catalog SHALL exist; validation SHALL reject empty lists and duplicates but SHALL NOT reject unknown model ids.
+The system SHALL read ensemble model ids from `Njord:Ensemble:Models`, defaulting to `["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean", "google_weathernext2_ensemble_mean"]`. The first entry SHALL be the primary model. No model catalog SHALL exist; validation SHALL reject empty lists and duplicates but SHALL NOT reject unknown model ids.
 
 #### Scenario: Default configuration
 - **WHEN** no models are configured in `Njord:Ensemble`
-- **THEN** the effective model list is `["ecmwf_ifs025_ensemble_mean", "gfs025_ensemble_mean"]` and the first is the primary model
+- **THEN** the effective model list is `["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean", "google_weathernext2_ensemble_mean"]` and the first is the primary model
 
 #### Scenario: Invalid list rejected at startup
 - **WHEN** `Njord:Ensemble:Models` is empty or contains a duplicate
