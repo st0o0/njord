@@ -6,11 +6,11 @@ Independent configuration of the Ensemble API (`Njord:Ensemble`): forecast days,
 ## Requirements
 
 ### Requirement: Independent Ensemble API configuration section
-The system SHALL read Ensemble API settings from the `Njord:Ensemble` configuration section. The section SHALL contain `ForecastDays` (integer, default 4, range 1..35) and `Models` (string array, required, at least one entry, default `[ecmwf_ifs025_ensemble_mean]`).
+The system SHALL read Ensemble API settings from the `Njord:Ensemble` configuration section. The section SHALL contain `ForecastDays` (integer, default 4, range 1..35) and `Models` (string array, required, at least one entry, default `[ecmwf_ifs025_ensemble_mean, ncep_gefs025_ensemble_mean]`). The GFS model identifier SHALL use the `ncep_gefs025_ensemble_mean` API ID.
 
 #### Scenario: Defaults
 - **WHEN** `Njord:Ensemble` is not configured
-- **THEN** the Ensemble API client SHALL use ForecastDays=4 and Models=`[ecmwf_ifs025_ensemble_mean]`
+- **THEN** the Ensemble API client SHALL use ForecastDays=4 and Models=`[ecmwf_ifs025_ensemble_mean, ncep_gefs025_ensemble_mean]`
 
 #### Scenario: Custom ForecastDays
 - **WHEN** `Njord:Ensemble:ForecastDays` is 15
