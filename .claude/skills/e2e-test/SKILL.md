@@ -83,7 +83,7 @@ Write results to `e2e/results/<timestamp>-e2e.md` with:
 
 - **No AdminService** — config is static, no mutation RPCs
 - **No SensorService** — no indoor sensor push
-- **Model comparison** — one weather entity per location plus one per secondary model (ModelComparison)
+- **Model comparison** — one weather entity per location plus one per configured secondary model (passive ForecastModelComparison and EnsembleModelComparison, both on by default)
 - **No consensus/derived/trends/indices** — replaced by alert + lifestyle enrichments
 - **6 domains** (Weather, AQ, Flood, Marine, Seasonal, Satellite)
 - **22 alert types** instead of 14

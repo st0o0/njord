@@ -20,7 +20,7 @@ Use the [Config Builder](/builder) to pick features and preview the API budget.
 | [Energy](./energy) | Solar and wind energy | 4 features |
 | [Flood](./flood) | River discharge and flood risk | 3 features |
 | [Marine](./marine) | Waves, currents, coastal hazards | 3 features |
-| [Insights](./insights) | Trends, forecasts, model comparison | 8 features |
+| [Insights](./insights) | Trends, forecasts, model comparison | 9 features |
 
 ## Feature Reference
 
@@ -118,7 +118,8 @@ Every feature creates one or more Home Assistant entities. The table below shows
 | Feature | Default | Description | Domains |
 |---------|---------|-------------|---------|
 | ConfidenceTrend | Off | Tracks how forecast confidence changes over time | Ensemble |
-| ModelComparison | Off | Compares multiple weather models side by side | Ensemble |
+| ForecastModelComparison | On | Passively compares the configured forecast models side by side (no extra API calls) | None |
+| EnsembleModelComparison | On | Passively compares the configured ensemble-mean models side by side (no extra API calls) | None |
 | SeasonalOutlook | Off | Monthly temperature and precipitation outlook | Seasonal |
 | FrontApproaching | Off | Detects approaching weather fronts | Forecast |
 | GrowingDegree | Off | Accumulates growing degree days for farming | Forecast |

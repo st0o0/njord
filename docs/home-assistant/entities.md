@@ -4,7 +4,7 @@ The integration creates entities across six platforms: `weather`, `sensor`, `bin
 
 ## Weather (`weather.*`)
 
-Each location creates one weather entity from the high-resolution deterministic forecast (Forecast API, `api.open-meteo.com`). When Model Comparison is enabled, additional weather entities appear for each configured ensemble model.
+Each location creates one weather entity from the high-resolution deterministic forecast (Forecast API, `api.open-meteo.com`). When multiple ensemble models are configured, additional weather entities appear for each model.
 
 **State attributes (current conditions):**
 

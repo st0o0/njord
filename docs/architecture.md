@@ -15,7 +15,7 @@ Each poll cycle fetches the domains that the enabled [features](/configuration/#
 | Domain | Open-Meteo API | Content |
 |--------|----------------|---------|
 | **Forecast** | `api.open-meteo.com/v1/forecast` | High-resolution deterministic forecast using automatic best_match model blending (1-9 km). All weather variables including precipitation probability and UV index. |
-| **Ensemble** | Ensemble Mean (`ensemble-api.open-meteo.com/v1/ensemble`) | Temperature, precipitation and wind spread (standard deviation across 51 ensemble members) for alert confidence. Comparison model forecasts when ModelComparison is enabled. |
+| **Ensemble** | Ensemble Mean (`ensemble-api.open-meteo.com/v1/ensemble`) | Temperature, precipitation and wind spread (standard deviation across 51 ensemble members) for alert confidence. Forecasts of the other configured ensemble models, compared passively by EnsembleModelComparison. |
 | **Air Quality** | Air Quality | PM2.5, PM10, ozone, nitrogen dioxide, pollen (birch, grass, alder, mugwort, ragweed, olive), European and US AQI sub-indices |
 | **Flood** | Flood | River discharge with mean, median, min, max, P25 and P75 |
 | **Marine** | Marine | Wave height, period, direction (wind waves and swell), sea surface temperature, sea level, ocean currents |
@@ -59,7 +59,7 @@ A feature rule declares its required domains and fields in a `FeatureDescriptor`
 | Marine alerts | Marine (+ Forecast for CoastalFlood) | Swimming, CoastalFlood |
 | Lifestyle scores | Forecast (+ Air Quality for some) | BBQ, Laundry, Outdoor, Commute, Exercise |
 | Conditions | Various | SoilMoisture, Evapotranspiration, Gardening, Ventilation, NightVentilation, SurfConditions, OceanCurrents, SnowDepthWatch, PollenTrend, ElevatedWind |
-| Trends and forecasts | Various | ConfidenceTrend, FrontApproaching, ModelComparison, SeasonalOutlook, GrowingDegree, SolarYield, SatelliteRadiation |
+| Trends and forecasts | Various | ConfidenceTrend, FrontApproaching, ForecastModelComparison, EnsembleModelComparison, SeasonalOutlook, GrowingDegree, SolarYield, SatelliteRadiation |
 
 65 feature rules across 7 categories. Every feature result reaches gRPC consumers as an `EnrichmentEvent` whose `feature` oneof case identifies the result type.
 

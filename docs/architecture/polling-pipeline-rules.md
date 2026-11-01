@@ -178,7 +178,7 @@ Each rule declares its `DomainRequirements` in its `Descriptor`:
   but never gate execution. The rule must tolerate nulls.
 
 At startup, the `IOptions<DomainRequirements>` registration OR-combines all enabled rules' requirements
-and adds base params (`WeatherCode` for Forecast, `Pm10` for AirQuality) via
+and adds base params (`WeatherCode` for Forecast) via
 `DomainRequirements.WithBaseParams()`; the API clients request exactly those variables.
 
 ### Available ensemble spread variables

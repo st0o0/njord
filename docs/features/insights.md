@@ -22,26 +22,40 @@ Njord__Features__ConfidenceTrend__Enabled: "true"
 
 ---
 
-## ModelComparison
+## ForecastModelComparison
 
-Shows the daily temperature and precipitation forecast from every configured ensemble model side by side. Useful for seeing where models agree (high confidence) and where they diverge.
+Shows the daily temperature and precipitation of every model listed in `Njord:Forecast:Models` side by side. Useful for seeing where forecast models agree (high confidence) and where they diverge.
 
-Requires at least two models configured in `Njord:Ensemble:Models`.
+Passive: it requests no data of its own and adds no API calls. It only observes the forecast data that is already fetched. Needs at least two forecast models; with the default empty list (best_match) there is nothing to compare.
 
-**Entity:** `sensor.<location>_model_temperature_spread`
-**Domains:** Ensemble | **Default:** Off
+**Entity:** `weather.<location>_<model>` per configured model
+**Domains:** None (passive) | **Default:** On
 
 ```yaml
-Njord__Features__ModelComparison__Enabled: "true"
-Njord__Ensemble__Models__0: "ecmwf_ifs025_ensemble_mean"
-Njord__Ensemble__Models__1: "ecmwf_aifs025_ensemble_mean"
-Njord__Ensemble__Models__2: "ukmo_global_ensemble_mean_20km"
+Njord__Features__ForecastModelComparison__Enabled: "true"
+Njord__Forecast__Models__0: "icon_seamless"
+Njord__Forecast__Models__1: "ecmwf_ifs025"
 ```
 
-Each configured model also creates its own `weather.<location>_<model>` entity with full forecast data.
+---
+
+## EnsembleModelComparison
+
+Shows the daily temperature and precipitation of every ensemble-mean model listed in `Njord:Ensemble:Models` side by side. Useful for seeing where ensemble models agree (high confidence) and where they diverge.
+
+Passive: it requests no data of its own and adds no API calls. It defaults to `ecmwf_ifs025_ensemble_mean` and `gfs025_ensemble_mean`, so it works out of the box.
+
+**Entity:** `weather.<location>_<model>` per configured model
+**Domains:** None (passive) | **Default:** On
+
+```yaml
+Njord__Features__EnsembleModelComparison__Enabled: "true"
+Njord__Ensemble__Models__0: "ecmwf_ifs025_ensemble_mean"
+Njord__Ensemble__Models__1: "gfs025_ensemble_mean"
+```
 
 ::: tip Budget impact
-Each additional comparison model multiplies the ensemble API cost. Three models with 31 variables cost about 12 API calls per cycle. Use the [Config Builder](/builder) to check your budget.
+No feature drives model fetching; the model lists are configuration. Each additional model multiplies the cost of its domain (Forecast and Ensemble calls scale with the model count), and the comparison features add nothing on top. Three ensemble models with 31 variables cost about 12 API calls per cycle. Use the [Config Builder](/builder) to check your budget.
 :::
 
 ---

@@ -58,15 +58,15 @@
 
 ## 8. ha-njord
 
-- [ ] 8.1 Update proto files and regenerate `weather_pb2.py`
-- [ ] 8.2 Replace `Feature.MODEL_COMPARISON` with `Feature.FORECAST_MODEL_COMPARISON` and `Feature.ENSEMBLE_MODEL_COMPARISON` in `const.py`
-- [ ] 8.3 Update `FEATURE_KEYS` mapping in `const.py`
-- [ ] 8.4 Update `grpc_client.py` enrichment event conversion for two new oneof cases
-- [ ] 8.5 Update `lifestyle.py`: replace single sensor with two sensors ("Forecast Model Spread", "Ensemble Model Spread")
-- [ ] 8.6 Update translations (`en.json`, `de.json`, `strings.json`)
-- [ ] 8.7 Update `test_lifestyle.py` for two sensors
-- [ ] 8.8 Update `test_grpc_client.py` for new enrichment conversion
-- [ ] 8.9 Update `test_proto_import.py` for new message names
+- [x] 8.1 Update proto files and regenerate `weather_pb2.py`
+- [x] 8.2 Replace `Feature.MODEL_COMPARISON` with `Feature.FORECAST_MODEL_COMPARISON` and `Feature.ENSEMBLE_MODEL_COMPARISON` in `const.py`
+- [x] 8.3 Update `FEATURE_KEYS` mapping in `const.py`
+- [x] 8.4 Update `grpc_client.py` enrichment event conversion for two new oneof cases
+- [x] 8.5 Update `lifestyle.py`: replace single sensor with two sensors ("Forecast Model Spread", "Ensemble Model Spread")
+- [x] 8.6 Update translations (`en.json`, `de.json`, `strings.json`)
+- [x] 8.7 Update `test_lifestyle.py` for two sensors
+- [x] 8.8 Update `test_grpc_client.py` for new enrichment conversion
+- [x] 8.9 Update `test_proto_import.py` for new message names
 
 ## 9. Integration and cross-cutting
 
