@@ -15,7 +15,7 @@ Open-Meteo's free tier (non-commercial use) has these soft limits:
 
 ## Calls per cycle
 
-Each PollWorker fetches the domains required by the enabled [features](./#features-and-domains). The defaults (18 features) need three domains:
+Each PollWorker fetches the domains required by the enabled [features](./#features-and-domains). The defaults (20 features) need three domains:
 
 | Domain | Endpoint | Fetched when | Call weight |
 |--------|----------|--------------|-------------|
@@ -25,7 +25,6 @@ Each PollWorker fetches the domains required by the enabled [features](./#featur
 | Flood | Flood API | `FloodRisk`, `FloodRain` or `FloodTimeline` is enabled | 1 |
 | Marine | Marine API | `Swimming`, `Surf`, `OceanCurrents` or `CoastalFlood` is enabled | 1 |
 | Seasonal | Seasonal API | `SeasonalOutlook` is enabled | ~1/day (daily cycle) |
-| Satellite | Satellite Archive API | `SatelliteRadiation` is enabled | ~1/hour (hourly cycle) |
 
 ```
 calls per cycle  = locations x sum(domain weights)
@@ -55,11 +54,11 @@ guard            = 300,000 x 0.8 = 240,000
 
 ```
 calls per cycle  = 1 x (4 + 12 + 1 + 1 + 1) = 19  (forecast 4, ensemble with 3 models 12, AQ 1, Flood 1, Marine 1)
-                   + Seasonal ~1/day + Satellite ~24/day
-projected        ≈ 19 x 720 + 30 + 720 = ~14,430 per month
+                   + Seasonal ~1/day
+projected        ≈ 19 x 720 + 30 = ~13,710 per month
 ```
 
-Still only 4.8% of the free tier. The [Config Builder](/builder) calculates the exact cost for your configuration.
+Still only 4.6% of the free tier. The [Config Builder](/builder) calculates the exact cost for your configuration.
 
 ## Startup guard
 

@@ -39,8 +39,10 @@ A minimal setup for Lucerne:
 | `Forecast:ForecastDays` | `4` | Days of weather forecast to request (1 to 16) |
 | `AirQuality:ForecastDays` | `5` | Days of air quality forecast to request (1 to 7) |
 | `Marine:ForecastDays` | `8` | Days of marine forecast to request (1 to 16) |
+| `Seasonal:ForecastMonths` | `3` | Months of seasonal outlook to keep (1 to 7) |
+| `Seasonal:Model` | empty | Optional seasonal model id; empty uses the API default |
 | `Flood:ForecastDays` | `92` | Days of river discharge forecast to request (1 to 210) |
-| `Features:<Name>:Enabled` | 18 features on by default (14 original weather alerts + RainProbability + Commute + Pollen + PM2.5); all others off | Switches one feature on or off. The domains that are polled are derived from the enabled features (see below) |
+| `Features:<Name>:Enabled` | 20 features on by default (15 weather alerts + Commute + Pollen + PM2.5 + ForecastModelComparison + EnsembleModelComparison); all others off | Switches one feature on or off. The domains that are polled are derived from the enabled features (see below) |
 | `Persistence:DataPath` | `data/njord.db` | SQLite database file |
 
 ## Defaults
@@ -57,7 +59,7 @@ See [Features](/features/) for the complete list of all 65 features, their domai
 
 ### How domains are derived
 
-The defaults (18 features on) poll Forecast, Ensemble and Air Quality. Enabling a Flood feature adds Flood; enabling a Marine feature adds Marine. Disabling all Air Quality features drops Air Quality from polling. Each domain polls independently on its own learned cycle.
+The defaults (20 features on) poll Forecast, Ensemble and Air Quality. Enabling a Flood feature adds Flood; enabling a Marine feature adds Marine. Disabling all Air Quality features drops Air Quality from polling. Each domain polls independently on its own learned cycle.
 
 A disabled feature is not evaluated even when its domain data is present because another feature needs it, so each alert can be switched off individually. At least one feature must be enabled.
 

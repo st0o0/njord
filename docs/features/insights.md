@@ -43,7 +43,7 @@ Njord__Forecast__Models__1: "ecmwf_ifs025"
 
 Shows the daily temperature and precipitation of every ensemble-mean model listed in `Njord:Ensemble:Models` side by side. Useful for seeing where ensemble models agree (high confidence) and where they diverge.
 
-Passive: it requests no data of its own and adds no API calls. It defaults to `ecmwf_ifs025_ensemble_mean` and `ncep_gefs025_ensemble_mean`, so it works out of the box.
+Passive: it requests no data of its own and adds no API calls. It defaults to `ecmwf_ifs025_ensemble_mean`, `ncep_gefs025_ensemble_mean` and `google_weathernext2_ensemble_mean`, so it works out of the box.
 
 **Entity:** `weather.<location>_<model>` per configured model
 **Domains:** None (passive) | **Default:** On
@@ -52,6 +52,7 @@ Passive: it requests no data of its own and adds no API calls. It defaults to `e
 Njord__Features__EnsembleModelComparison__Enabled: "true"
 Njord__Ensemble__Models__0: "ecmwf_ifs025_ensemble_mean"
 Njord__Ensemble__Models__1: "ncep_gefs025_ensemble_mean"
+Njord__Ensemble__Models__2: "google_weathernext2_ensemble_mean"
 ```
 
 ::: tip Budget impact
@@ -62,17 +63,19 @@ No feature drives model fetching; the model lists are configuration. Each additi
 
 ## SeasonalOutlook
 
-Provides a monthly temperature anomaly and precipitation anomaly outlook for the next 3 months. Based on the Open-Meteo Seasonal API, which delivers ensemble-mean seasonal forecasts.
+Provides a monthly temperature anomaly and precipitation anomaly outlook for the next 3 months (up to 7 via `ForecastMonths`). Based on the Open-Meteo Seasonal API, which delivers ensemble-mean seasonal forecasts.
 
 - **Temperature anomaly**: deviation from the climatological normal in Kelvin
 - **Precipitation anomaly**: percentage of the normal monthly precipitation
+
+The monthly tier uses three variables: `temperature_2m_anomaly`, `precipitation_anomaly` and `precipitation_mean`. A weekly probabilistic tier (EFI, SOT and anomaly thresholds) is available for shorter lead times. `Njord:Seasonal:Model` is optional; empty uses the API default.
 
 **Entity:** `sensor.<location>_seasonal_temperature_anomaly`
 **Domains:** Seasonal | **Default:** Off
 
 ```yaml
 Njord__Features__SeasonalOutlook__Enabled: "true"
-Njord__Seasonal__ForecastMonths: "3"
+Njord__Seasonal__ForecastMonths: "3"   # 1 to 7
 ```
 
 **Automation ideas:**

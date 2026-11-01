@@ -2,7 +2,21 @@
 
 njord uses the Open-Meteo **Ensemble Mean** API. One call per location returns the ensemble-mean forecast, including `ensemble_std_dev`, the spread that drives alert confidence. By default `Njord:Ensemble:Models` is `ecmwf_ifs025_ensemble_mean`, `ncep_gefs025_ensemble_mean` and `google_weathernext2_ensemble_mean`; `Njord:Ensemble:Models` selects others (`ecmwf_aifs025_ensemble_mean`, `ukmo_global_ensemble_mean_20km`). Every listed model is fetched; the first stays the primary one for all features, and [EnsembleModelComparison](/configuration/model-comparison) passively compares the rest.
 
+The spread (`ensemble_std_dev`) is computed for 15 variables: temperature_2m, precipitation, wind_speed_10m, pressure_msl, cloud_cover, wind_gusts_10m, cape, snowfall, rain, dew_point_2m, relative_humidity_2m, surface_pressure, wind_direction_10m, wet_bulb_temperature_2m and wind_speed_100m. Which of them are requested follows the enabled features.
+
 The default model `ecmwf_ifs025_ensemble_mean` delivers neither `visibility` nor `uv_index`, so the `Forecast:Visibility` and `Forecast:Uv` alerts stay silent with it.
+
+## Default ensemble models
+
+| Model ID | Provider | Notes |
+|---|---|---|
+| `ecmwf_ifs025_ensemble_mean` | ECMWF | Primary model, 51 members, broad variable coverage |
+| `ncep_gefs025_ensemble_mean` | NOAA/NCEP | GEFS, 31 members |
+| `google_weathernext2_ensemble_mean` | Google | WeatherNext 2, see below |
+
+### WeatherNext
+
+`google_weathernext2_ensemble_mean` is an AI-based model (Google WeatherNext 2) with 64 ensemble members. Its native time step is 6-hourly, so hourly values are interpolated, and it delivers only a limited set of derived variables. Variables it does not provide stay empty for this model; the comparison features simply show what is available.
 
 ## Ensemble vs individual models
 

@@ -48,6 +48,7 @@ Find the best contiguous N-hour window in the next 4 days for a configurable act
 
 Ensemble spread (p90 − p10 or stddev) as a 0-100 confidence per day and variable.
 
+- Ensemble spreads now cover 15 variables (`ensemble_std_dev`), a ready basis for the per-variable score
 - Needs ensemble member data through the mapping layer — today only the mean survives
   `WeatherResponseMappings`; either map percentiles from the API (`temperature_2m_p10/p90`) or
   request individual members and compute spread in the feature
@@ -60,6 +61,8 @@ Ensemble spread (p90 − p10 or stddev) as a 0-100 confidence per day and variab
 > Garden:PlantFrost · Alert · Weather
 
 Radiative frost detection — more precise than the plain Frost alert for gardeners.
+
+- `surface_temperature` is now available in the Forecast domain
 
 - Trigger: temperature near 0 °C AND clear sky (low cloud cover) AND calm wind AND dew point
   below freezing — conditions where radiative cooling drops ground temperature well below air temp
@@ -74,7 +77,7 @@ Radiative frost detection — more precise than the plain Frost alert for garden
 
 Compound alert with ETA for automated retraction of awnings, shutters, mower parking.
 
-- Combine Storm (wind gust threshold) + Thunderstorm (probability + CAPE if added) into a single
+- Combine Storm (wind gust threshold) + Thunderstorm (probability + CAPE; `thunderstorm_probability` is now available) into a single
   alert with an explicit `StartsIn` lead time
 - Severity by overlap: gust-only = moderate, gust + thunderstorm = severe
 - New `StormPrepAlertRule`, or a composite that reads two existing rule outputs

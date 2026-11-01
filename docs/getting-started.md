@@ -37,7 +37,7 @@ Weather data comes from the Open-Meteo deterministic Forecast API (`api.open-met
 
 The `/app/data` volume stores the SQLite journal (each PollWorker's learned schedule and API usage). Keep it mounted so state survives restarts.
 
-Each poll cycle fetches the domains the enabled features need per location. The defaults (18 features: 15 weather alerts incl. RainProbability + Commute + Pollen + PM2.5) need Forecast, Ensemble and Air Quality, about 3,600 API calls per month at the default 60-minute interval. See [Budget](/configuration/budget).
+Each poll cycle fetches the domains the enabled features need per location. The defaults (20 features: 15 weather alerts incl. RainProbability + Commute + Pollen + PM2.5 + ForecastModelComparison + EnsembleModelComparison) need Forecast, Ensemble and Air Quality, about 3,600 API calls per month at the default 60-minute interval. See [Budget](/configuration/budget).
 
 ::: tip
 For several locations or solar data, use the [Config Builder](/builder).

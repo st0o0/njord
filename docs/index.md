@@ -4,7 +4,7 @@ layout: home
 hero:
   name: njord
   text: Multi-domain weather intelligence for Home Assistant
-  tagline: Polls seven Open-Meteo APIs per location, enriches the data with 65 features (alerts, scores, conditions, trends and forecasts) and streams everything to Home Assistant over gRPC.
+  tagline: Polls six Open-Meteo APIs per location, enriches the data with 65 features (alerts, scores, conditions, trends and forecasts) and streams everything to Home Assistant over gRPC.
   image:
     src: /logo.svg
     alt: njord
@@ -19,8 +19,8 @@ hero:
 features:
   - title: Native Home Assistant integration
     details: The ha-njord custom integration streams domain data and enrichments over gRPC, so entities update as soon as a poll cycle is processed.
-  - title: Seven domains per location
-    details: "Forecast (high-resolution deterministic), Ensemble (confidence and model comparison), Air Quality (PM2.5, ozone, pollen), Flood (river discharge), Marine (waves, currents), Seasonal (monthly outlook) and Satellite (observed solar irradiance)."
+  - title: Six domains per location
+    details: "Forecast (high-resolution deterministic), Ensemble (confidence and model comparison), Air Quality (PM2.5, ozone, pollen), Flood (river discharge), Marine (waves, currents), and Seasonal (monthly and weekly outlook)."
   - title: 65 features across all domains
     details: "22 weather alerts with ensemble confidence, air quality and pollen alerts, flood and coastal flood warnings, fire risk, smog detection, lifestyle scores (BBQ, laundry, exercise, commute), gardening tools (soil moisture, evapotranspiration, growing degrees), energy monitoring (solar yield, hub-height wind) and more."
   - title: Feature-driven configuration
