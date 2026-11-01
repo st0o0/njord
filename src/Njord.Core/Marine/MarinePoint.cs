@@ -23,7 +23,8 @@ public sealed record MarinePoint(
     double? TertiarySwellWaveHeight = null,
     double? TertiarySwellWaveDirection = null,
     double? TertiarySwellWavePeriod = null,
-    double? InvertBarometerHeight = null) : IHasValidTime
+    double? InvertBarometerHeight = null,
+    double? WavePeakPeriod = null) : IHasValidTime
 {
     private static readonly MarineParams[] Flags =
         [.. Enum.GetValues<MarineParams>().Where(p => p != MarineParams.None)];
@@ -55,6 +56,7 @@ public sealed record MarinePoint(
         MarineParams.TertiarySwellWaveDirection => TertiarySwellWaveDirection is not null,
         MarineParams.TertiarySwellWavePeriod => TertiarySwellWavePeriod is not null,
         MarineParams.InvertBarometerHeight => InvertBarometerHeight is not null,
+        MarineParams.WavePeakPeriod => WavePeakPeriod is not null,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

@@ -224,7 +224,8 @@ public sealed class OpenMeteoResponseMappingsTests
                 SwellWavePeriod: [12.0, 13.0],
                 SwellWaveDirection: [270.0, 275.0],
                 SwellWavePeakPeriod: [14.0, 15.0],
-                SeaLevelHeight: [0.3, 0.4]));
+                SeaLevelHeight: [0.3, 0.4],
+                WavePeakPeriod: [8.0, 9.0]));
 
         var forecast = response.ToDomainForecast(Run);
 
@@ -241,6 +242,7 @@ public sealed class OpenMeteoResponseMappingsTests
             () => Assert.Equal(270.0, first.SwellWaveDirection),
             () => Assert.Equal(14.0, first.SwellWavePeakPeriod),
             () => Assert.Equal(0.3, first.SeaLevelHeight),
+            () => Assert.Equal(8.0, first.WavePeakPeriod),
             () => Assert.Null(forecast.Points[1].WindWaveHeight),
             () => Assert.Equal(1.5, forecast.Points[1].SwellWaveHeight));
     }

@@ -38,7 +38,7 @@ A minimal setup for Lucerne:
 | `Polling:DiscoveryInterval` | `00:20:00` | Poll interval until a worker has learned the update cycle of the data |
 | `Forecast:ForecastDays` | `4` | Days of weather forecast to request (1 to 16) |
 | `AirQuality:ForecastDays` | `5` | Days of air quality forecast to request (1 to 7) |
-| `Marine:ForecastDays` | `8` | Days of marine forecast to request (1 to 8) |
+| `Marine:ForecastDays` | `8` | Days of marine forecast to request (1 to 16) |
 | `Flood:ForecastDays` | `92` | Days of river discharge forecast to request (1 to 210) |
 | `Features:<Name>:Enabled` | 18 features on by default (14 original weather alerts + RainProbability + Commute + Pollen + PM2.5); all others off | Switches one feature on or off. The domains that are polled are derived from the enabled features (see below) |
 | `Persistence:DataPath` | `data/njord.db` | SQLite database file |
@@ -119,6 +119,6 @@ njord validates the configuration at startup and refuses to start if:
 - No locations are defined
 - A location has an empty name
 - `Forecast:ForecastDays` is outside 1 to 16
-- `AirQuality:ForecastDays` is outside 1 to 7, `Marine:ForecastDays` outside 1 to 8, or `Flood:ForecastDays` outside 1 to 210
+- `AirQuality:ForecastDays` is outside 1 to 7, `Marine:ForecastDays` outside 1 to 16, or `Flood:ForecastDays` outside 1 to 210
 - PostgreSQL is selected without a connection string
 - Projected API usage exceeds 80% of the monthly budget

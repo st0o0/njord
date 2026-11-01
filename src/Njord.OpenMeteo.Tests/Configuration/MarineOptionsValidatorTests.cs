@@ -14,13 +14,19 @@ public sealed class MarineOptionsValidatorTests
         Assert.True(_validator.Validate(null, new MarineOptions()).Succeeded);
     }
 
+    [Fact]
+    public void Should_accept_sixteen_forecast_days()
+    {
+        Assert.True(_validator.Validate(null, new MarineOptions { ForecastDays = 16 }).Succeeded);
+    }
+
     [Theory]
     [InlineData(0)]
-    [InlineData(9)]
-    public void Should_reject_forecast_days_outside_one_to_eight(int value)
+    [InlineData(17)]
+    public void Should_reject_forecast_days_outside_one_to_sixteen(int value)
     {
         var result = _validator.Validate(null, new MarineOptions { ForecastDays = value });
 
-        Assert.Contains("Marine.ForecastDays must be between 1 and 8", ValidationAssert.SingleFailure(result));
+        Assert.Contains("Marine.ForecastDays must be between 1 and 16", ValidationAssert.SingleFailure(result));
     }
 }

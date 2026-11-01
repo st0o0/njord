@@ -26,7 +26,7 @@ services:
       # Forecast days per domain (only used when an enabled feature needs the domain):
       #- Njord__AirQuality__ForecastDays=5   # 1-7
       #- Njord__AirQuality__Region=Global   # Global, Europe (adds ammonia, olive pollen), UnitedStates (adds US AQI)
-      #- Njord__Marine__ForecastDays=8       # 1-8
+      #- Njord__Marine__ForecastDays=8       # 1-16
       #- Njord__Flood__ForecastDays=92       # 1-210
       #- Njord__Flood__IncludeEnsemble=false # 50 GloFAS members, adds confidence to FloodRisk, costs 5 calls per flood request
       # Features decide which domains are polled (the union of what the enabled ones read).

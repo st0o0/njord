@@ -25,7 +25,8 @@ public sealed record MarineHourlyData(
     [property: JsonPropertyName("tertiary_swell_wave_height")] double?[]? TertiarySwellWaveHeight = null,
     [property: JsonPropertyName("tertiary_swell_wave_direction")] double?[]? TertiarySwellWaveDirection = null,
     [property: JsonPropertyName("tertiary_swell_wave_period")] double?[]? TertiarySwellWavePeriod = null,
-    [property: JsonPropertyName("invert_barometer_height")] double?[]? InvertBarometerHeight = null);
+    [property: JsonPropertyName("invert_barometer_height")] double?[]? InvertBarometerHeight = null,
+    [property: JsonPropertyName("wave_peak_period")] double?[]? WavePeakPeriod = null);
 
 public sealed record MarineResponse(
     [property: JsonPropertyName("latitude")] double Latitude,

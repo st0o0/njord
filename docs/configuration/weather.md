@@ -6,12 +6,12 @@ Options for the Forecast domain under `Njord:Forecast` and the Ensemble domain u
 {
   "Njord": {
     "Forecast": { "ForecastDays": 4, "PastHours": 0 },
-    "Ensemble": { "ForecastDays": 4, "Models": ["ecmwf_ifs025_ensemble_mean", "gfs025_ensemble_mean"] }
+    "Ensemble": { "ForecastDays": 4, "Models": ["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean"] }
   }
 }
 ```
 
-As environment variables: `Njord__Forecast__ForecastDays=4`, `Njord__Ensemble__ForecastDays=4`, `Njord__Ensemble__Models__0=ecmwf_ifs025_ensemble_mean`, `Njord__Ensemble__Models__1=gfs025_ensemble_mean`.
+As environment variables: `Njord__Forecast__ForecastDays=4`, `Njord__Ensemble__ForecastDays=4`, `Njord__Ensemble__Models__0=ecmwf_ifs025_ensemble_mean`, `Njord__Ensemble__Models__1=ncep_gefs025_ensemble_mean`.
 
 `Njord:Forecast`
 
@@ -26,7 +26,7 @@ As environment variables: `Njord__Forecast__ForecastDays=4`, `Njord__Ensemble__F
 | Option | Default | Description |
 |--------|---------|-------------|
 | `ForecastDays` | `4` | Days of ensemble forecast to request (1 to 35) |
-| `Models` | `["ecmwf_ifs025_ensemble_mean", "gfs025_ensemble_mean"]` | Ensemble-mean model ids (required, no duplicates); the first is the primary and drives all features. Known: `ecmwf_ifs025_ensemble_mean`, `gfs025_ensemble_mean`, `ecmwf_aifs025_ensemble_mean`, `ukmo_global_ensemble_mean_20km`. Every listed model is fetched; no feature drives model fetching, the list is config-driven. [EnsembleModelComparison](./model-comparison) passively compares them. |
+| `Models` | `["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean"]` | Ensemble-mean model ids (required, no duplicates); the first is the primary and drives all features. Known: `ecmwf_ifs025_ensemble_mean`, `ncep_gefs025_ensemble_mean`, `ecmwf_aifs025_ensemble_mean`, `ukmo_global_ensemble_mean_20km`. Every listed model is fetched; no feature drives model fetching, the list is config-driven. [EnsembleModelComparison](./model-comparison) passively compares them. |
 
 ## API call weight
 

@@ -92,6 +92,7 @@ public sealed class ParamsMappingsTests
     [InlineData(MarineParams.SwellWaveDirection, "swell_wave_direction")]
     [InlineData(MarineParams.SwellWavePeakPeriod, "swell_wave_peak_period")]
     [InlineData(MarineParams.SeaLevelHeight, "sea_level_height_msl")]
+    [InlineData(MarineParams.WavePeakPeriod, "wave_peak_period")]
     public void Should_map_each_marine_flag_to_its_api_name(MarineParams param, string expected) =>
         Assert.Equal([expected], param.ToApiNames());
 

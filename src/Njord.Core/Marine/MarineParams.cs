@@ -26,4 +26,5 @@ public enum MarineParams
     TertiarySwellWaveDirection = 1 << 19,
     TertiarySwellWavePeriod = 1 << 20,
     InvertBarometerHeight = 1 << 21,
+    WavePeakPeriod = 1 << 22,
 }

@@ -48,4 +48,6 @@ public enum MarineApiVariable
     TertiarySwellWavePeriod,
     [JsonStringEnumMemberName("invert_barometer_height")]
     InvertBarometerHeight,
+    [JsonStringEnumMemberName("wave_peak_period")]
+    WavePeakPeriod,
 }

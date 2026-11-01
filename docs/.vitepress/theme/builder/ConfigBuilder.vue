@@ -306,7 +306,7 @@ onMounted(() => {
       <div class="general-row">
         <label>Air quality days <input v-model.number="config.airQuality.forecastDays" type="number" min="1" max="7" /></label>
         <label>Region <select v-model="config.airQuality.region"><option value="Global">Global</option><option value="Europe">Europe</option><option value="UnitedStates">United States</option></select></label>
-        <label>Marine days <input v-model.number="config.marine.forecastDays" type="number" min="1" max="8" /></label>
+        <label>Marine days <input v-model.number="config.marine.forecastDays" type="number" min="1" max="16" /></label>
         <label>Flood days <input v-model.number="config.flood.forecastDays" type="number" min="1" max="210" /></label>
         <label><input v-model="config.flood.includeEnsemble" type="checkbox" /> Flood ensemble (50 members, raises cost)</label>
       </div>

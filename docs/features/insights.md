@@ -43,7 +43,7 @@ Njord__Forecast__Models__1: "ecmwf_ifs025"
 
 Shows the daily temperature and precipitation of every ensemble-mean model listed in `Njord:Ensemble:Models` side by side. Useful for seeing where ensemble models agree (high confidence) and where they diverge.
 
-Passive: it requests no data of its own and adds no API calls. It defaults to `ecmwf_ifs025_ensemble_mean` and `gfs025_ensemble_mean`, so it works out of the box.
+Passive: it requests no data of its own and adds no API calls. It defaults to `ecmwf_ifs025_ensemble_mean` and `ncep_gefs025_ensemble_mean`, so it works out of the box.
 
 **Entity:** `weather.<location>_<model>` per configured model
 **Domains:** None (passive) | **Default:** On
@@ -51,7 +51,7 @@ Passive: it requests no data of its own and adds no API calls. It defaults to `e
 ```yaml
 Njord__Features__EnsembleModelComparison__Enabled: "true"
 Njord__Ensemble__Models__0: "ecmwf_ifs025_ensemble_mean"
-Njord__Ensemble__Models__1: "gfs025_ensemble_mean"
+Njord__Ensemble__Models__1: "ncep_gefs025_ensemble_mean"
 ```
 
 ::: tip Budget impact

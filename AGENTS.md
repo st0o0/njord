@@ -139,7 +139,7 @@ SHARD REGIONS (Sharded Entity)
   from the Ensemble Mean API (`ensemble-api.open-meteo.com/v1/ensemble`, `EnsembleClient`,
   `DomainKind.Ensemble`). Each API has its own options: `Njord:Forecast` (`ForecastDays`, `PastHours`,
   optional `Models`, empty = best_match) and `Njord:Ensemble` (`ForecastDays`, `Models`, default
-  `["ecmwf_ifs025_ensemble_mean", "gfs025_ensemble_mean"]`, the ensemble-mean models for comparison). The requested variables
+  `["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean"]`, the ensemble-mean models for comparison). The requested variables
   follow the enabled features: the `Requirements` of all enabled features are OR-ed into
   `DomainRequirements` (with base params; consumers take `IOptions<DomainRequirements>`) and mapped to
   API names by `ParamMappings.ToApiNames()`; the clients only build the URL. `FeatureEngine` skips a
@@ -149,7 +149,7 @@ SHARD REGIONS (Sharded Entity)
   `max(1, modelCount)`, Ensemble times `modelCount` (spread-only: no model multiplier), Flood ensemble adds 4,
   Seasonal is 30 requests/month at `max(formula, 1.3)`.
 - **Per-domain forecast days.** `Njord:Forecast` (4, max 16), `Njord:Ensemble` (4, max 35), `Njord:AirQuality` (5,
-  max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92, max 210).
+  max 7), `Njord:Marine` (8, max 16), `Njord:Flood` (92, max 210).
 - **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Name>` (65 features; categories in
   `docs/data/features.json` are UI metadata; env `Njord__Features__<Name>__Enabled`). 20 are on by default: the 15
   weather alerts (`Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`, `PressureDrop`, `Thunderstorm`,
@@ -340,9 +340,9 @@ interface. Manual `PostConfigure` is reserved for derived values (`PollingOption
 |---------|-------|---------|
 | `Njord` | `NjordOptions` | `Locations` (`Name`, `Latitude`, `Longitude`, all required) |
 | `Njord:Forecast` | `ForecastOptions` | `ForecastDays` (4, 1..16), `PastHours` (0, 0..96), `Models` (empty = best_match) |
-| `Njord:Ensemble` | `EnsembleOptions` | `ForecastDays` (4, 1..35), `Models` (`["ecmwf_ifs025_ensemble_mean", "gfs025_ensemble_mean"]`, required, non-empty, no duplicates) |
+| `Njord:Ensemble` | `EnsembleOptions` | `ForecastDays` (4, 1..35), `Models` (`["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean"]`, required, non-empty, no duplicates) |
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7), `Region` (`Global`, enum) |
-| `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..8) |
+| `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..16) |
 | `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..6) |
 | `Njord:Solar` | `SolarOptions` | `Tilt` (30, 0..90), `Azimuth` (180, 0..360); used by Forecast/Ensemble clients for GTI |
 | `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210), `IncludeEnsemble` (false) |
