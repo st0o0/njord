@@ -186,6 +186,10 @@ internal static class ForecastResponseMappingExtensions
                 Temperature120m: At(h.Temperature120m, i),
                 WindSpeed100m: At(h.WindSpeed100m, i),
                 WindDirection100m: At(h.WindDirection100m, i),
+                ThunderstormProbability: At(h.ThunderstormProbability, i),
+                PrecipitationType: At(h.PrecipitationType, i),
+                SurfaceTemperature: At(h.SurfaceTemperature, i),
+                SnowfallWaterEquivalent: At(h.SnowfallWaterEquivalent, i),
                 LiftedIndex: At(h.LiftedIndex, i));
         }
 

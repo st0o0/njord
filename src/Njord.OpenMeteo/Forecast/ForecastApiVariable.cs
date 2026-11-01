@@ -106,4 +106,12 @@ public enum ForecastApiVariable
     WindSpeed100m,
     [JsonStringEnumMemberName("wind_direction_100m")]
     WindDirection100m,
+    [JsonStringEnumMemberName("thunderstorm_probability")]
+    ThunderstormProbability,
+    [JsonStringEnumMemberName("precipitation_type")]
+    PrecipitationType,
+    [JsonStringEnumMemberName("surface_temperature")]
+    SurfaceTemperature,
+    [JsonStringEnumMemberName("snowfall_water_equivalent")]
+    SnowfallWaterEquivalent,
 }

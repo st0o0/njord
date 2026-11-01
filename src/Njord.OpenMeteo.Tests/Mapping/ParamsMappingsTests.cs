@@ -45,6 +45,10 @@ public sealed class ParamsMappingsTests
     [InlineData(ForecastParams.UvIndexClearSky, "uv_index_clear_sky")]
     [InlineData(ForecastParams.WindSpeed100m, "wind_speed_100m")]
     [InlineData(ForecastParams.WindDirection100m, "wind_direction_100m")]
+    [InlineData(ForecastParams.ThunderstormProbability, "thunderstorm_probability")]
+    [InlineData(ForecastParams.PrecipitationType, "precipitation_type")]
+    [InlineData(ForecastParams.SurfaceTemperature, "surface_temperature")]
+    [InlineData(ForecastParams.SnowfallWaterEquivalent, "snowfall_water_equivalent")]
     public void Should_map_each_weather_flag_to_its_api_name(ForecastParams param, string expected) =>
         Assert.Equal([expected], param.ToApiNames());
 

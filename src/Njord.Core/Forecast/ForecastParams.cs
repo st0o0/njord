@@ -54,4 +54,8 @@ public enum ForecastParams : long
     Temperature120m = 1L << 50,
     WindSpeed100m = 1L << 51,
     WindDirection100m = 1L << 52,
+    ThunderstormProbability = 1L << 53,
+    PrecipitationType = 1L << 54,
+    SurfaceTemperature = 1L << 55,
+    SnowfallWaterEquivalent = 1L << 56,
 }

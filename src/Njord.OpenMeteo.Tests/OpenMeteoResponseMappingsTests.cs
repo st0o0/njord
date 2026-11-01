@@ -63,6 +63,25 @@ public sealed class OpenMeteoResponseMappingsTests
     }
 
     [Fact]
+    public void A_weather_response_maps_thunderstorm_precipitation_type_surface_temperature_and_snowfall_water_equivalent()
+    {
+        var response = ParseWeather("""
+            {"latitude":47.0,"longitude":8.0,"hourly":{"time":[1783771200],
+            "thunderstorm_probability":[35.0],"precipitation_type":[3.0],
+            "surface_temperature":[-1.5],"snowfall_water_equivalent":[0.4]}}
+            """);
+
+        var forecast = Assert.Single(response.ToModelForecasts(Run, Model)).Value;
+
+        var point = Assert.Single(forecast.Points);
+        Assert.Multiple(
+            () => Assert.Equal(35.0, point.ThunderstormProbability),
+            () => Assert.Equal(3.0, point.PrecipitationType),
+            () => Assert.Equal(-1.5, point.SurfaceTemperature),
+            () => Assert.Equal(0.4, point.SnowfallWaterEquivalent));
+    }
+
+    [Fact]
     public void A_weather_response_trims_trailing_hours_without_any_value()
     {
         var response = ParseWeather("""

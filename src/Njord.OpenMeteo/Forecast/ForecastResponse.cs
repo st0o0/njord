@@ -54,7 +54,11 @@ public sealed record ForecastHourlyData(
     [property: JsonPropertyName("temperature_80m")] double?[]? Temperature80m = null,
     [property: JsonPropertyName("temperature_120m")] double?[]? Temperature120m = null,
     [property: JsonPropertyName("wind_speed_100m")] double?[]? WindSpeed100m = null,
-    [property: JsonPropertyName("wind_direction_100m")] double?[]? WindDirection100m = null);
+    [property: JsonPropertyName("wind_direction_100m")] double?[]? WindDirection100m = null,
+    [property: JsonPropertyName("thunderstorm_probability")] double?[]? ThunderstormProbability = null,
+    [property: JsonPropertyName("precipitation_type")] double?[]? PrecipitationType = null,
+    [property: JsonPropertyName("surface_temperature")] double?[]? SurfaceTemperature = null,
+    [property: JsonPropertyName("snowfall_water_equivalent")] double?[]? SnowfallWaterEquivalent = null);
 
 public sealed record ForecastResponse(
     [property: JsonPropertyName("latitude")] double Latitude,

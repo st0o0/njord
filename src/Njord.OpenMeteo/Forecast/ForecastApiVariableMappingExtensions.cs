@@ -56,6 +56,10 @@ public static class ForecastApiVariableMappingExtensions
         ForecastParams.Temperature120m => ForecastApiVariable.Temperature120m,
         ForecastParams.WindSpeed100m => ForecastApiVariable.WindSpeed100m,
         ForecastParams.WindDirection100m => ForecastApiVariable.WindDirection100m,
+        ForecastParams.ThunderstormProbability => ForecastApiVariable.ThunderstormProbability,
+        ForecastParams.PrecipitationType => ForecastApiVariable.PrecipitationType,
+        ForecastParams.SurfaceTemperature => ForecastApiVariable.SurfaceTemperature,
+        ForecastParams.SnowfallWaterEquivalent => ForecastApiVariable.SnowfallWaterEquivalent,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 
