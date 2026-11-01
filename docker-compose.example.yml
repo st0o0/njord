@@ -49,6 +49,7 @@ services:
       #- Njord__Ensemble__ForecastDays=4     # 1-35
       #- Njord__Ensemble__Models__0=ecmwf_ifs025_ensemble_mean
       #- Njord__Ensemble__Models__1=gfs025_ensemble_mean # default; EnsembleModelComparison (on by default) observes all Models
+      #- Njord__Ensemble__Models__2=google_weathernext2_ensemble_mean # default
       #- Njord__Features__EnsembleModelComparison__Enabled=false # passive, no extra API calls
       #- Njord__Features__ForecastModelComparison__Enabled=false # passive, needs 2+ Njord__Forecast__Models
       #- Njord__Features__SeasonalOutlook__Enabled=true # 3-month outlook, one extra call per day and location

@@ -139,7 +139,7 @@ SHARD REGIONS (Sharded Entity)
   from the Ensemble Mean API (`ensemble-api.open-meteo.com/v1/ensemble`, `EnsembleClient`,
   `DomainKind.Ensemble`). Each API has its own options: `Njord:Forecast` (`ForecastDays`, `PastHours`,
   optional `Models`, empty = best_match) and `Njord:Ensemble` (`ForecastDays`, `Models`, default
-  `["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean"]`, the ensemble-mean models for comparison). The requested variables
+  `["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean", "google_weathernext2_ensemble_mean"]`, the ensemble-mean models for comparison; spread variables: temperature, precipitation, wind speed/direction/gusts, 100 m wind, pressure, surface pressure, cloud cover, CAPE, snowfall, rain, dew point, humidity, wet bulb). The requested variables
   follow the enabled features: the `Requirements` of all enabled features are OR-ed into
   `DomainRequirements` (with base params; consumers take `IOptions<DomainRequirements>`) and mapped to
   API names by `ParamMappings.ToApiNames()`; the clients only build the URL. `FeatureEngine` skips a
@@ -340,7 +340,7 @@ interface. Manual `PostConfigure` is reserved for derived values (`PollingOption
 |---------|-------|---------|
 | `Njord` | `NjordOptions` | `Locations` (`Name`, `Latitude`, `Longitude`, all required) |
 | `Njord:Forecast` | `ForecastOptions` | `ForecastDays` (4, 1..16), `PastHours` (0, 0..96), `Models` (empty = best_match) |
-| `Njord:Ensemble` | `EnsembleOptions` | `ForecastDays` (4, 1..35), `Models` (`["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean"]`, required, non-empty, no duplicates) |
+| `Njord:Ensemble` | `EnsembleOptions` | `ForecastDays` (4, 1..35), `Models` (`["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean", "google_weathernext2_ensemble_mean"]`, required, non-empty, no duplicates) |
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7), `Region` (`Global`, enum) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..16) |
 | `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..6) |

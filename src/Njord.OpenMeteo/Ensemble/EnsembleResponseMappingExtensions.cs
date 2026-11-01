@@ -38,6 +38,18 @@ internal static class EnsembleResponseMappingExtensions
         double?[]? tempSpread = null;
         double?[]? precipSpread = null;
         double?[]? windSpread = null;
+        double?[]? pressureMslSpreadValues = null;
+        double?[]? cloudCoverSpreadValues = null;
+        double?[]? windGustsSpreadValues = null;
+        double?[]? capeSpreadValues = null;
+        double?[]? snowfallSpreadValues = null;
+        double?[]? rainSpreadValues = null;
+        double?[]? dewPointSpreadValues = null;
+        double?[]? humiditySpreadValues = null;
+        double?[]? surfacePressureSpreadValues = null;
+        double?[]? windDirectionSpreadValues = null;
+        double?[]? wetBulbTemperatureSpreadValues = null;
+        double?[]? windSpeed100mSpreadValues = null;
 
         foreach (var (key, value) in hourly)
         {
@@ -69,6 +81,42 @@ internal static class EnsembleResponseMappingExtensions
                 case EnsembleApiVariable.WindSpeedSpread:
                     windSpread = values;
                     break;
+                case EnsembleApiVariable.PressureMslSpread:
+                    pressureMslSpreadValues = values;
+                    break;
+                case EnsembleApiVariable.CloudCoverSpread:
+                    cloudCoverSpreadValues = values;
+                    break;
+                case EnsembleApiVariable.WindGustsSpread:
+                    windGustsSpreadValues = values;
+                    break;
+                case EnsembleApiVariable.CapeSpread:
+                    capeSpreadValues = values;
+                    break;
+                case EnsembleApiVariable.SnowfallSpread:
+                    snowfallSpreadValues = values;
+                    break;
+                case EnsembleApiVariable.RainSpread:
+                    rainSpreadValues = values;
+                    break;
+                case EnsembleApiVariable.DewPointSpread:
+                    dewPointSpreadValues = values;
+                    break;
+                case EnsembleApiVariable.HumiditySpread:
+                    humiditySpreadValues = values;
+                    break;
+                case EnsembleApiVariable.SurfacePressureSpread:
+                    surfacePressureSpreadValues = values;
+                    break;
+                case EnsembleApiVariable.WindDirectionSpread:
+                    windDirectionSpreadValues = values;
+                    break;
+                case EnsembleApiVariable.WetBulbTemperatureSpread:
+                    wetBulbTemperatureSpreadValues = values;
+                    break;
+                case EnsembleApiVariable.WindSpeed100mSpread:
+                    windSpeed100mSpreadValues = values;
+                    break;
             }
         }
 
@@ -79,7 +127,19 @@ internal static class EnsembleResponseMappingExtensions
                 ValidFrom: DateTimeOffset.FromUnixTimeSeconds(times[i]),
                 TemperatureSpread: At(tempSpread, i),
                 PrecipitationSpread: At(precipSpread, i),
-                WindSpeedSpread: At(windSpread, i));
+                WindSpeedSpread: At(windSpread, i),
+                PressureMslSpread: At(pressureMslSpreadValues, i),
+                CloudCoverSpread: At(cloudCoverSpreadValues, i),
+                WindGustsSpread: At(windGustsSpreadValues, i),
+                CapeSpread: At(capeSpreadValues, i),
+                SnowfallSpread: At(snowfallSpreadValues, i),
+                RainSpread: At(rainSpreadValues, i),
+                DewPointSpread: At(dewPointSpreadValues, i),
+                HumiditySpread: At(humiditySpreadValues, i),
+                SurfacePressureSpread: At(surfacePressureSpreadValues, i),
+                WindDirectionSpread: At(windDirectionSpreadValues, i),
+                WetBulbTemperatureSpread: At(wetBulbTemperatureSpreadValues, i),
+                WindSpeed100mSpread: At(windSpeed100mSpreadValues, i));
         }
 
         return new DomainForecast<EnsemblePoint>(

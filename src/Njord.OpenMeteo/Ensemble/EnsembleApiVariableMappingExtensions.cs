@@ -9,6 +9,18 @@ public static class EnsembleApiVariableMappingExtensions
         EnsembleParams.TemperatureSpread => EnsembleApiVariable.TemperatureSpread,
         EnsembleParams.PrecipitationSpread => EnsembleApiVariable.PrecipitationSpread,
         EnsembleParams.WindSpeedSpread => EnsembleApiVariable.WindSpeedSpread,
+        EnsembleParams.PressureMslSpread => EnsembleApiVariable.PressureMslSpread,
+        EnsembleParams.CloudCoverSpread => EnsembleApiVariable.CloudCoverSpread,
+        EnsembleParams.WindGustsSpread => EnsembleApiVariable.WindGustsSpread,
+        EnsembleParams.CapeSpread => EnsembleApiVariable.CapeSpread,
+        EnsembleParams.SnowfallSpread => EnsembleApiVariable.SnowfallSpread,
+        EnsembleParams.RainSpread => EnsembleApiVariable.RainSpread,
+        EnsembleParams.DewPointSpread => EnsembleApiVariable.DewPointSpread,
+        EnsembleParams.HumiditySpread => EnsembleApiVariable.HumiditySpread,
+        EnsembleParams.SurfacePressureSpread => EnsembleApiVariable.SurfacePressureSpread,
+        EnsembleParams.WindDirectionSpread => EnsembleApiVariable.WindDirectionSpread,
+        EnsembleParams.WetBulbTemperatureSpread => EnsembleApiVariable.WetBulbTemperatureSpread,
+        EnsembleParams.WindSpeed100mSpread => EnsembleApiVariable.WindSpeed100mSpread,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 

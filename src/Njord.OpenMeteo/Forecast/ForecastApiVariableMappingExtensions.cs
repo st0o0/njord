@@ -54,6 +54,8 @@ public static class ForecastApiVariableMappingExtensions
         ForecastParams.WindDirection120m => ForecastApiVariable.WindDirection120m,
         ForecastParams.Temperature80m => ForecastApiVariable.Temperature80m,
         ForecastParams.Temperature120m => ForecastApiVariable.Temperature120m,
+        ForecastParams.WindSpeed100m => ForecastApiVariable.WindSpeed100m,
+        ForecastParams.WindDirection100m => ForecastApiVariable.WindDirection100m,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 

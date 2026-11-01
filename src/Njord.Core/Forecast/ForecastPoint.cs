@@ -49,7 +49,9 @@ public sealed record ForecastPoint(
     double? WindSpeed120m = null,
     double? WindDirection120m = null,
     double? Temperature80m = null,
-    double? Temperature120m = null) : IHasValidTime
+    double? Temperature120m = null,
+    double? WindSpeed100m = null,
+    double? WindDirection100m = null) : IHasValidTime
 {
     private static readonly ForecastParams[] Flags =
         [.. Enum.GetValues<ForecastParams>().Where(p => p != ForecastParams.None)];
@@ -107,6 +109,8 @@ public sealed record ForecastPoint(
         ForecastParams.WindDirection120m => WindDirection120m is not null,
         ForecastParams.Temperature80m => Temperature80m is not null,
         ForecastParams.Temperature120m => Temperature120m is not null,
+        ForecastParams.WindSpeed100m => WindSpeed100m is not null,
+        ForecastParams.WindDirection100m => WindDirection100m is not null,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

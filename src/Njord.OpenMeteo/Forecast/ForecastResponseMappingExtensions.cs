@@ -184,6 +184,8 @@ internal static class ForecastResponseMappingExtensions
                 WindDirection120m: At(h.WindDirection120m, i),
                 Temperature80m: At(h.Temperature80m, i),
                 Temperature120m: At(h.Temperature120m, i),
+                WindSpeed100m: At(h.WindSpeed100m, i),
+                WindDirection100m: At(h.WindDirection100m, i),
                 LiftedIndex: At(h.LiftedIndex, i));
         }
 

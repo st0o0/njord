@@ -43,6 +43,8 @@ public sealed class ParamsMappingsTests
     [InlineData(ForecastParams.WetBulbTemperature, "wet_bulb_temperature_2m")]
     [InlineData(ForecastParams.SnowfallHeight, "snowfall_height")]
     [InlineData(ForecastParams.UvIndexClearSky, "uv_index_clear_sky")]
+    [InlineData(ForecastParams.WindSpeed100m, "wind_speed_100m")]
+    [InlineData(ForecastParams.WindDirection100m, "wind_direction_100m")]
     public void Should_map_each_weather_flag_to_its_api_name(ForecastParams param, string expected) =>
         Assert.Equal([expected], param.ToApiNames());
 
@@ -100,6 +102,18 @@ public sealed class ParamsMappingsTests
     [InlineData(EnsembleParams.TemperatureSpread, "temperature_2m_spread")]
     [InlineData(EnsembleParams.PrecipitationSpread, "precipitation_spread")]
     [InlineData(EnsembleParams.WindSpeedSpread, "wind_speed_10m_spread")]
+    [InlineData(EnsembleParams.PressureMslSpread, "pressure_msl_spread")]
+    [InlineData(EnsembleParams.CloudCoverSpread, "cloud_cover_spread")]
+    [InlineData(EnsembleParams.WindGustsSpread, "wind_gusts_10m_spread")]
+    [InlineData(EnsembleParams.CapeSpread, "cape_spread")]
+    [InlineData(EnsembleParams.SnowfallSpread, "snowfall_spread")]
+    [InlineData(EnsembleParams.RainSpread, "rain_spread")]
+    [InlineData(EnsembleParams.DewPointSpread, "dew_point_2m_spread")]
+    [InlineData(EnsembleParams.HumiditySpread, "relative_humidity_2m_spread")]
+    [InlineData(EnsembleParams.SurfacePressureSpread, "surface_pressure_spread")]
+    [InlineData(EnsembleParams.WindDirectionSpread, "wind_direction_10m_spread")]
+    [InlineData(EnsembleParams.WetBulbTemperatureSpread, "wet_bulb_temperature_2m_spread")]
+    [InlineData(EnsembleParams.WindSpeed100mSpread, "wind_speed_100m_spread")]
     public void Should_map_each_ensemble_flag_to_its_api_name(EnsembleParams param, string expected) =>
         Assert.Equal([expected], param.ToApiNames());
 

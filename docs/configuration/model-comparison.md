@@ -11,7 +11,7 @@ They request no data of their own. No feature drives multi-model fetching: you c
       "Models": ["icon_seamless", "ecmwf_ifs025"]
     },
     "Ensemble": {
-      "Models": ["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean"]
+      "Models": ["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean", "google_weathernext2_ensemble_mean"]
     },
     "Features": {
       "ForecastModelComparison": { "Enabled": true },
@@ -21,11 +21,11 @@ They request no data of their own. No feature drives multi-model fetching: you c
 }
 ```
 
-As environment variables: `Njord__Ensemble__Models__0=ecmwf_ifs025_ensemble_mean`, `Njord__Ensemble__Models__1=ncep_gefs025_ensemble_mean`, `Njord__Features__EnsembleModelComparison__Enabled=true`, `Njord__Features__ForecastModelComparison__Enabled=true`.
+As environment variables: `Njord__Ensemble__Models__0=ecmwf_ifs025_ensemble_mean`, `Njord__Ensemble__Models__1=ncep_gefs025_ensemble_mean`, `Njord__Ensemble__Models__2=google_weathernext2_ensemble_mean`, `Njord__Features__EnsembleModelComparison__Enabled=true`, `Njord__Features__ForecastModelComparison__Enabled=true`.
 
 ## Defaults
 
-- `Njord:Ensemble:Models` defaults to `ecmwf_ifs025_ensemble_mean` and `ncep_gefs025_ensemble_mean`, so `EnsembleModelComparison` works out of the box.
+- `Njord:Ensemble:Models` defaults to `ecmwf_ifs025_ensemble_mean`, `ncep_gefs025_ensemble_mean` and `google_weathernext2_ensemble_mean`, so `EnsembleModelComparison` works out of the box.
 - `Njord:Forecast:Models` is empty by default (best_match). `ForecastModelComparison` has nothing to compare until you list at least two forecast models.
 
 ## Ensemble models
@@ -34,6 +34,7 @@ As environment variables: `Njord__Ensemble__Models__0=ecmwf_ifs025_ensemble_mean
 |----|----------|--------|-----------:|---------:|
 | `ecmwf_ifs025_ensemble_mean` | ECMWF | Global | 25 km | 15 days |
 | `ncep_gefs025_ensemble_mean` | NOAA | Global | 25 km | 16 days |
+| `google_weathernext2_ensemble_mean` | Google | Global | 25 km | 15 days |
 | `ecmwf_aifs025_ensemble_mean` | ECMWF | Global | 25 km | 15 days |
 | `ukmo_global_ensemble_mean_20km` | UK Met Office | Global | 20 km | 7 days |
 

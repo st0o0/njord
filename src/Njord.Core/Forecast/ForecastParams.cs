@@ -52,4 +52,6 @@ public enum ForecastParams : long
     WindDirection120m = 1L << 48,
     Temperature80m = 1L << 49,
     Temperature120m = 1L << 50,
+    WindSpeed100m = 1L << 51,
+    WindDirection100m = 1L << 52,
 }

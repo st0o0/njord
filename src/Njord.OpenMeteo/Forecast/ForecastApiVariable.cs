@@ -102,4 +102,8 @@ public enum ForecastApiVariable
     Temperature80m,
     [JsonStringEnumMemberName("temperature_120m")]
     Temperature120m,
+    [JsonStringEnumMemberName("wind_speed_100m")]
+    WindSpeed100m,
+    [JsonStringEnumMemberName("wind_direction_100m")]
+    WindDirection100m,
 }

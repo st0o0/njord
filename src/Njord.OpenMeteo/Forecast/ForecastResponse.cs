@@ -52,7 +52,9 @@ public sealed record ForecastHourlyData(
     [property: JsonPropertyName("wind_speed_120m")] double?[]? WindSpeed120m = null,
     [property: JsonPropertyName("wind_direction_120m")] double?[]? WindDirection120m = null,
     [property: JsonPropertyName("temperature_80m")] double?[]? Temperature80m = null,
-    [property: JsonPropertyName("temperature_120m")] double?[]? Temperature120m = null);
+    [property: JsonPropertyName("temperature_120m")] double?[]? Temperature120m = null,
+    [property: JsonPropertyName("wind_speed_100m")] double?[]? WindSpeed100m = null,
+    [property: JsonPropertyName("wind_direction_100m")] double?[]? WindDirection100m = null);
 
 public sealed record ForecastResponse(
     [property: JsonPropertyName("latitude")] double Latitude,

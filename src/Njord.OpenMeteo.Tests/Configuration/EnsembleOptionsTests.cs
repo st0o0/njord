@@ -12,7 +12,7 @@ public sealed class EnsembleOptionsTests
 
         options.ApplyDefaults();
 
-        Assert.Equal(EnsembleOptions.DefaultModels, options.Models);
+        Assert.Equal(["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean", "google_weathernext2_ensemble_mean"], options.Models);
     }
 
     [Fact]

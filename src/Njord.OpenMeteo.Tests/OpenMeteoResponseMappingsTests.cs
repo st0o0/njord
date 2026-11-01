@@ -47,6 +47,22 @@ public sealed class OpenMeteoResponseMappingsTests
     }
 
     [Fact]
+    public void A_weather_response_maps_100m_wind()
+    {
+        var response = ParseWeather("""
+            {"latitude":47.0,"longitude":8.0,"hourly":{"time":[1783771200],
+            "wind_speed_100m":[7.5],"wind_direction_100m":[270.0]}}
+            """);
+
+        var forecast = Assert.Single(response.ToModelForecasts(Run, Model)).Value;
+
+        var point = Assert.Single(forecast.Points);
+        Assert.Multiple(
+            () => Assert.Equal(7.5, point.WindSpeed100m),
+            () => Assert.Equal(270.0, point.WindDirection100m));
+    }
+
+    [Fact]
     public void A_weather_response_trims_trailing_hours_without_any_value()
     {
         var response = ParseWeather("""

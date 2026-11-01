@@ -40,6 +40,30 @@ public sealed class EnsembleResponseMappingTests
     }
 
     [Fact]
+    public void Extracts_the_expanded_spread_variables()
+    {
+        var response = Parse("""{"latitude":47.0,"longitude":8.0,"hourly":{"time":[1000],"pressure_msl_spread":[1.0],"cloud_cover_spread":[2.0],"wind_gusts_10m_spread":[3.0],"cape_spread":[4.0],"snowfall_spread":[5.0],"rain_spread":[6.0],"dew_point_2m_spread":[7.0],"relative_humidity_2m_spread":[8.0],"surface_pressure_spread":[9.0],"wind_direction_10m_spread":[10.0],"wet_bulb_temperature_2m_spread":[11.0],"wind_speed_100m_spread":[12.0]}}""");
+
+        var forecast = response.ToEnsembleForecast(Run, "ecmwf_ifs025_ensemble_mean");
+
+        Assert.NotNull(forecast);
+        var point = Assert.Single(forecast.Points);
+        Assert.Multiple(
+            () => Assert.Equal(1.0, point.PressureMslSpread),
+            () => Assert.Equal(2.0, point.CloudCoverSpread),
+            () => Assert.Equal(3.0, point.WindGustsSpread),
+            () => Assert.Equal(4.0, point.CapeSpread),
+            () => Assert.Equal(5.0, point.SnowfallSpread),
+            () => Assert.Equal(6.0, point.RainSpread),
+            () => Assert.Equal(7.0, point.DewPointSpread),
+            () => Assert.Equal(8.0, point.HumiditySpread),
+            () => Assert.Equal(9.0, point.SurfacePressureSpread),
+            () => Assert.Equal(10.0, point.WindDirectionSpread),
+            () => Assert.Equal(11.0, point.WetBulbTemperatureSpread),
+            () => Assert.Equal(12.0, point.WindSpeed100mSpread));
+    }
+
+    [Fact]
     public void Returns_null_when_no_hourly_data()
     {
         var response = Parse("""{"latitude":47.0,"longitude":8.0}""");
