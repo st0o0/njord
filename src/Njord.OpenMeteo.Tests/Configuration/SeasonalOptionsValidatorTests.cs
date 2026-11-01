@@ -21,16 +21,6 @@ public sealed class SeasonalOptionsValidatorTests
     }
 
     [Theory]
-    [InlineData("")]
-    [InlineData("  ")]
-    public void Should_reject_an_empty_model(string model)
-    {
-        var result = _validator.Validate(null, new SeasonalOptions { Model = model });
-
-        Assert.Contains("Seasonal.Model must not be empty", ValidationAssert.SingleFailure(result));
-    }
-
-    [Theory]
     [InlineData(0)]
     [InlineData(8)]
     public void Should_reject_forecast_months_outside_one_to_seven(int value)

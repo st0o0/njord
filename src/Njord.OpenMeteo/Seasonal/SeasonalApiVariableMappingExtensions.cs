@@ -9,16 +9,6 @@ public static class SeasonalApiVariableMappingExtensions
         SeasonalParams.TemperatureAnomaly => SeasonalApiVariable.TemperatureAnomaly,
         SeasonalParams.PrecipitationAnomaly => SeasonalApiVariable.PrecipitationAnomaly,
         SeasonalParams.PrecipitationMean => SeasonalApiVariable.PrecipitationMean,
-        SeasonalParams.Temperature => SeasonalApiVariable.Temperature,
-        SeasonalParams.Snowfall => SeasonalApiVariable.Snowfall,
-        SeasonalParams.SnowDepth => SeasonalApiVariable.SnowDepth,
-        SeasonalParams.CloudCover => SeasonalApiVariable.CloudCover,
-        SeasonalParams.WindSpeed => SeasonalApiVariable.WindSpeed,
-        SeasonalParams.Pressure => SeasonalApiVariable.Pressure,
-        SeasonalParams.SunshineDuration => SeasonalApiVariable.SunshineDuration,
-        SeasonalParams.ShortwaveRadiation => SeasonalApiVariable.ShortwaveRadiation,
-        SeasonalParams.WindGusts => SeasonalApiVariable.WindGusts,
-        SeasonalParams.SeaSurfaceTemperature => SeasonalApiVariable.SeaSurfaceTemperature,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 

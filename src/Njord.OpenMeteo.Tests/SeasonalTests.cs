@@ -36,7 +36,7 @@ public sealed class SeasonalTests
             .FetchAsync(47.05, 8.31, ModelRun, TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            "/v1/seasonal?latitude=47.05&longitude=8.31&monthly=temperature_2m_anomaly,precipitation_anomaly&models=ecmwf_seasonal_ensemble_mean_seamless&timeformat=unixtime&timezone=UTC",
+            "/v1/seasonal?latitude=47.05&longitude=8.31&monthly=temperature_2m_anomaly,precipitation_anomaly&timeformat=unixtime&timezone=UTC",
             requested);
     }
 
@@ -82,53 +82,23 @@ public sealed class SeasonalTests
         string? requested = null;
         var http = StubOpenMeteoHandler.ClientFor("seasonal-api", HttpStatusCode.OK, Body, request => requested = StubOpenMeteoHandler.RawPathAndQuery(request));
         var client = new SeasonalClient(http, Options.Create(new SeasonalOptions { Model = "ecmwf_seas5_ensemble_mean" }),
-            Options.Create(new DomainRequirements(Seasonal: SeasonalParams.Temperature)));
+            Options.Create(new DomainRequirements(Seasonal: SeasonalParams.TemperatureAnomaly)));
 
         await client.FetchAsync(47, 8, ModelRun, TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            "/v1/seasonal?latitude=47&longitude=8&monthly=temperature_2m&models=ecmwf_seas5_ensemble_mean&timeformat=unixtime&timezone=UTC",
+            "/v1/seasonal?latitude=47&longitude=8&monthly=temperature_2m_anomaly&models=ecmwf_seas5_ensemble_mean&timeformat=unixtime&timezone=UTC",
             requested);
-    }
-
-    [Fact]
-    public void The_new_monthly_variables_are_mapped_to_the_point()
-    {
-        var response = new SeasonalResponse(47, 8, new SeasonalMonthlyData(
-            [1790812800],
-            Temperature: [11.5], Snowfall: [3.0], SnowDepth: [0.2], CloudCover: [60.0], WindSpeed: [4.5], Pressure: [1015.0],
-            SunshineDuration: [90000.0], ShortwaveRadiation: [110.0], WindGusts: [9.0], SeaSurfaceTemperature: [14.0]));
-
-        var forecast = response.ToDomainForecast(ModelRun, 3);
-
-        Assert.NotNull(forecast);
-        var point = Assert.Single(forecast.Points);
-        Assert.Equal(
-            new SeasonalPoint(new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero),
-                Temperature: 11.5, Snowfall: 3.0, SnowDepth: 0.2, CloudCover: 60.0, WindSpeed: 4.5, Pressure: 1015.0,
-                SunshineDuration: 90000.0, ShortwaveRadiation: 110.0, WindGusts: 9.0, SeaSurfaceTemperature: 14.0),
-            point);
-    }
-
-    [Fact]
-    public void The_monthly_api_names_include_the_new_variables()
-    {
-        Assert.Equal(
-            ["temperature_2m", "snowfall", "snow_depth", "cloud_cover", "wind_speed_10m", "pressure_msl", "sunshine_duration",
-                "shortwave_radiation", "wind_gusts_10m", "sea_surface_temperature"],
-            (SeasonalParams.Temperature | SeasonalParams.Snowfall | SeasonalParams.SnowDepth | SeasonalParams.CloudCover
-                | SeasonalParams.WindSpeed | SeasonalParams.Pressure | SeasonalParams.SunshineDuration
-                | SeasonalParams.ShortwaveRadiation | SeasonalParams.WindGusts | SeasonalParams.SeaSurfaceTemperature).ToApiNames());
     }
 
     [Fact]
     public void A_point_reports_which_requested_fields_are_present()
     {
-        var point = new SeasonalPoint(ModelRun, Temperature: 10.0);
+        var point = new SeasonalPoint(ModelRun, TemperatureAnomaly: 1.0);
 
         Assert.Multiple(
-            () => Assert.True(point.HasFields(SeasonalParams.Temperature)),
-            () => Assert.False(point.HasFields(SeasonalParams.Temperature | SeasonalParams.Snowfall)));
+            () => Assert.True(point.HasFields(SeasonalParams.TemperatureAnomaly)),
+            () => Assert.False(point.HasFields(SeasonalParams.TemperatureAnomaly | SeasonalParams.PrecipitationAnomaly)));
     }
 
     [Fact]
@@ -146,12 +116,12 @@ public sealed class SeasonalTests
         string? requested = null;
         var http = StubOpenMeteoHandler.ClientFor("seasonal-api", HttpStatusCode.OK, WeeklyBody, request => requested = StubOpenMeteoHandler.RawPathAndQuery(request));
         var client = new SeasonalClient(http, Options.Create(new SeasonalOptions()),
-            Options.Create(new DomainRequirements(Seasonal: SeasonalParams.Temperature, SeasonalWeekly: SeasonalWeeklyParams.TemperatureEfi | SeasonalWeeklyParams.PrecipitationEfi)));
+            Options.Create(new DomainRequirements(Seasonal: SeasonalParams.TemperatureAnomaly, SeasonalWeekly: SeasonalWeeklyParams.TemperatureEfi | SeasonalWeeklyParams.PrecipitationEfi)));
 
         await client.FetchWeeklyAsync(47, 8, ModelRun, TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            "/v1/seasonal?latitude=47&longitude=8&weekly=temperature_2m_efi,precipitation_efi&models=ecmwf_seasonal_ensemble_mean_seamless&timeformat=unixtime&timezone=UTC",
+            "/v1/seasonal?latitude=47&longitude=8&weekly=temperature_2m_efi,precipitation_efi&timeformat=unixtime&timezone=UTC",
             requested);
     }
 

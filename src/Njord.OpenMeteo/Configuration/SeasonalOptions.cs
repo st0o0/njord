@@ -10,6 +10,6 @@ public sealed class SeasonalOptions : IConfigSection
     // Months after the current month that are kept from the seasonal forecast.
     public int ForecastMonths { get; set; } = 3;
 
-    // Seasonal model sent as the models query parameter (EC46 and SEAS5 blend).
-    public string Model { get; set; } = "ecmwf_seasonal_ensemble_mean_seamless";
+    // Optional seasonal model sent as the models query parameter; empty (default) leaves the API default.
+    public string Model { get; set; } = "";
 }

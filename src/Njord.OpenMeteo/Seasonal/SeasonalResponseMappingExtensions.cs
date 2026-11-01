@@ -25,20 +25,10 @@ internal static class SeasonalResponseMappingExtensions
                 DateTimeOffset.FromUnixTimeSeconds(m.Time[i]),
                 TemperatureAnomaly: At(m.TemperatureAnomaly, i),
                 PrecipitationAnomaly: At(m.PrecipitationAnomaly, i),
-                PrecipitationMean: At(m.PrecipitationMean, i),
-                Temperature: At(m.Temperature, i),
-                Snowfall: At(m.Snowfall, i),
-                SnowDepth: At(m.SnowDepth, i),
-                CloudCover: At(m.CloudCover, i),
-                WindSpeed: At(m.WindSpeed, i),
-                Pressure: At(m.Pressure, i),
-                SunshineDuration: At(m.SunshineDuration, i),
-                ShortwaveRadiation: At(m.ShortwaveRadiation, i),
-                WindGusts: At(m.WindGusts, i),
-                SeaSurfaceTemperature: At(m.SeaSurfaceTemperature, i)));
+                PrecipitationMean: At(m.PrecipitationMean, i)));
         }
 
-        return builder.Any(p => p.TemperatureAnomaly is not null || p.PrecipitationAnomaly is not null || p.Temperature is not null)
+        return builder.Any(p => p.TemperatureAnomaly is not null || p.PrecipitationAnomaly is not null)
             ? new DomainForecast<SeasonalPoint>(DomainKind.Seasonal, modelRun, TimeResolution.Monthly, builder.ToImmutable())
             : null;
     }

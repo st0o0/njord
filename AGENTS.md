@@ -168,9 +168,8 @@ SHARD REGIONS (Sharded Entity)
   counts it as 30 calls/month/location instead of once per poll cycle. The API delivers ensemble-mean
   `temperature_2m_anomaly` (K) and `precipitation_anomaly` (mm; `SeasonalOutlook` converts to % of the normal
   month with `precipitation_mean`); confidence follows the lead time. `Njord:Seasonal:ForecastMonths` (3) limits the months kept.
-  The request pins `Njord:Seasonal:Model` (default `ecmwf_seasonal_ensemble_mean_seamless`, EC46 + SEAS5) via `&models=`. Ten more
-  monthly variables (absolute `temperature_2m`, snowfall, snow depth, cloud cover, wind, pressure, sunshine, shortwave
-  radiation, gusts, sea surface temperature) exist as `SeasonalParams`. Weekly probabilistic data (`TimeResolution.Weekly`,
+  `Njord:Seasonal:Model` is optional (default empty = the API default, no `&models=` sent). The live monthly endpoint only accepts
+  the three variables `temperature_2m_anomaly`, `precipitation_anomaly` and `precipitation_mean` (absolute monthly variables return HTTP 400). Weekly probabilistic data (`TimeResolution.Weekly`,
   `SeasonalWeeklyPoint`: EFI, Shift of Tails, anomaly probabilities) comes from a separate `&weekly=` request
   (`SeasonalClient.FetchWeeklyAsync`, requirements in `DomainRequirements.SeasonalWeekly`); no feature consumes it yet.
 - **Base parameters.** `DomainRequirements.WithBaseParams` always requests `weather_code` for a required Forecast domain; `BudgetGuard` and the Config Builder count it.
@@ -348,7 +347,7 @@ interface. Manual `PostConfigure` is reserved for derived values (`PollingOption
 | `Njord:Ensemble` | `EnsembleOptions` | `ForecastDays` (4, 1..35), `Models` (`["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean", "google_weathernext2_ensemble_mean"]`, required, non-empty, no duplicates) |
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7), `Region` (`Global`, enum) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..16) |
-| `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..7), `Model` (`ecmwf_seasonal_ensemble_mean_seamless`, non-empty) |
+| `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..7), `Model` (empty = API default) |
 | `Njord:Solar` | `SolarOptions` | `Tilt` (30, 0..90), `Azimuth` (180, 0..360); used by Forecast/Ensemble clients for GTI |
 | `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210), `IncludeEnsemble` (false) |
 | `Njord:Features:<Name>` | `<Name>Config` | `Enabled` (default from the descriptor) plus the feature's options |

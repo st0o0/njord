@@ -8,17 +8,7 @@ public sealed record SeasonalMonthlyData(
     [property: JsonPropertyName("time")] long[] Time,
     [property: JsonPropertyName("temperature_2m_anomaly")] double?[]? TemperatureAnomaly = null,
     [property: JsonPropertyName("precipitation_anomaly")] double?[]? PrecipitationAnomaly = null,
-    [property: JsonPropertyName("precipitation_mean")] double?[]? PrecipitationMean = null,
-    [property: JsonPropertyName("temperature_2m")] double?[]? Temperature = null,
-    [property: JsonPropertyName("snowfall")] double?[]? Snowfall = null,
-    [property: JsonPropertyName("snow_depth")] double?[]? SnowDepth = null,
-    [property: JsonPropertyName("cloud_cover")] double?[]? CloudCover = null,
-    [property: JsonPropertyName("wind_speed_10m")] double?[]? WindSpeed = null,
-    [property: JsonPropertyName("pressure_msl")] double?[]? Pressure = null,
-    [property: JsonPropertyName("sunshine_duration")] double?[]? SunshineDuration = null,
-    [property: JsonPropertyName("shortwave_radiation")] double?[]? ShortwaveRadiation = null,
-    [property: JsonPropertyName("wind_gusts_10m")] double?[]? WindGusts = null,
-    [property: JsonPropertyName("sea_surface_temperature")] double?[]? SeaSurfaceTemperature = null);
+    [property: JsonPropertyName("precipitation_mean")] double?[]? PrecipitationMean = null);
 
 // Weekly probabilistic values: Extreme Forecast Index (-1..1), Shift of Tails and the probability (0-100 %) that the
 // weekly anomaly exceeds a threshold.

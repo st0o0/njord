@@ -36,8 +36,7 @@ public sealed class SeasonalClient : IDomainClient
 
         var uri = ClientRequest.Uri(
             OpenMeteoEndpoints.SeasonalPath, latitude, longitude,
-            (ClientRequest.Monthly, ClientRequest.List(_variables)),
-            (ClientRequest.Models, _options.Model));
+            Query(ClientRequest.Monthly, _variables));
         return ClientRequest.ExecuteAsync(
             () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.SeasonalResponse, cancellationToken),
             response => response.ToDomainForecast(now, _options.ForecastMonths),
@@ -49,11 +48,16 @@ public sealed class SeasonalClient : IDomainClient
     {
         var uri = ClientRequest.Uri(
             OpenMeteoEndpoints.SeasonalPath, latitude, longitude,
-            (ClientRequest.Weekly, ClientRequest.List(_weeklyVariables)),
-            (ClientRequest.Models, _options.Model));
+            Query(ClientRequest.Weekly, _weeklyVariables));
         return ClientRequest.ExecuteAsync(
             () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.SeasonalResponse, cancellationToken),
             response => response.ToWeeklyDomainForecast(now),
             cancellationToken);
     }
+
+    // The models parameter is only sent when a model is configured; empty leaves the API default.
+    private (string Key, string Value)[] Query(string key, IReadOnlyList<string> variables) =>
+        string.IsNullOrWhiteSpace(_options.Model)
+            ? [(key, ClientRequest.List(variables))]
+            : [(key, ClientRequest.List(variables)), (ClientRequest.Models, _options.Model)];
 }
