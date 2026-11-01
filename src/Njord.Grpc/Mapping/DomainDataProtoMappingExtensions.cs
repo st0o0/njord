@@ -219,6 +219,8 @@ internal static class DomainDataProtoMappingExtensions
         if (p.UsAqiOzone is { } usAqiO3) { sample.UsAqiOzone = usAqiO3; }
         if (p.UsAqiSulphurDioxide is { } usAqiSo2) { sample.UsAqiSulphurDioxide = usAqiSo2; }
         if (p.UsAqiCarbonMonoxide is { } usAqiCo) { sample.UsAqiCarbonMonoxide = usAqiCo; }
+        if (p.NitrogenDioxide is { } no2) { sample.NitrogenDioxide = no2; }
+        if (p.EuropeanAqi is { } eaqi) { sample.EuropeanAqi = eaqi; }
         return sample;
     }
 

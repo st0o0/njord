@@ -171,6 +171,8 @@ message AirQualitySample {
   optional double us_aqi_ozone = 29;
   optional double us_aqi_sulphur_dioxide = 30;
   optional double us_aqi_carbon_monoxide = 31;
+  optional double nitrogen_dioxide = 32;
+  optional double european_aqi = 33;
 }
 
 message FloodData {
