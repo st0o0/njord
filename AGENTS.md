@@ -21,7 +21,7 @@ src/
     AirQuality/         #   AirQualityPoint, AirQualityParams
     Flood/              #   FloodPoint, FloodParams
     Marine/             #   MarinePoint, MarineParams
-    Seasonal/           #   SeasonalPoint, SeasonalParams
+    Seasonal/           #   SeasonalPoint, SeasonalParams, SeasonalWeeklyPoint, SeasonalWeeklyParams
     ActorKeys.cs        #   marker interfaces for every resolvable actor
     Actors/             #   IActorRegistration, StreamSupervision, actor marker interfaces (ShardMessageExtractor in Polling)
     Domain/             #   FeatureDescriptor, FeatureCategory, FeatureContext,
@@ -163,11 +163,16 @@ SHARD REGIONS (Sharded Entity)
   domains x poll cycles x call weight) against 80 % of the monthly budget.
 - **Any change to polling needs a budget estimate** against 300k/month, 10k/day, and politeness toward
   a free service. Every domain weighs `ceil(variables / 10) * (forecastDays / 14.0)` calls (Ensemble times `modelCount`, spread-only: 1 model).
-- **Seasonal is a normal domain** (`DomainKind.Seasonal`, `SeasonalPoint`, `TimeResolution.Monthly`): the gateway fetches
+- **Seasonal is a normal domain** (`DomainKind.Seasonal`, `SeasonalPoint`, `TimeResolution.Monthly`, weekly: `TimeResolution.Weekly`): the gateway fetches
   `seasonal-api.open-meteo.com` for `SeasonalOutlook`, the PollWorker learns its roughly daily cycle, `BudgetGuard`
   counts it as 30 calls/month/location instead of once per poll cycle. The API delivers ensemble-mean
   `temperature_2m_anomaly` (K) and `precipitation_anomaly` (mm; `SeasonalOutlook` converts to % of the normal
   month with `precipitation_mean`); confidence follows the lead time. `Njord:Seasonal:ForecastMonths` (3) limits the months kept.
+  The request pins `Njord:Seasonal:Model` (default `ecmwf_seasonal_ensemble_mean_seamless`, EC46 + SEAS5) via `&models=`. Ten more
+  monthly variables (absolute `temperature_2m`, snowfall, snow depth, cloud cover, wind, pressure, sunshine, shortwave
+  radiation, gusts, sea surface temperature) exist as `SeasonalParams`. Weekly probabilistic data (`TimeResolution.Weekly`,
+  `SeasonalWeeklyPoint`: EFI, Shift of Tails, anomaly probabilities) comes from a separate `&weekly=` request
+  (`SeasonalClient.FetchWeeklyAsync`, requirements in `DomainRequirements.SeasonalWeekly`); no feature consumes it yet.
 - **Base parameters.** `DomainRequirements.WithBaseParams` always requests `weather_code` for a required Forecast domain; `BudgetGuard` and the Config Builder count it.
 - **Failure backoff.** A failed fetch retries after 60 s, doubling per consecutive failure up to the poll interval (`FailureBackoff`); rate limit and budget rejections wait at least 5 min. The count is persisted in `DomainPolled.ConsecutiveFailures` and reset by a successful fetch.
 - Poll interval 60 min and discovery interval 20 min are config values.
@@ -343,7 +348,7 @@ interface. Manual `PostConfigure` is reserved for derived values (`PollingOption
 | `Njord:Ensemble` | `EnsembleOptions` | `ForecastDays` (4, 1..35), `Models` (`["ecmwf_ifs025_ensemble_mean", "ncep_gefs025_ensemble_mean", "google_weathernext2_ensemble_mean"]`, required, non-empty, no duplicates) |
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7), `Region` (`Global`, enum) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..16) |
-| `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..6) |
+| `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..7), `Model` (`ecmwf_seasonal_ensemble_mean_seamless`, non-empty) |
 | `Njord:Solar` | `SolarOptions` | `Tilt` (30, 0..90), `Azimuth` (180, 0..360); used by Forecast/Ensemble clients for GTI |
 | `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210), `IncludeEnsemble` (false) |
 | `Njord:Features:<Name>` | `<Name>Config` | `Enabled` (default from the descriptor) plus the feature's options |

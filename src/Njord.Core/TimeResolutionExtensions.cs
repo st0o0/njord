@@ -6,6 +6,7 @@ public static class TimeResolutionExtensions
     {
         TimeResolution.Hourly => TimeSpan.FromHours(1),
         TimeResolution.Daily => TimeSpan.FromDays(1),
+        TimeResolution.Weekly => TimeSpan.FromDays(7),
         TimeResolution.Monthly => TimeSpan.FromDays(30),
         _ => throw new ArgumentOutOfRangeException(nameof(resolution), resolution, null)
     };

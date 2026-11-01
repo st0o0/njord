@@ -84,6 +84,20 @@ public sealed class ApiVariableMappingCompletenessTests
     }
 
     [Fact]
+    public void Should_map_every_seasonal_weekly_flag_to_a_distinct_named_api_variable()
+    {
+        var flags = Enum.GetValues<SeasonalWeeklyParams>().Where(f => f != SeasonalWeeklyParams.None).ToList();
+
+        var variables = flags.Select(f => f.ToApiVariable()).ToList();
+
+        Assert.Multiple(
+            () => Assert.Equal(flags.Count, variables.Distinct().Count()),
+            () => Assert.Equal(Enum.GetValues<SeasonalWeeklyApiVariable>().Length, variables.Count),
+            () => Assert.Equal(variables.Count, ApiVariableNames.For<SeasonalWeeklyApiVariable>().Count),
+            () => Assert.All(variables, v => Assert.False(string.IsNullOrEmpty(v.ToApiName()))));
+    }
+
+    [Fact]
     public void Should_chain_flag_to_variable_to_api_name()
     {
         Assert.Multiple(

@@ -4,5 +4,6 @@ public enum TimeResolution
 {
     Hourly,
     Daily,
+    Weekly,
     Monthly,
 }

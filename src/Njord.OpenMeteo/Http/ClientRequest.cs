@@ -12,6 +12,7 @@ internal static class ClientRequest
     public const string Hourly = "hourly";
     public const string Daily = "daily";
     public const string Monthly = "monthly";
+    public const string Weekly = "weekly";
     public const string Models = "models";
     public const string Latitude = "latitude";
     public const string Longitude = "longitude";

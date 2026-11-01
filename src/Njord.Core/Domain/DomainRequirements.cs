@@ -18,7 +18,9 @@ public sealed record DomainRequirements(
     MarineParams Marine = default,
     MarineParams OptionalMarine = default,
     SeasonalParams Seasonal = default,
-    SeasonalParams OptionalSeasonal = default)
+    SeasonalParams OptionalSeasonal = default,
+    SeasonalWeeklyParams SeasonalWeekly = default,
+    SeasonalWeeklyParams OptionalSeasonalWeekly = default)
 {
     public DomainRequirements WithBaseParams() => this with
     {
@@ -35,6 +37,8 @@ public sealed record DomainRequirements(
 
     public SeasonalParams AllSeasonal => Seasonal | OptionalSeasonal;
 
+    public SeasonalWeeklyParams AllSeasonalWeekly => SeasonalWeekly | OptionalSeasonalWeekly;
+
 
     public EnsembleParams AllEnsemble => Ensemble | OptionalEnsemble;
 
@@ -50,11 +54,13 @@ public sealed record DomainRequirements(
         a.Marine | b.Marine,
         a.OptionalMarine | b.OptionalMarine,
         a.Seasonal | b.Seasonal,
-        a.OptionalSeasonal | b.OptionalSeasonal);
+        a.OptionalSeasonal | b.OptionalSeasonal,
+        a.SeasonalWeekly | b.SeasonalWeekly,
+        a.OptionalSeasonalWeekly | b.OptionalSeasonalWeekly);
 
     public bool RequiresAnyDomain() =>
         AllForecast != default || AllAirQuality != default || AllFlood != default
-        || AllMarine != default || AllSeasonal != default || AllEnsemble != default;
+        || AllMarine != default || AllSeasonal != default || AllSeasonalWeekly != default || AllEnsemble != default;
 
     public bool Requires(DomainKind domain) => domain switch
     {
@@ -62,7 +68,7 @@ public sealed record DomainRequirements(
         DomainKind.AirQuality => AllAirQuality != default,
         DomainKind.Flood => AllFlood != default,
         DomainKind.Marine => AllMarine != default,
-        DomainKind.Seasonal => AllSeasonal != default,
+        DomainKind.Seasonal => AllSeasonal != default || AllSeasonalWeekly != default,
         DomainKind.Ensemble => AllEnsemble != default,
         _ => false,
     };
