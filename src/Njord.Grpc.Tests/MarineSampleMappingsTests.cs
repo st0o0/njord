@@ -28,6 +28,14 @@ public sealed class MarineSampleMappingsTests
     }
 
     [Fact]
+    public void Wave_peak_period_maps_to_its_own_field()
+    {
+        var sample = new MarinePoint(At, WavePeakPeriod: 9.5).ToProto();
+
+        Assert.Equal(9.5, sample.WavePeakPeriod);
+    }
+
+    [Fact]
     public void Missing_swell_values_stay_unset()
     {
         var sample = new MarinePoint(At, WaveHeight: 1.5).ToProto();

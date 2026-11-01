@@ -89,7 +89,7 @@ message ForecastSample {
   double humidity = 10;
   double dew_point = 11;
   double uv_index = 12;
-  reserved 13;
+  reserved 13; // formerly unknown (unused slot between uv_index and wind_gusts)
   optional double wind_gusts = 14;
   optional double visibility = 15;
   optional double cape = 16;
@@ -117,6 +117,22 @@ message ForecastSample {
   optional double wind_direction_120m = 38;
   optional double temperature_80m = 39;
   optional double temperature_120m = 40;
+  optional double wind_direction_10m = 41;
+  optional double snow_depth = 42;
+  optional double shortwave_radiation = 43;
+  optional double direct_radiation = 44;
+  optional double diffuse_radiation = 45;
+  optional double direct_normal_irradiance = 46;
+  optional double sunshine_duration = 47;
+  optional double global_tilted_irradiance = 48;
+  optional double wet_bulb_temperature_2m = 49;
+  optional double snowfall_height = 50;
+  optional double wind_speed_100m = 51;
+  optional double wind_direction_100m = 52;
+  optional double thunderstorm_probability = 53;
+  optional double precipitation_type = 54;
+  optional double surface_temperature = 55;
+  optional double snowfall_water_equivalent = 56;
 }
 
 message AirQualityData {
@@ -213,6 +229,7 @@ message MarineSample {
   optional double tertiary_swell_wave_direction = 21;
   optional double tertiary_swell_wave_period = 22;
   optional double invert_barometer_height = 23;
+  optional double wave_peak_period = 24;
 }
 
 message EnsembleData {
@@ -224,6 +241,18 @@ message EnsembleSample {
   optional double temperature_spread = 2;
   optional double precipitation_spread = 3;
   optional double wind_speed_spread = 4;
+  optional double pressure_msl_spread = 5;
+  optional double cloud_cover_spread = 6;
+  optional double wind_gusts_10m_spread = 7;
+  optional double cape_spread = 8;
+  optional double snowfall_spread = 9;
+  optional double rain_spread = 10;
+  optional double dew_point_2m_spread = 11;
+  optional double relative_humidity_2m_spread = 12;
+  optional double surface_pressure_spread = 13;
+  optional double wind_direction_10m_spread = 14;
+  optional double wet_bulb_temperature_2m_spread = 15;
+  optional double wind_speed_100m_spread = 16;
 }
 
 // ═══════════════════════════════════════

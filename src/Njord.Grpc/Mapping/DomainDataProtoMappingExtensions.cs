@@ -104,6 +104,18 @@ internal static class DomainDataProtoMappingExtensions
         if (p.TemperatureSpread is { } temp) { sample.TemperatureSpread = temp; }
         if (p.PrecipitationSpread is { } precip) { sample.PrecipitationSpread = precip; }
         if (p.WindSpeedSpread is { } wind) { sample.WindSpeedSpread = wind; }
+        if (p.PressureMslSpread is { } pressureMsl) { sample.PressureMslSpread = pressureMsl; }
+        if (p.CloudCoverSpread is { } cloudCover) { sample.CloudCoverSpread = cloudCover; }
+        if (p.WindGustsSpread is { } gusts) { sample.WindGusts10MSpread = gusts; }
+        if (p.CapeSpread is { } cape) { sample.CapeSpread = cape; }
+        if (p.SnowfallSpread is { } snowfall) { sample.SnowfallSpread = snowfall; }
+        if (p.RainSpread is { } rain) { sample.RainSpread = rain; }
+        if (p.DewPointSpread is { } dewPoint) { sample.DewPoint2MSpread = dewPoint; }
+        if (p.HumiditySpread is { } humidity) { sample.RelativeHumidity2MSpread = humidity; }
+        if (p.SurfacePressureSpread is { } surfacePressure) { sample.SurfacePressureSpread = surfacePressure; }
+        if (p.WindDirectionSpread is { } windDirection) { sample.WindDirection10MSpread = windDirection; }
+        if (p.WetBulbTemperatureSpread is { } wetBulb) { sample.WetBulbTemperature2MSpread = wetBulb; }
+        if (p.WindSpeed100mSpread is { } wind100) { sample.WindSpeed100MSpread = wind100; }
         return sample;
     }
 
@@ -152,6 +164,22 @@ internal static class DomainDataProtoMappingExtensions
         if (p.WindDirection120m is { } wd120) { sample.WindDirection120M = wd120; }
         if (p.Temperature80m is { } t80) { sample.Temperature80M = t80; }
         if (p.Temperature120m is { } t120) { sample.Temperature120M = t120; }
+        if (p.WindDirection is { } wd10) { sample.WindDirection10M = wd10; }
+        if (p.SnowDepth is { } snowDepth) { sample.SnowDepth = snowDepth; }
+        if (p.ShortwaveRadiation is { } shortwave) { sample.ShortwaveRadiation = shortwave; }
+        if (p.DirectRadiation is { } direct) { sample.DirectRadiation = direct; }
+        if (p.DiffuseRadiation is { } diffuse) { sample.DiffuseRadiation = diffuse; }
+        if (p.DirectNormalIrradiance is { } dni) { sample.DirectNormalIrradiance = dni; }
+        if (p.SunshineDuration is { } sunshine) { sample.SunshineDuration = sunshine; }
+        if (p.GlobalTiltedIrradiance is { } gti) { sample.GlobalTiltedIrradiance = gti; }
+        if (p.WetBulbTemperature is { } wetBulb) { sample.WetBulbTemperature2M = wetBulb; }
+        if (p.SnowfallHeight is { } snowfallHeight) { sample.SnowfallHeight = snowfallHeight; }
+        if (p.WindSpeed100m is { } ws100) { sample.WindSpeed100M = ws100; }
+        if (p.WindDirection100m is { } wd100) { sample.WindDirection100M = wd100; }
+        if (p.ThunderstormProbability is { } thunder) { sample.ThunderstormProbability = thunder; }
+        if (p.PrecipitationType is { } precipType) { sample.PrecipitationType = precipType; }
+        if (p.SurfaceTemperature is { } surfaceTemp) { sample.SurfaceTemperature = surfaceTemp; }
+        if (p.SnowfallWaterEquivalent is { } swe) { sample.SnowfallWaterEquivalent = swe; }
         return sample;
     }
 
@@ -247,6 +275,7 @@ internal static class DomainDataProtoMappingExtensions
         if (p.TertiarySwellWaveDirection is { } tsDir) { sample.TertiarySwellWaveDirection = tsDir; }
         if (p.TertiarySwellWavePeriod is { } tsPeriod) { sample.TertiarySwellWavePeriod = tsPeriod; }
         if (p.InvertBarometerHeight is { } ibh) { sample.InvertBarometerHeight = ibh; }
+        if (p.WavePeakPeriod is { } wavePeak) { sample.WavePeakPeriod = wavePeak; }
         return sample;
     }
 }
