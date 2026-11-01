@@ -6,11 +6,11 @@ Fetch, serve and compare several Open-Meteo ensemble-mean weather models per loc
 ## Requirements
 
 ### Requirement: Model selection configuration
-The system SHALL read ensemble model ids from `Njord:Ensemble:Models`, defaulting to `[ecmwf_ifs025_ensemble_mean]`. The first entry SHALL be the primary model. No model catalog SHALL exist; validation SHALL reject empty lists and duplicates but SHALL NOT reject unknown model ids.
+The system SHALL read ensemble model ids from `Njord:Ensemble:Models`, defaulting to `["ecmwf_ifs025_ensemble_mean", "gfs025_ensemble_mean"]`. The first entry SHALL be the primary model. No model catalog SHALL exist; validation SHALL reject empty lists and duplicates but SHALL NOT reject unknown model ids.
 
 #### Scenario: Default configuration
 - **WHEN** no models are configured in `Njord:Ensemble`
-- **THEN** the effective model list is `[ecmwf_ifs025_ensemble_mean]` and it is the primary model
+- **THEN** the effective model list is `["ecmwf_ifs025_ensemble_mean", "gfs025_ensemble_mean"]` and the first is the primary model
 
 #### Scenario: Invalid list rejected at startup
 - **WHEN** `Njord:Ensemble:Models` is empty or contains a duplicate
@@ -20,16 +20,18 @@ The system SHALL read ensemble model ids from `Njord:Ensemble:Models`, defaultin
 - **WHEN** `Njord:Ensemble:Models` contains a model id not in any hardcoded catalog
 - **THEN** startup validation SHALL succeed; the API will return an error at fetch time if the id is invalid
 
-### Requirement: ModelComparison feature gate
-The system SHALL fetch more than the primary model only when `EnsembleParams.Models` is set in the resolved domain requirements (indicating a feature needs per-model data). The `EnsembleClient` SHALL determine this from the flag, not from a feature-name string match.
+### Requirement: Config-driven multi-model
+The system SHALL fetch all configured models. When `Njord:Ensemble:Models` lists multiple models, the client SHALL request all of them and include weather variables alongside spread variables. No feature flag SHALL gate multi-model fetching.
 
-#### Scenario: Feature off
-- **WHEN** `Njord:Ensemble:Models` lists three models and no enabled feature sets `EnsembleParams.Models`
-- **THEN** only the primary model is requested and a startup warning names the ignored models
+#### Scenario: Two models configured
+- **GIVEN** `Njord:Ensemble:Models` contains two models
+- **WHEN** the client is constructed
+- **THEN** both models are requested and weather variables are included
 
-#### Scenario: Feature on
-- **WHEN** an enabled feature sets `EnsembleParams.Models` with three models configured
-- **THEN** all three models are requested
+#### Scenario: One model configured
+- **GIVEN** `Njord:Ensemble:Models` contains one model
+- **WHEN** the client is constructed
+- **THEN** only that model is requested with spread variables only
 
 ### Requirement: Single batched weather request
 The system SHALL request all effective models in one HTTP call per location and poll cycle, using a comma-separated `models` parameter.
@@ -61,8 +63,12 @@ Feature rules SHALL evaluate only the primary model's forecast. Secondary models
 - **THEN** the model's data is available to consumers and no enrichment event is emitted
 
 ### Requirement: Budget accounting per model
-The ensemble call weight SHALL be `ceil(variables / 10) * ceil(EnsembleForecastDays / 14)` multiplied by the number of effective models, using the Ensemble section's own ForecastDays.
+The ensemble call weight SHALL use the configured model count directly. When multiple models are configured, weather variables SHALL be included in the variable count. The weight SHALL be `ceil(variables / 10) * (EnsembleForecastDays / 14)` multiplied by the number of configured models.
 
 #### Scenario: Weight with three models
-- **WHEN** 31 variables and three effective models are configured with Ensemble ForecastDays 15
-- **THEN** the ensemble weight is `ceil(31/10) * ceil(15/14) * 3 = 4 * 2 * 3 = 24` calls per poll
+- **WHEN** 31 variables and three models are configured with Ensemble ForecastDays 15
+- **THEN** the ensemble weight is `ceil(31/10) * (15/14) * 3` calls per poll
+
+#### Scenario: Weight with one model
+- **WHEN** 3 spread variables and one model are configured with Ensemble ForecastDays 4
+- **THEN** the ensemble weight is `ceil(3/10) * (4/14) * 1` calls per poll
