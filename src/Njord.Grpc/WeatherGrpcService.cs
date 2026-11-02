@@ -5,6 +5,7 @@ using Grpc.Core;
 using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Messages.Config;
@@ -20,9 +21,10 @@ public sealed class WeatherGrpcService(
     ActorSystem actorSystem,
     IOptions<NjordOptions> scope,
     IOptions<ActiveModels> models,
+    IOptions<DomainRequirements> requirements,
     TimeProvider timeProvider) : WeatherService.WeatherServiceBase
 {
-    private readonly CatalogResult _catalog = scope.Value.ToCatalog(models.Value);
+    private readonly CatalogResult _catalog = scope.Value.ToCatalog(models.Value, requirements.Value);
     private readonly IMaterializer _mat = actorSystem.Materializer();
 
     public override async Task<GetCatalogResponse> GetCatalog(GetCatalogRequest request, ServerCallContext context)

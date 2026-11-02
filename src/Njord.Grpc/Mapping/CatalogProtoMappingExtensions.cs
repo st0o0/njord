@@ -25,12 +25,23 @@ internal static class CatalogProtoMappingExtensions
             Enabled = model.Enabled,
         };
 
-    public static LocationInfo ToProto(this CatalogLocation location) =>
-        new()
+    public static LocationInfo ToProto(this CatalogLocation location)
+    {
+        var info = new LocationInfo
         {
             Name = location.Location.Name,
             Latitude = location.Location.Latitude,
             Longitude = location.Location.Longitude,
             Models = { location.Models },
         };
+        info.ResolvedDomains.AddRange(location.ResolvedDomains.Select(ToProto));
+        return info;
+    }
+
+    private static DomainSchema ToProto(this CatalogDomainSchema schema)
+    {
+        var ds = new DomainSchema { Domain = schema.Domain.ToProto() };
+        ds.Fields.AddRange(schema.Fields);
+        return ds;
+    }
 }

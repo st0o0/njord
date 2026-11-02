@@ -41,7 +41,7 @@ public sealed class ProtoMappingsTests
     [Fact]
     public void Catalog_locations_map_name_coordinates_and_models()
     {
-        var info = new CatalogLocation(new Location("lucerne", 47.05, 8.31), ["icon_d2", "ecmwf_ifs025"]).ToProto();
+        var info = new CatalogLocation(new Location("lucerne", 47.05, 8.31), ["icon_d2", "ecmwf_ifs025"], []).ToProto();
 
         Assert.Multiple(
             () => Assert.Equal("lucerne", info.Name),

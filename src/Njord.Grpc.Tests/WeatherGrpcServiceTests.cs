@@ -3,6 +3,7 @@ using Akka.Hosting;
 using Grpc.Core;
 using Njord.Core;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Core.Seasonal;
 using Njord.Grpc.Mapping;
@@ -142,7 +143,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         ActorRegistry.Register<IGrpcConsumer>(
             Sys.ActorOf(Props.Create(() => new FakeConsumer(null, null))), overwrite: true);
         var service = new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Opts(Options),
-            TestServiceInfo.Opts(activeModels), TimeProvider.System);
+            TestServiceInfo.Opts(activeModels), TestServiceInfo.Opts(new DomainRequirements()), TimeProvider.System);
 
         var response = await service.GetCatalog(new GetCatalogRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
@@ -233,7 +234,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
             Sys.ActorOf(Props.Create(() => new FakeConsumer(domainEvent, analysis))), overwrite: true);
         var activeModels = new ActiveModels { EnsembleModels = [.. models ?? ["ecmwf_ifs025_ensemble_mean"]] };
         return new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Opts(Options),
-            TestServiceInfo.Opts(activeModels), TimeProvider.System);
+            TestServiceInfo.Opts(activeModels), TestServiceInfo.Opts(new DomainRequirements()), TimeProvider.System);
     }
 
     private sealed class FakeConsumer : ReceiveActor
