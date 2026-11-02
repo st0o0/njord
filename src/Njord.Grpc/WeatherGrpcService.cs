@@ -23,6 +23,7 @@ public sealed class WeatherGrpcService(
     TimeProvider timeProvider) : WeatherService.WeatherServiceBase
 {
     private readonly CatalogResult _catalog = scope.Value.ToCatalog(models.Value);
+    private readonly IMaterializer _mat = actorSystem.Materializer();
 
     public override async Task<GetCatalogResponse> GetCatalog(GetCatalogRequest request, ServerCallContext context)
     {
@@ -73,7 +74,6 @@ public sealed class WeatherGrpcService(
             .ToHashSet();
         var sourceRef = await RequestGrpcStreamAsync(context);
 
-        var mat = actorSystem.Materializer();
         var killSwitch = KillSwitches.Shared($"grpc-domain-{context.Peer}");
         await using var ctr = context.CancellationToken.Register(killSwitch.Shutdown);
 
@@ -94,7 +94,7 @@ public sealed class WeatherGrpcService(
 
                 return update;
             })
-            .RunWith(Sink.Ignore<DomainDataUpdate?>(), mat);
+            .RunWith(Sink.Ignore<DomainDataUpdate?>(), _mat);
     }
 
     public override async Task StreamEnrichments(
@@ -105,7 +105,6 @@ public sealed class WeatherGrpcService(
         var location = ResolveStreamLocation(request.Location);
         var sourceRef = await RequestGrpcStreamAsync(context);
 
-        var mat = actorSystem.Materializer();
         var killSwitch = KillSwitches.Shared($"grpc-enrichment-{context.Peer}");
         await using var ctr = context.CancellationToken.Register(killSwitch.Shutdown);
 
@@ -122,7 +121,7 @@ public sealed class WeatherGrpcService(
 
                 return evt;
             })
-            .RunWith(Sink.Ignore<EnrichmentEvent?>(), mat);
+            .RunWith(Sink.Ignore<EnrichmentEvent?>(), _mat);
     }
 
     private static string? ResolveModel(GetDomainDataRequest request, DomainKind domain, CatalogLocation location, string primary)

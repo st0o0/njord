@@ -16,6 +16,14 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
             return ValidateOptionsResult.Fail("Every location needs a non-empty Name.");
         }
 
+        var duplicate = options.Locations
+            .GroupBy(l => l.Name, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(g => g.Count() > 1);
+        if (duplicate is not null)
+        {
+            return ValidateOptionsResult.Fail($"Duplicate location name '{duplicate.Key}'.");
+        }
+
         foreach (var location in options.Locations)
         {
             if (location.Latitude is null)

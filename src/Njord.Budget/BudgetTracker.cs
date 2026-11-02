@@ -57,7 +57,7 @@ public sealed class BudgetTracker : ReceivePersistentActor
         Command<DeleteSnapshotsFailure>(fail =>
             _log.Warning(fail.Cause, "Delete snapshots failed for {PersistenceId}", PersistenceId));
         Command<DeleteMessagesSuccess>(_ => { });
-        Command<DeleteSnapshotSuccess>(_ => { });
+        Command<DeleteSnapshotsSuccess>(_ => { });
     }
 
     private BudgetStatusResult GetStatus()

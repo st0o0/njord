@@ -91,7 +91,7 @@ public sealed class PollManagerCycleTests : Akka.Hosting.TestKit.TestKit
         Report(PollWorkerOutcome.Changed);
 
         await AwaitAssertAsync(
-            () => Assert.Equal([1.0, 1.0], Values("njord_pipeline_data_changed_total")),
+            () => Assert.Equal([1.0, 1.0], Values("njord_polling_data_changed_total")),
             TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
     }
 }

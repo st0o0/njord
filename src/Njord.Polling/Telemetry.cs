@@ -11,13 +11,13 @@ internal static class Telemetry
     internal static readonly Meter Meter = new(MeterName);
 
     internal static readonly Counter<long> DataChanged =
-        Meter.CreateCounter<long>("njord_pipeline_data_changed_total", "{change}");
+        Meter.CreateCounter<long>("njord_polling_data_changed_total", "{change}");
 
     internal static readonly Counter<long> DomainPolls =
-        Meter.CreateCounter<long>("njord_pipeline_domain_polls_total", "{poll}");
+        Meter.CreateCounter<long>("njord_polling_domain_polls_total", "{poll}");
 
     internal static readonly Counter<long> CycleLearned =
-        Meter.CreateCounter<long>("njord_pipeline_cycle_learned_total", "{cycle}");
+        Meter.CreateCounter<long>("njord_polling_cycle_learned_total", "{cycle}");
 
     internal static void RecordDomainPoll(DomainKind domain, PersistedDomainPollOutcome outcome) =>
         DomainPolls.Add(1, DomainTag(domain), new KeyValuePair<string, object?>("outcome", outcome switch
@@ -31,7 +31,7 @@ internal static class Telemetry
 
     private static KeyValuePair<string, object?> DomainTag(DomainKind domain) => new("domain", domain switch
     {
-        DomainKind.Forecast => "weather",
+        DomainKind.Forecast => "forecast",
         DomainKind.Ensemble => "ensemble",
         DomainKind.AirQuality => "air_quality",
         DomainKind.Flood => "flood",

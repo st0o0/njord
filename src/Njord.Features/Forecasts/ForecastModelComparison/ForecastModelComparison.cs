@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
+using Njord.Core.Forecast;
 using Njord.Features.Forecasts.Shared;
 using Njord.Messages.Results;
 using Njord.Messages.Results.Forecasts;
@@ -14,7 +15,7 @@ public sealed class ForecastModelComparison(
         OutputKind.Forecast,
         FeatureCategory.Forecast,
         Name: "ForecastModelComparison",
-        new DomainRequirements());
+        new DomainRequirements(Forecast: ForecastParams.Temperature));
 
     public override bool Enabled => config.Value.Enabled;
 

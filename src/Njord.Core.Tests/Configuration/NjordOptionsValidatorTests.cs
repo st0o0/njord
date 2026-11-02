@@ -87,6 +87,21 @@ public sealed class NjordOptionsValidatorTests
     }
 
     [Fact]
+    public void Should_reject_duplicate_location_names()
+    {
+        var options = Valid();
+        options.Locations =
+        [
+            new LocationOptions { Name = "Lucerne", Latitude = 47.05, Longitude = 8.31 },
+            new LocationOptions { Name = "lucerne", Latitude = 48.0, Longitude = 9.0 },
+        ];
+
+        var result = _validator.Validate(null, options);
+
+        Assert.Equal("Duplicate location name 'Lucerne'.", ValidationAssert.SingleFailure(result));
+    }
+
+    [Fact]
     public void Resolved_locations_should_contain_validated_locations()
     {
         var options = Resolved();
