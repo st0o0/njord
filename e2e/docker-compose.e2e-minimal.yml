@@ -1,3 +1,5 @@
+# Expected entities: 41 (1 location, defaults only, 3 default ensemble models, inland)
+# Confirmed 2026-11-01
 services:
   njord:
     build:

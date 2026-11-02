@@ -1,3 +1,5 @@
+# Expected entities: 84 (1 location, all features, 3 ensemble models, coastal)
+# Confirmed 2026-11-01
 services:
   njord:
     build:
