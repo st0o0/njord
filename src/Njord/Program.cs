@@ -9,21 +9,21 @@ using Terp.Hosting;
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 
-builder
-    .Setup(new LoggingSetup())
-    .Setup(new TelemetrySetup())
-    .Setup(new CoreSetup())
-    .Setup(new ConfigSetup())
-    .Setup(new HealthSetup())
-    .Setup(new OpenMeteoSetup())
-    .Setup(new BudgetSetup())
-    .Setup(new PollingSetup())
-    .Setup(new PipelineSetup())
-    .Setup(new DomainSetup())
-    .Setup(new GrpcSetup())
-    .Setup(new AkkaSetup());
+builder.Setups()
+    .Add<LoggingSetup>()
+    .Add<TelemetrySetup>()
+    .Add<CoreSetup>()
+    .Add<ConfigSetup>()
+    .Add<HealthSetup>()
+    .Add<OpenMeteoSetup>()
+    .Add<BudgetSetup>()
+    .Add<PollingSetup>()
+    .Add<PipelineSetup>()
+    .Add<DomainSetup>()
+    .Add<GrpcSetup>()
+    .Add<AkkaSetup>();
 
 var app = builder.Build();
-app.Setup(new NjordApplicationSetup());
+app.Setups().Add<NjordApplicationSetup>();
 
 await app.RunAsync();

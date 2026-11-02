@@ -90,19 +90,19 @@ public sealed class NjordTestHost : IAsyncDisposable
 
         builder.Logging.ClearProviders();
 
-        builder
-            .Setup<LoggingSetup>()
-            .Setup<TelemetrySetup>()
-            .Setup<CoreSetup>()
-            .Setup<ConfigSetup>()
-            .Setup<HealthSetup>()
-            .Setup<OpenMeteoSetup>()
-            .Setup<BudgetSetup>()
-            .Setup<PollingSetup>()
-            .Setup<PipelineSetup>()
-            .Setup<DomainSetup>()
-            .Setup<GrpcSetup>()
-            .Setup<AkkaSetup>();
+        builder.Setups()
+            .Add<LoggingSetup>()
+            .Add<TelemetrySetup>()
+            .Add<CoreSetup>()
+            .Add<ConfigSetup>()
+            .Add<HealthSetup>()
+            .Add<OpenMeteoSetup>()
+            .Add<BudgetSetup>()
+            .Add<PollingSetup>()
+            .Add<PipelineSetup>()
+            .Add<DomainSetup>()
+            .Add<GrpcSetup>()
+            .Add<AkkaSetup>();
 
         builder.Services.RemoveAll<IReadOnlyDictionary<DomainKind, IDomainClient>>();
         builder.Services.AddSingleton<IReadOnlyDictionary<DomainKind, IDomainClient>>(new Dictionary<DomainKind, IDomainClient>
@@ -117,7 +117,7 @@ public sealed class NjordTestHost : IAsyncDisposable
         builder.WebHost.UseTestServer();
 
         var app = builder.Build();
-        app.Setup(new NjordApplicationSetup());
+        app.Setups().Add<NjordApplicationSetup>();
         await app.StartAsync(cancellationToken);
         return new NjordTestHost(app, weather, airQuality, flood, marine, dataDirectory);
     }
