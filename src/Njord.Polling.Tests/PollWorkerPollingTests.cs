@@ -5,7 +5,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
-using Njord.Core.Domain;
 using Njord.Messages.Fetch;
 using Njord.Messages.Polling;
 using Njord.Tests.Shared;

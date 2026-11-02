@@ -6,8 +6,6 @@ using Njord.Messages.Stream;
 
 namespace Njord.Pipeline.Stream;
 
-// The analysis state of the pipeline: the latest LocationForecast per location and a ring of the most recent ones,
-// deep enough for the feature with the longest PollDepth. Lives inside the StatefulSelectMany closure.
 internal sealed class FeatureEngine
 {
     private readonly IReadOnlyList<IFeatureRule> _enabled;
@@ -53,7 +51,8 @@ internal sealed class FeatureEngine
             return events;
         }
 
-        var current = (ring.Count > 0 ? ring[0] : new LocationForecast(received.Location)).With(received.Domain, received.Data);
+        var current =
+            (ring.Count > 0 ? ring[0] : new LocationForecast(received.Location)).With(received.Domain, received.Data);
         current = current with
         {
             ForecastModels = ring.Count > 0 ? ring[0].ForecastModels : null,
@@ -65,13 +64,13 @@ internal sealed class FeatureEngine
         foreach (var feature in _enabled)
         {
             var requirements = feature.Descriptor.Requirements;
-            var passive = requirements is null || !requirements.RequiresAnyDomain();
-            if (!passive && !requirements!.Requires(received.Domain))
+            var passive = !requirements.RequiresAnyDomain();
+            if (!passive && !requirements.Requires(received.Domain))
             {
                 continue;
             }
 
-            if (!passive && !current.HasFields(requirements!))
+            if (!passive && !current.HasFields(requirements))
             {
                 Telemetry.HandlerSkipped.Add(1,
                     new KeyValuePair<string, object?>("handler", feature.GetType().Name),

@@ -10,9 +10,11 @@ public sealed class ConfigSetup : ISetup<IServiceCollection>
     {
         services.AddNjordOptions<NjordOptions, NjordOptionsValidator>();
         services.PostConfigure<NjordOptions>(o =>
-            o.ResolvedLocations = o.Locations
-                .Select(l => new Location(l.Name, l.Latitude.GetValueOrDefault(), l.Longitude.GetValueOrDefault()))
-                .ToList());
+            o.ResolvedLocations =
+            [
+                .. o.Locations
+                    .Select(l => new Location(l.Name, l.Latitude.GetValueOrDefault(), l.Longitude.GetValueOrDefault()))
+            ]);
         services.AddNjordOptions<PersistenceOptions>();
     }
 }

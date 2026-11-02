@@ -51,6 +51,8 @@ See step 1.
 | `using Servus.Akka;` (`GetActor`, `GetActorAsync`, `TryGetActor`, `BackoffOnFailure`) | `using Terp.Akka;` | see list below |
 | `using Servus.Resilience;` (`Backoff.Create`, `BackoffPolicy`) | `using Terp.Resilience;` | `Njord.Polling/PollManager.cs` |
 | `using Servus.Application.Startup;` | `using Terp.Hosting;` (package `Terp`) | containers, `NjordHost.cs` |
+| `Njord.Core.Actors.StreamSupervision.LoggingDecider(log)` wrapped in `ActorAttributes.CreateSupervisionStrategy(...)` (2 uses) | `.ResumeOnError(log)` (`using Terp.Akka;`) | `Njord.Pipeline/Stream/ForecastPipeline.cs`, `Njord.OpenMeteo/Gateway/OpenMeteoGateway.cs` |
+| Inline `ActorAttributes.CreateSupervisionStrategy(_ => Directive.Resume)` (tests) | `.ResumeOnError()` (`using Terp.Akka;`) | `Njord.Pipeline.Tests/Helpers/ProductionLikePipelineActor.cs`, `Njord.Pipeline.Tests/Helpers/SinkRefHubConsumerTests.cs` |
 
 Files with `using Servus.Akka;`: `Njord.Grpc/GrpcConsumer.cs`, `Njord.OpenMeteo/OpenMeteoGateway.cs`, `Njord.Polling/PollManager.cs`,
 `Njord.Polling/PollWorker.cs`, `Njord.Polling/Configuration/PollingRegistrationExtensions.cs`, `Njord.Budget/Configuration/BudgetSetupContainer.cs`,
@@ -338,7 +340,25 @@ Not required; each changes metric names or is a pure cleanup.
 - `Telemetry.FetchDuration` in `OpenMeteoGateway.cs` (line ~130, `Stopwatch` + `Record(sw.Elapsed.TotalSeconds, tags...)`) and the `Stopwatch` in `ForecastPipeline.cs` (~line 110) could use `histogram.StartTimer(...)`, but `StartTimer` adds an `outcome` tag: series change. Skip unless wanted.
 - `Njord.Budget/Telemetry.cs` `ObservableGauge<long>` with `Volatile` fields could become BCL `Gauge<long>` (.NET 9+, `Record` on change). That is a BCL feature, not Terp; optional cleanup only.
 
-### Step 7: docs and specs
+### Step 7: replace stream supervision boilerplate with `ResumeOnError`
+
+Replace `ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log))` with `.ResumeOnError(_log)`:
+
+- `Njord.Pipeline/Stream/ForecastPipeline.cs` (line ~122)
+- `Njord.OpenMeteo/Gateway/OpenMeteoGateway.cs` (line ~186)
+
+Replace inline `ActorAttributes.CreateSupervisionStrategy(_ => Directive.Resume)` with `.ResumeOnError()`:
+
+- `Njord.Pipeline.Tests/Helpers/ProductionLikePipelineActor.cs` (line ~26)
+- `Njord.Pipeline.Tests/Helpers/SinkRefHubConsumerTests.cs` (line ~41)
+
+Then delete `Njord.Core/Actors/StreamSupervision.cs` (the logging decider and transient classification are now in `Terp.Akka`).
+
+Add `using Terp.Akka;` where not already present. Remove `using Akka.Streams.Supervision;` where `Directive`/`Decider` was the only reason for the import.
+
+Acceptance: `dotnet build`, all tests pass; `grep -rn "StreamSupervision\|CreateSupervisionStrategy" --include="*.cs" src/` finds nothing (except this file).
+
+### Step 8: docs and specs
 
 See section 5. Acceptance: `openspec validate --all --no-interactive` and `bash scripts/check-openspec-root.sh` (repo root); `grep -rIn "Servus" . --exclude-dir=archive --exclude-dir=node_modules --exclude-dir=obj --exclude-dir=bin --exclude=CHANGELOG.md` returns nothing except this file.
 

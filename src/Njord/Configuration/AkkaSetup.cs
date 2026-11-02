@@ -5,10 +5,8 @@ using Akka.Persistence.Sql.Hosting;
 using Akka.Remote.Hosting;
 using LinqToDB;
 using Microsoft.Extensions.Options;
-using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Terp.Akka.Hosting;
-using IActorRegistration = Njord.Core.Actors.IActorRegistration;
 
 namespace Njord.Configuration;
 

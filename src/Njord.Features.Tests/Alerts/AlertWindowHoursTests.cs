@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using Njord.Core.AirQuality;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Features.Alerts.ClearSkyUv;

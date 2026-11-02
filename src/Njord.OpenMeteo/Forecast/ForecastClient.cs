@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Core;
-using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Messages.Fetch;

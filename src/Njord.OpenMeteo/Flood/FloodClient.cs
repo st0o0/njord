@@ -1,7 +1,6 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 using Njord.Core;
-using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Messages.Fetch;
 using Njord.OpenMeteo.Configuration;

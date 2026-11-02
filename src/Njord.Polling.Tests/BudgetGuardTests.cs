@@ -7,7 +7,6 @@ using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Core.Polling;
 using Njord.Core.Seasonal;
-using Njord.Messages.Results;
 using Njord.Polling.Configuration;
 
 namespace Njord.Polling.Tests;

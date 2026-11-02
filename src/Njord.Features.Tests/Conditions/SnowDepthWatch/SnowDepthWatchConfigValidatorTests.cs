@@ -1,5 +1,4 @@
 using Njord.Features.Conditions.SnowDepthWatch;
-using Njord.Tests.Shared;
 
 namespace Njord.Features.Tests.Conditions.SnowDepthWatch;
 

@@ -1,7 +1,6 @@
 using Njord.Core;
 using Njord.Messages.Polling;
 using Njord.Persistence.Events.Polling;
-using Njord.Tests.Shared;
 using static Njord.Polling.Tests.PollStateFixture;
 
 namespace Njord.Polling.Tests;

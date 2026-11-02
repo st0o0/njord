@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Njord.Budget.Configuration;
 using Njord.Configuration;
 using Njord.Core;
@@ -90,18 +91,18 @@ public sealed class NjordTestHost : IAsyncDisposable
         builder.Logging.ClearProviders();
 
         builder
-            .Setup(new LoggingSetup())
-            .Setup(new TelemetrySetup())
-            .Setup(new CoreSetup())
-            .Setup(new ConfigSetup())
-            .Setup(new HealthSetup())
-            .Setup(new OpenMeteoSetup())
-            .Setup(new BudgetSetup())
-            .Setup(new PollingSetup())
-            .Setup(new PipelineSetup())
-            .Setup(new DomainSetup())
-            .Setup(new GrpcSetup())
-            .Setup(new AkkaSetup());
+            .Setup<LoggingSetup>()
+            .Setup<TelemetrySetup>()
+            .Setup<CoreSetup>()
+            .Setup<ConfigSetup>()
+            .Setup<HealthSetup>()
+            .Setup<OpenMeteoSetup>()
+            .Setup<BudgetSetup>()
+            .Setup<PollingSetup>()
+            .Setup<PipelineSetup>()
+            .Setup<DomainSetup>()
+            .Setup<GrpcSetup>()
+            .Setup<AkkaSetup>();
 
         builder.Services.RemoveAll<IReadOnlyDictionary<DomainKind, IDomainClient>>();
         builder.Services.AddSingleton<IReadOnlyDictionary<DomainKind, IDomainClient>>(new Dictionary<DomainKind, IDomainClient>

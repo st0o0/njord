@@ -1,7 +1,6 @@
 using System.Net.Sockets;
 using Akka.Cluster.Hosting;
 using Akka.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Njord.Core;

@@ -1,5 +1,3 @@
-using Njord.Core.Configuration;
-using Njord.Core.Domain;
 using Njord.OpenMeteo.Configuration;
 using Njord.Tests.Shared;
 

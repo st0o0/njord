@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using Njord.Core.Configuration;
 
 namespace Njord.OpenMeteo.Configuration;
 

@@ -1,10 +1,8 @@
-using System.Collections.Immutable;
 using Akka.Actor;
 using Akka.Hosting;
 using Grpc.Core;
 using Njord.Core;
 using Njord.Core.Configuration;
-using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Core.Seasonal;
 using Njord.Grpc.Mapping;

@@ -9,9 +9,6 @@ using Terp.Akka;
 
 namespace Njord.Pipeline.Stream;
 
-// Owns the long-lived hubs: producers attach to the MergeHub input via SinkRef, consumers to the
-// BroadcastHub output via SourceRef. Both live as long as this actor; producers and consumers
-// coming and going never rebuild them, so the analysis state in the stage closure survives them.
 public sealed class ForecastPipeline : ReceiveActor
 {
     private const int PerProducerBufferSize = 16;
@@ -49,10 +46,12 @@ public sealed class ForecastPipeline : ReceiveActor
 
     private void OnRequestForecastSink(RequestForecastSink msg)
     {
-        // A producer's failure must never end the MergeHub. Akka.NET 1.5.73 already drops a failed producer
-        // (logging an error) although the MergeHub docs say it fails the hub; ending each producer's stream as a
-        // completion keeps the hub safe either way and counts the loss.
         StreamRefs.SinkRef<DomainDataReceived>()
+            .RecoverWithRetries<DomainDataReceived, Task<ISinkRef<DomainDataReceived>>>(_ =>
+            {
+                Telemetry.ProducerFailed.Add(1);
+                return Source.Empty<DomainDataReceived>();
+            }, 1)
             .Via(Flow.Create<DomainDataReceived>().RecoverWithRetries(_ =>
             {
                 Telemetry.ProducerFailed.Add(1);
