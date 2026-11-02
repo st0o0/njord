@@ -54,8 +54,8 @@ Derived from config: 1 location (Barcelona), all 67 features enabled, 3 ensemble
 | Platform | Count | Pattern | Notes |
 |----------|-------|---------|-------|
 | weather | 4 | `weather.barcelona` + 3 model entities | 1 primary (best_match) + 1 per ensemble model |
-| sensor (AQ) | 7 | `barcelona_pm2_5`, `barcelona_pm10`, `barcelona_ozone`, `barcelona_birch_pollen`, `barcelona_grass_pollen`, `barcelona_alder_pollen`, `barcelona_mugwort_pollen` | Air quality |
-| sensor (marine) | 4 | `barcelona_wave_height`, `barcelona_wave_period`, `barcelona_wave_direction`, `barcelona_water_temperature` | Marine (coastal only) |
+| sensor (AQ) | 6 | `barcelona_pm2_5`, `barcelona_ozone`, `barcelona_birch_pollen`, `barcelona_grass_pollen`, `barcelona_alder_pollen`, `barcelona_mugwort_pollen` | Catalog-driven; `pm10` absent (no feature requires it) |
+| sensor (marine) | 3 | `barcelona_wave_height`, `barcelona_wave_direction`, `barcelona_water_temperature` | Catalog-driven; `wave_period` absent (no feature requires it) |
 | sensor (lifestyle) | 26 | `barcelona_commute_safety`, `barcelona_exercise`, `barcelona_ensemble_model_spread`, `barcelona_seasonal_temperature_anomaly`, `barcelona_solar_yield`, `barcelona_bbq_score`, `barcelona_laundry_score`, `barcelona_outdoor_score`, `barcelona_surf_conditions`, `barcelona_wind_speed_80_m`, `barcelona_ragweed_pollen_peak`, `barcelona_cumulative_growing_degree_days`, `barcelona_evapotranspiration`, `barcelona_soil_moisture`, `barcelona_granular_aqi`, `barcelona_ocean_current_velocity`, ... | Data-dependent; some features produce null and no entity appears |
 | sensor (scores) | 4 | `barcelona_allergy_severity`, `barcelona_sleep_quality`, `barcelona_asthma_risk`, `barcelona_spray_window` | Score sensors 0-100 |
 | sensor (conditions) | 6 | `barcelona_heat_pump_cop`, `barcelona_irrigation_need`, `barcelona_frost_depth`, `barcelona_inversion_detection`, `barcelona_atmospheric_stability`, `barcelona_cloud_ceiling` | Numeric and enum condition sensors |
@@ -66,7 +66,7 @@ Derived from config: 1 location (Barcelona), all 67 features enabled, 3 ensemble
 | calendar | 1 | `calendar.barcelona_activity_windows` | Activity windows |
 | event | 3 | `event.barcelona_weather_alert`, `event.barcelona_data`, `event.barcelona_features` | Alert, data lifecycle, feature transitions |
 | button | 1 | `button.server_trigger_poll` | Global manual poll trigger |
-| **Total** | **84** | | Confirmed 2026-11-01. Entity ids follow HA device + name naming. Flood does not resolve for coastal Barcelona. |
+| **Total** | **82** | | Updated 2026-11-02. Catalog-driven: sensors only for fields in resolved domain schema. Flood does not resolve for coastal Barcelona. |
 
 ---
 
@@ -103,7 +103,7 @@ Try claude-in-chrome first, API fallback if extension unavailable.
 ## S3 — Entity Registration
 
 1. Poll `/api/states` until weather entity appears (5s interval, 120s timeout)
-2. Count entities matching `njord` platform: expect ~84
+2. Count entities matching `njord` platform: expect ~82
 3. Verify `weather.barcelona` exists with state ∈ HA condition list
 4. Verify at least 1 AQ sensor exists (pattern: `sensor.barcelona_pm*`)
 5. Verify at least 1 alert binary_sensor exists (pattern: `binary_sensor.barcelona_*_alert`)
@@ -135,6 +135,7 @@ After S3 completes, spawn three subagents in a single message.
 2. `sensor.barcelona_ozone` has numeric state ≥ 0
 3. At least one pollen sensor has numeric state (birch, grass, alder or mugwort)
 4. AQ sensors have `unit_of_measurement` attribute
+5. `sensor.barcelona_pm10` — only exists if a feature requires `AirQualityParams.Pm10`; currently no default-on feature does, so SKIP if not found. If present: numeric state ≥ 0.
 
 ---
 
@@ -215,7 +216,7 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 ## S10 — gRPC: GetCatalog + GetStatus + TriggerPoll (Haiku #3)
 
-1. `GetCatalog` on `njord.v2.WeatherService` → has at least 1 location named "Barcelona" and lists weather models
+1. `GetCatalog` on `njord.v2.WeatherService` → has at least 1 location named "Barcelona", lists weather models, and includes `resolvedDomains` with at least Forecast and AirQuality domain schemas each carrying non-empty `fields` lists
 2. `GetStatus` → `budget` has `monthly_used` ≥ 0 and `monthly_limit` > 0
 3. `GetStatus` → `activeEnrichments` count = 65 (all features enabled); poll state is reported per location
 4. `TriggerPoll` → `triggeredCount` ≥ 1

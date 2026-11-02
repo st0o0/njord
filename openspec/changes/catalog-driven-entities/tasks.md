@@ -36,7 +36,7 @@
 
 ## 7. Validation
 
-- [ ] 7.1 Build and run all njord test suites:
+- [x] 7.1 Build and run all njord test suites:
   ```
   cd src
   dotnet build Njord.slnx
@@ -52,5 +52,5 @@
   dotnet run --project Njord.IntegrationTests/Njord.IntegrationTests.csproj
   dotnet run --project Njord.Architecture.Tests/Njord.Architecture.Tests.csproj
   ```
-- [ ] 7.2 Run ha-njord tests: `cd D:\GIT\ha-njord && pytest tests/`
-- [ ] 7.3 Update E2E test plan (`e2e/E2E-TEST-PLAN.md`) to verify catalog includes domain schemas and absent sensors are not registered.
+- [x] 7.2 Run ha-njord tests: `cd D:\GIT\ha-njord && pytest tests/`
+- [x] 7.3 Update E2E test plan (`e2e/E2E-TEST-PLAN.md`) to verify catalog includes domain schemas and absent sensors are not registered.
