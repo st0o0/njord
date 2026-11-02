@@ -113,7 +113,7 @@ A `PipelineHealthCheck` in `Njord.Pipeline` SHALL read `PollHealthState` and the
 - **THEN** the health check returns `Unhealthy`
 
 ### Requirement: Akka persistence health checks on journal and snapshot stores
-The `AkkaSetupContainer` SHALL configure `WithSqlPersistence` with `journalBuilder` calling `WithHealthCheck()` and `snapshotBuilder` calling `WithHealthCheck()`. These Akka-level checks are the single source of truth for persistence health; no additional custom journal health check SHALL be registered.
+The `AkkaSetup` SHALL configure `WithSqlPersistence` with `journalBuilder` calling `WithHealthCheck()` and `snapshotBuilder` calling `WithHealthCheck()`. These Akka-level checks are the single source of truth for persistence health; no additional custom journal health check SHALL be registered.
 
 #### Scenario: Journal persistence health check is registered
 - **WHEN** the actor system starts
@@ -124,7 +124,7 @@ The `AkkaSetupContainer` SHALL configure `WithSqlPersistence` with `journalBuild
 - **THEN** an Akka persistence snapshot health check is registered via `WithHealthCheck()` on the snapshot builder
 
 ### Requirement: Actor system liveness check
-The `AkkaSetupContainer` SHALL register `WithActorSystemLivenessCheck()` so that the actor system's operational status is included in the health check evaluation. The check SHALL report unhealthy when the actor system is terminating or has terminated.
+The `AkkaSetup` SHALL register `WithActorSystemLivenessCheck()` so that the actor system's operational status is included in the health check evaluation. The check SHALL report unhealthy when the actor system is terminating or has terminated.
 
 #### Scenario: Healthy actor system
 - **WHEN** the actor system is running normally
@@ -135,7 +135,7 @@ The `AkkaSetupContainer` SHALL register `WithActorSystemLivenessCheck()` so that
 - **THEN** the actor system liveness check reports unhealthy
 
 ### Requirement: Cluster readiness check
-The `AkkaSetupContainer` SHALL register `WithAkkaClusterReadinessCheck()` so that the cluster join status is included in the health check evaluation. The check SHALL report unhealthy when the node has not yet joined the cluster.
+The `AkkaSetup` SHALL register `WithAkkaClusterReadinessCheck()` so that the cluster join status is included in the health check evaluation. The check SHALL report unhealthy when the node has not yet joined the cluster.
 
 #### Scenario: Joined cluster
 - **WHEN** the node has joined the cluster

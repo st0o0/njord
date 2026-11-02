@@ -235,7 +235,7 @@ The startup projection SHALL be done by `BudgetGuard` (in `Njord.Polling`). The 
 - **THEN** it SHALL be declared as `sealed class`, not `sealed record`
 
 ### Requirement: Persistence options are their own configuration sections
-Persistence settings SHALL NOT be part of `NjordOptions`. `PersistenceOptions` SHALL bind the `Njord:Persistence` section (`Provider` default `Sqlite`, `ConnectionString` default null) and `StorageOptions` SHALL bind `PersistencePath` (default `data/njord.db`) from the `Njord:Storage` section; both are registered by `ConfigSetupContainer`.
+Persistence settings SHALL NOT be part of `NjordOptions`. `PersistenceOptions` SHALL bind the `Njord:Persistence` section (`Provider` default `Sqlite`, `ConnectionString` default null) and `StorageOptions` SHALL bind `PersistencePath` (default `data/njord.db`) from the `Njord:Storage` section; both are registered by `ConfigSetup`.
 
 #### Scenario: Default persistence options
 - **WHEN** no `Persistence` section is configured

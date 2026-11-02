@@ -45,7 +45,7 @@ error-message construction for each property.
 
 #### Scenario: Registration moves to Core
 - **WHEN** validators are registered for ForecastOptions, EnsembleOptions, and FloodOptions
-- **THEN** registration SHALL happen in `CoreSetupContainer` (or an extension method in Core), not in `OpenMeteoSetupContainer`
+- **THEN** registration SHALL happen in `CoreSetup` (or an extension method in Core), not in `OpenMeteoSetup`
 
 #### Scenario: Validation behavior unchanged
 - **WHEN** any existing valid or invalid configuration is validated after the move

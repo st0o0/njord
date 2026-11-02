@@ -39,11 +39,11 @@ grep -rn "StreamSupervision\|CreateSupervisionStrategy" --include="*.cs" . | gre
 
 ## 3. Docs and specs (Step 8)
 
-- [ ] 3.1 Update `CLAUDE.md`: replace Servus skill routing entry with Terp.
-- [ ] 3.2 Update `AGENTS.md`: rename container references to setup references, update `CoreSetup.NjordMeters`, add Terp setup rule.
-- [ ] 3.3 Rename `openspec/specs/servus-bootstrap` to `terp-bootstrap` (`git mv`). Update `spec.md` content.
-- [ ] 3.4 Rename `openspec/specs/domain-setup-containers` to `domain-setups` (`git mv`). Update `spec.md` content, remove stale MQTT and SupervisorDefaults requirements.
-- [ ] 3.5 One-word renames in other specs: `architecture-zone-enforcement`, `health-checks`, `options-conventions`, `per-domain-telemetry`, `persistence-provider`, `service-configuration`. Read each file first, change only the identifiers.
+- [x] 3.1 Update `CLAUDE.md`: replace Servus skill routing entry with Terp.
+- [x] 3.2 Update `AGENTS.md`: rename container references to setup references, update `CoreSetup.NjordMeters`, add Terp setup rule.
+- [x] 3.3 Rename `openspec/specs/servus-bootstrap` to `terp-bootstrap` (`git mv`). Update `spec.md` content.
+- [x] 3.4 Rename `openspec/specs/domain-setup-containers` to `domain-setups` (`git mv`). Update `spec.md` content, remove stale MQTT and SupervisorDefaults requirements.
+- [x] 3.5 One-word renames in other specs: `architecture-zone-enforcement`, `health-checks`, `options-conventions`, `per-domain-telemetry`, `persistence-provider`, `service-configuration`. Read each file first, change only the identifiers.
 
 ### Validation
 

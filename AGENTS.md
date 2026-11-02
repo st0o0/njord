@@ -51,7 +51,7 @@ src/
                         #   side by side (Alerts/ Scores/ Conditions/ Trends/ Forecasts/), <Kind>/Shared/ and top-level
                         #   Shared/ (Scoring), ServiceCollectionExtensions.AddFeatures; typed inputs stay in Core
   Njord.Grpc/           # WeatherGrpcService, OpsGrpcService, ActorAsk, GrpcConsumer, Mapping/
-  Njord/                # Host: Program.cs, NjordHost, Configuration/ (setup containers), Health/
+  Njord/                # Host: Program.cs, NjordHost, Configuration/ (setups: ISetup<T> classes), Health/
 
   Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
   Njord.OpenMeteo.Tests/ Njord.Budget.Tests/ Njord.Pipeline.Tests/ Njord.Polling.Tests/
@@ -245,6 +245,9 @@ Full-stack verification is the `e2e-test` skill (`.claude/skills/e2e-test/SKILL.
 
 Rules apply to production code.
 
+- **Setups** are `XxxSetup : ISetup<T>` (Terp.Hosting), applied explicitly in order in
+  `NjordHost.Configure(builder)`; `AkkaSetup : ActorSystemSetup` (Terp.Akka) is the single actor
+  system of the host and adds all actors in `BuildSystem`.
 - **No `ContinueWith`.** Use `PipeTo` with `success:` and `failure:`. The mappers are pure; log in the
   result handler, not in the mapper.
   ```csharp
@@ -319,7 +322,7 @@ Rules apply to production code.
 
 - One `Meter("Njord.<Domain>")` per library (`OpenMeteo`, `Budget`, `Polling`, `Pipeline`) in an
   `internal static class Telemetry` with `MeterName` and `internal static readonly` instruments;
-  `TelemetrySetupContainer` registers them via `.AddMeter()`, so a new meter is added there.
+  `TelemetrySetup` registers them via `.AddMeter()`, so a new meter is added there.
 - Names `njord_<area>_<name>` in snake_case; counters end `_total`, time histograms `_seconds`. Bounded tag
   cardinality. Exported via OpenTelemetry Prometheus exporter.
 

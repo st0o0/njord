@@ -41,7 +41,7 @@ plugin, which is not installed on every machine; the routes do not resolve witho
 | Persistence records / events | `akka-skills:persistence` |
 | Persistence infrastructure setup | `akka-skills:persistence-setup` |
 | Actor tests | `njord-actor-spec` + `akka-skills:testing` |
-| Servus setup containers | `akka-skills:setup-container` |
+| Terp setups (ISetup, ActorSystemSetup) | `akka-skills:setup-container` |
 | Logging in actors | `akka-skills:logging` |
 | Solution structure questions | `akka-skills:project-structure` |
 

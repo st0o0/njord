@@ -76,11 +76,11 @@ The feature libraries `Njord.OpenMeteo`, `Njord.Budget`, `Njord.Grpc`, `Njord.Mq
 - **WHEN** a type in `Njord.Forecast`, `Njord.Core`, `Njord.Messages` or `Njord.Persistence` gains a dependency on a feature library or the host
 - **THEN** the build or the architecture test run fails
 
-### Requirement: AkkaSetupContainer configures persistence before applying actor registrations
-`AkkaSetupContainer.BuildSystem` SHALL apply the persistence configuration (`WithSqlPersistence` for the selected provider), remoting and clustering before it applies any `IActorRegistration`, so persistent actors find the journal and snapshot store when they start.
+### Requirement: AkkaSetup configures persistence before applying actor registrations
+`AkkaSetup.BuildSystem` SHALL apply the persistence configuration (`WithSqlPersistence` for the selected provider), remoting and clustering before it applies any `IActorRegistration`, so persistent actors find the journal and snapshot store when they start.
 
 #### Scenario: Registrations run after the infrastructure
-- **WHEN** `AkkaSetupContainer.BuildSystem` runs
+- **WHEN** `AkkaSetup.BuildSystem` runs
 - **THEN** `ConfigureInfrastructure` (persistence, remoting, clustering) completes before the first `IActorRegistration.Configure` call
 
 ### Requirement: Messages declares no compute logic
