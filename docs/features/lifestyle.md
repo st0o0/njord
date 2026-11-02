@@ -212,24 +212,6 @@ Njord__Features__SnowDepthWatch__ExtremeThreshold: "50"
 
 ---
 
-## ElevatedWind
-
-Reports wind speed and direction at 80 m and 120 m hub height -- the altitudes where wind turbines operate. Useful for monitoring small wind installations or assessing wind energy potential.
-
-**Entity:** `sensor.<location>_elevated_wind`
-**Domains:** Forecast | **Default:** Off
-
-```yaml
-Njord__Features__ElevatedWind__Enabled: "true"
-```
-
-**Automation ideas:**
-- Track wind energy production potential
-- Compare 80 m wind to 10 m ground wind on a dashboard
-- Alert when hub-height wind exceeds turbine cut-off speed
-
----
-
 ## SleepQuality
 
 Scores the coming night from 0 (poor) to 100 (excellent). Penalties apply for heat, humidity, pollen, wind and storms. Also recommends a ventilation window for cooling the bedroom.
@@ -301,3 +283,63 @@ Njord__Features__FrostDepth__Enabled: "true"
 - Warn about frozen water pipes at `moderate` or `deep`
 - Pause garden and construction digging
 - Turn on outdoor pipe heating
+
+---
+
+## ClearSkyUv
+
+Warns about the maximum possible UV index **without clouds**. Even on partly cloudy days, brief sun breaks can deliver intense UV. This alert tells you the UV you would get if the clouds part.
+
+| Severity | Default Threshold | Meaning |
+|----------|------------------|---------|
+| Yellow | 6 | High UV potential |
+| Orange | 8 | Very high UV potential |
+| Red | 10 | Extreme UV potential |
+
+**Entity:** `binary_sensor.<location>_clear_sky_uv_alert`
+**Domains:** Forecast | **Default:** Off | **Confidence:** Fixed Medium
+
+```yaml
+Njord__Features__ClearSkyUv__Enabled: "true"
+Njord__Features__ClearSkyUv__Thresholds: "[6, 8, 10]"
+```
+
+**Automation ideas:**
+- Remind to apply sunscreen even on cloudy days
+- Close UV-sensitive blinds when clear-sky UV is extreme
+
+---
+
+## FireRisk
+
+Assesses wildfire risk by combining multiple weather factors into a weighted score:
+
+| Factor | Weight | Threshold |
+|--------|--------|-----------|
+| Temperature | 25% | > 30 °C |
+| Low humidity | 25% | < 30% |
+| Wind speed | 20% | > 5.6 m/s (20 km/h) |
+| Dry soil | 20% | < 0.10 m3/m3 |
+| No rain for | 10% | 48+ hours |
+
+| Severity | Combined Score |
+|----------|---------------|
+| Yellow | > 0.4 |
+| Orange | > 0.6 |
+| Red | > 0.8 |
+
+**Entity:** `binary_sensor.<location>_fire_risk_alert`
+**Domains:** Forecast + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
+
+```yaml
+Njord__Features__FireRisk__Enabled: "true"
+Njord__Features__FireRisk__TemperatureThreshold: "30"
+Njord__Features__FireRisk__HumidityThreshold: "30"
+Njord__Features__FireRisk__WindSpeedThreshold: "5.6"
+Njord__Features__FireRisk__SoilMoistureThreshold: "0.10"
+```
+
+**Automation ideas:**
+- Alert to clear dry brush near property
+- Restrict outdoor open flames
+- Prepare evacuation checklist at red severity

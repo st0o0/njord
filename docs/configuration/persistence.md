@@ -4,27 +4,26 @@ njord uses Akka.Persistence to store each location's learned poll schedule and t
 
 ## Configuration
 
+| Option | Default | Description |
+|--------|---------|-------------|
+| `ConnectionString` | `null` | PostgreSQL connection string; when set, njord uses PostgreSQL instead of SQLite |
+| `DataPath` | `"data/njord.db"` | Path to the SQLite database file (relative to working directory) |
+
+The provider is selected automatically: if `ConnectionString` is set, njord uses PostgreSQL; otherwise it uses SQLite with the `DataPath`.
+
+### SQLite (default)
+
+No external database required. Data is stored in a local SQLite file.
+
 ```json
 {
   "Njord": {
     "Persistence": {
-      "Provider": "Sqlite",
       "DataPath": "data/njord.db"
     }
   }
 }
 ```
-
-## Providers
-
-### SQLite (default)
-
-The default provider stores data in a local SQLite file. No external database required.
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `Provider` | `"Sqlite"` | Storage provider |
-| `DataPath` | `"data/njord.db"` | Path to the SQLite database file (relative to working directory); env `Njord__Persistence__DataPath` |
 
 In Docker, mount a volume at `/app/data` to persist the database across container restarts:
 
@@ -34,27 +33,17 @@ docker run -v njord-data:/app/data ghcr.io/st0o0/njord:latest
 
 ### PostgreSQL
 
-For larger deployments or when you already run PostgreSQL, use the `PostgreSql` provider.
+For larger deployments or when you already run PostgreSQL, set a connection string:
 
 ```json
 {
   "Njord": {
     "Persistence": {
-      "Provider": "PostgreSql",
       "ConnectionString": "Host=db;Database=njord;Username=njord;Password=secret"
     }
   }
 }
 ```
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `Provider` | `"PostgreSql"` | Storage provider |
-| `ConnectionString` | `null` | PostgreSQL connection string (required when using PostgreSql) |
-
-::: warning
-When using PostgreSQL, the `ConnectionString` is required. njord will refuse to start without it.
-:::
 
 ## When is persistence needed?
 

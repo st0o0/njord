@@ -30,11 +30,11 @@ As environment variables: `Njord__Forecast__ForecastDays=4`, `Njord__Ensemble__F
 
 ## API call weight
 
-Each request asks only for the hourly variables the enabled features need (the union of their requirements). Open-Meteo counts a request as `ceil(variables / 10)` calls, doubled for every 14 forecast days started:
+Each request asks only for the hourly variables the enabled features need (the union of their requirements). Open-Meteo counts a request as `ceil(variables / 10)` calls, scaled by the forecast window:
 
 ```
-forecast weight = ceil(variables / 10) x ceil(Forecast.ForecastDays / 14)
-ensemble weight = ceil(variables / 10) x ceil(Ensemble.ForecastDays / 14) x model count
+forecast weight = ceil(variables / 10) x (Forecast.ForecastDays / 14)
+ensemble weight = ceil(variables / 10) x (Ensemble.ForecastDays / 14) x model count
 ```
 
 Every other domain costs one call per location and cycle. See the [budget](./budget) projection.

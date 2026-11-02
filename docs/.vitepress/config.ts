@@ -53,7 +53,7 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
         items: [
           { text: 'Overview', link: '/configuration/' },
           { text: 'Locations', link: '/configuration/locations' },
-          { text: 'Weather', link: '/configuration/weather' },
+          { text: 'Forecast & Ensemble', link: '/configuration/weather' },
           { text: 'Model comparison', link: '/configuration/model-comparison' },
           { text: 'Enrichment', link: '/configuration/enrichment' },
           { text: 'Persistence', link: '/configuration/persistence' },

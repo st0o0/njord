@@ -8,7 +8,7 @@ For full descriptions, configuration examples, and automation ideas for all 65 f
 
 ## Weather alerts
 
-Alert rules run on the high-resolution deterministic forecast from the Forecast API. Nine alerts (Frost, Heat, Storm, HeavyRain, Thunderstorm, Snow, Ice, WindChill, TropicalNight) also use ensemble spread data for confidence: low spread across the 51 ensemble members means high confidence. The remaining alerts (PressureDrop, Fog, Visibility, UV, Humidity, RainProbability, WetBulbDanger, ClearSkyUv, Shower, SnowDepthWatch, FireRisk) use a fixed Medium confidence because their variables have low ensemble sensitivity or are deterministic by nature.
+Alert rules run on the high-resolution deterministic forecast from the Forecast API. Nine alerts (Frost, Heat, Storm, HeavyRain, Thunderstorm, Snow, Ice, WindChill, TropicalNight) also use ensemble spread data for confidence: low spread across the 51 ensemble members means high confidence. The remaining alerts (PressureDrop, Fog, Visibility, UV, Humidity, RainProbability, WetBulbDanger, ClearSkyUv, Shower, FireRisk) use a fixed Medium confidence because their variables have low ensemble sensitivity or are deterministic by nature.
 
 ```json
 {

@@ -10,8 +10,8 @@ Configure your system:
 - **PeakKw**: installed peak power in kW (default: 5.0), `Njord:Features:SolarYield:PeakKw`
 - **SystemEfficiency**: system efficiency factor (default: 0.8)
 - **BatteryCapacityKwh**: battery capacity in kWh, 0 disables the battery strategy (default: 0)
-- **Tilt**: panel tilt angle in degrees from horizontal (default: 30), `Njord:Satellite:Tilt`
-- **Azimuth**: panel compass direction, 180 = south (default: 180), `Njord:Satellite:Azimuth`
+- **Tilt**: panel tilt angle in degrees from horizontal (default: 30), `Njord:Solar:Tilt`
+- **Azimuth**: panel compass direction, 180 = south (default: 180), `Njord:Solar:Azimuth`
 
 **Entity:** `sensor.<location>_solar_yield`
 **Domains:** Forecast | **Default:** Off
@@ -19,34 +19,14 @@ Configure your system:
 ```yaml
 Njord__Features__SolarYield__Enabled: "true"
 Njord__Features__SolarYield__PeakKw: "5.0"
-Njord__Satellite__Tilt: "30"
-Njord__Satellite__Azimuth: "180"
+Njord__Solar__Tilt: "30"
+Njord__Solar__Azimuth: "180"
 ```
 
 **Automation ideas:**
 - Schedule high-power appliances (dishwasher, EV charging) during peak solar hours
 - Compare forecast vs actual production from your inverter
 - Send morning notification: "Expected yield today: 28 kWh"
-
----
-
-## SatelliteRadiation
-
-Blends real satellite observations of solar irradiance with the weather forecast. The satellite data gives ground-truth for the last few hours; the forecast extends into the future. The blend transitions smoothly at the observation boundary.
-
-Requires the same tilt/azimuth configuration as SolarYield. The satellite data comes from a separate Open-Meteo API endpoint.
-
-**Entity:** `sensor.<location>_satellite_radiation`
-**Domains:** Satellite | **Default:** Off
-
-```yaml
-Njord__Features__SatelliteRadiation__Enabled: "true"
-Njord__Satellite__PastHours: "6"
-```
-
-::: tip
-SatelliteRadiation uses about 720 API calls/month/location. Enable it only if you need the satellite ground-truth blend for solar optimization.
-:::
 
 ---
 

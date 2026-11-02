@@ -19,8 +19,8 @@ Each PollWorker fetches the domains required by the enabled [features](./#featur
 
 | Domain | Endpoint | Fetched when | Call weight |
 |--------|----------|--------------|-------------|
-| Forecast | `api.open-meteo.com/v1/forecast` | any weather feature is enabled | `ceil(variables / 10) * ceil(forecastDays / 14)` |
-| Ensemble | Ensemble Mean API | a feature requiring ensemble spread or model comparison is enabled | Spread-only: 1. With models: `ceil(variables / 10) * ceil(days / 14) * modelCount` |
+| Forecast | `api.open-meteo.com/v1/forecast` | any weather feature is enabled | `ceil(variables / 10) * (forecastDays / 14)` |
+| Ensemble | Ensemble Mean API | a feature requiring ensemble spread or model comparison is enabled | Spread-only: 1. With models: `ceil(variables / 10) * (days / 14) * modelCount` |
 | Air Quality | Air Quality API | any Air Quality feature is enabled | 1 |
 | Flood | Flood API | `FloodRisk`, `FloodRain` or `FloodTimeline` is enabled | 1 |
 | Marine | Marine API | `Swimming`, `Surf`, `OceanCurrents` or `CoastalFlood` is enabled | 1 |

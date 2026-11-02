@@ -1,6 +1,6 @@
 # Locations
 
-Each location is a geographic point for which njord fetches data for every enabled domain (Forecast, Ensemble, Air Quality, Flood, Marine, Seasonal, Satellite). One persistent PollWorker runs per location. At least one location is required.
+Each location is a geographic point for which njord fetches data for every enabled domain (Forecast, Ensemble, Air Quality, Flood, Marine, Seasonal). One persistent PollWorker runs per location. At least one location is required.
 
 ## Options
 
@@ -39,7 +39,7 @@ Each location is a geographic point for which njord fetches data for every enabl
 
 ## Budget impact
 
-The calls a location adds per poll cycle depend on the enabled features: the polled domains are the union of the domains they read, and the Forecast and Ensemble calls scale with the number of variables, forecast days and models. Every location multiplies that cost. See [Budget](./budget) for the formula and the Config Builder for an estimate. See [Budget](./budget).
+The calls a location adds per poll cycle depend on the enabled features: the polled domains are the union of the domains they read, and the Forecast and Ensemble calls scale with the number of variables, forecast days and models. Every location multiplies that cost. See [Budget](./budget) for the formula and the Config Builder for an estimate.
 
 
 ::: tip

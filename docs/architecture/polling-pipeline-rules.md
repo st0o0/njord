@@ -15,7 +15,6 @@ njord fetches 7 independent data domains, each with its own API host and point t
 | Flood | flood-api.open-meteo.com | FloodPoint | ~24 h |
 | Marine | marine-api.open-meteo.com | MarinePoint | ~1-3 h |
 | Seasonal | seasonal-api.open-meteo.com | SeasonalPoint | ~24 h |
-| Satellite | satellite-api.open-meteo.com/v1/archive | SatelliteRadiationPoint | ~1 h |
 
 Each domain is polled independently per location. There are no "rounds" where all domains
 are fetched together. A domain learns its own update cycle through discovery.
@@ -196,10 +195,10 @@ confidence from TemperatureSpread only, even for precipitation and wind alerts.
 
 ### The past_hours parameter
 
-The `past_hours` HTTP parameter is supported (`ClientRequest.PastHours`) but only used by
-the Satellite client. Rules like MigraineRisk and PressureDrop that need lookback data
-beyond the current forecast's start (00:00 UTC today) cannot access it because the
-Forecast client does not send `past_hours`.
+The `past_hours` HTTP parameter is supported (`ClientRequest.PastHours`) but currently
+only used by the Forecast client when configured. Rules like MigraineRisk and PressureDrop
+that need lookback data beyond the current forecast's start (00:00 UTC today) rely on
+the `PastHours` option in `Njord:Forecast`.
 
 ### WeatherCode and freezing rain detection
 

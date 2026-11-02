@@ -388,68 +388,6 @@ Warns when the UV index reaches levels that can cause sunburn.
 
 ---
 
-### ClearSkyUv
-
-Warns about the maximum possible UV index **without clouds**. Even on partly cloudy days, brief sun breaks can deliver intense UV. This alert tells you the UV you would get if the clouds part.
-
-| Severity | Default Threshold | Meaning |
-|----------|------------------|---------|
-| Yellow | 6 | High UV potential |
-| Orange | 8 | Very high UV potential |
-| Red | 10 | Extreme UV potential |
-
-**Entity:** `binary_sensor.<location>_clear_sky_uv_alert`
-**Domains:** Forecast | **Default:** Off | **Confidence:** Medium
-
-```yaml
-Njord__Features__ClearSkyUv__Enabled: "true"
-Njord__Features__ClearSkyUv__Thresholds: "[6, 8, 10]"
-```
-
-**Automation ideas:**
-- Remind to apply sunscreen even on cloudy days
-- Close UV-sensitive blinds when clear-sky UV is extreme
-
----
-
-## Cross-Domain Alerts
-
-### FireRisk
-
-Assesses wildfire risk by combining multiple weather factors into a weighted score:
-
-| Factor | Weight | Threshold |
-|--------|--------|-----------|
-| Temperature | 25% | > 30 °C |
-| Low humidity | 25% | < 30% |
-| Wind speed | 20% | > 5.6 m/s (20 km/h) |
-| Dry soil | 20% | < 0.10 m3/m3 |
-| No rain for | 10% | 48+ hours |
-
-| Severity | Combined Score |
-|----------|---------------|
-| Yellow | > 0.4 |
-| Orange | > 0.6 |
-| Red | > 0.8 |
-
-**Entity:** `binary_sensor.<location>_fire_risk_alert`
-**Domains:** Forecast + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
-
-```yaml
-Njord__Features__FireRisk__Enabled: "true"
-Njord__Features__FireRisk__TemperatureThreshold: "30"
-Njord__Features__FireRisk__HumidityThreshold: "30"
-Njord__Features__FireRisk__WindSpeedThreshold: "5.6"
-Njord__Features__FireRisk__SoilMoistureThreshold: "0.10"
-```
-
-**Automation ideas:**
-- Alert to clear dry brush near property
-- Restrict outdoor open flames
-- Prepare evacuation checklist at red severity
-
----
-
 ### CoastalFlood
 
 Warns about storm surge risk by combining sea level deviation, wave height, and onshore wind conditions. Only relevant for coastal locations.
@@ -494,7 +432,7 @@ Warns when heat and air pollution combine into a danger greater than either alon
 | Red | Extreme: wet-bulb temperature >= 35 °C |
 
 **Entity:** `binary_sensor.<location>_compound_heat_stress_alert`
-**Domains:** Forecast + AirQuality | **Default:** Off | **Confidence:** From ensemble spread
+**Domains:** Forecast + AirQuality | **Default:** Off | **Confidence:** Fixed Medium
 
 ```yaml
 Njord__Features__CompoundHeatStress__Enabled: "true"

@@ -22,7 +22,7 @@ export interface BudgetResult {
 }
 
 // Mirrors BudgetGuard (Njord.Polling): per location and poll cycle the Forecast domain costs
-// ceil(variables / 10) * ceil(Forecast.ForecastDays / 14) * max(1, Forecast.Models) calls (variables = union of the enabled features' weather
+// ceil(variables / 10) * (Forecast.ForecastDays / 14) * max(1, Forecast.Models) calls (variables = union of the enabled features' weather
 // requirements; the Ensemble domain uses Ensemble.ForecastDays), every other required domain costs one call.
 export function computeBudget(config: NjordConfig): BudgetResult {
   const pollMinutes = parseTimeSpan(config.pollInterval)
@@ -58,7 +58,7 @@ export function computeBudget(config: NjordConfig): BudgetResult {
 
 function weatherWeight(config: NjordConfig, features: Record<string, boolean>): number {
   return requiredDomains(features).includes('Forecast')
-    ? Math.ceil(weatherVariableCount(features) / 10) * Math.ceil(config.forecast.forecastDays / 14) * Math.max(1, config.forecast.models.filter(Boolean).length)
+    ? Math.ceil(weatherVariableCount(features) / 10) * (config.forecast.forecastDays / 14) * Math.max(1, config.forecast.models.filter(Boolean).length)
     : 0
 }
 
@@ -77,7 +77,7 @@ function ensembleWeight(config: NjordConfig, features: Record<string, boolean>):
   const modelCount = Math.max(1, config.ensemble.models.filter(Boolean).length)
   // Several configured models are fetched together (passive comparison), so the weather variables ride along.
   const variables = modelCount > 1 ? weatherVariableCount(features) + ensembleSpreadVarCount(features) : ensembleSpreadVarCount(features)
-  return Math.ceil(variables / 10) * Math.ceil(config.ensemble.forecastDays / 14) * modelCount
+  return Math.ceil(variables / 10) * (config.ensemble.forecastDays / 14) * modelCount
 }
 
 function callsPerLocationCycle(config: NjordConfig, features: Record<string, boolean>): number {

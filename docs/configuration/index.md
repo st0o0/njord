@@ -37,6 +37,8 @@ A minimal setup for Lucerne:
 | `Polling:PollInterval` | `01:00:00` | How often each PollWorker fetches all domains of its location |
 | `Polling:DiscoveryInterval` | `00:20:00` | Poll interval until a worker has learned the update cycle of the data |
 | `Forecast:ForecastDays` | `4` | Days of weather forecast to request (1 to 16) |
+| `Ensemble:ForecastDays` | `4` | Days of ensemble forecast to request (1 to 35) |
+| `Ensemble:Models` | 3 ensemble-mean models | Ensemble-mean model IDs to compare |
 | `AirQuality:ForecastDays` | `5` | Days of air quality forecast to request (1 to 7) |
 | `Marine:ForecastDays` | `8` | Days of marine forecast to request (1 to 16) |
 | `Seasonal:ForecastMonths` | `3` | Months of seasonal outlook to keep (1 to 7) |
