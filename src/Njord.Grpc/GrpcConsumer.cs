@@ -24,8 +24,6 @@ public sealed class GrpcConsumer : ReceiveActor
 
     private GrpcConsumerState _state = GrpcConsumerState.Empty;
 
-    private sealed record PipelineResolved(IActorRef Pipeline);
-    private sealed record PipelineResolveFailed(Exception Cause);
     private sealed record StreamCompleted;
 
     public GrpcConsumer()
@@ -34,9 +32,7 @@ public sealed class GrpcConsumer : ReceiveActor
         Receive<QueryLatestAnalysis>(HandleQueryLatestAnalysis);
         Receive<RequestGrpcStream>(HandleStreamRequest);
         Receive<PipelineEvent>(OnPipelineEvent);
-        Receive<StreamCompleted>(_ => _log.Warning("Pipeline SourceRef stream completed — gRPC consumer will not receive new events until restarted"));
-        Receive<PipelineResolved>(OnPipelineResolved);
-        Receive<PipelineResolveFailed>(msg => _log.Warning(msg.Cause, "Failed to resolve pipeline — gRPC consumer has no data"));
+        Receive<StreamCompleted>(_ => ReconnectToPipeline());
         Receive<RequestPipelineOutputCompleted>(OnSourceRef);
         Receive<RequestPipelineOutputFailed>(msg => _log.Warning(msg.Cause, "Pipeline could not create a SourceRef"));
     }
@@ -54,14 +50,15 @@ public sealed class GrpcConsumer : ReceiveActor
         _hubInput = hubInput;
         _clientHubSource = hubSource;
 
-        Context.GetActorAsync<IForecastPipeline>().PipeTo(Self,
-            success: pipeline => new PipelineResolved(pipeline),
-            failure: ex => new PipelineResolveFailed(ex));
+        var pipeline = Context.GetActor<IForecastPipeline>();
+        pipeline.Tell(new RequestPipelineOutput(0));
     }
 
-    private void OnPipelineResolved(PipelineResolved msg)
+    private void ReconnectToPipeline()
     {
-        msg.Pipeline.Tell(new RequestPipelineOutput(0));
+        _log.Info("Pipeline SourceRef stream completed — reconnecting");
+        var pipeline = Context.GetActor<IForecastPipeline>();
+        pipeline.Tell(new RequestPipelineOutput(0));
     }
 
     private void OnSourceRef(RequestPipelineOutputCompleted msg)

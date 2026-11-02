@@ -76,6 +76,41 @@ public sealed class GrpcConsumerTests : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 30000)]
+    public async Task Consumer_reconnects_to_pipeline_after_stream_completes()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (consumer, firstQueue) = await StartAsync();
+        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
+
+        await firstQueue.OfferAsync(weather, ct);
+        await AwaitAssertAsync(async () =>
+        {
+            var q = await consumer.Ask<DomainDataResponse>(
+                new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), AskTimeout, ct);
+            Assert.IsType<DomainDataResult>(q);
+        }, TimeSpan.FromSeconds(5), cancellationToken: ct);
+
+        firstQueue.Complete();
+
+        var secondReady = new TaskCompletionSource<TestPipeline>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondPipelineActor = Sys.ActorOf(Props.Create(() => new FakePipeline(Sys.Materializer(), secondReady)),
+            $"pipeline-{Guid.NewGuid():N}");
+        ActorRegistry.Register<IForecastPipeline>(secondPipelineActor, overwrite: true);
+
+        var secondPipeline = await secondReady.Task.WaitAsync(TimeSpan.FromSeconds(15), ct);
+        var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor);
+
+        await secondPipeline.Queue.OfferAsync(alert, ct);
+        await AwaitAssertAsync(async () =>
+        {
+            var analysis = await consumer.Ask<LatestAnalysisResponse>(
+                new QueryLatestAnalysis(DomainData.Lucerne), AskTimeout, ct);
+            var result = Assert.IsType<LatestAnalysisResult>(analysis);
+            Assert.Equal<FeatureResult>([alert], result.Results);
+        }, TimeSpan.FromSeconds(10), cancellationToken: ct);
+    }
+
+    [Fact(Timeout = 30000)]
     public async Task A_stream_request_hands_out_a_source_that_delivers_later_events()
     {
         var ct = TestContext.Current.CancellationToken;
