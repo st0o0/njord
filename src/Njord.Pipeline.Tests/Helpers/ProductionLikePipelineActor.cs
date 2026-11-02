@@ -1,6 +1,7 @@
 using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Terp.Akka;
 
 namespace Njord.Pipeline.Tests.Helpers;
 
@@ -23,8 +24,7 @@ internal sealed class ProductionLikePipelineActor : ReceiveActor, IWithStash
 
         mergeHubSource
             .SelectAsyncUnordered(2, x => Task.FromResult(x))
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
+            .ResumeOnError()
             .Buffer(32, OverflowStrategy.Backpressure)
             .To(broadcastHubSink)
             .Run(mat);

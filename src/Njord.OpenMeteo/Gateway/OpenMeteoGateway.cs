@@ -4,7 +4,6 @@ using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core;
-using Njord.Core.Actors;
 using Njord.Core.Polling;
 using Njord.Messages.Fetch;
 using Njord.Messages.Stream;
@@ -183,7 +182,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
                     .Append(new DomainDataReceived(location, domain, ok.Forecast));
             })
             .Buffer(ForecastBufferSize, OverflowStrategy.DropHead)
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
+            .ResumeOnError(_log)
             .To(msg.SinkRef.Sink)
             .Run(Context.Materializer());
         _log.Info("Attached to the pipeline input");

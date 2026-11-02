@@ -23,9 +23,9 @@ for p in Njord.*Tests; do [ "$p" = Njord.Tests.Shared ] && continue; dotnet run 
 
 ## 2. Stream supervision (Step 7)
 
-- [ ] 2.1 Replace `ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log))` with `.ResumeOnError(_log)` in `src/Njord.Pipeline/Stream/ForecastPipeline.cs` and `src/Njord.OpenMeteo/Gateway/OpenMeteoGateway.cs`. Add `using Terp.Akka;` where not already present.
-- [ ] 2.2 Replace inline `ActorAttributes.CreateSupervisionStrategy(_ => Directive.Resume)` with `.ResumeOnError()` in `src/Njord.Pipeline.Tests/Helpers/ProductionLikePipelineActor.cs` and `src/Njord.Pipeline.Tests/Helpers/SinkRefHubConsumerTests.cs`.
-- [ ] 2.3 Delete `src/Njord.Core/Actors/StreamSupervision.cs`. Remove `using Akka.Streams.Supervision;` where `Directive`/`Decider` was the only reason for the import.
+- [x] 2.1 Replace `ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log))` with `.ResumeOnError(_log)` in `src/Njord.Pipeline/Stream/ForecastPipeline.cs` and `src/Njord.OpenMeteo/Gateway/OpenMeteoGateway.cs`. Add `using Terp.Akka;` where not already present.
+- [x] 2.2 Replace inline `ActorAttributes.CreateSupervisionStrategy(_ => Directive.Resume)` with `.ResumeOnError()` in `src/Njord.Pipeline.Tests/Helpers/ProductionLikePipelineActor.cs` and `src/Njord.Pipeline.Tests/Helpers/SinkRefHubConsumerTests.cs`.
+- [x] 2.3 Delete `src/Njord.Core/Actors/StreamSupervision.cs`. Remove `using Akka.Streams.Supervision;` where `Directive`/`Decider` was the only reason for the import.
 
 ### Validation
 

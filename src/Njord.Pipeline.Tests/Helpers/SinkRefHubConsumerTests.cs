@@ -3,6 +3,7 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Tests.Shared;
+using Terp.Akka;
 
 namespace Njord.Pipeline.Tests.Helpers;
 
@@ -38,8 +39,7 @@ public sealed class SinkRefHubConsumerTests : Akka.Hosting.TestKit.TestKit
 
         broadcastHubSource
             .Ask<string>(blackhole, TimeSpan.FromSeconds(5))
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
+            .ResumeOnError()
             .To(Sink.Ignore<string>())
             .Run(Mat);
 

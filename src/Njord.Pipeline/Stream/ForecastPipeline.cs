@@ -3,9 +3,9 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Njord.Core.Actors;
 using Njord.Messages.Results;
 using Njord.Messages.Stream;
+using Terp.Akka;
 
 namespace Njord.Pipeline.Stream;
 
@@ -119,7 +119,7 @@ public sealed class ForecastPipeline : ReceiveActor
                     return events;
                 };
             })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
+            .ResumeOnError(_log)
             .WatchTermination(Keep.Right)
             .To(pipelineOutputSink)
             .Run(_mat)
