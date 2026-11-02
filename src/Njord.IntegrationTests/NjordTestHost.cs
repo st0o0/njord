@@ -4,15 +4,22 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Njord.Budget.Configuration;
+using Njord.Configuration;
 using Njord.Core;
+using Njord.Grpc.Configuration;
 using Njord.Messages.Fetch;
+using Njord.OpenMeteo.Configuration;
+using Njord.Pipeline.Configuration;
+using Njord.Polling.Configuration;
 using Njord.Tests.Shared;
+using Terp.Hosting;
 
 namespace Njord.IntegrationTests;
 
-// The production composition (NjordHost.Configure) on a test server: real setups, real actor system, real SQLite
-// journal in a unique temporary directory, a fake Open-Meteo client. The in-memory server speaks HTTP/1.1 and
-// HTTP/2, so the gRPC services are called over a real GrpcChannel; the Kestrel port split is not exercised.
+// The same setup chain as Program.cs on a test server: real setups, real actor system, real SQLite journal in a
+// unique temporary directory, fake Open-Meteo clients. The in-memory server speaks HTTP/1.1 and HTTP/2, so the
+// gRPC services are called over a real GrpcChannel; the Kestrel port split is not exercised.
 public sealed class NjordTestHost : IAsyncDisposable
 {
     private readonly GrpcChannel _channel;
@@ -80,7 +87,21 @@ public sealed class NjordTestHost : IAsyncDisposable
         var flood = new FakeFloodClient();
         var marine = new FakeMarineClient();
 
-        NjordHost.Configure(builder);
+        builder.Logging.ClearProviders();
+
+        builder
+            .Setup(new LoggingSetup())
+            .Setup(new TelemetrySetup())
+            .Setup(new CoreSetup())
+            .Setup(new ConfigSetup())
+            .Setup(new HealthSetup())
+            .Setup(new OpenMeteoSetup())
+            .Setup(new BudgetSetup())
+            .Setup(new PollingSetup())
+            .Setup(new PipelineSetup())
+            .Setup(new DomainSetup())
+            .Setup(new GrpcSetup())
+            .Setup(new AkkaSetup());
 
         builder.Services.RemoveAll<IReadOnlyDictionary<DomainKind, IDomainClient>>();
         builder.Services.AddSingleton<IReadOnlyDictionary<DomainKind, IDomainClient>>(new Dictionary<DomainKind, IDomainClient>
@@ -94,7 +115,8 @@ public sealed class NjordTestHost : IAsyncDisposable
         });
         builder.WebHost.UseTestServer();
 
-        var app = NjordHost.Configure(builder.Build());
+        var app = builder.Build();
+        app.Setup(new NjordApplicationSetup());
         await app.StartAsync(cancellationToken);
         return new NjordTestHost(app, weather, airQuality, flood, marine, dataDirectory);
     }
