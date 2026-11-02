@@ -52,7 +52,13 @@ public static class Scoring
             return (0, 0, 0);
         }
 
-        var (start, length) = LongestRun([.. scores.Select(score => score >= goodScore)]);
+        var good = new bool[scores.Count];
+        for (var i = 0; i < scores.Count; i++)
+        {
+            good[i] = scores[i] >= goodScore;
+        }
+
+        var (start, length) = LongestRun(good);
         if (length == 0)
         {
             var best = 0;
@@ -67,6 +73,12 @@ public static class Scoring
             return ((int)Math.Round(scores[best]), best, 0);
         }
 
-        return ((int)Math.Round(scores.Skip(start).Take(length).Average()), start, length);
+        var sum = 0.0;
+        for (var i = start; i < start + length; i++)
+        {
+            sum += scores[i];
+        }
+
+        return ((int)Math.Round(sum / length), start, length);
     }
 }

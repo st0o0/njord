@@ -101,6 +101,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         var evt = new PollingStarted(cmd.Target.Location.Name,
             [.. _enabledDomains.Select(d => (int)d)], cmd.DiscoveryInterval, _timeProvider.GetUtcNow(),
             location.Latitude, location.Longitude);
+        var seqNrBefore = LastSequenceNr;
         Persist(evt, e =>
         {
             _state = _state.Apply(e);
@@ -112,7 +113,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
             ScheduleAllDomains();
             Report(PollWorkerOutcome.Planned);
-            MaybeSnapshot();
+            MaybeSnapshot(seqNrBefore);
         });
     }
 
@@ -126,11 +127,12 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             return;
         }
 
+        var seqNrBefore = LastSequenceNr;
         Persist(new PollingStopped(_timeProvider.GetUtcNow()), e =>
         {
             _state = _state.Apply(e);
             _log.Info("Polling stopped for {Location}", _state.Target);
-            MaybeSnapshot();
+            MaybeSnapshot(seqNrBefore);
             Context.Parent.Tell(new Passivate(PoisonPill.Instance));
         });
     }
@@ -216,10 +218,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             RecordTelemetry(domain, e.Outcome, before);
             ScheduleDomain(domain);
             Report(ChooseOutcome(e.Outcome));
-            if (LastSequenceNr / SnapshotInterval > previousSequenceNr / SnapshotInterval)
-            {
-                SaveSnapshot(_state.GetPersistenceState());
-            }
+            MaybeSnapshot(previousSequenceNr);
         });
     }
 
@@ -299,9 +298,9 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         manager.Tell(new PollWorkerReport(target, outcome, _state.ToPollStateEntry()));
     }
 
-    private void MaybeSnapshot()
+    private void MaybeSnapshot(long previousSequenceNr)
     {
-        if (LastSequenceNr % SnapshotInterval == 0)
+        if (LastSequenceNr / SnapshotInterval > previousSequenceNr / SnapshotInterval)
         {
             SaveSnapshot(_state.GetPersistenceState());
         }

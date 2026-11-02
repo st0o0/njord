@@ -4,6 +4,14 @@ namespace Njord.OpenMeteo.Http;
 
 internal sealed class HttpMetricsHandler : DelegatingHandler
 {
+    private static readonly string[] StatusClasses = ["0xx", "1xx", "2xx", "3xx", "4xx", "5xx"];
+
+    private static string ToStatusClass(int statusCode)
+    {
+        var index = statusCode / 100;
+        return (uint)index < (uint)StatusClasses.Length ? StatusClasses[index] : "unknown";
+    }
+
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var sw = Stopwatch.StartNew();
@@ -12,8 +20,7 @@ internal sealed class HttpMetricsHandler : DelegatingHandler
             var response = await base.SendAsync(request, cancellationToken);
             sw.Stop();
 
-            var statusClass = (int)response.StatusCode / 100 + "xx";
-            Telemetry.HttpRequests.Add(1, new KeyValuePair<string, object?>("status_class", statusClass));
+            Telemetry.HttpRequests.Add(1, new KeyValuePair<string, object?>("status_class", ToStatusClass((int)response.StatusCode)));
             Telemetry.HttpDuration.Record(sw.Elapsed.TotalSeconds);
 
             return response;

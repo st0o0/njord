@@ -75,7 +75,13 @@ public static class WindowScanner
                 windowStart--;
             }
 
-            var windowScore = (int)scores.Skip(windowStart).Take(windowEnd - windowStart + 1).Min(s => s.Score);
+            var minScore2 = double.MaxValue;
+            for (var i = windowStart; i <= windowEnd; i++)
+            {
+                minScore2 = Math.Min(minScore2, scores[i].Score);
+            }
+
+            var windowScore = (int)minScore2;
 
             LimitingFactor? limiting = null;
             if (windowEnd + 1 < scores.Count)
