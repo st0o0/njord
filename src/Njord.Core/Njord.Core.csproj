@@ -16,7 +16,6 @@
       <PackageReference Include="Akka.Streams" />
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
       <PackageReference Include="Microsoft.Extensions.Options" />
-      <PackageReference Include="Servus" />
     </ItemGroup>
 
 </Project>

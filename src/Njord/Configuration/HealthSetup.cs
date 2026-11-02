@@ -1,19 +1,19 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Njord.Core.Configuration;
 using Njord.Health;
-using Servus.Application.Startup;
+using Terp.Hosting;
 
 namespace Njord.Configuration;
 
-public sealed class HealthSetupContainer : IServiceSetupContainer
+public sealed class HealthSetup : ISetup<IServiceCollection>
 {
-    public void SetupServices(IServiceCollection services, IConfiguration configuration)
+    public void Setup(IServiceCollection services, SetupContext context)
     {
         services.AddNjordOptions<HealthOptions, HealthOptionsValidator>();
         services.AddRequestTimeouts();
 
         var persistence = new PersistenceOptions();
-        configuration.GetSection(IConfigSection.SectionOf<PersistenceOptions>()).Bind(persistence);
+        context.Configuration.GetSection(IConfigSection.SectionOf<PersistenceOptions>()).Bind(persistence);
 
         var healthChecks = services.AddHealthChecks();
 

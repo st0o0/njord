@@ -17,7 +17,7 @@
     <ItemGroup>
       <PackageReference Include="Akka.Cluster.Hosting" />
       <PackageReference Include="Akka.Persistence.Hosting" />
-      <PackageReference Include="Servus.Akka" />
+      <PackageReference Include="Terp.Akka" />
     </ItemGroup>
 
 </Project>

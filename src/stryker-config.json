@@ -8,6 +8,6 @@
       "break": 60
     },
     "ignore-mutations": ["string"],
-    "mutate": ["!**/obj/**", "!**/*Options.cs", "!**/*OptionsValidator.cs", "!**/ServiceCollectionExtensions.cs", "!**/*SetupContainer.cs"]
+    "mutate": ["!**/obj/**", "!**/*Options.cs", "!**/*OptionsValidator.cs", "!**/ServiceCollectionExtensions.cs", "!**/*Setup.cs"]
   }
 }

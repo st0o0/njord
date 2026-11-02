@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Servus.Application.Startup;
+using Terp.Hosting;
 
 namespace Njord.Configuration;
 
-public sealed class CoreSetupContainer : IServiceSetupContainer
+public sealed class CoreSetup : ISetup<IServiceCollection>
 {
-    public void SetupServices(IServiceCollection services, IConfiguration configuration)
+    public void Setup(IServiceCollection services, SetupContext context)
     {
         services.AddSingleton(TimeProvider.System);
         services.Configure<KestrelServerOptions>(options => options.Limits.MinResponseDataRate = null);

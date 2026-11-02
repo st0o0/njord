@@ -7,13 +7,14 @@ using LinqToDB;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Servus.Akka.Startup;
+using Terp.Akka.Hosting;
+using IActorRegistration = Njord.Core.Actors.IActorRegistration;
 
 namespace Njord.Configuration;
 
-public sealed class AkkaSetupContainer : ActorSystemSetupContainer
+public sealed class AkkaSetup : ActorSystemSetup
 {
-    protected override string GetActorSystemName() => "njord";
+    protected override string ActorSystemName => "njord";
 
     protected override void BuildSystem(AkkaConfigurationBuilder builder, IServiceProvider serviceProvider)
     {

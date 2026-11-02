@@ -2,7 +2,7 @@ using Akka.Cluster.Hosting;
 using Akka.Hosting;
 using Njord.Core;
 using Njord.Core.Actors;
-using Servus.Akka;
+using Terp.Akka;
 
 namespace Njord.Polling.Configuration;
 

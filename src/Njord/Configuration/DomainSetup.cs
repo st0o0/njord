@@ -3,13 +3,13 @@ using Njord.Core.Configuration;
 using Njord.Core.Polling;
 using Njord.Features;
 using Njord.OpenMeteo.Configuration;
-using Servus.Application.Startup;
+using Terp.Hosting;
 
 namespace Njord.Configuration;
 
-public sealed class DomainSetupContainer : IServiceSetupContainer
+public sealed class DomainSetup : ISetup<IServiceCollection>
 {
-    public void SetupServices(IServiceCollection services, IConfiguration configuration)
+    public void Setup(IServiceCollection services, SetupContext context)
     {
         services.AddFeatures();
 

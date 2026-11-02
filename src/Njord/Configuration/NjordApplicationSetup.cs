@@ -1,15 +1,15 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Njord.Grpc;
-using Servus.Application.Startup;
+using Terp.Hosting;
 
 namespace Njord.Configuration;
 
-public sealed class NjordApplicationSetup : ApplicationSetupContainer<WebApplication>
+public sealed class NjordApplicationSetup : ISetup<WebApplication>
 {
     internal static readonly TimeSpan HealthCheckTimeout = TimeSpan.FromSeconds(5);
 
-    protected override void SetupApplication(WebApplication app) => Configure(app);
+    public void Setup(WebApplication app, SetupContext context) => Configure(app);
 
     internal static void Configure(WebApplication app)
     {

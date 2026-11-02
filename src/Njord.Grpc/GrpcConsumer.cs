@@ -6,7 +6,7 @@ using Akka.Streams.Dsl;
 using Njord.Core;
 using Njord.Messages.Fetch;
 using Njord.Messages.Stream;
-using Servus.Akka;
+using Terp.Akka;
 
 namespace Njord.Grpc;
 

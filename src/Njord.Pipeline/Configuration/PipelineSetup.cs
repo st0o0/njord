@@ -7,14 +7,14 @@ using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Pipeline.Health;
 using Njord.Pipeline.Stream;
-using Servus.Akka;
-using Servus.Application.Startup;
+using Terp.Akka;
+using Terp.Hosting;
 
 namespace Njord.Pipeline.Configuration;
 
-public sealed class PipelineSetupContainer : IServiceSetupContainer
+public sealed class PipelineSetup : ISetup<IServiceCollection>
 {
-    public void SetupServices(IServiceCollection services, IConfiguration configuration)
+    public void Setup(IServiceCollection services, SetupContext context)
     {
         services.AddHealthChecks().AddCheck<PipelineHealthCheck>("pipeline", failureStatus: HealthStatus.Unhealthy);
 

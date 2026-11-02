@@ -10,7 +10,7 @@ using Njord.Messages.Fetch;
 using Njord.Messages.Stream;
 using Njord.OpenMeteo.Budget;
 using Njord.OpenMeteo.Mapping;
-using Servus.Akka;
+using Terp.Akka;
 
 namespace Njord.OpenMeteo.Gateway;
 

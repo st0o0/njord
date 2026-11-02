@@ -1,5 +1,6 @@
 using Njord;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = NjordHost.Configure(WebApplication.CreateBuilder(args));
+var app = NjordHost.Configure(builder.Build());
 
-await NjordHost.Create(builder).RunAsync();
+await app.RunAsync();

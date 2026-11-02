@@ -9,7 +9,7 @@ using Njord.Core.Domain;
 using Njord.Messages.Fetch;
 using Njord.Messages.Polling;
 using Njord.Persistence.Events.Polling;
-using Servus.Akka;
+using Terp.Akka;
 
 namespace Njord.Polling;
 

@@ -5,8 +5,8 @@ using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Messages.Polling;
-using Servus.Akka;
-using Servus.Resilience;
+using Terp.Akka;
+using Terp.Resilience;
 
 namespace Njord.Polling;
 

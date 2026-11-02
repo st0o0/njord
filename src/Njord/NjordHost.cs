@@ -4,32 +4,30 @@ using Njord.Grpc.Configuration;
 using Njord.OpenMeteo.Configuration;
 using Njord.Pipeline.Configuration;
 using Njord.Polling.Configuration;
-using Servus.Application.Startup;
+using Terp.Hosting;
 
 namespace Njord;
 
 public static class NjordHost
 {
-    public static AppRunner Create(
-        WebApplicationBuilder builder,
-        Func<WebApplicationBuilder, WebApplication>? build = null)
+    public static WebApplicationBuilder Configure(WebApplicationBuilder builder)
     {
         builder.Logging.ClearProviders();
 
-        return AppBuilder.Create(builder, build ?? (b => b.Build()))
-            .WithSetup<LoggingSetupContainer>()
-            .WithSetup<TelemetrySetupContainer>()
-            .WithSetup<CoreSetupContainer>()
-            .WithSetup<ConfigSetupContainer>()
-            .WithSetup<HealthSetupContainer>()
-            .WithSetup<OpenMeteoSetupContainer>()
-            .WithSetup<BudgetSetupContainer>()
-            .WithSetup<PollingSetupContainer>()
-            .WithSetup<PipelineSetupContainer>()
-            .WithSetup<DomainSetupContainer>()
-            .WithSetup<GrpcSetupContainer>()
-            .WithSetup<AkkaSetupContainer>()
-            .WithSetup<NjordApplicationSetup>()
-            .Build();
+        return builder
+            .Setup(new LoggingSetup())
+            .Setup(new TelemetrySetup())
+            .Setup(new CoreSetup())
+            .Setup(new ConfigSetup())
+            .Setup(new HealthSetup())
+            .Setup(new OpenMeteoSetup())
+            .Setup(new BudgetSetup())
+            .Setup(new PollingSetup())
+            .Setup(new PipelineSetup())
+            .Setup(new DomainSetup())
+            .Setup(new GrpcSetup())
+            .Setup(new AkkaSetup());
     }
+
+    public static WebApplication Configure(WebApplication app) => app.Setup(new NjordApplicationSetup());
 }

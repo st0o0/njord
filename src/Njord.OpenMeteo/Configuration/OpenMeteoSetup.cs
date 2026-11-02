@@ -18,14 +18,14 @@ using Njord.OpenMeteo.Gateway;
 using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Marine;
 using Njord.OpenMeteo.Seasonal;
-using Servus.Akka;
-using Servus.Application.Startup;
+using Terp.Akka;
+using Terp.Hosting;
 
 namespace Njord.OpenMeteo.Configuration;
 
-public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
+public sealed class OpenMeteoSetup : ISetup<IServiceCollection>
 {
-    public void SetupServices(IServiceCollection services, IConfiguration configuration)
+    public void Setup(IServiceCollection services, SetupContext context)
     {
         services.AddNjordOptions<ForecastOptions, ForecastOptionsValidator>();
         services.AddNjordOptions<EnsembleOptions, EnsembleOptionsValidator>();

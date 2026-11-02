@@ -25,9 +25,8 @@
       <PackageReference Include="Serilog.Sinks.Console" />
       <PackageReference Include="Microsoft.Data.Sqlite" />
       <PackageReference Include="Npgsql" />
-      <PackageReference Include="Servus" />
-      <PackageReference Include="Servus.Akka" />
       <PackageReference Include="Akka.Persistence.Sql.Hosting" />
+      <PackageReference Include="Terp.Akka" />
     </ItemGroup>
 
 <ItemGroup>

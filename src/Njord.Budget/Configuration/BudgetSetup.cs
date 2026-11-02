@@ -6,14 +6,14 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Njord.Budget.Health;
 using Njord.Core;
 using Njord.Core.Actors;
-using Servus.Akka;
-using Servus.Application.Startup;
+using Terp.Akka;
+using Terp.Hosting;
 
 namespace Njord.Budget.Configuration;
 
-public sealed class BudgetSetupContainer : IServiceSetupContainer
+public sealed class BudgetSetup : ISetup<IServiceCollection>
 {
-    public void SetupServices(IServiceCollection services, IConfiguration configuration)
+    public void Setup(IServiceCollection services, SetupContext context)
     {
         services.AddSingleton<IActorRegistration>(new BudgetActorRegistration());
         services.AddHealthChecks().AddCheck<BudgetHealthCheck>("budget", failureStatus: HealthStatus.Unhealthy);

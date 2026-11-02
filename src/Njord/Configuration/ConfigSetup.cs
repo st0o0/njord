@@ -1,12 +1,12 @@
 using Njord.Core;
 using Njord.Core.Configuration;
-using Servus.Application.Startup;
+using Terp.Hosting;
 
 namespace Njord.Configuration;
 
-public sealed class ConfigSetupContainer : IServiceSetupContainer
+public sealed class ConfigSetup : ISetup<IServiceCollection>
 {
-    public void SetupServices(IServiceCollection services, IConfiguration configuration)
+    public void Setup(IServiceCollection services, SetupContext context)
     {
         services.AddNjordOptions<NjordOptions, NjordOptionsValidator>();
         services.PostConfigure<NjordOptions>(o =>

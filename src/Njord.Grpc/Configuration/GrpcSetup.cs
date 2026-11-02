@@ -4,14 +4,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Njord.Core;
 using Njord.Core.Actors;
-using Servus.Akka;
-using Servus.Application.Startup;
+using Terp.Akka;
+using Terp.Hosting;
 
 namespace Njord.Grpc.Configuration;
 
-public sealed class GrpcSetupContainer : IServiceSetupContainer
+public sealed class GrpcSetup : ISetup<IServiceCollection>
 {
-    public void SetupServices(IServiceCollection services, IConfiguration configuration)
+    public void Setup(IServiceCollection services, SetupContext context)
     {
         services.AddGrpc();
         services.AddSingleton<IActorRegistration>(new GrpcActorRegistration());

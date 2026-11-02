@@ -4,13 +4,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Polling;
-using Servus.Application.Startup;
+using Terp.Hosting;
 
 namespace Njord.Polling.Configuration;
 
-public sealed class PollingSetupContainer : IServiceSetupContainer
+public sealed class PollingSetup : ISetup<IServiceCollection>
 {
-    public void SetupServices(IServiceCollection services, IConfiguration configuration)
+    public void Setup(IServiceCollection services, SetupContext context)
     {
         services.AddNjordOptions<PollingOptions, PollingOptionsValidator>();
         services.PostConfigure<PollingOptions>(options => options.Budget = options.BudgetOverride ?? RequestBudget.OpenMeteoFreeTier);

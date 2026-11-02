@@ -1,16 +1,16 @@
 using Serilog;
-using Servus.Application.Startup;
+using Terp.Hosting;
 
 namespace Njord.Configuration;
 
-public sealed class LoggingSetupContainer : IServiceSetupContainer
+public sealed class LoggingSetup : ISetup<IServiceCollection>
 {
-    public void SetupServices(IServiceCollection services, IConfiguration configuration)
+    public void Setup(IServiceCollection services, SetupContext context)
     {
         services.AddSerilog(config =>
         {
             config
-                .ReadFrom.Configuration(configuration)
+                .ReadFrom.Configuration(context.Configuration)
                 .Enrich.WithMachineName()
                 .Enrich.WithThreadId()
                 .Enrich.FromLogContext()
