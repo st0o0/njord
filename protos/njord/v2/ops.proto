@@ -45,7 +45,6 @@ enum PollPhase {
 
 message ModelStatus {
   string location = 1;
-  reserved 2, 3;
   google.protobuf.Timestamp next_poll = 4;
   optional google.protobuf.Timestamp last_change = 5;
   int32 miss_count = 6;
@@ -65,7 +64,6 @@ message GetTargetsResponse {
 
 message TriggerTarget {
   string location = 1;
-  reserved 2, 3;
   google.protobuf.Timestamp next_poll = 4;
   optional google.protobuf.Timestamp last_change = 5;
   int32 miss_count = 6;
@@ -79,7 +77,6 @@ message TriggerTarget {
 
 message TriggerPollRequest {
   string location = 1;
-  reserved 2;
 }
 
 message TriggerPollResponse {

@@ -217,7 +217,7 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 1. `GetCatalog` on `njord.v2.WeatherService` → has at least 1 location named "Barcelona" and lists weather models
 2. `GetStatus` → `budget` has `monthly_used` ≥ 0 and `monthly_limit` > 0
-3. `GetStatus` → `activeEnrichments` count = 68 (all features enabled); poll state is reported per location
+3. `GetStatus` → `activeEnrichments` count = 65 (all features enabled); poll state is reported per location
 4. `TriggerPoll` → `triggeredCount` ≥ 1
 5. After trigger: `GetStatus` shows incremented `monthlyUsed`
 

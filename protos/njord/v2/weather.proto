@@ -30,17 +30,6 @@ message GetCatalogResponse {
 // Domain data
 // ═══════════════════════════════════════
 
-enum Domain {
-  reserved 4, 7; // 7 was DOMAIN_SATELLITE
-  DOMAIN_UNSPECIFIED = 0;
-  DOMAIN_FORECAST = 1;
-  DOMAIN_AIR_QUALITY = 2;
-  DOMAIN_FLOOD = 3;
-  DOMAIN_MARINE = 5;
-  DOMAIN_SEASONAL = 6;
-  DOMAIN_ENSEMBLE = 8;
-}
-
 message GetDomainDataRequest {
   string location = 1;
   Domain domain = 2;
@@ -56,7 +45,6 @@ message StreamDomainDataRequest {
 }
 
 message DomainDataUpdate {
-  reserved 13, 15; // 15 was satellite
   string location = 1;
   Domain domain = 2;
   google.protobuf.Timestamp model_run = 3;
@@ -78,18 +66,17 @@ message ForecastDomainData {
 
 message ForecastSample {
   google.protobuf.Timestamp valid_at = 1;
-  double temperature = 2;
-  double apparent_temperature = 3;
-  double wind_speed = 4;
-  double precipitation = 5;
-  double precipitation_probability = 6;
-  double cloud_cover = 7;
-  double pressure = 8;
+  optional double temperature = 2;
+  optional double apparent_temperature = 3;
+  optional double wind_speed = 4;
+  optional double precipitation = 5;
+  optional double precipitation_probability = 6;
+  optional double cloud_cover = 7;
+  optional double pressure = 8;
   int32 weather_code = 9;
-  double humidity = 10;
-  double dew_point = 11;
-  double uv_index = 12;
-  reserved 13; // formerly unknown (unused slot between uv_index and wind_gusts)
+  optional double humidity = 10;
+  optional double dew_point = 11;
+  optional double uv_index = 12;
   optional double wind_gusts = 14;
   optional double visibility = 15;
   optional double cape = 16;
@@ -141,9 +128,9 @@ message AirQualityData {
 
 message AirQualitySample {
   google.protobuf.Timestamp valid_at = 1;
-  double pm25 = 2;
-  double pm10 = 3;
-  double ozone = 4;
+  optional double pm25 = 2;
+  optional double pm10 = 3;
+  optional double ozone = 4;
   optional double birch_pollen = 5;
   optional double grass_pollen = 6;
   optional double alder = 7;
@@ -181,8 +168,7 @@ message FloodData {
 
 message FloodSample {
   google.protobuf.Timestamp valid_at = 1;
-  double discharge = 2;
-  reserved 3, 4, 5;
+  optional double discharge = 2;
   optional double discharge_mean = 6;
   optional double discharge_median = 7;
   optional double discharge_max = 8;
@@ -209,9 +195,9 @@ message MarineData {
 
 message MarineSample {
   google.protobuf.Timestamp valid_at = 1;
-  double wave_height = 2;
-  double wave_period = 3;
-  double wave_direction = 4;
+  optional double wave_height = 2;
+  optional double wave_period = 3;
+  optional double wave_direction = 4;
   optional double water_temperature = 5;
   optional double wind_wave_height = 6;
   optional double wind_wave_period = 7;
@@ -266,8 +252,6 @@ message GetEnrichmentsRequest {
 }
 
 message GetEnrichmentsResponse {
-  reserved 2 to 9;
-  reserved "alerts", "lifestyle";
   string location = 1;
   repeated EnrichmentEvent events = 10;
 }
@@ -279,8 +263,6 @@ message StreamEnrichmentsRequest {
 // One feature result. The oneof case identifies the feature. Field number ranges per output kind:
 // alerts 20-49 (+55), scores 50-58, conditions 60-79 (+82-84), trends 80-81, forecasts 90-99.
 message EnrichmentEvent {
-  reserved 2, 10, 11, 12, 13, 14, 15, 67, 91; // 67 was satellite_radiation, 91 was model_comparison
-  reserved "type_name", "alerts", "lifestyle", "payload", "model_comparison";
   string location = 1;
   google.protobuf.Timestamp updated_at = 3;
   oneof feature {

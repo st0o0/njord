@@ -15,6 +15,12 @@ message LocationInfo {
   double latitude = 2;
   double longitude = 3;
   repeated string models = 4;
+  repeated DomainSchema resolved_domains = 5;
+}
+
+message DomainSchema {
+  Domain domain = 1;
+  repeated string fields = 2;
 }
 
 message ModelInfo {
@@ -35,6 +41,20 @@ enum CoverageTier {
   COVERAGE_TIER_GLOBAL = 1;
   COVERAGE_TIER_CONTINENTAL = 2;
   COVERAGE_TIER_REGIONAL = 3;
+}
+
+// ═══════════════════════════════════════
+// Domain
+// ═══════════════════════════════════════
+
+enum Domain {
+  DOMAIN_UNSPECIFIED = 0;
+  DOMAIN_FORECAST = 1;
+  DOMAIN_AIR_QUALITY = 2;
+  DOMAIN_FLOOD = 3;
+  DOMAIN_MARINE = 5;
+  DOMAIN_SEASONAL = 6;
+  DOMAIN_ENSEMBLE = 8;
 }
 
 // ═══════════════════════════════════════
