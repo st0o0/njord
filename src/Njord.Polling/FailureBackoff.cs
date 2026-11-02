@@ -11,7 +11,6 @@ internal static class FailureBackoff
             return Base < pollInterval ? Base : pollInterval;
         }
 
-        // 60 s * 2^(n-1) reaches any realistic poll interval within a few doublings; clamp the exponent so it cannot overflow.
         var exponent = Math.Min(consecutiveFailures - 1, 20);
         var backoff = TimeSpan.FromSeconds(Base.TotalSeconds * (1L << exponent));
         return backoff < pollInterval ? backoff : pollInterval;

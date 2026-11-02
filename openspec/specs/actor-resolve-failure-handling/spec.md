@@ -11,13 +11,18 @@ The `StreamConsumerActor` base resolves the pipeline asynchronously on start as
 well, bounded by its reply timeout, so a consumer never crashes on a missing
 registry entry.
 
-On **initial startup**, other actors resolve their dependencies synchronously
+On **initial startup**, all actors resolve their dependencies synchronously
 (`Context.GetActor<T>()`). A missing registry key throws
 `MissingActorRegistryEntryException`, which crashes the actor. For actors behind
 `BackoffSupervisor`, the supervisor restarts the child with backoff. For plain
 actors, the exception propagates to the parent supervisor. This is correct
 because a missing registry key at startup is a wiring bug, not a transient
 failure.
+
+PollManager SHALL follow this standard pattern: it resolves the poll region
+synchronously at construction via `Context.GetActor<T>()` and SHALL NOT
+implement its own resolve-retry loop. If the region is missing, the actor
+crashes and the BackoffSupervisor restarts it.
 
 #### Scenario: StreamConsumerActor subclass receives a resolve-failed message during recovery
 - **WHEN** the `StreamConsumerActor` base cannot resolve the pipeline, or gets no SourceRef within its reply timeout

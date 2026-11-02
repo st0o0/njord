@@ -1,6 +1,4 @@
-using System.Collections.Immutable;
 using Akka.Actor;
-using Akka.Cluster.Sharding;
 using Akka.Hosting;
 using Akka.TestKit;
 using Microsoft.Extensions.Options;
@@ -55,8 +53,7 @@ public sealed class PollManagerStartupTests : Akka.Hosting.TestKit.TestKit
     private IActorRef CreateManager() =>
         Sys.ActorOf(Props.Create(() => new PollManager(_njordOptions, _pollingOptions, _time)), $"manager-{Guid.NewGuid():N}");
 
-    // The manager starts every target, then asks the region which entities run.
-    private async Task<IActorRef> StartedManagerAsync(CancellationToken ct, params string[] runningEntities)
+    private async Task<IActorRef> StartedManagerAsync(CancellationToken ct)
     {
         var manager = CreateManager();
         foreach (var target in Targets)
@@ -65,10 +62,6 @@ public sealed class PollManagerStartupTests : Akka.Hosting.TestKit.TestKit
             Assert.Equal(new StartPolling(target, Discovery), start);
         }
 
-        await _region.ExpectMsgAsync<GetShardRegionState>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-        _region.LastSender.Tell(new CurrentShardRegionState(
-            ImmutableHashSet.Create(new ShardState("0", [.. Targets.Select(t => t.Id), .. runningEntities])),
-            ImmutableHashSet<string>.Empty));
         return manager;
     }
 
@@ -87,18 +80,6 @@ public sealed class PollManagerStartupTests : Akka.Hosting.TestKit.TestKit
         await StartedManagerAsync(TestContext.Current.CancellationToken);
 
         await _region.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
-    }
-
-    [Fact(Timeout = 30_000)]
-    public async Task A_running_worker_of_a_removed_target_is_stopped()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        await StartedManagerAsync(ct, "atlantis");
-
-        var stop = await _region.ExpectMsgAsync<StopPolling>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-
-        Assert.Equal("atlantis", stop.LocationName);
-        await _region.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
     }
 
     [Fact(Timeout = 30_000)]

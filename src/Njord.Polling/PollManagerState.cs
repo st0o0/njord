@@ -30,8 +30,6 @@ internal sealed record PollManagerState(
     ImmutableDictionary<IActorRef, string> Watched,
     ImmutableDictionary<string, int> RestartAttempts,
     TimeSpan DiscoveryInterval,
-    IActorRef? Region,
-    int ResolveAttempts,
     DateTimeOffset StartedUtc,
     DateTimeOffset? LastSuccessfulPollUtc)
 {
@@ -48,8 +46,6 @@ internal sealed record PollManagerState(
             ImmutableDictionary<IActorRef, string>.Empty,
             ImmutableDictionary.Create<string, int>(StringComparer.OrdinalIgnoreCase),
             discoveryInterval,
-            null,
-            0,
             now,
             null);
     }

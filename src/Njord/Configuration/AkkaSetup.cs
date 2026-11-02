@@ -59,7 +59,7 @@ public sealed class AkkaSetup : ActorSystemSetup
             });
         }
 
-        foreach (var registration in serviceProvider.GetServices<IActorRegistration>())
+        foreach (var registration in serviceProvider.GetServices<Njord.Core.Actors.IActorRegistration>())
         {
             registration.Configure(builder, serviceProvider);
         }

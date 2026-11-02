@@ -123,17 +123,6 @@ public sealed class PollManagerStateTests
     }
 
     [Fact]
-    public void ApplyRegionResolved_sets_region_and_resets_attempts()
-    {
-        var state = InitialState() with { ResolveAttempts = 3 };
-
-        state = state.ApplyRegionResolved(ActorRefs.Nobody);
-
-        Assert.Equal(ActorRefs.Nobody, state.Region);
-        Assert.Equal(0, state.ResolveAttempts);
-    }
-
-    [Fact]
     public void GetPollStates_returns_entries_in_target_order()
     {
         var state = InitialState();

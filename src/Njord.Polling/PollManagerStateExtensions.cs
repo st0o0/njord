@@ -61,12 +61,6 @@ internal static class PollManagerStateExtensions
         return state with { Watched = newWatched, RestartAttempts = newRestarts };
     }
 
-    public static PollManagerState ApplyRegionResolved(this PollManagerState state, IActorRef region) =>
-        state with { Region = region, ResolveAttempts = 0 };
-
-    public static PollManagerState ApplyResolveRetry(this PollManagerState state) =>
-        state with { ResolveAttempts = state.ResolveAttempts + 1 };
-
     public static PollStatesResult GetPollStates(this PollManagerState state, PollManagerConfig config) =>
         new([.. config.Targets.Select(t => state.States[t.Id])]);
 

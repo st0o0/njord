@@ -18,13 +18,13 @@ public sealed class ForecastPipeline : ReceiveActor
     private readonly TimeProvider _timeProvider;
     private readonly IReadOnlyList<IFeatureRule> _features;
 
-    private IMaterializer? _mat;
     private Sink<DomainDataReceived, NotUsed>? _mergeSink;
     private Source<PipelineEvent, NotUsed>? _pipelineOutputSource;
     private Sink<PipelineEvent, NotUsed>? _pipelineOutputSink;
     private Source<DomainDataReceived, NotUsed>? _inputSource;
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
+    private readonly IMaterializer _mat = Context.Materializer();
 
     public ForecastPipeline(TimeProvider timeProvider, IEnumerable<IFeatureRule> features)
     {
@@ -38,7 +38,6 @@ public sealed class ForecastPipeline : ReceiveActor
 
     protected override void PreStart()
     {
-        _mat = Context.Materializer();
         MaterializeHubs();
         MaterializeAnalysisGraph();
         _log.Info("Forecast pipeline materialized - waiting for producers and consumers");
@@ -47,18 +46,13 @@ public sealed class ForecastPipeline : ReceiveActor
     private void OnRequestForecastSink(RequestForecastSink msg)
     {
         StreamRefs.SinkRef<DomainDataReceived>()
-            .RecoverWithRetries<DomainDataReceived, Task<ISinkRef<DomainDataReceived>>>(_ =>
-            {
-                Telemetry.ProducerFailed.Add(1);
-                return Source.Empty<DomainDataReceived>();
-            }, 1)
             .Via(Flow.Create<DomainDataReceived>().RecoverWithRetries(_ =>
             {
                 Telemetry.ProducerFailed.Add(1);
                 return Source.Empty<DomainDataReceived>();
             }, 1))
             .To(_mergeSink!)
-            .Run(_mat!)
+            .Run(_mat)
             .PipeTo(Sender, Self,
                 sinkRef => new RequestForecastSinkCompleted(msg.RequestId, sinkRef),
                 ex => new RequestForecastSinkFailed(msg.RequestId, ex));
@@ -67,7 +61,7 @@ public sealed class ForecastPipeline : ReceiveActor
     private void OnRequestPipelineOutput(RequestPipelineOutput msg)
     {
         _pipelineOutputSource!
-            .RunWith(StreamRefs.SourceRef<PipelineEvent>(), _mat!)
+            .RunWith(StreamRefs.SourceRef<PipelineEvent>(), _mat)
             .PipeTo(Sender, Self,
                 sourceRef => new RequestPipelineOutputCompleted(msg.RequestId, sourceRef),
                 ex => new RequestPipelineOutputFailed(msg.RequestId, ex));
@@ -112,7 +106,8 @@ public sealed class ForecastPipeline : ReceiveActor
                     Telemetry.EnrichmentDuration.Record(sw.Elapsed.TotalSeconds);
                     foreach (var evt in events)
                     {
-                        Telemetry.PipelineEvents.Add(1, new KeyValuePair<string, object?>("event_type", evt.GetType().Name));
+                        Telemetry.PipelineEvents.Add(1,
+                            new KeyValuePair<string, object?>("event_type", evt.GetType().Name));
                     }
 
                     return events;

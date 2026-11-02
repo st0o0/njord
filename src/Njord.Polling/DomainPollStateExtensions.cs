@@ -3,8 +3,6 @@ using Njord.Messages.Polling;
 
 namespace Njord.Polling;
 
-// Cycle learning of one domain: Discovery polls every discovery interval and measures the time between hash
-// changes; two consistent intervals make the cycle Steady, five misses in Steady send it back to Discovery.
 public static class DomainPollStateExtensions
 {
     private static readonly TimeSpan MaxRetryBackoff = TimeSpan.FromMinutes(15);
@@ -43,7 +41,6 @@ public static class DomainPollStateExtensions
             : domain with { MissCount = misses, NextPollAt = now + RetryBackoff(misses) };
     }
 
-    // The next poll is planned from the moment the last change was seen.
     public static DomainPollState TransitionToSteady(this DomainPollState domain, TimeSpan cycle)
     {
         var anchor = domain.LastChanged ?? domain.NextPollAt ?? DateTimeOffset.MinValue;
