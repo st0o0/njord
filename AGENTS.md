@@ -23,7 +23,7 @@ src/
     Marine/             #   MarinePoint, MarineParams
     Seasonal/           #   SeasonalPoint, SeasonalParams, SeasonalWeeklyPoint, SeasonalWeeklyParams
     ActorKeys.cs        #   marker interfaces for every resolvable actor
-    Actors/             #   IActorRegistration, StreamSupervision, actor marker interfaces (ShardMessageExtractor in Polling)
+    Actors/             #   SupervisorDefaults, StreamSupervision, actor marker interfaces (ShardMessageExtractor in Polling)
     Domain/             #   FeatureDescriptor, FeatureCategory, FeatureContext,
                         #   FeatureInputs (typed inputs), DomainRequirements,
                         #   LocationForecast, RingBuffer, ForecastQueries, OutputKind
@@ -245,9 +245,11 @@ Full-stack verification is the `e2e-test` skill (`.claude/skills/e2e-test/SKILL.
 
 Rules apply to production code.
 
-- **Setups** are `XxxSetup : ISetup<T>` (Terp.Hosting), applied explicitly in order in
-  `Program.cs`; `AkkaSetup : ActorSystemSetup` (Terp.Akka) is the single actor
-  system of the host and adds all actors in `BuildSystem`.
+- **Setups** are `XxxSetup : ISetup<T>` (Terp.Hosting), chained via `builder.Setups().Add<T>()`
+  (SetupChain) in `Program.cs`; `AkkaSetup : ActorSystemSetup` (Terp.Akka.Hosting) is the single
+  actor system of the host. Each library registers its actors via
+  `services.AddActorRegistration<T>()` (`Terp.Akka.Hosting.IActorRegistration`);
+  `AkkaSetup.BuildSystem` calls `builder.ApplyRegistrations(serviceProvider)` to apply them all.
 - **No `ContinueWith`.** Use `PipeTo` with `success:` and `failure:`. The mappers are pure; log in the
   result handler, not in the mapper.
   ```csharp

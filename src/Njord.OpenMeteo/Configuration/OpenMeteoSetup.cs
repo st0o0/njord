@@ -18,6 +18,7 @@ using Njord.OpenMeteo.Http;
 using Njord.OpenMeteo.Marine;
 using Njord.OpenMeteo.Seasonal;
 using Terp.Akka;
+using Terp.Akka.Hosting;
 using Terp.Hosting;
 
 namespace Njord.OpenMeteo.Configuration;
@@ -46,7 +47,7 @@ public sealed class OpenMeteoSetup : ISetup<IServiceCollection>
         services.AddSingleton<IReadOnlyDictionary<DomainKind, IDomainClient>>(provider =>
             provider.GetServices<IDomainClient>().ToDictionary(c => c.Domain));
 
-        services.AddSingleton<IActorRegistration>(new GatewayActorRegistration());
+        services.AddActorRegistration<GatewayActorRegistration>();
     }
 
     private static void AddDomainClient<TClient>(IServiceCollection services, string baseAddress)
@@ -77,14 +78,15 @@ public sealed class OpenMeteoSetup : ISetup<IServiceCollection>
         services.AddTransient<IDomainClient>(provider => provider.GetRequiredService<TClient>());
     }
 
-    private sealed class GatewayActorRegistration : IActorRegistration
+}
+
+internal sealed class GatewayActorRegistration : IActorRegistration
+{
+    public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
-        {
-            builder.WithSingleton<IForecastGateway>("gateway-supervisor",
-                (_, _, resolver) => resolver.Props<OpenMeteoGateway>().BackoffOnFailure("gateway",
-                    SupervisorDefaults.MinBackoff, SupervisorDefaults.MaxBackoff, SupervisorDefaults.RandomFactor,
-                    config => config.WithMaxNrOfRetries(-1)));
-        }
+        builder.WithSingleton<IForecastGateway>("gateway-supervisor",
+            (_, _, resolver) => resolver.Props<OpenMeteoGateway>().BackoffOnFailure("gateway",
+                SupervisorDefaults.MinBackoff, SupervisorDefaults.MaxBackoff, SupervisorDefaults.RandomFactor,
+                config => config.WithMaxNrOfRetries(-1)));
     }
 }

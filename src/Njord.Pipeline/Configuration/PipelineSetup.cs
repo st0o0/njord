@@ -7,6 +7,7 @@ using Njord.Core.Actors;
 using Njord.Pipeline.Health;
 using Njord.Pipeline.Stream;
 using Terp.Akka;
+using Terp.Akka.Hosting;
 using Terp.Hosting;
 
 namespace Njord.Pipeline.Configuration;
@@ -16,18 +17,17 @@ public sealed class PipelineSetup : ISetup<IServiceCollection>
     public void Setup(IServiceCollection services, SetupContext context)
     {
         services.AddHealthChecks().AddCheck<PipelineHealthCheck>("pipeline", failureStatus: HealthStatus.Unhealthy);
-
-        services.AddSingleton<IActorRegistration>(new PipelineActorRegistration());
+        services.AddActorRegistration<PipelineActorRegistration>();
     }
+}
 
-    private sealed class PipelineActorRegistration : IActorRegistration
+internal sealed class PipelineActorRegistration : IActorRegistration
+{
+    public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
-        {
-            builder.WithSingleton<IForecastPipeline>("pipeline-supervisor",
-                (_, _, resolver) => resolver.Props<ForecastPipeline>().BackoffOnFailure("pipeline",
-                    SupervisorDefaults.MinBackoff, SupervisorDefaults.MaxBackoff, SupervisorDefaults.RandomFactor,
-                    config => config.WithMaxNrOfRetries(-1)));
-        }
+        builder.WithSingleton<IForecastPipeline>("pipeline-supervisor",
+            (_, _, resolver) => resolver.Props<ForecastPipeline>().BackoffOnFailure("pipeline",
+                SupervisorDefaults.MinBackoff, SupervisorDefaults.MaxBackoff, SupervisorDefaults.RandomFactor,
+                config => config.WithMaxNrOfRetries(-1)));
     }
 }

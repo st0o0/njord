@@ -6,6 +6,7 @@ using Njord.Budget.Health;
 using Njord.Core;
 using Njord.Core.Actors;
 using Terp.Akka;
+using Terp.Akka.Hosting;
 using Terp.Hosting;
 
 namespace Njord.Budget.Configuration;
@@ -14,18 +15,18 @@ public sealed class BudgetSetup : ISetup<IServiceCollection>
 {
     public void Setup(IServiceCollection services, SetupContext context)
     {
-        services.AddSingleton<IActorRegistration>(new BudgetActorRegistration());
+        services.AddActorRegistration<BudgetActorRegistration>();
         services.AddHealthChecks().AddCheck<BudgetHealthCheck>("budget", failureStatus: HealthStatus.Unhealthy);
     }
+}
 
-    private sealed class BudgetActorRegistration : IActorRegistration
+internal sealed class BudgetActorRegistration : IActorRegistration
+{
+    public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
-        {
-            builder.WithSingleton<IBudgetTracker>("budget-tracker-supervisor",
-                (_, _, resolver) => resolver.Props<BudgetTracker>().BackoffOnFailure("gateway",
-                    SupervisorDefaults.MinBackoff, SupervisorDefaults.MaxBackoff, SupervisorDefaults.RandomFactor,
-                    config => config.WithMaxNrOfRetries(-1)));
-        }
+        builder.WithSingleton<IBudgetTracker>("budget-tracker-supervisor",
+            (_, _, resolver) => resolver.Props<BudgetTracker>().BackoffOnFailure("gateway",
+                SupervisorDefaults.MinBackoff, SupervisorDefaults.MaxBackoff, SupervisorDefaults.RandomFactor,
+                config => config.WithMaxNrOfRetries(-1)));
     }
 }
