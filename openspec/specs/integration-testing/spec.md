@@ -4,7 +4,7 @@
 TBD - created by archiving change integration-tests-real-infrastructure. Update Purpose after archive.
 ## Requirements
 ### Requirement: The real host is started in integration tests
-`Njord.IntegrationTests` SHALL start the production composition (`NjordHost`, the same call `Program.cs` makes) on a test server with test configuration: a SQLite journal in a unique temporary directory, MQTT disabled unless the test needs it, a fake Open-Meteo client, and fixed locations and models. It SHALL assert the health endpoints and the metrics endpoint of the running host.
+`Njord.IntegrationTests` SHALL start the production composition (the same setups `Program.cs` applies) on a test server with test configuration: a SQLite journal in a unique temporary directory, a fake Open-Meteo client, and fixed locations and models. The test host SHALL inline the setup chain from `Program.cs` and override domain clients with fakes between the configure and build steps. It SHALL assert the health endpoints and the metrics endpoint of the running host.
 
 #### Scenario: Host becomes ready
 - **WHEN** the host starts with valid test configuration and one poll cycle has completed through the fake client

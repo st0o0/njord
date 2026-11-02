@@ -17,7 +17,7 @@ The system SHALL define an `IActorRegistration` interface with a method that acc
 
 #### Scenario: Registration order is deterministic
 - **WHEN** multiple `IActorRegistration` implementations are registered
-- **THEN** they SHALL be invoked in the order they were registered in DI (matching the setup chain order in `NjordHost.Configure`)
+- **THEN** they SHALL be invoked in the order they were registered in DI (matching the setup chain order in `Program.cs`)
 
 ### Requirement: CoreSetup registers shared services
 The host's `CoreSetup` SHALL register `TimeProvider.System`. CoreSetup SHALL NOT register the Prometheus meter adapter or meter filter -- that responsibility belongs to `TelemetrySetup`.
@@ -149,14 +149,3 @@ retries). Clients SHALL receive their API variable lists from `IOptions<FeatureR
 #### Scenario: Meter allow-list follows the telemetry classes
 - **WHEN** a feature library declares a new `Telemetry` meter name
 - **THEN** it is exported by adding it to `TelemetrySetup.NjordMeters`
-
-### Requirement: NjordHost.Configure is a pure composition chain
-`NjordHost` SHALL expose two static methods: `Configure(WebApplicationBuilder)` returning the builder, and `Configure(WebApplication)` returning the app. `Configure(builder)` SHALL call `builder.Setup(new XxxSetup())` for each setup in the fixed order. Integration tests call `Configure(builder)`, override services, build, then call `Configure(app)`.
-
-#### Scenario: NjordHost configures services via explicit Setup calls
-- **WHEN** reading `NjordHost.Configure(builder)`
-- **THEN** it SHALL call `builder.Setup(new XxxSetup())` for each setup in order
-
-#### Scenario: Integration test hook is preserved
-- **WHEN** integration tests configure the host
-- **THEN** they call `NjordHost.Configure(builder)`, override services, call `builder.Build()`, then `NjordHost.Configure(app)` and `app.StartAsync()`

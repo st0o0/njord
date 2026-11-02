@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Structured startup using Terp setups (`ISetup<T>`): service DI registrations and Akka.NET actor system configuration are encapsulated in domain-specific setup classes, keeping Program.cs minimal.
+Structured startup using Terp setups (`ISetup<T>`): service DI registrations and Akka.NET actor system configuration are encapsulated in domain-specific setup classes, applied explicitly in `Program.cs`.
 ## Requirements
 ### Requirement: AkkaSetup configures the actor system infrastructure
 The system SHALL provide an `AkkaSetup` extending `Terp.Akka.ActorSystemSetup` that names the actor system `njord` and configures logging, SQL persistence, remoting and cluster formation. Logging SHALL use `ClearLoggers()` and `AddLoggerFactory()` without explicit log-level configuration. Persistence selection SHALL be inline: `ConnectionString` set means PostgreSQL, absent means SQLite at `DataPath`. Remoting SHALL use `localhost:2552` (hardcoded). Clustering SHALL use a single seed node at `akka.tcp://njord@localhost:2552`. Domain actors SHALL be registered via `IActorRegistration` instances resolved from DI.
@@ -38,6 +38,10 @@ The system SHALL provide an `AkkaSetup` extending `Terp.Akka.ActorSystemSetup` t
 #### Scenario: Logging uses LoggerFactory without explicit Akka log level
 - **WHEN** the actor system setup configures logging
 - **THEN** `ClearLoggers()` and `AddLoggerFactory()` are called without setting `loggers.LogLevel`
+
+#### Scenario: Setup chain is inlined in Program.cs
+- **WHEN** the host starts
+- **THEN** `Program.cs` calls `builder.Setup(new XxxSetup())` for each setup in order, then `app.Setup(new NjordApplicationSetup())`, without a shared `NjordHost` class
 
 ### Requirement: Top-level actors are cluster singletons registered per feature
 Every long-lived domain actor SHALL be registered as a cluster singleton with `WithSingleton<TMarker>` inside its feature's `IActorRegistration`; the only shard region SHALL be the poll shard region (`WithShardRegion<IPollRegion>`, region name `poll-worker`) of per-target `PollWorker` entities, orchestrated by the `PollManager` singleton.
