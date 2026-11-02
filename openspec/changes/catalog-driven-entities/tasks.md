@@ -23,16 +23,16 @@
 
 ## 5. ha-njord: Nullable model fields and _opt usage
 
-- [ ] 5.1 In `custom_components/njord/models.py`: change `pm25`, `pm10`, `ozone` in `AirQualitySampleData` from `float` to `float | None = None`. Change `wave_height`, `wave_period`, `wave_direction` in `MarineSampleData` from `float` to `float | None = None`. Change `discharge` in `FloodSampleData` from `float` to `float | None = None`. Change all non-optional numeric fields in `ForecastSampleData` (temperature, wind_speed, precipitation, etc.) to `float | None = None`.
-- [ ] 5.2 In `custom_components/njord/grpc_client.py`: change `_to_air_quality_sample`, `_to_marine_sample`, `_to_flood_sample`, `_to_forecast_sample` to use `_opt(pb, "field")` for all formerly non-optional fields.
-- [ ] 5.3 Update `tests/test_grpc_client.py` and `tests/test_models.py` for nullable fields.
+- [x] 5.1 In `custom_components/njord/models.py`: change `pm25`, `pm10`, `ozone` in `AirQualitySampleData` from `float` to `float | None = None`. Change `wave_height`, `wave_period`, `wave_direction` in `MarineSampleData` from `float` to `float | None = None`. Change `discharge` in `FloodSampleData` from `float` to `float | None = None`. Change all non-optional numeric fields in `ForecastSampleData` (temperature, wind_speed, precipitation, etc.) to `float | None = None`.
+- [x] 5.2 In `custom_components/njord/grpc_client.py`: change `_to_air_quality_sample`, `_to_marine_sample`, `_to_flood_sample`, `_to_forecast_sample` to use `_opt(pb, "field")` for all formerly non-optional fields.
+- [x] 5.3 Update `tests/test_grpc_client.py` and `tests/test_models.py` for nullable fields.
 
 ## 6. ha-njord: Catalog-driven sensor registration
 
-- [ ] 6.1 Extend `CatalogData` and `NjordLocation` in `models.py` to carry per-location resolved domain schemas (`dict[Domain, set[str]]`). Parse from proto in `_to_location` / `_to_catalog_data` in `grpc_client.py`.
-- [ ] 6.2 Store the domain schemas in `NjordCoordinatorData` (e.g. `domain_schemas: dict[tuple[str, Domain], set[str]]`). Populate during `_async_update_data` from the catalog.
-- [ ] 6.3 Rewrite `sensor.py`: replace the `DOMAIN_SENSORS` tuple with a `DOMAIN_SENSOR_REGISTRY: dict[tuple[Domain, str], DomainSensorDescription]` keyed by `(domain, field_name)`. In `_domain_sensors`, look up the location's schema fields and create sensors only for fields in both the registry and the schema.
-- [ ] 6.4 Update `tests/test_sensor.py` and `tests/test_dynamic_entities.py` for catalog-driven registration: test that sensors are not created for fields absent from the schema.
+- [x] 6.1 Extend `CatalogData` and `NjordLocation` in `models.py` to carry per-location resolved domain schemas (`dict[Domain, set[str]]`). Parse from proto in `_to_location` / `_to_catalog_data` in `grpc_client.py`.
+- [x] 6.2 Store the domain schemas in `NjordCoordinatorData` (e.g. `domain_schemas: dict[tuple[str, Domain], set[str]]`). Populate during `_async_update_data` from the catalog.
+- [x] 6.3 Rewrite `sensor.py`: replace the `DOMAIN_SENSORS` tuple with a `DOMAIN_SENSOR_REGISTRY: dict[tuple[Domain, str], DomainSensorDescription]` keyed by `(domain, field_name)`. In `_domain_sensors`, look up the location's schema fields and create sensors only for fields in both the registry and the schema.
+- [x] 6.4 Update `tests/test_sensor.py` and `tests/test_dynamic_entities.py` for catalog-driven registration: test that sensors are not created for fields absent from the schema.
 
 ## 7. Validation
 
