@@ -1,45 +1,24 @@
 # Security Policy
 
-## Supported Versions
+## Supported versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.x     | :white_check_mark: |
+The latest released image (`ghcr.io/st0o0/njord:latest`) receives security
+updates. Older tags are not maintained, so pin to a `MAJOR.MINOR` tag and update
+regularly.
 
-Only the latest release on `main` receives security fixes.
+## Reporting a vulnerability
 
-## Reporting a Vulnerability
+Please report security issues **privately** via GitHub's
+[private vulnerability reporting](https://github.com/st0o0/njord/security/advisories/new)
+(Security > Advisories > *Report a vulnerability*). Do **not** open a public
+issue for security problems.
 
-**Do not open a public issue for security vulnerabilities.**
-
-Instead, please use [GitHub Security Advisories](https://github.com/st0o0/njord/security/advisories/new) to report the vulnerability privately. This ensures the report stays confidential until a fix is available.
-
-If you prefer email, contact the maintainer at **claude@schloots.net** with:
-
-- A description of the vulnerability
-- Steps to reproduce or a proof of concept
-- The affected version(s)
-
-You can expect an initial response within **72 hours**. Once confirmed, a fix will be prioritized and released as soon as possible.
-
-## Security Measures
-
-This project employs the following automated security practices:
-
-- **Dependency scanning**: Weekly Trivy scans on dependencies and Docker image (see `.github/workflows/security.yml`)
-- **Dependabot**: Automated dependency updates for NuGet and GitHub Actions
-- **Container hardening**: Non-root runtime user, minimal base image (`mcr.microsoft.com/dotnet/aspnet`)
-- **No secrets in code**: Configuration via environment variables; credentials are never committed
+You can expect an initial response within a few days. Once a fix is available it
+is released and the advisory is published.
 
 ## Scope
 
-njord is a self-hosted service running on the user's own infrastructure. The security scope covers:
-
-- **In scope**: code vulnerabilities, dependency issues, container security, gRPC endpoint exposure
-- **Out of scope**: Home Assistant configuration, Mosquitto broker hardening, host OS security, network-level concerns
-
-## Disclosure Policy
-
-- Confirmed vulnerabilities will be fixed in a patch release
-- A GitHub Security Advisory will be published after the fix is available
-- Credit will be given to the reporter (unless they prefer to remain anonymous)
+njord is a .NET weather intelligence service that polls the Open-Meteo API and
+serves data via gRPC. It stores no credentials beyond its own configuration.
+Vulnerabilities in .NET runtime or NuGet dependencies should be reported
+upstream; when a fix is available the image is rebuilt against it.

@@ -1,54 +1,27 @@
-<p align="center">
-  <img src="docs/public/logo.svg" width="120" alt="njord" />
-</p>
+# njord
 
-<h1 align="center">njord</h1>
+[![Release](https://img.shields.io/github/v/release/st0o0/njord?sort=semver&style=flat-square)](https://github.com/st0o0/njord/releases)
+[![GHCR](https://img.shields.io/badge/ghcr.io-st0o0%2Fnjord-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/st0o0/njord/pkgs/container/njord)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 
-<p align="center">
-  Multi-model weather intelligence for Home Assistant, powered by Open-Meteo
-</p>
-
-<p align="center">
-  <a href="https://github.com/st0o0/njord/releases"><img src="https://img.shields.io/github/v/release/st0o0/njord?style=flat-square" alt="Release" /></a>
-  <a href="https://github.com/st0o0/njord/pkgs/container/njord"><img src="https://img.shields.io/badge/ghcr.io-st0o0%2Fnjord-2496ED?style=flat-square&logo=docker&logoColor=white" alt="GHCR" /></a>
-  <a href="https://github.com/st0o0/njord/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License" /></a>
-  <img src="https://img.shields.io/badge/.NET-10-512bd4?style=flat-square" alt=".NET 10" />
-  <a href="https://njord.st0o0.net/"><img src="https://img.shields.io/badge/docs-njord.st0o0.net-2563eb?style=flat-square" alt="Docs" /></a>
-</p>
-
----
-
-The **njord weather service** is a .NET container built on
-[Akka.NET](https://getakka.net/) + Akka.Streams that polls the
-[Open-Meteo API](https://open-meteo.com/en/docs) for multiple weather models per
-location and enriches forecasts through a configurable pipeline. It serves
-consumers via gRPC.
-
-The **[Home Assistant custom integration](https://github.com/st0o0/ha-njord)**
-connects via gRPC streaming for real-time updates, creating native weather
-entities, alert sensors, activity indices, and more.
+Multi-model weather intelligence for Home Assistant. A .NET container built on [Akka.NET](https://getakka.net/) + Akka.Streams that polls the [Open-Meteo API](https://open-meteo.com/en/docs) for multiple weather models per location and enriches forecasts through a configurable pipeline. Serves consumers via gRPC. The **[Home Assistant custom integration](https://github.com/st0o0/ha-njord)** connects via gRPC streaming for real-time updates, creating native weather entities, alert sensors, activity indices, and more.
 
 ## Features
 
-- **50+ weather models.** ICON, ECMWF, GFS, UKMO, MeteoSwiss, and regional models from Open-Meteo.
-- **Multiple locations.** Configure as many locations as you need, each with its own model selection.
-- **Enrichment pipeline.** Consensus forecasts, weather alerts, derived values (Beaufort, wind chill, comfort), trend analysis, and activity indices.
-- **Hourly and daily forecasts.** Configurable horizons for hourly data, plus daily min/max, precipitation sums, sunrise/sunset.
-- **External sensor input.** Feed indoor temperature/humidity from Home Assistant sensors via gRPC to improve index calculations.
-- **Single container.** Runs on any Docker host with SQLite persistence by default, no external database needed.
+- **50+ weather models** -- ICON, ECMWF, GFS, UKMO, MeteoSwiss, and regional models from Open-Meteo
+- **Multiple locations** -- configure as many locations as you need, each with its own model selection
+- **Enrichment pipeline** -- consensus forecasts, weather alerts, derived values (Beaufort, wind chill, comfort), trend analysis, and activity indices
+- **Hourly and daily forecasts** -- configurable horizons for hourly data, plus daily min/max, precipitation sums, sunrise/sunset
+- **External sensor input** -- feed indoor temperature/humidity from Home Assistant sensors via gRPC to improve index calculations
+- **Single container** -- runs on any Docker host with SQLite persistence by default, no external database needed
 
 ## Architecture
 
-<p align="center">
-  <img src="docs/public/index.png" alt="njord architecture" />
-</p>
+![njord architecture](docs/public/index.png)
 
-## Quick Start
-
-### 1. Run njord
+## Quick start
 
 ```yaml
-# docker-compose.yml
 services:
   njord:
     image: ghcr.io/st0o0/njord:latest
@@ -70,13 +43,11 @@ volumes:
 docker compose up -d
 ```
 
-### 2. Install the HA integration
-
-See the **[ha-njord](https://github.com/st0o0/ha-njord)** repository for installation via HACS and setup instructions.
+Install the HA integration from the **[ha-njord](https://github.com/st0o0/ha-njord)** repository (HACS or manual).
 
 ## Documentation
 
-Full documentation is available at **[njord.st0o0.net](https://njord.st0o0.net/)**:
+Full reference at **[njord.st0o0.net](https://njord.st0o0.net/)**:
 
 - [Getting Started](https://njord.st0o0.net/getting-started): installation and setup
 - [Configuration](https://njord.st0o0.net/configuration/): all available options
@@ -85,24 +56,24 @@ Full documentation is available at **[njord.st0o0.net](https://njord.st0o0.net/)
 - [Architecture](https://njord.st0o0.net/architecture): system design and data flow
 - [Config Builder](https://njord.st0o0.net/builder): interactive configuration generator
 
-## Repository Structure
+## Image
 
-```
-src/                         .NET service (Akka.NET + Akka.Streams)
-protos/                      Protobuf definitions (shared with ha-njord)
-docs/                        VitePress documentation site
-```
+- **Registry:** `ghcr.io/st0o0/njord`
+- **Tags:** semantic version (`1.0.0`), `latest`
+- **Architectures:** `linux/amd64`, `linux/arm64`, `linux/arm/v7`
 
-The Home Assistant integration lives in a separate repo: **[st0o0/ha-njord](https://github.com/st0o0/ha-njord)**.
-
-## Build & Test
+## Development
 
 From `src/`:
 
 ```powershell
 dotnet build Njord.slnx
-dotnet run --project Njord.Core.Tests/Njord.Core.Tests.csproj   # xUnit v3 via MTP; one project per library (see AGENTS.md for the run-all loop)
+dotnet run --project Njord.Core.Tests/Njord.Core.Tests.csproj
 ```
+
+Tests are xUnit v3 on Microsoft Testing Platform -- run with `dotnet run`, not `dotnet test`. See AGENTS.md for the run-all loop.
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/); releases and the GHCR image are cut automatically by release-please.
 
 ## License
 
