@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in njord!
+Thanks for your interest in njörðr!
 
 ## Development
 
