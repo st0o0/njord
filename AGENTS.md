@@ -343,7 +343,7 @@ property, fill in `ApplyDefaults()`. `AddNjordOptions` auto-registers `PostConfi
 interface. Manual `PostConfigure` is reserved for derived values (`PollingOptions.Budget`), never for defaults.
 
 **Feature registration**: `AddFeature<TRule, TConfig>()` or `AddFeature<TRule, TConfig, TValidator>()` in
-`AddFeatures` -- one line per feature (registers options + IFeatureRule singleton).
+`AddFeatures` - one line per feature (registers options + IFeatureRule singleton).
 
 | Section | Class | Content |
 |---------|-------|---------|
