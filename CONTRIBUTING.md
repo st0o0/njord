@@ -11,7 +11,7 @@ dotnet build Njord.slnx
 dotnet format Njord.slnx --verify-no-changes
 ```
 
-Tests use xUnit v3 on Microsoft Testing Platform -- run with `dotnet run`, not `dotnet test`:
+Tests use xUnit v3 on Microsoft Testing Platform - run with `dotnet run`, not `dotnet test`:
 
 ```powershell
 dotnet run --project Njord.Core.Tests/Njord.Core.Tests.csproj

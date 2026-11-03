@@ -8,12 +8,12 @@ Multi-model weather intelligence for Home Assistant. A .NET container built on [
 
 ## Features
 
-- **50+ weather models** -- ICON, ECMWF, GFS, UKMO, MeteoSwiss, and regional models from Open-Meteo
-- **Multiple locations** -- configure as many locations as you need, each with its own model selection
-- **Enrichment pipeline** -- consensus forecasts, weather alerts, derived values (Beaufort, wind chill, comfort), trend analysis, and activity indices
-- **Hourly and daily forecasts** -- configurable horizons for hourly data, plus daily min/max, precipitation sums, sunrise/sunset
-- **External sensor input** -- feed indoor temperature/humidity from Home Assistant sensors via gRPC to improve index calculations
-- **Single container** -- runs on any Docker host with SQLite persistence by default, no external database needed
+- **50+ weather models** - ICON, ECMWF, GFS, UKMO, MeteoSwiss, and regional models from Open-Meteo
+- **Multiple locations** - configure as many locations as you need, each with its own model selection
+- **Enrichment pipeline** - consensus forecasts, weather alerts, derived values (Beaufort, wind chill, comfort), trend analysis, and activity indices
+- **Hourly and daily forecasts** - configurable horizons for hourly data, plus daily min/max, precipitation sums, sunrise/sunset
+- **External sensor input** - feed indoor temperature/humidity from Home Assistant sensors via gRPC to improve index calculations
+- **Single container** - runs on any Docker host with SQLite persistence by default, no external database needed
 
 ## Architecture
 
@@ -71,7 +71,7 @@ dotnet build Njord.slnx
 dotnet run --project Njord.Core.Tests/Njord.Core.Tests.csproj
 ```
 
-Tests are xUnit v3 on Microsoft Testing Platform -- run with `dotnet run`, not `dotnet test`. See AGENTS.md for the run-all loop.
+Tests are xUnit v3 on Microsoft Testing Platform - run with `dotnet run`, not `dotnet test`. See AGENTS.md for the run-all loop.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/); releases and the GHCR image are cut automatically by release-please.
 

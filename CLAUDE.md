@@ -16,13 +16,13 @@ All code, specs, docs, and communication in English.
 
 ### Project skills (njord-specific)
 
-- `njord-enrichment-feature` -- **Load before adding/changing an enrichment.**
+- `njord-enrichment-feature` - **Load before adding/changing an enrichment.**
   `FeatureRule<TInput>`, `FeatureDescriptor`, `<Name>Config`, registration, result/contract, Config Builder.
-- `njord-actor-spec` -- **Load before writing actor or persistence-record
+- `njord-actor-spec` - **Load before writing actor or persistence-record
   tests.** `Akka.Hosting.TestKit.TestKit`, in-memory persistence, `FakeTimeProvider`, Verify.
-- `e2e-test` -- Full-stack check (njord + ha-njord + Home Assistant) via Docker Compose.
+- `e2e-test` - Full-stack check (njord + ha-njord + Home Assistant) via Docker Compose.
 
-### Akka.NET skills -- when to load
+### Akka.NET skills - when to load
 
 **Always load the relevant skill before writing Akka code.** Requires the `akka-skills`
 plugin, which is not installed on every machine; the routes do not resolve without it.
