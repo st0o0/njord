@@ -35,9 +35,10 @@ BenchmarkDotNet.Artifacts/
 coverage-results/
 testresults/
 
-# Claude Code (local state only; commands and skills are versioned)
-.claude/worktrees/
-.claude/settings.local.json
+# Claude Code (skills and commands are tracked explicitly)
+.claude/*
+!.claude/skills/
+!.claude/commands/
 
 # Worktrees
 .worktrees/
