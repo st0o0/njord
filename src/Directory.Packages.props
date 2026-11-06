@@ -31,7 +31,7 @@
     <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageVersion Include="Terp" Version="0.2.0" />
     <PackageVersion Include="Terp.Akka" Version="0.2.0" />
-    <PackageVersion Include="Akka.Persistence.Sql.Hosting" Version="1.5.70" />
+    <PackageVersion Include="Akka.Persistence.Sql.Hosting" Version="1.5.73" />
     <PackageVersion Include="Akka.Streams" Version="1.5.73" />
     <PackageVersion Include="TngTech.ArchUnitNET.xUnitV3" Version="0.13.5" />
   </ItemGroup>
