@@ -1,0 +1,76 @@
+using Microsoft.Extensions.Options;
+using Njord.Features.Alerts.Thunderstorm;
+using Njord.Messages.Alerts;
+using Njord.Messages.Results.Alerts;
+using static Njord.Tests.Shared.AlertRuleFixture;
+using static Njord.Tests.Shared.FeatureRunner;
+using static Njord.Tests.Shared.LifestyleFixture;
+
+namespace Njord.Features.Tests.Alerts.Thunderstorm;
+
+public sealed class ThunderstormAlertTests
+{
+    private static ThunderstormAlert Rule()
+    {
+        var c = new ThunderstormConfig { Enabled = true };
+        c.ApplyDefaults();
+        return new(Options.Create(c));
+    }
+
+    [Fact]
+    public void Extreme_cape_and_strong_gusts_produce_red_severity()
+    {
+        var weather = Day((_, p) => p with { Cape = 3000.0, WindGusts = 26.0, Precipitation = 0.0 });
+        var result = Run(Rule(), Now, ForecastWithEnsemble(weather, EnsembleDay()));
+
+        var alert = Assert.IsType<ThunderstormAlertResult>(result);
+        Assert.Equal(AlertSeverity.Red, alert.Severity);
+    }
+
+    [Fact]
+    public void Moderate_cape_and_gusts_produce_orange_severity()
+    {
+        var weather = Day((_, p) => p with { Cape = 1600.0, WindGusts = 21.0, Precipitation = 0.0 });
+        var result = Run(Rule(), Now, ForecastWithEnsemble(weather, EnsembleDay()));
+
+        var alert = Assert.IsType<ThunderstormAlertResult>(result);
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+    }
+
+    [Fact]
+    public void Low_cape_above_threshold_with_mild_gusts_produce_yellow_severity()
+    {
+        var weather = Day((_, p) => p with { Cape = 1100.0, WindGusts = 10.0, Precipitation = 0.0 });
+        var result = Run(Rule(), Now, ForecastWithEnsemble(weather, EnsembleDay()));
+
+        var alert = Assert.IsType<ThunderstormAlertResult>(result);
+        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
+    }
+
+    [Fact]
+    public void High_cin_downgrades_severity()
+    {
+        var weather = Day((_, p) => p with { Cape = 3000.0, WindGusts = 26.0, Precipitation = 0.0, ConvectiveInhibition = 250.0 });
+        var result = Run(Rule(), Now, ForecastWithEnsemble(weather, EnsembleDay()));
+
+        var alert = Assert.IsType<ThunderstormAlertResult>(result);
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+    }
+
+    [Fact]
+    public void Cape_below_threshold_produces_null()
+    {
+        var weather = Day((_, p) => p with { Cape = 500.0, WindGusts = 10.0 });
+        Assert.Null(Run(Rule(), Now, ForecastWithEnsemble(weather, EnsembleDay())));
+    }
+
+    [Fact]
+    public void Duration_hours_reflects_the_number_of_storm_hours()
+    {
+        var weather = Day((hour, p) => p with { Cape = hour < 6 ? 1200.0 : 500.0, WindGusts = 10.0, Precipitation = 0.0 });
+        var result = Run(Rule(), Now, ForecastWithEnsemble(weather, EnsembleDay()));
+
+        var alert = Assert.IsType<ThunderstormAlertResult>(result);
+        Assert.Equal(6, alert.DurationHours);
+    }
+}

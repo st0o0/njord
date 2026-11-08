@@ -46,4 +46,39 @@ public sealed class VentilationWindowTests
     {
         Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
     }
+
+    [Fact]
+    public void High_pollen_blocks_the_window()
+    {
+        var air = CleanAir(shape: (_, point) => point with { BirchPollen = 25.0 });
+        Assert.Null(Run(Feature(), Now, Combined(Day(), air)));
+    }
+
+    [Fact]
+    public void Cold_temperature_blocks_the_window()
+    {
+        var weather = Uniform(p => p with { Temperature = 10.0 });
+        Assert.Null(Run(Feature(), Now, Combined(weather, CleanAir())));
+    }
+
+    [Fact]
+    public void Hot_temperature_blocks_the_window()
+    {
+        var weather = Uniform(p => p with { Temperature = 30.0 });
+        Assert.Null(Run(Feature(), Now, Combined(weather, CleanAir())));
+    }
+
+    [Fact]
+    public void Rain_blocks_the_window()
+    {
+        var weather = Uniform(p => p with { Precipitation = 0.5 });
+        Assert.Null(Run(Feature(), Now, Combined(weather, CleanAir())));
+    }
+
+    [Fact]
+    public void Mugwort_pollen_is_also_considered()
+    {
+        var air = CleanAir(shape: (_, point) => point with { Mugwort = 25.0 });
+        Assert.Null(Run(Feature(), Now, Combined(Day(), air)));
+    }
 }

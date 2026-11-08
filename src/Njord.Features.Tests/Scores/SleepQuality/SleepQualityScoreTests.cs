@@ -94,4 +94,31 @@ public sealed class SleepQualityScoreTests
     {
         Assert.Null(Run(Feature(), Now, Combined(Hourly(8), CleanAir(8))));
     }
+
+    [Fact]
+    public void High_cape_without_rain_does_not_penalize()
+    {
+        Assert.Equal(100, ScoreFor(p => p with { Cape = 1500.0, Precipitation = 0.0 }));
+    }
+
+    [Fact]
+    public void Pollen_sensitive_reduces_ventilation_window_availability()
+    {
+        var weather = Day((_, p) => p);
+        var air = CleanAir(shape: (_, p) => p with { BirchPollen = 60.0 });
+
+        var sensitive = Assert.IsType<SleepQualityScoreResult>(Run(Feature(pollenSensitive: true), Now, Combined(weather, air)));
+        var normal = Assert.IsType<SleepQualityScoreResult>(Run(Feature(pollenSensitive: false), Now, Combined(weather, air)));
+
+        Assert.True(sensitive.BestHours <= normal.BestHours, "Pollen-sensitive should have equal or fewer ventilation hours");
+    }
+
+    [Fact]
+    public void Hot_and_humid_night_with_all_penalties_scores_low()
+    {
+        var score = ScoreFor(
+            p => p with { Temperature = 26.0, Humidity = 85.0, WindGusts = 12.0 },
+            a => a with { Pm25 = 30.0 });
+        Assert.True(score <= 35, $"Expected very low score but got {score}");
+    }
 }

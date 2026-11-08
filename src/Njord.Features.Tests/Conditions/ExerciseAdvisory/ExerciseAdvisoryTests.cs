@@ -49,4 +49,39 @@ public sealed class ExerciseAdvisoryTests
     {
         Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
     }
+
+    [Fact]
+    public void High_temperature_causes_caution_with_temperature_reason()
+    {
+        var weather = Uniform(p => p with { Temperature = 34.0, Humidity = 50.0 });
+        var air = CleanAir(shape: (_, p) => p with { Pm25 = 5.0, Ozone = 40.0 });
+        var advice = Assert.IsType<ExerciseAdvisoryResult>(Run(Feature(), Now, Combined(weather, air)));
+        Assert.Contains(ExerciseFactor.Temperature, advice.Reasons);
+    }
+
+    [Fact]
+    public void High_humidity_contributes_to_reasons()
+    {
+        var weather = Uniform(p => p with { Temperature = 15.0, Humidity = 95.0 });
+        var air = CleanAir(shape: (_, p) => p with { Pm25 = 5.0, Ozone = 40.0 });
+        var advice = Assert.IsType<ExerciseAdvisoryResult>(Run(Feature(), Now, Combined(weather, air)));
+        Assert.Contains(ExerciseFactor.Humidity, advice.Reasons);
+    }
+
+    [Fact]
+    public void High_uv_contributes_to_reasons()
+    {
+        var weather = Uniform(p => p with { Temperature = 15.0, Humidity = 50.0, UvIndex = 10.0 });
+        var air = CleanAir(shape: (_, p) => p with { Pm25 = 5.0, Ozone = 40.0 });
+        var advice = Assert.IsType<ExerciseAdvisoryResult>(Run(Feature(), Now, Combined(weather, air)));
+        Assert.Contains(ExerciseFactor.Uv, advice.Reasons);
+    }
+
+    [Fact]
+    public void Moderate_pollution_results_in_caution()
+    {
+        var air = CleanAir(shape: (_, p) => p with { Pm25 = 40.0, Ozone = 130.0 });
+        var advice = Assert.IsType<ExerciseAdvisoryResult>(Run(Feature(), Now, Combined(Day(), air)));
+        Assert.Equal(ExerciseLevel.Caution, advice.Level);
+    }
 }
