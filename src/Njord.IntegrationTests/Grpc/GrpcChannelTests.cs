@@ -71,10 +71,10 @@ public sealed class GrpcChannelTests : IAsyncLifetime
         var ct = TestContext.Current.CancellationToken;
         var weather = new WeatherService.WeatherServiceClient(Host.Channel);
         var ops = new OpsService.OpsServiceClient(Host.Channel);
-        using var call = weather.StreamDomainData(new StreamDomainDataRequest { Location = "luzern" }, cancellationToken: ct);
 
         await Eventually.AssertAsync(async () =>
         {
+            using var call = weather.StreamDomainData(new StreamDomainDataRequest { Location = "luzern" }, cancellationToken: ct);
             var triggered = await ops.TriggerPollAsync(new TriggerPollRequest { Location = "luzern" }, cancellationToken: ct);
             Assert.Equal(1, triggered.TriggeredCount);
             using var next = CancellationTokenSource.CreateLinkedTokenSource(ct);
