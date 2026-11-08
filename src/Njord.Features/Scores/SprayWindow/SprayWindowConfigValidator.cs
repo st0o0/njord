@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
+using Terp.Options;
 
 namespace Njord.Features.Scores.SprayWindow;
 
@@ -7,22 +8,15 @@ public sealed class SprayWindowConfigValidator : IValidateOptions<SprayWindowCon
 {
     public ValidateOptionsResult Validate(string? name, SprayWindowConfig options)
     {
-        var section = IConfigSection.SectionOf<SprayWindowConfig>();
-        var failures = new List<string>();
+        var failures = new ValidationFailures(IConfigSection.SectionOf<SprayWindowConfig>());
 
-        if (options.MaxWindSpeed <= 0)
-            failures.Add($"{section}:MaxWindSpeed must be positive, got {options.MaxWindSpeed}.");
-        if (options.RainFreeHours < 1)
-            failures.Add($"{section}:RainFreeHours must be at least 1, got {options.RainFreeHours}.");
-        if (options.MinTemp >= options.MaxTemp)
-            failures.Add($"{section}:MinTemp must be less than MaxTemp, got {options.MinTemp} >= {options.MaxTemp}.");
-        if (options.MinWindowScore < 1)
-            failures.Add($"{section}:MinWindowScore must be at least 1, got {options.MinWindowScore}.");
-        if (options.MinWindowHours < 1)
-            failures.Add($"{section}:MinWindowHours must be at least 1, got {options.MinWindowHours}.");
-        if (options.MaxWindows < 1)
-            failures.Add($"{section}:MaxWindows must be at least 1, got {options.MaxWindows}.");
+        failures.Require(options.MaxWindSpeed > 0, $"MaxWindSpeed must be positive, got {options.MaxWindSpeed}.");
+        failures.Require(options.RainFreeHours >= 1, $"RainFreeHours must be at least 1, got {options.RainFreeHours}.");
+        failures.Require(options.MinTemp < options.MaxTemp, $"MinTemp must be less than MaxTemp, got {options.MinTemp} >= {options.MaxTemp}.");
+        failures.Require(options.MinWindowScore >= 1, $"MinWindowScore must be at least 1, got {options.MinWindowScore}.");
+        failures.Require(options.MinWindowHours >= 1, $"MinWindowHours must be at least 1, got {options.MinWindowHours}.");
+        failures.Require(options.MaxWindows >= 1, $"MaxWindows must be at least 1, got {options.MaxWindows}.");
 
-        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+        return failures.ToResult();
     }
 }

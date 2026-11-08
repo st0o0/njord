@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
+using Terp.Options;
 
 namespace Njord.Features.Alerts.CoastalFlood;
 
@@ -7,24 +8,12 @@ public sealed class CoastalFloodConfigValidator : IValidateOptions<CoastalFloodC
 {
     public ValidateOptionsResult Validate(string? name, CoastalFloodConfig options)
     {
-        var section = IConfigSection.SectionOf<CoastalFloodConfig>();
-        var failures = new List<string>();
+        var failures = new ValidationFailures(IConfigSection.SectionOf<CoastalFloodConfig>());
 
-        if (options.SeaLevelThresholdM <= 0)
-        {
-            failures.Add($"{section}:SeaLevelThresholdM must be positive, got {options.SeaLevelThresholdM}.");
-        }
+        failures.Require(options.SeaLevelThresholdM > 0, $"SeaLevelThresholdM must be positive, got {options.SeaLevelThresholdM}.");
+        failures.Require(options.WaveHeightThresholdM > 0, $"WaveHeightThresholdM must be positive, got {options.WaveHeightThresholdM}.");
+        failures.Require(options.WindSpeedThreshold > 0, $"WindSpeedThreshold must be positive, got {options.WindSpeedThreshold}.");
 
-        if (options.WaveHeightThresholdM <= 0)
-        {
-            failures.Add($"{section}:WaveHeightThresholdM must be positive, got {options.WaveHeightThresholdM}.");
-        }
-
-        if (options.WindSpeedThreshold <= 0)
-        {
-            failures.Add($"{section}:WindSpeedThreshold must be positive, got {options.WindSpeedThreshold}.");
-        }
-
-        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+        return failures.ToResult();
     }
 }

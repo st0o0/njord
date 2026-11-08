@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
+using Terp.Options;
 
 namespace Njord.Polling.Configuration;
 
@@ -12,17 +13,10 @@ public sealed class PollingOptionsValidator(
 {
     public ValidateOptionsResult Validate(string? name, PollingOptions options)
     {
-        var failures = new List<string>();
+        var failures = new ValidationFailures();
 
-        if (options.PollInterval <= TimeSpan.Zero)
-        {
-            failures.Add("PollInterval must be positive.");
-        }
-
-        if (options.DiscoveryInterval <= TimeSpan.Zero)
-        {
-            failures.Add("DiscoveryInterval must be positive.");
-        }
+        failures.Require(options.PollInterval > TimeSpan.Zero, "PollInterval must be positive.");
+        failures.Require(options.DiscoveryInterval > TimeSpan.Zero, "DiscoveryInterval must be positive.");
 
         if (options.BudgetOverride is { } budget && (budget.RequestsPerMonth <= 0 || budget.RequestsPerMinute <= 0))
         {
@@ -36,9 +30,7 @@ public sealed class PollingOptionsValidator(
             failures.Add(violation);
         }
 
-        return failures.Count > 0
-            ? ValidateOptionsResult.Fail(failures)
-            : ValidateOptionsResult.Success;
+        return failures.ToResult();
     }
 
     // A scope that fails its own validation is reported by NjordOptionsValidator instead of throwing here.

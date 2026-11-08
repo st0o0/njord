@@ -3,7 +3,6 @@
 ## Purpose
 
 Keeps options validators lean: they reuse authoritative calculations (such as `BudgetGuard`) instead of recomputing them, and share a helper for repeated range checks.
-
 ## Requirements
 ### Requirement: Validators reuse authoritative calculations instead of recomputing them
 When an `IValidateOptions<T>` implementation needs a projected value that another
@@ -22,6 +21,8 @@ shape (e.g. several `0.0-5.0` sensitivity properties), it SHALL use one shared
 range-validation helper called once per property, rather than repeating the comparison and
 error-message construction for each property.
 
+`ThresholdValidation.Violation` callers SHALL pass a bare property name as the path argument when the calling validator uses `ValidationFailures` with a section prefix. The helper itself is unchanged; only the call sites adjust.
+
 #### Scenario: Index preference sensitivities share one range check
 - **WHEN** `IndexOptionsValidator` validates `HeatSensitivity`, `HumiditySensitivity`,
   `WindSensitivity`, and `RainSensitivity`
@@ -34,6 +35,10 @@ error-message construction for each property.
 - **THEN** the validation result (success/failure and the set of error messages) is
   identical to before the refactor, except for any formula-discrepancy resolution
   explicitly documented in the change's design.md
+
+#### Scenario: ThresholdValidation path argument is bare when ValidationFailures prefixes
+- **WHEN** a validator constructs `ValidationFailures` with a section prefix and calls `ThresholdValidation.Violation`
+- **THEN** the path argument SHALL be the bare property name (e.g. `"Thresholds"`) so the section appears exactly once in the final message
 
 ### Requirement: Domain options validators live beside their option classes
 

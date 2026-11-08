@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
+using Terp.Options;
 
 namespace Njord.Features.Alerts.Fog;
 
@@ -7,24 +8,16 @@ public sealed class FogConfigValidator : IValidateOptions<FogConfig>
 {
     public ValidateOptionsResult Validate(string? name, FogConfig options)
     {
-        var section = IConfigSection.SectionOf<FogConfig>();
-        var failures = new List<string>();
+        var failures = new ValidationFailures(IConfigSection.SectionOf<FogConfig>());
 
-        if (options.WindowHours < 1)
-        {
-            failures.Add($"{section}:WindowHours must be at least 1, got {options.WindowHours}.");
-        }
-
-        if (options.PersistentHours < 1)
-        {
-            failures.Add($"{section}:PersistentHours must be at least 1, got {options.PersistentHours}.");
-        }
+        failures.Require(options.WindowHours >= 1, $"WindowHours must be at least 1, got {options.WindowHours}.");
+        failures.Require(options.PersistentHours >= 1, $"PersistentHours must be at least 1, got {options.PersistentHours}.");
 
         if (options.PersistentHours > options.WindowHours)
         {
-            failures.Add($"{section}:PersistentHours ({options.PersistentHours}) must not exceed WindowHours ({options.WindowHours}).");
+            failures.Add($"PersistentHours ({options.PersistentHours}) must not exceed WindowHours ({options.WindowHours}).");
         }
 
-        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+        return failures.ToResult();
     }
 }

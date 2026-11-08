@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
+using Terp.Options;
 
 namespace Njord.Features.Conditions.SoilMoisture;
 
@@ -7,24 +8,13 @@ public sealed class SoilMoistureConfigValidator : IValidateOptions<SoilMoistureC
 {
     public ValidateOptionsResult Validate(string? name, SoilMoistureConfig options)
     {
-        var section = IConfigSection.SectionOf<SoilMoistureConfig>();
-        var failures = new List<string>();
+        var failures = new ValidationFailures(IConfigSection.SectionOf<SoilMoistureConfig>());
 
-        if (options.DryThreshold <= 0)
-        {
-            failures.Add($"{section}:DryThreshold must be positive, got {options.DryThreshold}.");
-        }
-
-        if (options.WetThreshold <= 0)
-        {
-            failures.Add($"{section}:WetThreshold must be positive, got {options.WetThreshold}.");
-        }
-
+        failures.Require(options.DryThreshold > 0, $"DryThreshold must be positive, got {options.DryThreshold}.");
+        failures.Require(options.WetThreshold > 0, $"WetThreshold must be positive, got {options.WetThreshold}.");
         if (options.DryThreshold >= options.WetThreshold)
-        {
-            failures.Add($"{section}:DryThreshold ({options.DryThreshold}) must be less than WetThreshold ({options.WetThreshold}).");
-        }
+            failures.Add($"DryThreshold ({options.DryThreshold}) must be less than WetThreshold ({options.WetThreshold}).");
 
-        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+        return failures.ToResult();
     }
 }
