@@ -34,6 +34,8 @@ public sealed class SeverityThresholdsTests
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Yellow, Hot.Classify(30).Severity),
             () => Assert.Equal(AlertSeverity.None, Hot.Classify(30, strict: true).Severity),
+            () => Assert.Equal(AlertSeverity.Yellow, Cold.Classify(0).Severity),
+            () => Assert.Equal(AlertSeverity.None, Cold.Classify(0, strict: true).Severity),
             () => Assert.True(Cold.CrossesAdvisory(0)),
             () => Assert.False(Cold.CrossesAdvisory(0, strict: true)));
     }

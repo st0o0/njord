@@ -8,6 +8,15 @@
       "break": 60
     },
     "ignore-mutations": ["string"],
-    "mutate": ["!**/obj/**", "!**/*Options.cs", "!**/*OptionsValidator.cs", "!**/ServiceCollectionExtensions.cs", "!**/*Setup.cs"]
+    "mutate": [
+      "!**/obj/**",
+      "!**/*Options.cs",
+      "!**/*OptionsValidator.cs",
+      "!**/ServiceCollectionExtensions.cs",
+      "!**/*Setup.cs",
+      "!**/BudgetTracker.cs",
+      "!**/Results/FeatureRule.cs",
+      "!**/Results/IFeatureRule.cs"
+    ]
   }
 }

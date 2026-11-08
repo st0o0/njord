@@ -43,4 +43,14 @@ public sealed class BudgetHealthCheckTests
             () => Assert.Equal(HealthStatus.Unhealthy, result.Status),
             () => Assert.Equal("Daily request budget exhausted (10000/10000)", result.Description));
     }
+
+    [Fact]
+    public void Less_than_the_configured_percentage_of_the_day_remaining_is_degraded()
+    {
+        var result = BudgetHealthCheck.Evaluate(new BudgetStatusResult(100, 9_600, 300_000, 10_000), 5);
+
+        Assert.Multiple(
+            () => Assert.Equal(HealthStatus.Degraded, result.Status),
+            () => Assert.Equal("Daily request budget low (4.0% remaining)", result.Description));
+    }
 }
