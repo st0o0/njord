@@ -67,4 +67,44 @@ public sealed class BbqScoreTests
             () => Assert.False(Feature(false).Enabled),
             () => Assert.True(Feature().Enabled));
     }
+
+    [Fact]
+    public void Night_hours_score_zero()
+    {
+        var weather = Uniform(p => p with { IsDay = 0.0, Temperature = 22.0, WindSpeed = 2.0, PrecipitationProbability = 0.0, CloudCover = 0.0 });
+        var score = Assert.IsType<BbqScoreResult>(Run(Feature(), Now, ForecastOnly(weather)));
+        Assert.Equal(0, score.Score);
+    }
+
+    [Fact]
+    public void Rain_scores_zero()
+    {
+        var weather = Uniform(p => p with { Temperature = 22.0, WindSpeed = 2.0, PrecipitationProbability = 0.0, CloudCover = 0.0, Precipitation = 1.0 });
+        var score = Assert.IsType<BbqScoreResult>(Run(Feature(), Now, ForecastOnly(weather)));
+        Assert.Equal(0, score.Score);
+    }
+
+    [Fact]
+    public void High_wind_reduces_score()
+    {
+        var weather = Uniform(p => p with { Temperature = 22.0, WindSpeed = 9.0, PrecipitationProbability = 0.0, CloudCover = 0.0 });
+        var score = Assert.IsType<BbqScoreResult>(Run(Feature(), Now, ForecastOnly(weather)));
+        Assert.True(score.Score < 90, $"Expected reduced score with high wind but got {score.Score}");
+    }
+
+    [Fact]
+    public void Cold_temperature_reduces_score()
+    {
+        var weather = Uniform(p => p with { Temperature = 12.0, WindSpeed = 2.0, PrecipitationProbability = 0.0, CloudCover = 0.0 });
+        var score = Assert.IsType<BbqScoreResult>(Run(Feature(), Now, ForecastOnly(weather)));
+        Assert.True(score.Score < 90, $"Expected reduced score with cold temp but got {score.Score}");
+    }
+
+    [Fact]
+    public void High_rain_probability_reduces_score()
+    {
+        var weather = Uniform(p => p with { Temperature = 22.0, WindSpeed = 2.0, PrecipitationProbability = 50.0, CloudCover = 0.0 });
+        var score = Assert.IsType<BbqScoreResult>(Run(Feature(), Now, ForecastOnly(weather)));
+        Assert.True(score.Score < 80, $"Expected reduced score with rain probability but got {score.Score}");
+    }
 }

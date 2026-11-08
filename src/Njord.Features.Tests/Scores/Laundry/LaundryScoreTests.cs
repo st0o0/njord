@@ -53,4 +53,86 @@ public sealed class LaundryScoreTests
             () => Assert.Equal(0, score.Score),
             () => Assert.Equal(0, score.BestHours));
     }
+
+    [Fact]
+    public void Night_hours_score_zero()
+    {
+        var weather = Uniform(p => p with
+        {
+            IsDay = 0.0,
+            Temperature = 25.0,
+            Humidity = 40.0,
+            WindSpeed = 5.0,
+            CloudCover = 0.0,
+        });
+
+        var score = Assert.IsType<LaundryScoreResult>(Run(Feature(), Now, ForecastOnly(weather)));
+
+        Assert.Equal(0, score.Score);
+    }
+
+    [Fact]
+    public void High_humidity_reduces_score()
+    {
+        var weather = Uniform(p => p with
+        {
+            Temperature = 25.0,
+            Humidity = 85.0,
+            WindSpeed = 5.0,
+            CloudCover = 0.0,
+        });
+
+        var score = Assert.IsType<LaundryScoreResult>(Run(Feature(), Now, ForecastOnly(weather)));
+
+        Assert.True(score.Score < 80, $"Expected reduced score with high humidity but got {score.Score}");
+    }
+
+    [Fact]
+    public void Cold_temperature_reduces_score()
+    {
+        var weather = Uniform(p => p with
+        {
+            Temperature = 5.0,
+            Humidity = 40.0,
+            WindSpeed = 5.0,
+            CloudCover = 0.0,
+        });
+
+        var score = Assert.IsType<LaundryScoreResult>(Run(Feature(), Now, ForecastOnly(weather)));
+
+        Assert.True(score.Score < 100, $"Expected reduced score with cold temperature but got {score.Score}");
+    }
+
+    [Fact]
+    public void Sunshine_duration_boosts_score_over_cloud_cover()
+    {
+        var weather = Uniform(p => p with
+        {
+            Temperature = 25.0,
+            Humidity = 40.0,
+            WindSpeed = 5.0,
+            CloudCover = 80.0,
+            SunshineDuration = 3600.0,
+        });
+
+        var score = Assert.IsType<LaundryScoreResult>(Run(Feature(), Now, ForecastOnly(weather)));
+
+        Assert.True(score.Score >= 90, $"Expected high score with sunshine duration but got {score.Score}");
+    }
+
+    [Fact]
+    public void Windows_are_reported()
+    {
+        var weather = Day((hour, p) => (hour < 6 ? p with { Precipitation = 2.0 } : p) with
+        {
+            Temperature = 25.0,
+            Humidity = 40.0,
+            WindSpeed = 5.0,
+            CloudCover = 0.0,
+        });
+
+        var score = Assert.IsType<LaundryScoreResult>(Run(Feature(), Now, ForecastOnly(weather)));
+
+        Assert.NotEmpty(score.Windows);
+    }
 }

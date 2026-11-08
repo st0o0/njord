@@ -121,4 +121,28 @@ public sealed class AsthmaRiskScoreTests
     {
         Assert.Null(Run(Feature(), Now, Combined(Uniform(Calm), CleanAir(0))));
     }
+
+    [Fact]
+    public void Cold_and_rapid_change_stack_multiplicatively()
+    {
+        var forecast = Day((hour, p) => Calm(p) with { Temperature = hour < 3 ? 2.0 : 12.0, Humidity = 85.0 });
+        var quality = CleanAir(shape: (_, p) => Clear(p) with { Pm25 = 50.0, Ozone = 100.0 });
+
+        var score = Assert.IsType<AsthmaRiskScoreResult>(Run(Feature(), Now, Combined(forecast, quality)));
+        Assert.True(score.Score >= 50, $"Expected high stacked risk but got {score.Score}");
+    }
+
+    [Fact]
+    public void Dry_low_humidity_raises_score()
+    {
+        Assert.True(ScoreFor(p => p with { Humidity = 20.0 }, a => a with { Pm25 = 40.0 }) >
+            ScoreFor(p => p with { Humidity = 50.0 }, a => a with { Pm25 = 40.0 }));
+    }
+
+    [Fact]
+    public void High_pollen_outweighs_clean_pm25()
+    {
+        var score = ScoreFor(p => p, a => a with { GrassPollen = 100.0 });
+        Assert.Equal(20, score);
+    }
 }

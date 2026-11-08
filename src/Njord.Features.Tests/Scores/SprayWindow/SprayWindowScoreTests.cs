@@ -112,4 +112,28 @@ public sealed class SprayWindowScoreTests
 
         Assert.Equal(95, score.Score);
     }
+
+    [Fact]
+    public void Hot_temperature_drops_the_score()
+    {
+        var score = Assert.IsType<SprayWindowScoreResult>(Run(Feature(), Now, ForecastOnly(Uniform(p => Calm(p) with { Temperature = 45.0 }))));
+
+        Assert.True(score.Score <= 80, $"Expected reduced score at 45C but got {score.Score}");
+    }
+
+    [Fact]
+    public void Extreme_humidity_drops_the_score()
+    {
+        var score = Assert.IsType<SprayWindowScoreResult>(Run(Feature(), Now, ForecastOnly(Uniform(p => Calm(p) with { Humidity = 110.0 }))));
+
+        Assert.True(score.Score < 100, $"Expected reduced score at 110% humidity but got {score.Score}");
+    }
+
+    [Fact]
+    public void Missing_required_data_scores_zero()
+    {
+        var weather = Uniform(p => p with { WindSpeed = null, Temperature = null, Humidity = null });
+        var score = Assert.IsType<SprayWindowScoreResult>(Run(Feature(), Now, ForecastOnly(weather)));
+        Assert.Equal(0, score.Score);
+    }
 }

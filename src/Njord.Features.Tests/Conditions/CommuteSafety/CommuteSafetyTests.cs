@@ -60,4 +60,59 @@ public sealed class CommuteSafetyTests
     {
         Assert.False(Feature(enabled: false).Enabled);
     }
+
+    [Fact]
+    public void Fog_alone_calls_for_caution()
+    {
+        var weather = Uniform(p => p with
+        {
+            Temperature = 8.0,
+            DewPoint = 7.0,
+            Humidity = 96.0,
+            Precipitation = 0.0,
+            WindSpeed = 2.0,
+        });
+
+        var safety = Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, ForecastOnly(weather)));
+
+        Assert.Multiple(
+            () => Assert.Equal(CommuteLevel.Caution, safety.Level),
+            () => Assert.Contains(CommuteHazard.Fog, safety.Hazards));
+    }
+
+    [Fact]
+    public void Heavy_rain_alone_calls_for_caution()
+    {
+        var weather = Uniform(p => p with
+        {
+            Temperature = 10.0,
+            DewPoint = 5.0,
+            Humidity = 70.0,
+            Precipitation = 6.0,
+            WindSpeed = 2.0,
+        });
+
+        var safety = Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, ForecastOnly(weather)));
+
+        Assert.Multiple(
+            () => Assert.Equal(CommuteLevel.Caution, safety.Level),
+            () => Assert.Contains(CommuteHazard.HeavyRain, safety.Hazards));
+    }
+
+    [Fact]
+    public void Multiple_non_ice_hazards_are_dangerous()
+    {
+        var weather = Uniform(p => p with
+        {
+            Temperature = 8.0,
+            DewPoint = 7.0,
+            Humidity = 96.0,
+            Precipitation = 6.0,
+            WindSpeed = 2.0,
+        });
+
+        var safety = Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, ForecastOnly(weather)));
+
+        Assert.Equal(CommuteLevel.Dangerous, safety.Level);
+    }
 }

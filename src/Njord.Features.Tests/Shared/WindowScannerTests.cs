@@ -78,4 +78,45 @@ public sealed class WindowScannerTests
             () => Assert.Equal(Start.AddHours(2), window.Limiting.From),
             () => Assert.Equal(3.5, window.Limiting.Value));
     }
+
+    [Fact]
+    public void Run_at_end_of_input_has_no_limiting_factor()
+    {
+        var windows = WindowScanner.Scan(Hours(10, 80, 80));
+
+        var window = Assert.Single(windows);
+        Assert.Null(window.Limiting);
+    }
+
+    [Fact]
+    public void Best_sub_window_is_chosen_within_a_run()
+    {
+        var windows = WindowScanner.Scan(Hours(51, 90, 95, 52), minHours: 2);
+
+        var window = Assert.Single(windows);
+        Assert.Equal(51, window.Score);
+        Assert.Equal(Start, window.Start);
+    }
+
+    [Fact]
+    public void Window_extends_past_min_hours_while_above_threshold()
+    {
+        var windows = WindowScanner.Scan(Hours(80, 80, 80, 80, 10), minHours: 2);
+
+        var window = Assert.Single(windows);
+        Assert.Equal(Start.AddHours(4), window.End);
+    }
+
+    [Fact]
+    public void Single_good_hour_below_min_hours_is_dropped()
+    {
+        Assert.Empty(WindowScanner.Scan(Hours(10, 80, 10), minHours: 2));
+    }
+
+    [Fact]
+    public void Custom_min_score_changes_the_threshold()
+    {
+        Assert.Empty(WindowScanner.Scan(Hours(60, 60, 60), minScore: 70, minHours: 2));
+        Assert.Single(WindowScanner.Scan(Hours(60, 60, 60), minScore: 50, minHours: 2));
+    }
 }

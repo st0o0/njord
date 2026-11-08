@@ -77,4 +77,31 @@ public sealed class AllergySeverityScoreTests
 
         Assert.Null(Run(Feature(), Now, Combined(weather, CleanAir())));
     }
+
+    [Fact]
+    public void Zero_pollen_scores_zero()
+    {
+        Assert.Equal(0, ScoreFor(
+            p => p with { WindSpeed = 2.0, Humidity = 60.0, BoundaryLayerHeight = 1500.0, Rain = 0.0 },
+            birch: 0.0));
+    }
+
+    [Fact]
+    public void Very_humid_air_dampens_more_than_moderate_humidity()
+    {
+        var moderate = ScoreFor(
+            p => p with { WindSpeed = 2.0, Humidity = 60.0, BoundaryLayerHeight = 1500.0, Rain = 0.0 });
+        var veryHumid = ScoreFor(
+            p => p with { WindSpeed = 2.0, Humidity = 85.0, BoundaryLayerHeight = 1500.0, Rain = 0.0 });
+
+        Assert.True(veryHumid < moderate, $"Very humid ({veryHumid}) should be lower than moderate ({moderate})");
+    }
+
+    [Fact]
+    public void Rain_and_humidity_combined_clamp_to_zero()
+    {
+        Assert.Equal(0, ScoreFor(
+            p => p with { WindSpeed = 2.0, Humidity = 90.0, BoundaryLayerHeight = 1500.0, Rain = 2.0 },
+            birch: 10.0));
+    }
 }
