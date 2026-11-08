@@ -12,6 +12,8 @@
       "!**/obj/**",
       "!**/*Options.cs",
       "!**/*OptionsValidator.cs",
+      "!**/*Config.cs",
+      "!**/*ConfigValidator.cs",
       "!**/ServiceCollectionExtensions.cs",
       "!**/*Setup.cs",
       "!**/BudgetTracker.cs",
