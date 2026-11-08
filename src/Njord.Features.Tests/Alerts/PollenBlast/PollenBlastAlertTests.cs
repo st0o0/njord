@@ -114,4 +114,90 @@ public sealed class PollenBlastAlertTests
         var result = Run(Rule(), Now, Forecast(rainyWeather, lowPollen), Forecast(rainyWeather, lowPollen), Forecast(wetCurrent, highPollen));
         Assert.Null(result);
     }
+
+    [Fact]
+    public void Orange_severity_when_pollen_at_50()
+    {
+        var rainy = Forecast(
+            Day((_, p) => p with { Temperature = 20.0, WindSpeed = 2.0, Precipitation = 2.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 10.0, GrassPollen = 10.0 }));
+        var transition = Forecast(
+            Day((_, p) => p with { Temperature = 20.0, WindSpeed = 2.0, Precipitation = 0.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 20.0, GrassPollen = 20.0 }));
+        var current = Forecast(
+            Day((_, p) => p with { Temperature = 20.0, WindSpeed = 2.0, Precipitation = 0.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 50.0, GrassPollen = 50.0 }));
+
+        var result = Run(Rule(), Now, rainy, transition, current);
+        Assert.NotNull(result);
+        var alert = Assert.IsType<PollenBlastAlertResult>(result, exactMatch: false);
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+    }
+
+    [Fact]
+    public void Returns_null_when_pollen_delta_below_threshold()
+    {
+        var rainy = Forecast(
+            Day((_, p) => p with { Temperature = 20.0, WindSpeed = 2.0, Precipitation = 2.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 40.0, GrassPollen = 40.0 }));
+        var transition = Forecast(
+            Day((_, p) => p with { Temperature = 20.0, WindSpeed = 2.0, Precipitation = 0.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 40.0, GrassPollen = 40.0 }));
+        var current = Forecast(
+            Day((_, p) => p with { Temperature = 20.0, WindSpeed = 2.0, Precipitation = 0.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 45.0, GrassPollen = 45.0 }));
+
+        Assert.Null(Run(Rule(), Now, rainy, transition, current));
+    }
+
+    [Fact]
+    public void Returns_null_when_current_temperature_below_threshold()
+    {
+        var rainy = Forecast(
+            Day((_, p) => p with { Temperature = 20.0, WindSpeed = 2.0, Precipitation = 2.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 10.0 }));
+        var transition = Forecast(
+            Day((_, p) => p with { Temperature = 20.0, WindSpeed = 2.0, Precipitation = 0.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 10.0 }));
+        var current = Forecast(
+            Day((_, p) => p with { Temperature = 14.0, WindSpeed = 2.0, Precipitation = 0.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 80.0, GrassPollen = 80.0 }));
+
+        Assert.Null(Run(Rule(), Now, rainy, transition, current));
+    }
+
+    [Fact]
+    public void Returns_null_when_current_wind_below_threshold()
+    {
+        var rainy = Forecast(
+            Day((_, p) => p with { Temperature = 20.0, WindSpeed = 2.0, Precipitation = 2.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 10.0 }));
+        var transition = Forecast(
+            Day((_, p) => p with { Temperature = 20.0, WindSpeed = 2.0, Precipitation = 0.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 10.0 }));
+        var current = Forecast(
+            Day((_, p) => p with { Temperature = 20.0, WindSpeed = 1.0, Precipitation = 0.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 80.0, GrassPollen = 80.0 }));
+
+        Assert.Null(Run(Rule(), Now, rainy, transition, current));
+    }
+
+    [Fact]
+    public void Grass_pollen_is_used_when_higher_than_birch()
+    {
+        var rainy = Forecast(
+            Day((_, p) => p with { Temperature = 20.0, WindSpeed = 2.0, Precipitation = 2.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 5.0, GrassPollen = 5.0 }));
+        var transition = Forecast(
+            Day((_, p) => p with { Temperature = 20.0, WindSpeed = 2.0, Precipitation = 0.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 5.0, GrassPollen = 5.0 }));
+        var current = Forecast(
+            Day((_, p) => p with { Temperature = 20.0, WindSpeed = 2.0, Precipitation = 0.0 }),
+            CleanAir(24, (_, p) => p with { BirchPollen = 10.0, GrassPollen = 120.0 }));
+
+        var result = Run(Rule(), Now, rainy, transition, current);
+        Assert.NotNull(result);
+        var alert = Assert.IsType<PollenBlastAlertResult>(result, exactMatch: false);
+        Assert.Equal(AlertSeverity.Red, alert.Severity);
+    }
 }

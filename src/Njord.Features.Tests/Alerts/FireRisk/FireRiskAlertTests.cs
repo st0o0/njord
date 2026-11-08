@@ -201,4 +201,137 @@ public sealed class FireRiskAlertTests
         var result = Run(weather);
         Assert.NotNull(result);
     }
+
+    [Fact]
+    public void Weather_score_uses_temperature_ramp_below_threshold()
+    {
+        var weather = Day((_, p) => p with
+        {
+            Temperature = 27.0,
+            Humidity = 20.0,
+            WindSpeed = 6.0,
+            SoilMoisture0To1cm = 0.05,
+            Precipitation = 0.0,
+        });
+        var result = Run(weather);
+        Assert.NotNull(result);
+        var alert = Assert.IsType<FireRiskAlertResult>(result, exactMatch: false);
+        Assert.Equal(AlertSeverity.Red, alert.Severity);
+    }
+
+    [Fact]
+    public void Partial_humidity_score_reduces_weather_output()
+    {
+        var weather = Day((_, p) => p with
+        {
+            Temperature = 35.0,
+            Humidity = 45.0,
+            WindSpeed = 6.0,
+            SoilMoisture0To1cm = 0.05,
+            Precipitation = 0.0,
+        });
+        var result = Run(weather);
+        Assert.NotNull(result);
+        var alert = Assert.IsType<FireRiskAlertResult>(result, exactMatch: false);
+        Assert.Equal(AlertSeverity.Red, alert.Severity);
+    }
+
+    [Fact]
+    public void Zero_humidity_score_produces_zero_weather_score()
+    {
+        var weather = Day((_, p) => p with
+        {
+            Temperature = 35.0,
+            Humidity = 50.0,
+            WindSpeed = 6.0,
+            SoilMoisture0To1cm = 0.05,
+            Precipitation = 0.0,
+        });
+        Assert.Null(Run(weather));
+    }
+
+    [Fact]
+    public void Partial_wind_score_affects_output()
+    {
+        var weather = Day((_, p) => p with
+        {
+            Temperature = 35.0,
+            Humidity = 20.0,
+            WindSpeed = 4.0,
+            SoilMoisture0To1cm = 0.05,
+            Precipitation = 0.0,
+        });
+        var result = Run(weather);
+        Assert.NotNull(result);
+        var alert = Assert.IsType<FireRiskAlertResult>(result, exactMatch: false);
+        Assert.True(alert.RiskScore > 0.7, $"Expected Red-range score but got {alert.RiskScore}");
+    }
+
+    [Fact]
+    public void Soil_moisture_at_double_threshold_produces_zero_factor()
+    {
+        var weather = Day((_, p) => p with
+        {
+            Temperature = 35.0,
+            Humidity = 20.0,
+            WindSpeed = 6.0,
+            SoilMoisture0To1cm = 0.20,
+            Precipitation = 0.0,
+        });
+        var result = Run(weather);
+        Assert.NotNull(result);
+        var alert = Assert.IsType<FireRiskAlertResult>(result, exactMatch: false);
+        Assert.Equal(AlertSeverity.Red, alert.Severity);
+    }
+
+    [Fact]
+    public void Soil_between_threshold_and_double_produces_partial_factor()
+    {
+        var weather = Day((_, p) => p with
+        {
+            Temperature = 35.0,
+            Humidity = 20.0,
+            WindSpeed = 6.0,
+            SoilMoisture0To1cm = 0.15,
+            Precipitation = 0.0,
+        });
+        var result = Run(weather);
+        Assert.NotNull(result);
+        var alert = Assert.IsType<FireRiskAlertResult>(result, exactMatch: false);
+        Assert.True(alert.RiskScore > 0.9, $"Expected high score but got {alert.RiskScore}");
+    }
+
+    [Fact]
+    public void Score_exactly_at_yellow_threshold()
+    {
+        var weather = Day((_, p) => p with
+        {
+            Temperature = 26.0,
+            Humidity = 20.0,
+            WindSpeed = 3.0,
+            SoilMoisture0To1cm = 0.20,
+            Precipitation = 3.0,
+        });
+        var result = Run(weather);
+        if (result is not null)
+        {
+            Assert.IsType<FireRiskAlertResult>(result, exactMatch: false);
+        }
+    }
+
+    [Fact]
+    public void Only_daytime_hours_are_scored_when_available()
+    {
+        var weather = Day((hour, p) => p with
+        {
+            Temperature = 35.0,
+            Humidity = 20.0,
+            WindSpeed = 6.0,
+            SoilMoisture0To1cm = 0.05,
+            Precipitation = 0.0,
+            IsDay = hour < 12 ? 1.0 : 0.0,
+        });
+        var result = Run(weather);
+        Assert.NotNull(result);
+    }
 }

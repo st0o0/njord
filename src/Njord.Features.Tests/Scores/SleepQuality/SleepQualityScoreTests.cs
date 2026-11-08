@@ -121,4 +121,52 @@ public sealed class SleepQualityScoreTests
             a => a with { Pm25 = 30.0 });
         Assert.True(score <= 35, $"Expected very low score but got {score}");
     }
+
+    [Fact]
+    public void Temperature_between_22_and_25_loses_15_points()
+    {
+        Assert.Equal(85, ScoreFor(p => p with { Temperature = 23.5 }));
+    }
+
+    [Fact]
+    public void Temperature_below_5_loses_10_points()
+    {
+        Assert.Equal(90, ScoreFor(p => p with { Temperature = 3.0 }));
+    }
+
+    [Fact]
+    public void Temperature_at_22_does_not_lose_points()
+    {
+        Assert.Equal(100, ScoreFor(p => p with { Temperature = 22.0 }));
+    }
+
+    [Fact]
+    public void Temperature_at_25_loses_15_not_30()
+    {
+        Assert.Equal(85, ScoreFor(p => p with { Temperature = 25.0 }));
+    }
+
+    [Fact]
+    public void Humidity_at_80_does_not_lose_points()
+    {
+        Assert.Equal(100, ScoreFor(p => p with { Humidity = 80.0 }));
+    }
+
+    [Fact]
+    public void Pm25_at_25_does_not_lose_points()
+    {
+        Assert.Equal(100, ScoreFor(p => p, a => a with { Pm25 = 25.0 }));
+    }
+
+    [Fact]
+    public void Gusts_at_11_1_does_not_lose_points()
+    {
+        Assert.Equal(100, ScoreFor(p => p with { WindGusts = 11.1 }));
+    }
+
+    [Fact]
+    public void Grass_pollen_above_50_counts_as_high()
+    {
+        Assert.Equal(95, ScoreFor(p => p, a => a with { GrassPollen = 55.0 }));
+    }
 }
