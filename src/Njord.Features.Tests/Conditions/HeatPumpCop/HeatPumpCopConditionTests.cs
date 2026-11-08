@@ -34,16 +34,10 @@ public sealed class HeatPumpCopConditionTests
     }
 
     [Fact]
-    public void Cold_weather_is_normal()
-    {
-        Assert.Equal(HeatPumpRecommendation.Normal, Evaluate(0.0).Recommendation);
-    }
+    public void Cold_weather_is_normal() => Assert.Equal(HeatPumpRecommendation.Normal, Evaluate(0.0).Recommendation);
 
     [Fact]
-    public void Frost_is_inefficient()
-    {
-        Assert.Equal(HeatPumpRecommendation.Inefficient, Evaluate(-5.0).Recommendation);
-    }
+    public void Frost_is_inefficient() => Assert.Equal(HeatPumpRecommendation.Inefficient, Evaluate(-5.0).Recommendation);
 
     [Fact]
     public void Extreme_cold_clamps_the_cop_to_one_and_is_avoided()
@@ -62,10 +56,7 @@ public sealed class HeatPumpCopConditionTests
     [InlineData(2.49, HeatPumpRecommendation.Inefficient)]
     [InlineData(1.5, HeatPumpRecommendation.Inefficient)]
     [InlineData(1.49, HeatPumpRecommendation.Avoid)]
-    public void Recommendation_boundaries(double cop, HeatPumpRecommendation expected)
-    {
-        Assert.Equal(expected, HeatPumpCopCondition.Recommend(cop));
-    }
+    public void Recommendation_boundaries(double cop, HeatPumpRecommendation expected) => Assert.Equal(expected, HeatPumpCopCondition.Recommend(cop));
 
     [Fact]
     public void The_best_hour_is_the_warmest_hour_of_the_window()
@@ -99,8 +90,5 @@ public sealed class HeatPumpCopConditionTests
     }
 
     [Fact]
-    public void The_requirements_ask_for_temperature_and_humidity()
-    {
-        Assert.Equal(ForecastParams.Temperature, Feature().Descriptor.Requirements.Forecast);
-    }
+    public void The_requirements_ask_for_temperature_and_humidity() => Assert.Equal(ForecastParams.Temperature, Feature().Descriptor.Requirements.Forecast);
 }

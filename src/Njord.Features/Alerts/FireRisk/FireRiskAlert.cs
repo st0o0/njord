@@ -96,7 +96,7 @@ public sealed class FireRiskAlert(IOptions<FireRiskConfig> config) : FeatureRule
             RiskScore: Math.Round(totalScore, 2));
     }
 
-    private static double WeatherScore(double temperature, double humidity, double windSpeed, FireRiskConfig cfg)
+    internal static double WeatherScore(double temperature, double humidity, double windSpeed, FireRiskConfig cfg)
     {
         if (temperature < ColdCutoff || humidity > HumidCutoff)
         {

@@ -8,10 +8,7 @@ public sealed class EvapotranspirationConfigValidatorTests
     private readonly EvapotranspirationConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new EvapotranspirationConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new EvapotranspirationConfig()).Succeeded);
 
     [Fact]
     public void Low_not_less_than_high_is_rejected()

@@ -98,8 +98,5 @@ public sealed class CompoundHeatStressAlertTests
     }
 
     [Fact]
-    public void Safe_conditions_raise_nothing()
-    {
-        Assert.Null(Run(Feature(), Now, Combined(Day(), CleanAir())));
-    }
+    public void Safe_conditions_raise_nothing() => Assert.Null(Run(Feature(), Now, Combined(Day(), CleanAir())));
 }

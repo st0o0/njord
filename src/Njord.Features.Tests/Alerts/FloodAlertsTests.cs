@@ -41,16 +41,10 @@ public sealed class FloodAlertsTests
     }
 
     [Fact]
-    public void Discharge_at_the_p75_percentile_raises_nothing()
-    {
-        Assert.Null(Run(Risk(), Now, Risky(Point(0, 150, median: 100, p75: 150))));
-    }
+    public void Discharge_at_the_p75_percentile_raises_nothing() => Assert.Null(Run(Risk(), Now, Risky(Point(0, 150, median: 100, p75: 150))));
 
     [Fact]
-    public void Discharge_within_twice_the_median_raises_nothing()
-    {
-        Assert.Null(Run(Risk(), Now, Risky(Point(0, 190, median: 100, p75: 300))));
-    }
+    public void Discharge_within_twice_the_median_raises_nothing() => Assert.Null(Run(Risk(), Now, Risky(Point(0, 190, median: 100, p75: 300))));
 
     [Fact]
     public void Discharge_above_the_historical_maximum_is_red()
@@ -74,10 +68,7 @@ public sealed class FloodAlertsTests
     }
 
     [Fact]
-    public void Days_beyond_the_seven_day_window_are_ignored()
-    {
-        Assert.Null(Run(Risk(), Now, Risky(Point(10, 900))));
-    }
+    public void Days_beyond_the_seven_day_window_are_ignored() => Assert.Null(Run(Risk(), Now, Risky(Point(10, 900))));
 
     [Fact]
     public void Most_members_above_the_threshold_give_high_confidence()
@@ -121,10 +112,7 @@ public sealed class FloodAlertsTests
     }
 
     [Fact]
-    public void Flood_risk_fires_with_only_flood_data()
-    {
-        Assert.NotNull(Run(Risk(), Now, new LocationForecast(Lucerne, Flood: FloodForecast(Point(0, 160, median: 100, p75: 150)))));
-    }
+    public void Flood_risk_fires_with_only_flood_data() => Assert.NotNull(Run(Risk(), Now, new LocationForecast(Lucerne, Flood: FloodForecast(Point(0, 160, median: 100, p75: 150)))));
 
     [Fact]
     public void Heavy_rain_with_rising_discharge_above_the_median_is_orange()
@@ -156,22 +144,13 @@ public sealed class FloodAlertsTests
     }
 
     [Fact]
-    public void Rain_below_30_mm_in_24_hours_raises_nothing()
-    {
-        Assert.Null(RunRain(1.2, Point(0, 110), Point(1, 170)));
-    }
+    public void Rain_below_30_mm_in_24_hours_raises_nothing() => Assert.Null(RunRain(1.2, Point(0, 110), Point(1, 170)));
 
     [Fact]
-    public void Falling_discharge_raises_nothing()
-    {
-        Assert.Null(RunRain(1.5, Point(0, 170), Point(1, 120)));
-    }
+    public void Falling_discharge_raises_nothing() => Assert.Null(RunRain(1.5, Point(0, 170), Point(1, 120)));
 
     [Fact]
-    public void Discharge_below_the_median_raises_nothing()
-    {
-        Assert.Null(RunRain(1.5, Point(0, 50), Point(1, 90)));
-    }
+    public void Discharge_below_the_median_raises_nothing() => Assert.Null(RunRain(1.5, Point(0, 50), Point(1, 90)));
 
     [Fact]
     public void The_flood_features_request_their_discharge_parameters()

@@ -8,16 +8,10 @@ public sealed class TropicalNightConfigValidatorTests
     private readonly TropicalNightConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new TropicalNightConfig { Thresholds = TropicalNightConfig.DefaultThresholds }).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new TropicalNightConfig { Thresholds = TropicalNightConfig.DefaultThresholds }).Succeeded);
 
     [Fact]
-    public void Ascending_thresholds_are_accepted()
-    {
-        Assert.True(_validator.Validate(null, new TropicalNightConfig { Thresholds = [18, 22, 26] }).Succeeded);
-    }
+    public void Ascending_thresholds_are_accepted() => Assert.True(_validator.Validate(null, new TropicalNightConfig { Thresholds = [18, 22, 26] }).Succeeded);
 
     [Fact]
     public void Descending_thresholds_are_rejected()

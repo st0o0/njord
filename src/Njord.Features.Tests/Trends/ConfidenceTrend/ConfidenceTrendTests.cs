@@ -32,14 +32,8 @@ public sealed class ConfidenceTrendTests
     }
 
     [Fact]
-    public void Nothing_is_reported_without_a_previous_cycle()
-    {
-        Assert.Null(Run(Feature(), Now, WithSpread(1.0)));
-    }
+    public void Nothing_is_reported_without_a_previous_cycle() => Assert.Null(Run(Feature(), Now, WithSpread(1.0)));
 
     [Fact]
-    public void Nothing_is_reported_without_ensemble_data()
-    {
-        Assert.Null(Run(Feature(), Now, new LocationForecast(Lucerne), new LocationForecast(Lucerne)));
-    }
+    public void Nothing_is_reported_without_ensemble_data() => Assert.Null(Run(Feature(), Now, new LocationForecast(Lucerne), new LocationForecast(Lucerne)));
 }

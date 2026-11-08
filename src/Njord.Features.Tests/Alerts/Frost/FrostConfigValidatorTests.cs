@@ -8,16 +8,10 @@ public sealed class FrostConfigValidatorTests
     private readonly FrostConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new FrostConfig { Thresholds = FrostConfig.DefaultThresholds }).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new FrostConfig { Thresholds = FrostConfig.DefaultThresholds }).Succeeded);
 
     [Fact]
-    public void Descending_thresholds_are_accepted()
-    {
-        Assert.True(_validator.Validate(null, new FrostConfig { Thresholds = [1, -4, -10] }).Succeeded);
-    }
+    public void Descending_thresholds_are_accepted() => Assert.True(_validator.Validate(null, new FrostConfig { Thresholds = [1, -4, -10] }).Succeeded);
 
     [Fact]
     public void Ascending_thresholds_are_rejected()

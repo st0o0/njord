@@ -50,7 +50,7 @@ public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<F
         return new LaundryScoreResult(ctx.Location, (int)Math.Round(windowScore), hours[start].ValidFrom, length) { Windows = windows };
     }
 
-    private static double ScoreHour(ForecastPoint point)
+    internal static double ScoreHour(ForecastPoint point)
     {
         if (point.IsDay is not > 0 || point.Precipitation > 0.1)
         {

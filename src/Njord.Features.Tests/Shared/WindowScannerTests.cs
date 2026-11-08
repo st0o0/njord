@@ -11,16 +11,10 @@ public sealed class WindowScannerTests
         [.. scores.Select((score, i) => new HourlyScore(Start.AddHours(i), score))];
 
     [Fact]
-    public void Empty_input_returns_no_windows()
-    {
-        Assert.Empty(WindowScanner.Scan([]));
-    }
+    public void Empty_input_returns_no_windows() => Assert.Empty(WindowScanner.Scan([]));
 
     [Fact]
-    public void All_hours_below_threshold_return_no_windows()
-    {
-        Assert.Empty(WindowScanner.Scan(Hours(10, 20, 30, 49)));
-    }
+    public void All_hours_below_threshold_return_no_windows() => Assert.Empty(WindowScanner.Scan(Hours(10, 20, 30, 49)));
 
     [Fact]
     public void Single_run_returns_one_window_with_minimum_score()
@@ -108,10 +102,7 @@ public sealed class WindowScannerTests
     }
 
     [Fact]
-    public void Single_good_hour_below_min_hours_is_dropped()
-    {
-        Assert.Empty(WindowScanner.Scan(Hours(10, 80, 10), minHours: 2));
-    }
+    public void Single_good_hour_below_min_hours_is_dropped() => Assert.Empty(WindowScanner.Scan(Hours(10, 80, 10), minHours: 2));
 
     [Fact]
     public void Custom_min_score_changes_the_threshold()

@@ -91,7 +91,7 @@ public sealed class PollenBlastAlert(IOptions<PollenBlastConfig> config) : Featu
             PeakPollen: Math.Round(currentPollen, 1));
     }
 
-    private static double MaxPollen(IReadOnlyList<AirQualityPoint> points)
+    internal static double MaxPollen(IReadOnlyList<AirQualityPoint> points)
     {
         double max = 0;
         foreach (var p in points)

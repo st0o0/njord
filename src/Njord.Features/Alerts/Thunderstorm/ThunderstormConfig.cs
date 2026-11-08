@@ -15,6 +15,9 @@ public sealed class ThunderstormConfig : IConfigSection, IHasArrayDefaults
 
     public void ApplyDefaults()
     {
-        if (CapeThresholds is { Length: 0 }) CapeThresholds = DefaultCapeThresholds;
+        if (CapeThresholds is { Length: 0 })
+        {
+            CapeThresholds = DefaultCapeThresholds;
+        }
     }
 }

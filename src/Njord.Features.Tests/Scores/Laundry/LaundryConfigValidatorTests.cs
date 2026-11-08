@@ -8,10 +8,7 @@ public sealed class LaundryConfigValidatorTests
     private readonly LaundryConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new LaundryConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new LaundryConfig()).Succeeded);
 
     [Theory]
     [InlineData(nameof(LaundryConfig.MinWindowScore))]

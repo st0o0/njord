@@ -70,8 +70,5 @@ public sealed class IrrigationNeedConditionTests
     }
 
     [Fact]
-    public void Missing_soil_moisture_skips_the_rule()
-    {
-        Assert.Null(Run(Feature(), Now, ForecastOnly(Uniform(p => p with { SoilMoisture0To1cm = null }))));
-    }
+    public void Missing_soil_moisture_skips_the_rule() => Assert.Null(Run(Feature(), Now, ForecastOnly(Uniform(p => p with { SoilMoisture0To1cm = null }))));
 }

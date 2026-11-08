@@ -65,7 +65,7 @@ public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : Fea
             PeakValue: null, HoursUntil: stormHours[0].HoursFrom(ctx.Now), DurationHours: stormHours.Count, Level: level);
     }
 
-    private static AlertSeverity HourSeverity(ForecastPoint p, ThunderstormConfig cfg, double[] capes)
+    internal static AlertSeverity HourSeverity(ForecastPoint p, ThunderstormConfig cfg, double[] capes)
     {
         var gusts = p.WindGusts ?? 0.0;
         var precip = p.Precipitation ?? 0.0;
@@ -83,7 +83,7 @@ public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : Fea
         return AlertSeverity.Yellow;
     }
 
-    private static AlertSeverity Downgrade(AlertSeverity severity) => severity switch
+    internal static AlertSeverity Downgrade(AlertSeverity severity) => severity switch
     {
         AlertSeverity.Red => AlertSeverity.Orange,
         AlertSeverity.Orange => AlertSeverity.Yellow,

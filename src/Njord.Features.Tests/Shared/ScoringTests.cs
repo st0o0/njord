@@ -10,10 +10,7 @@ public sealed class ScoringTests
     [InlineData(100.0, 0.0, 100.0, 1.0)]
     [InlineData(-10.0, 0.0, 100.0, 0.0)]
     [InlineData(200.0, 0.0, 100.0, 1.0)]
-    public void Ramp_interpolates_between_zero_and_one(double value, double zeroAt, double oneAt, double expected)
-    {
-        Assert.Equal(expected, Scoring.Ramp(value, zeroAt, oneAt));
-    }
+    public void Ramp_interpolates_between_zero_and_one(double value, double zeroAt, double oneAt, double expected) => Assert.Equal(expected, Scoring.Ramp(value, zeroAt, oneAt));
 
     [Fact]
     public void Ramp_handles_equal_bounds()
@@ -40,10 +37,7 @@ public sealed class ScoringTests
     [InlineData(25.0, 0.5)]
     [InlineData(30.0, 0.0)]
     [InlineData(35.0, 0.0)]
-    public void Band_rises_peaks_and_falls(double value, double expected)
-    {
-        Assert.Equal(expected, Scoring.Band(value, 0.0, 10.0, 20.0, 30.0));
-    }
+    public void Band_rises_peaks_and_falls(double value, double expected) => Assert.Equal(expected, Scoring.Band(value, 0.0, 10.0, 20.0, 30.0));
 
     [Fact]
     public void LongestRun_finds_longest_true_sequence()

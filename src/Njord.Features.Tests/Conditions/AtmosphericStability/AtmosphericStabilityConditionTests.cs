@@ -42,14 +42,8 @@ public sealed class AtmosphericStabilityConditionTests
     [InlineData(2500, 49, -6.5, StabilityClass.Explosive)]
     [InlineData(2500, 49, -6, StabilityClass.Unstable)]
     [InlineData(2499, 49, -8, StabilityClass.Unstable)]
-    public void Class_boundaries(double cape, double cin, double lifted, StabilityClass expected)
-    {
-        Assert.Equal(expected, AtmosphericStabilityCondition.Classify(cape, cin, lifted));
-    }
+    public void Class_boundaries(double cape, double cin, double lifted, StabilityClass expected) => Assert.Equal(expected, AtmosphericStabilityCondition.Classify(cape, cin, lifted));
 
     [Fact]
-    public void Nothing_is_reported_without_cape()
-    {
-        Assert.Null(Eval(null, 0, 0));
-    }
+    public void Nothing_is_reported_without_cape() => Assert.Null(Eval(null, 0, 0));
 }

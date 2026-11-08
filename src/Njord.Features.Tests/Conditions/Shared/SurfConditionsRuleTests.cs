@@ -180,8 +180,5 @@ public sealed class SurfConditionsRuleTests
     }
 
     [Fact]
-    public void Evaluate_returns_nothing_without_swell_data()
-    {
-        Assert.Null(SurfConditionsRule.Evaluate(MarineForecast(Point(0)), null, Now));
-    }
+    public void Evaluate_returns_nothing_without_swell_data() => Assert.Null(SurfConditionsRule.Evaluate(MarineForecast(Point(0)), null, Now));
 }

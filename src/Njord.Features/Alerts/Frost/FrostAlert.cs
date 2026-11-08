@@ -44,6 +44,6 @@ public sealed class FrostAlert(IOptions<FrostConfig> config) : FeatureRule<Forec
         return new FrostAlertResult(
             ctx.Location, severity, level.ToConfidence(), low, effectiveThreshold,
             PeakValue: null, HoursUntil: earliest?.HoursFrom(ctx.Now), DurationHours: null, Level: level,
-            ExpectedLow: low, EarliestFrostHours: earliest is null ? null : earliest.HoursFrom(ctx.Now));
+            ExpectedLow: low, EarliestFrostHours: earliest?.HoursFrom(ctx.Now));
     }
 }

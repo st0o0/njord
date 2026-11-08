@@ -38,10 +38,7 @@ public sealed class SolarYieldConfigValidatorTests
     }
 
     [Fact]
-    public void An_efficiency_of_exactly_one_is_accepted()
-    {
-        Assert.True(_validator.Validate(null, new SolarYieldConfig { SystemEfficiency = 1.0 }).Succeeded);
-    }
+    public void An_efficiency_of_exactly_one_is_accepted() => Assert.True(_validator.Validate(null, new SolarYieldConfig { SystemEfficiency = 1.0 }).Succeeded);
 
     [Fact]
     public void A_negative_battery_capacity_is_rejected()

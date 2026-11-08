@@ -45,7 +45,7 @@ public sealed class OutdoorScore(IOptions<OutdoorConfig> config) : FeatureRule<F
         return new OutdoorScoreResult(ctx.Location, score, hours[start].Point.ValidFrom, length);
     }
 
-    private static double ScoreHour(ForecastPoint weather, AirQualityPoint air)
+    internal static double ScoreHour(ForecastPoint weather, AirQualityPoint air)
     {
         if (weather.IsDay is not > 0
             || weather is not { Temperature: { } airTemperature, PrecipitationProbability: { } probability, WindSpeed: { } windSpeed, CloudCover: { } cloudCover }

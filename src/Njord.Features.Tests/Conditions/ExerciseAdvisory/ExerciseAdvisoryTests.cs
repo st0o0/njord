@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Options;
+using Njord.Core.AirQuality;
+using Njord.Core.Forecast;
 using Njord.Features.Conditions.ExerciseAdvisory;
 using Njord.Messages.Results.Conditions;
 using static Njord.Tests.Shared.AlertRuleFixture;
@@ -45,10 +47,7 @@ public sealed class ExerciseAdvisoryTests
     }
 
     [Fact]
-    public void Nothing_is_reported_without_air_quality_data()
-    {
-        Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
-    }
+    public void Nothing_is_reported_without_air_quality_data() => Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
 
     [Fact]
     public void High_temperature_causes_caution_with_temperature_reason()
@@ -83,5 +82,51 @@ public sealed class ExerciseAdvisoryTests
         var air = CleanAir(shape: (_, p) => p with { Pm25 = 40.0, Ozone = 130.0 });
         var advice = Assert.IsType<ExerciseAdvisoryResult>(Run(Feature(), Now, Combined(Day(), air)));
         Assert.Equal(ExerciseLevel.Caution, advice.Level);
+    }
+
+    [Fact]
+    public void Components_returns_null_without_pm25()
+    {
+        var weather = new ForecastPoint(DateTimeOffset.UtcNow, Temperature: 20.0, Humidity: 50.0);
+        var air = new AirQualityPoint(DateTimeOffset.UtcNow, Ozone: 50.0);
+        Assert.Null(Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air));
+    }
+
+    [Fact]
+    public void Components_returns_null_without_temperature()
+    {
+        var weather = new ForecastPoint(DateTimeOffset.UtcNow, Humidity: 50.0);
+        var air = new AirQualityPoint(DateTimeOffset.UtcNow, Pm25: 5.0, Ozone: 50.0);
+        Assert.Null(Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air));
+    }
+
+    [Fact]
+    public void Components_computes_total_from_weighted_factors()
+    {
+        var weather = new ForecastPoint(DateTimeOffset.UtcNow, Temperature: 15.0, Humidity: 50.0);
+        var air = new AirQualityPoint(DateTimeOffset.UtcNow, Pm25: 15.0, Ozone: 100.0);
+        var hour = Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air);
+        Assert.NotNull(hour);
+        Assert.Equal(100.0, hour.Total, 1);
+    }
+
+    [Fact]
+    public void Components_high_pm25_reduces_pm25_factor()
+    {
+        var weather = new ForecastPoint(DateTimeOffset.UtcNow, Temperature: 15.0, Humidity: 50.0);
+        var air = new AirQualityPoint(DateTimeOffset.UtcNow, Pm25: 35.0, Ozone: 100.0);
+        var hour = Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air);
+        Assert.NotNull(hour);
+        Assert.Equal(0.5, hour.Pm25, 2);
+    }
+
+    [Fact]
+    public void Components_high_uv_reduces_uv_factor()
+    {
+        var weather = new ForecastPoint(DateTimeOffset.UtcNow, Temperature: 15.0, Humidity: 50.0, UvIndex: 8.0);
+        var air = new AirQualityPoint(DateTimeOffset.UtcNow, Pm25: 15.0, Ozone: 100.0);
+        var hour = Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air);
+        Assert.NotNull(hour);
+        Assert.Equal(0.5, hour.Uv, 2);
     }
 }

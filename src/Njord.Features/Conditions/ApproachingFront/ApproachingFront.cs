@@ -44,12 +44,12 @@ public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : 
             return null;
         }
 
-        var best = windows.MaxBy(window => window.Drop);
-        var estimatedIn = best.Start.ValidFrom - ctx.Now;
+        var (Start, End, Drop) = windows.MaxBy(window => window.Drop);
+        var estimatedIn = Start.ValidFrom - ctx.Now;
         return new ApproachingFrontResult(ctx.Location,
             (estimatedIn < TimeSpan.Zero ? TimeSpan.Zero : estimatedIn).TotalHours,
-            Math.Round(best.Drop, 1),
-            Math.Round(best.Start.Temperature - best.End.Temperature ?? 0.0, 1));
+            Math.Round(Drop, 1),
+            Math.Round(Start.Temperature - End.Temperature ?? 0.0, 1));
     }
 
     private static bool WindShifted(ForecastPoint start, ForecastPoint end)

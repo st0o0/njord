@@ -25,50 +25,32 @@ public sealed class AsthmaRiskScoreTests
     }
 
     [Fact]
-    public void Clean_calm_air_scores_zero()
-    {
-        Assert.Equal(0, ScoreFor(p => p, a => a));
-    }
+    public void Clean_calm_air_scores_zero() => Assert.Equal(0, ScoreFor(p => p, a => a));
 
     [Theory]
     [InlineData(75.0, 35)]
     [InlineData(150.0, 35)]
     [InlineData(37.5, 18)]
-    public void Fine_particles_weigh_35_percent(double pm25, int expected)
-    {
-        Assert.Equal(expected, ScoreFor(p => p, a => a with { Pm25 = pm25 }));
-    }
+    public void Fine_particles_weigh_35_percent(double pm25, int expected) => Assert.Equal(expected, ScoreFor(p => p, a => a with { Pm25 = pm25 }));
 
     [Fact]
-    public void Ozone_weighs_25_percent()
-    {
-        Assert.Equal(25, ScoreFor(p => p, a => a with { Ozone = 180.0 }));
-    }
+    public void Ozone_weighs_25_percent() => Assert.Equal(25, ScoreFor(p => p, a => a with { Ozone = 180.0 }));
 
     [Fact]
-    public void The_strongest_pollen_species_weighs_20_percent()
-    {
-        Assert.Equal(20, ScoreFor(p => p, a => a with { BirchPollen = 30.0, GrassPollen = 100.0 }));
-    }
+    public void The_strongest_pollen_species_weighs_20_percent() => Assert.Equal(20, ScoreFor(p => p, a => a with { BirchPollen = 30.0, GrassPollen = 100.0 }));
 
     [Theory]
     [InlineData(50.0, 0)]
     [InlineData(20.0, 10)]
     [InlineData(85.0, 10)]
     [InlineData(70.0, 5)]
-    public void Humidity_follows_a_u_curve_around_40_to_60_percent(double humidity, int expected)
-    {
-        Assert.Equal(expected, ScoreFor(p => p with { Humidity = humidity }, a => a));
-    }
+    public void Humidity_follows_a_u_curve_around_40_to_60_percent(double humidity, int expected) => Assert.Equal(expected, ScoreFor(p => p with { Humidity = humidity }, a => a));
 
     [Theory]
     [InlineData(2000.0, 0)]
     [InlineData(1100.0, 5)]
     [InlineData(200.0, 10)]
-    public void A_shallow_boundary_layer_raises_the_score(double height, int expected)
-    {
-        Assert.Equal(expected, ScoreFor(p => p with { BoundaryLayerHeight = height }, a => a));
-    }
+    public void A_shallow_boundary_layer_raises_the_score(double height, int expected) => Assert.Equal(expected, ScoreFor(p => p with { BoundaryLayerHeight = height }, a => a));
 
     [Fact]
     public void Every_factor_at_its_limit_scores_100()
@@ -117,10 +99,7 @@ public sealed class AsthmaRiskScoreTests
     }
 
     [Fact]
-    public void Missing_air_quality_data_produces_no_score()
-    {
-        Assert.Null(Run(Feature(), Now, Combined(Uniform(Calm), CleanAir(0))));
-    }
+    public void Missing_air_quality_data_produces_no_score() => Assert.Null(Run(Feature(), Now, Combined(Uniform(Calm), CleanAir(0))));
 
     [Fact]
     public void Cold_and_rapid_change_stack_multiplicatively()

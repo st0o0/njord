@@ -33,10 +33,7 @@ public sealed class MigraineRiskAlertTests
         Run(Feature(), Now, forecast) as MigraineRiskAlertResult;
 
     [Fact]
-    public void Steady_conditions_raise_nothing()
-    {
-        Assert.Null(Run(Feature(), Now, History()));
-    }
+    public void Steady_conditions_raise_nothing() => Assert.Null(Run(Feature(), Now, History()));
 
     [Theory]
     [InlineData(4.9, AlertSeverity.None)]
@@ -98,10 +95,7 @@ public sealed class MigraineRiskAlertTests
     }
 
     [Fact]
-    public void Swings_alone_raise_nothing_without_a_pressure_drop()
-    {
-        Assert.Null(Alert(History((offset, p) => offset == -12 ? p with { Temperature = 30.0, Humidity = 95.0 } : p)));
-    }
+    public void Swings_alone_raise_nothing_without_a_pressure_drop() => Assert.Null(Alert(History((offset, p) => offset == -12 ? p with { Temperature = 30.0, Humidity = 95.0 } : p)));
 
     [Fact]
     public void Foehn_conditions_raise_orange_on_their_own()
@@ -153,8 +147,5 @@ public sealed class MigraineRiskAlertTests
     }
 
     [Fact]
-    public void Missing_pressure_at_the_current_hour_raises_nothing()
-    {
-        Assert.Null(Alert(History((offset, p) => offset == 0 ? p with { Pressure = null } : p)));
-    }
+    public void Missing_pressure_at_the_current_hour_raises_nothing() => Assert.Null(Alert(History((offset, p) => offset == 0 ? p with { Pressure = null } : p)));
 }

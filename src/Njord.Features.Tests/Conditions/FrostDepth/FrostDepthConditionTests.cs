@@ -85,8 +85,5 @@ public sealed class FrostDepthConditionTests
     [InlineData(15.0, FrostDepthRisk.Moderate)]
     [InlineData(29.9, FrostDepthRisk.Moderate)]
     [InlineData(30.0, FrostDepthRisk.Deep)]
-    public void Risk_boundaries(double depth, FrostDepthRisk expected)
-    {
-        Assert.Equal(expected, FrostDepthCondition.RiskFor(depth, 200.0));
-    }
+    public void Risk_boundaries(double depth, FrostDepthRisk expected) => Assert.Equal(expected, FrostDepthCondition.RiskFor(depth, 200.0));
 }

@@ -8,10 +8,7 @@ public sealed class CoastalFloodConfigValidatorTests
     private readonly CoastalFloodConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new CoastalFloodConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new CoastalFloodConfig()).Succeeded);
 
     [Fact]
     public void A_non_positive_sea_level_threshold_is_rejected()

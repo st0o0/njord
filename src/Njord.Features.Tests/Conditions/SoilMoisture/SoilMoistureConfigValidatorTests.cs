@@ -8,10 +8,7 @@ public sealed class SoilMoistureConfigValidatorTests
     private readonly SoilMoistureConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new SoilMoistureConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new SoilMoistureConfig()).Succeeded);
 
     [Fact]
     public void A_zero_dry_threshold_is_rejected()

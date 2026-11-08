@@ -33,14 +33,8 @@ public sealed class ApproachingFrontTests
     }
 
     [Fact]
-    public void A_pressure_drop_without_a_wind_shift_is_ignored()
-    {
-        Assert.Null(Run(Feature(), Now, ForecastOnly(Day()), Falling(190.0)));
-    }
+    public void A_pressure_drop_without_a_wind_shift_is_ignored() => Assert.Null(Run(Feature(), Now, ForecastOnly(Day()), Falling(190.0)));
 
     [Fact]
-    public void Nothing_is_reported_without_a_previous_cycle()
-    {
-        Assert.Null(Run(Feature(), Now, Falling(315.0)));
-    }
+    public void Nothing_is_reported_without_a_previous_cycle() => Assert.Null(Run(Feature(), Now, Falling(315.0)));
 }

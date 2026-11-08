@@ -26,10 +26,7 @@ public sealed class NightVentilationTests
     }
 
     [Fact]
-    public void Nothing_is_reported_when_tomorrow_stays_mild()
-    {
-        Assert.Null(Run(Feature(), Now, ForecastOnly(Hourly(48))));
-    }
+    public void Nothing_is_reported_when_tomorrow_stays_mild() => Assert.Null(Run(Feature(), Now, ForecastOnly(Hourly(48))));
 
     [Fact]
     public void Nothing_is_reported_when_the_night_stays_warm()

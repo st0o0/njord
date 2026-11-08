@@ -13,6 +13,9 @@ public sealed class StormConfig : IConfigSection, IHasArrayDefaults
 
     public void ApplyDefaults()
     {
-        if (GustThresholds is { Length: 0 }) GustThresholds = DefaultGustThresholds;
+        if (GustThresholds is { Length: 0 })
+        {
+            GustThresholds = DefaultGustThresholds;
+        }
     }
 }

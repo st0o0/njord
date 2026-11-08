@@ -74,7 +74,7 @@ public sealed class AsthmaRiskScore(IOptions<AsthmaRiskConfig> config) : Feature
         return new AsthmaRiskScoreResult(ctx.Location, peak, risks[start].Time, length) { Windows = windows };
     }
 
-    private static double? Risk(AsthmaRiskConfig cfg, AirQualityPoint air, ForecastPoint weather, ForecastPoint? earlier)
+    internal static double? Risk(AsthmaRiskConfig cfg, AirQualityPoint air, ForecastPoint weather, ForecastPoint? earlier)
     {
         var parts = new List<(double Weight, double Value)>();
         if (air.Pm25 is { } pm25)

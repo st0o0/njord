@@ -49,7 +49,7 @@ public sealed class SprayWindowScore(IOptions<SprayWindowConfig> config) : Featu
         return new SprayWindowScoreResult(ctx.Location, (int)Math.Round(top.Score), top.Time, 0) { Windows = windows };
     }
 
-    private static HourlyScore ScoreHour(IReadOnlyList<ForecastPoint> hours, int index, SprayWindowConfig options)
+    internal static HourlyScore ScoreHour(IReadOnlyList<ForecastPoint> hours, int index, SprayWindowConfig options)
     {
         var point = hours[index];
         if (point is not { WindSpeed: { } wind, Temperature: { } temperature, Humidity: { } humidity })
@@ -89,7 +89,7 @@ public sealed class SprayWindowScore(IOptions<SprayWindowConfig> config) : Featu
         return new HourlyScore(point.ValidFrom, total, worst, worstValue);
     }
 
-    private static double Falloff(double value, double min, double max, double width)
+    internal static double Falloff(double value, double min, double max, double width)
     {
         var distance = value < min ? min - value : value > max ? value - max : 0.0;
         return Math.Max(0.0, 1.0 - distance / width);

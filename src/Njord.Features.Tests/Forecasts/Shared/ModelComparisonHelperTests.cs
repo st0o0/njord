@@ -59,8 +59,8 @@ public sealed class ModelComparisonHelperTests
 
         var result = ModelComparisonHelper.CompareDays(models, Now);
 
-        Assert.Single(result);
-        foreach (var model in result[0].Models)
+        var item = Assert.Single(result);
+        foreach (var model in item.Models)
         {
             Assert.Null(model.MaxTemperature);
             Assert.Null(model.MinTemperature);

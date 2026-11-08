@@ -8,16 +8,10 @@ public sealed class HeatConfigValidatorTests
     private readonly HeatConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new HeatConfig { Thresholds = HeatConfig.DefaultThresholds }).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new HeatConfig { Thresholds = HeatConfig.DefaultThresholds }).Succeeded);
 
     [Fact]
-    public void Ascending_thresholds_are_accepted()
-    {
-        Assert.True(_validator.Validate(null, new HeatConfig { Thresholds = [28, 33, 38] }).Succeeded);
-    }
+    public void Ascending_thresholds_are_accepted() => Assert.True(_validator.Validate(null, new HeatConfig { Thresholds = [28, 33, 38] }).Succeeded);
 
     [Fact]
     public void Descending_thresholds_are_rejected()

@@ -8,10 +8,7 @@ public sealed class MigraineRiskConfigValidatorTests
     private readonly MigraineRiskConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new MigraineRiskConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new MigraineRiskConfig()).Succeeded);
 
     [Fact]
     public void A_non_positive_pressure_6h_threshold_is_rejected()

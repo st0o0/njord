@@ -8,16 +8,10 @@ public sealed class DustConfigValidatorTests
     private readonly DustConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new DustConfig { Thresholds = DustConfig.DefaultThresholds }).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new DustConfig { Thresholds = DustConfig.DefaultThresholds }).Succeeded);
 
     [Fact]
-    public void Ascending_thresholds_are_accepted()
-    {
-        Assert.True(_validator.Validate(null, new DustConfig { Thresholds = [40, 120, 400] }).Succeeded);
-    }
+    public void Ascending_thresholds_are_accepted() => Assert.True(_validator.Validate(null, new DustConfig { Thresholds = [40, 120, 400] }).Succeeded);
 
     [Fact]
     public void Descending_thresholds_are_rejected()

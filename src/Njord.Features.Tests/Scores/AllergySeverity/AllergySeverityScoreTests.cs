@@ -19,34 +19,19 @@ public sealed class AllergySeverityScoreTests
     }
 
     [Fact]
-    public void High_pollen_in_neutral_weather_scores_the_normalised_pollen_level()
-    {
-        Assert.Equal(60, ScoreFor(p => p with { WindSpeed = 2.0, Humidity = 60.0, BoundaryLayerHeight = 1500.0, Rain = 0.0 }));
-    }
+    public void High_pollen_in_neutral_weather_scores_the_normalised_pollen_level() => Assert.Equal(60, ScoreFor(p => p with { WindSpeed = 2.0, Humidity = 60.0, BoundaryLayerHeight = 1500.0, Rain = 0.0 }));
 
     [Fact]
-    public void Pollen_above_the_reference_is_clamped_to_100()
-    {
-        Assert.Equal(100, ScoreFor(p => p with { WindSpeed = 2.0, Humidity = 60.0, BoundaryLayerHeight = 1500.0, Rain = 0.0 }, birch: 400.0));
-    }
+    public void Pollen_above_the_reference_is_clamped_to_100() => Assert.Equal(100, ScoreFor(p => p with { WindSpeed = 2.0, Humidity = 60.0, BoundaryLayerHeight = 1500.0, Rain = 0.0 }, birch: 400.0));
 
     [Fact]
-    public void Dry_wind_a_shallow_boundary_layer_and_low_humidity_amplify_the_score()
-    {
-        Assert.Equal(100, ScoreFor(p => p with { WindSpeed = 6.0, Humidity = 30.0, BoundaryLayerHeight = 400.0, Rain = 0.0 }));
-    }
+    public void Dry_wind_a_shallow_boundary_layer_and_low_humidity_amplify_the_score() => Assert.Equal(100, ScoreFor(p => p with { WindSpeed = 6.0, Humidity = 30.0, BoundaryLayerHeight = 400.0, Rain = 0.0 }));
 
     [Fact]
-    public void Rain_dampens_the_score()
-    {
-        Assert.Equal(30, ScoreFor(p => p with { WindSpeed = 2.0, Humidity = 60.0, BoundaryLayerHeight = 1500.0, Rain = 1.0 }));
-    }
+    public void Rain_dampens_the_score() => Assert.Equal(30, ScoreFor(p => p with { WindSpeed = 2.0, Humidity = 60.0, BoundaryLayerHeight = 1500.0, Rain = 1.0 }));
 
     [Fact]
-    public void Humid_air_dampens_the_score()
-    {
-        Assert.Equal(45, ScoreFor(p => p with { WindSpeed = 2.0, Humidity = 90.0, BoundaryLayerHeight = 1500.0, Rain = 0.0 }));
-    }
+    public void Humid_air_dampens_the_score() => Assert.Equal(45, ScoreFor(p => p with { WindSpeed = 2.0, Humidity = 90.0, BoundaryLayerHeight = 1500.0, Rain = 0.0 }));
 
     [Fact]
     public void Dampeners_never_push_the_score_below_zero()

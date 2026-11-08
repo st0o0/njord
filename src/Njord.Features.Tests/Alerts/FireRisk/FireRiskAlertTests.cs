@@ -334,4 +334,67 @@ public sealed class FireRiskAlertTests
         var result = Run(weather);
         Assert.NotNull(result);
     }
+
+    [Fact]
+    public void WeatherScore_returns_zero_below_cold_cutoff()
+    {
+        var cfg = new FireRiskConfig { Enabled = true };
+        Assert.Equal(0.0, FireRiskAlert.WeatherScore(14.9, 20.0, 6.0, cfg));
+    }
+
+    [Fact]
+    public void WeatherScore_returns_zero_above_humid_cutoff()
+    {
+        var cfg = new FireRiskConfig { Enabled = true };
+        Assert.Equal(0.0, FireRiskAlert.WeatherScore(35.0, 70.1, 6.0, cfg));
+    }
+
+    [Fact]
+    public void WeatherScore_full_scores_yield_1_0()
+    {
+        var cfg = new FireRiskConfig { Enabled = true };
+        Assert.Equal(1.0, FireRiskAlert.WeatherScore(35.0, 20.0, 6.0, cfg));
+    }
+
+    [Fact]
+    public void WeatherScore_partial_temperature_ramp()
+    {
+        var cfg = new FireRiskConfig { Enabled = true };
+        Assert.Equal(0.8, FireRiskAlert.WeatherScore(27.5, 20.0, 6.0, cfg), 4);
+    }
+
+    [Fact]
+    public void WeatherScore_partial_humidity_ramp()
+    {
+        var cfg = new FireRiskConfig { Enabled = true };
+        Assert.Equal(0.8, FireRiskAlert.WeatherScore(35.0, 40.0, 6.0, cfg), 4);
+    }
+
+    [Fact]
+    public void WeatherScore_partial_wind_ramp()
+    {
+        var cfg = new FireRiskConfig { Enabled = true };
+        Assert.Equal(0.9, FireRiskAlert.WeatherScore(35.0, 20.0, 4.2, cfg), 4);
+    }
+
+    [Fact]
+    public void WeatherScore_zero_temp_score_produces_zero()
+    {
+        var cfg = new FireRiskConfig { Enabled = true };
+        Assert.Equal(0.0, FireRiskAlert.WeatherScore(24.0, 20.0, 6.0, cfg));
+    }
+
+    [Fact]
+    public void WeatherScore_zero_humidity_score_produces_zero()
+    {
+        var cfg = new FireRiskConfig { Enabled = true };
+        Assert.Equal(0.0, FireRiskAlert.WeatherScore(35.0, 50.0, 6.0, cfg));
+    }
+
+    [Fact]
+    public void WeatherScore_zero_wind_still_has_temp_and_humidity()
+    {
+        var cfg = new FireRiskConfig { Enabled = true };
+        Assert.Equal(0.8, FireRiskAlert.WeatherScore(35.0, 20.0, 0.0, cfg), 4);
+    }
 }

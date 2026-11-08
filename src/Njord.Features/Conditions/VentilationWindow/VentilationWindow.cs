@@ -56,7 +56,7 @@ public sealed class VentilationWindow(IOptions<VentilationWindowConfig> config) 
         return new VentilationWindowResult(ctx.Location, first, end);
     }
 
-    private static bool IsOpenWindowHour(ForecastPoint weather, AirQualityPoint air)
+    internal static bool IsOpenWindowHour(ForecastPoint weather, AirQualityPoint air)
     {
         var pollen = Math.Max(
             Math.Max(air.BirchPollen ?? 0, air.GrassPollen ?? 0),

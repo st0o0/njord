@@ -69,10 +69,7 @@ public sealed class CloudCeilingConditionTests
     }
 
     [Fact]
-    public void Low_cloud_without_a_boundary_layer_height_reports_nothing()
-    {
-        Assert.Null(Eval(80, 0, 0, layer: null));
-    }
+    public void Low_cloud_without_a_boundary_layer_height_reports_nothing() => Assert.Null(Eval(80, 0, 0, layer: null));
 
     [Theory]
     [InlineData(299, CeilingCategory.VeryLow)]
@@ -83,8 +80,5 @@ public sealed class CloudCeilingConditionTests
     [InlineData(3000, CeilingCategory.High)]
     [InlineData(6000, CeilingCategory.High)]
     [InlineData(6001, CeilingCategory.VeryHigh)]
-    public void Category_boundaries(double meters, CeilingCategory expected)
-    {
-        Assert.Equal(expected, CloudCeilingCondition.Categorize(meters));
-    }
+    public void Category_boundaries(double meters, CeilingCategory expected) => Assert.Equal(expected, CloudCeilingCondition.Categorize(meters));
 }

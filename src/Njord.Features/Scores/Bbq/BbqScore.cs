@@ -37,7 +37,7 @@ public sealed class BbqScore(IOptions<BbqConfig> config) : FeatureRule<ForecastI
         return new BbqScoreResult(ctx.Location, score, hours[start].ValidFrom, length);
     }
 
-    private static double ScoreHour(ForecastPoint point)
+    internal static double ScoreHour(ForecastPoint point)
     {
         if (point.IsDay is not > 0 || point.Precipitation > 0.1)
         {

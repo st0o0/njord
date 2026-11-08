@@ -56,10 +56,7 @@ public sealed class CommuteSafetyTests
     }
 
     [Fact]
-    public void A_disabled_feature_reports_itself_as_disabled()
-    {
-        Assert.False(Feature(enabled: false).Enabled);
-    }
+    public void A_disabled_feature_reports_itself_as_disabled() => Assert.False(Feature(enabled: false).Enabled);
 
     [Fact]
     public void Fog_alone_calls_for_caution()

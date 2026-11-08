@@ -8,10 +8,7 @@ public sealed class HeatPumpCopConfigValidatorTests
     private readonly HeatPumpCopConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new HeatPumpCopConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new HeatPumpCopConfig()).Succeeded);
 
     [Fact]
     public void A_zero_forecast_hours_is_rejected()

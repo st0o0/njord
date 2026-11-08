@@ -8,16 +8,10 @@ public sealed class WindChillConfigValidatorTests
     private readonly WindChillConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new WindChillConfig { Thresholds = WindChillConfig.DefaultThresholds }).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new WindChillConfig { Thresholds = WindChillConfig.DefaultThresholds }).Succeeded);
 
     [Fact]
-    public void Descending_thresholds_are_accepted()
-    {
-        Assert.True(_validator.Validate(null, new WindChillConfig { Thresholds = [-8, -18, -28] }).Succeeded);
-    }
+    public void Descending_thresholds_are_accepted() => Assert.True(_validator.Validate(null, new WindChillConfig { Thresholds = [-8, -18, -28] }).Succeeded);
 
     [Fact]
     public void Ascending_thresholds_are_rejected()

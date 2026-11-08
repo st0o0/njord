@@ -42,10 +42,7 @@ public sealed class FloodTimelineTests
     }
 
     [Fact]
-    public void Nothing_is_reported_without_flood_data()
-    {
-        Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
-    }
+    public void Nothing_is_reported_without_flood_data() => Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
 
     [Fact]
     public void The_feature_requires_discharge_and_the_warning_level()

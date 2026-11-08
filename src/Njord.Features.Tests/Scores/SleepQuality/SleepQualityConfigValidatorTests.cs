@@ -8,10 +8,7 @@ public sealed class SleepQualityConfigValidatorTests
     private readonly SleepQualityConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new SleepQualityConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new SleepQualityConfig()).Succeeded);
 
     [Fact]
     public void A_night_start_hour_above_23_is_rejected()

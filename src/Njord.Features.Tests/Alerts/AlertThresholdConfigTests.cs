@@ -18,10 +18,7 @@ namespace Njord.Features.Tests.Alerts;
 public sealed class AlertThresholdConfigTests
 {
     [Fact]
-    public void Uv_validator_accepts_the_defaults()
-    {
-        Assert.True(new UvConfigValidator().Validate(null, new UvConfig { Thresholds = UvConfig.DefaultThresholds }).Succeeded);
-    }
+    public void Uv_validator_accepts_the_defaults() => Assert.True(new UvConfigValidator().Validate(null, new UvConfig { Thresholds = UvConfig.DefaultThresholds }).Succeeded);
 
     [Fact]
     public void Uv_validator_rejects_three_values()

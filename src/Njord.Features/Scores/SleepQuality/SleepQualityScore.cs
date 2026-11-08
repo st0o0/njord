@@ -73,21 +73,21 @@ public sealed class SleepQualityScore(IOptions<SleepQualityConfig> config) : Fea
         };
     }
 
-    private static bool IsNight(SleepQualityConfig cfg, int hour) =>
+    internal static bool IsNight(SleepQualityConfig cfg, int hour) =>
         cfg.NightStartHour <= cfg.NightEndHour
             ? hour >= cfg.NightStartHour && hour < cfg.NightEndHour
             : hour >= cfg.NightStartHour || hour < cfg.NightEndHour;
 
-    private static bool IsPreSleep(SleepQualityConfig cfg, int hour)
+    internal static bool IsPreSleep(SleepQualityConfig cfg, int hour)
     {
         var hoursBeforeNight = (((cfg.NightStartHour - hour) % 24) + 24) % 24;
         return hoursBeforeNight is >= 1 and <= PreSleepHours;
     }
 
-    private static bool HighPollenPresent(AirQualityPoint? air) =>
+    internal static bool HighPollenPresent(AirQualityPoint? air) =>
         air is not null && Math.Max(air.BirchPollen ?? 0.0, air.GrassPollen ?? 0.0) >= HighPollen;
 
-    private static double NightScore(SleepQualityConfig cfg, ForecastPoint weather, AirQualityPoint? air)
+    internal static double NightScore(SleepQualityConfig cfg, ForecastPoint weather, AirQualityPoint? air)
     {
         var score = 100.0;
         if (weather.Temperature is { } temperature)
@@ -129,7 +129,7 @@ public sealed class SleepQualityScore(IOptions<SleepQualityConfig> config) : Fea
         return Math.Clamp(score, 0.0, 100.0);
     }
 
-    private static double VentilationScore(SleepQualityConfig cfg, ForecastPoint weather, AirQualityPoint? air)
+    internal static double VentilationScore(SleepQualityConfig cfg, ForecastPoint weather, AirQualityPoint? air)
     {
         var score = 100.0;
         if (weather.Temperature > 25.0)

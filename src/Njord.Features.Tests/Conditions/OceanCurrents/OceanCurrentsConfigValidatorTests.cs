@@ -8,10 +8,7 @@ public sealed class OceanCurrentsConfigValidatorTests
     private readonly OceanCurrentsConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new OceanCurrentsConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new OceanCurrentsConfig()).Succeeded);
 
     [Fact]
     public void A_zero_threshold_is_rejected()

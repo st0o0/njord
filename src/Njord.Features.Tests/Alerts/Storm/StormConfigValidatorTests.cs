@@ -8,16 +8,10 @@ public sealed class StormConfigValidatorTests
     private readonly StormConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new StormConfig { GustThresholds = StormConfig.DefaultGustThresholds }).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new StormConfig { GustThresholds = StormConfig.DefaultGustThresholds }).Succeeded);
 
     [Fact]
-    public void Ascending_thresholds_are_accepted()
-    {
-        Assert.True(_validator.Validate(null, new StormConfig { GustThresholds = [15, 22, 30] }).Succeeded);
-    }
+    public void Ascending_thresholds_are_accepted() => Assert.True(_validator.Validate(null, new StormConfig { GustThresholds = [15, 22, 30] }).Succeeded);
 
     [Fact]
     public void Descending_thresholds_are_rejected()

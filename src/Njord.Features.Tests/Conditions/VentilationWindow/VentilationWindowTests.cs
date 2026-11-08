@@ -42,10 +42,7 @@ public sealed class VentilationWindowTests
     }
 
     [Fact]
-    public void Nothing_is_reported_without_air_quality_data()
-    {
-        Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
-    }
+    public void Nothing_is_reported_without_air_quality_data() => Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
 
     [Fact]
     public void High_pollen_blocks_the_window()

@@ -7,10 +7,7 @@ public sealed class IrrigationNeedConfigValidatorTests
     private readonly IrrigationNeedConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new IrrigationNeedConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new IrrigationNeedConfig()).Succeeded);
 
     [Fact]
     public void Inverted_thresholds_are_rejected()

@@ -8,10 +8,7 @@ public sealed class FogConfigValidatorTests
     private readonly FogConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new FogConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new FogConfig()).Succeeded);
 
     [Fact]
     public void A_window_hours_below_one_is_rejected()

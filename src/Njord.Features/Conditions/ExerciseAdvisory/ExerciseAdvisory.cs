@@ -74,7 +74,7 @@ public sealed class ExerciseAdvisory(IOptions<ExerciseAdvisoryConfig> config) : 
         }
     }
 
-    private static Hour? Components(ForecastPoint weather, AirQualityPoint air)
+    internal static Hour? Components(ForecastPoint weather, AirQualityPoint air)
     {
         if (air is not { Pm25: { } airPm25, Ozone: { } airOzone }
             || weather is not { Temperature: { } airTemperature, Humidity: { } relativeHumidity })
@@ -92,7 +92,7 @@ public sealed class ExerciseAdvisory(IOptions<ExerciseAdvisoryConfig> config) : 
         return new Hour(weather.ValidFrom, total, pm25, ozone, temperature, humidity, uv);
     }
 
-    private sealed record Hour(
+    internal sealed record Hour(
         DateTimeOffset ValidFrom,
         double Total,
         double Pm25,

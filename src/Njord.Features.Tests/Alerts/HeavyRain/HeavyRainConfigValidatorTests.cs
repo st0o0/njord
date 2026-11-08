@@ -8,10 +8,7 @@ public sealed class HeavyRainConfigValidatorTests
     private readonly HeavyRainConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new HeavyRainConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new HeavyRainConfig()).Succeeded);
 
     [Fact]
     public void A_window_hours_below_one_is_rejected()

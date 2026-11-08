@@ -77,14 +77,8 @@ public sealed class SeasonalOutlookTests
     }
 
     [Fact]
-    public void Nothing_is_reported_without_seasonal_data()
-    {
-        Assert.Null(Run(Feature(), October, ForecastOnly(Day())));
-    }
+    public void Nothing_is_reported_without_seasonal_data() => Assert.Null(Run(Feature(), October, ForecastOnly(Day())));
 
     [Fact]
-    public void Nothing_is_reported_when_only_the_current_month_is_known()
-    {
-        Assert.Null(Run(Feature(), October, With(Month(2026, 10))));
-    }
+    public void Nothing_is_reported_when_only_the_current_month_is_known() => Assert.Null(Run(Feature(), October, With(Month(2026, 10))));
 }

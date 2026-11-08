@@ -43,16 +43,10 @@ public sealed class PollenTrendTests
     }
 
     [Fact]
-    public void Nothing_is_reported_without_a_previous_cycle()
-    {
-        Assert.Null(Run(Feature(), Now, With((_, p) => p with { BirchPollen = 30.0 })));
-    }
+    public void Nothing_is_reported_without_a_previous_cycle() => Assert.Null(Run(Feature(), Now, With((_, p) => p with { BirchPollen = 30.0 })));
 
     [Fact]
-    public void Nothing_is_reported_when_no_pollen_is_present()
-    {
-        Assert.Null(Run(Feature(), Now, With((_, p) => p), With((_, p) => p)));
-    }
+    public void Nothing_is_reported_when_no_pollen_is_present() => Assert.Null(Run(Feature(), Now, With((_, p) => p), With((_, p) => p)));
 
     [Fact]
     public void The_feature_requires_every_pollen_type()

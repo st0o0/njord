@@ -34,7 +34,7 @@ public sealed class WeatherAlertsTests
         var result = Run(rule, Now, ForecastOnly(weather));
         return result is null
             ? AlertSeverity.None
-            : Assert.IsAssignableFrom<AlertFeatureResult>(result).Severity;
+            : Assert.IsType<AlertFeatureResult>(result, exactMatch: false).Severity;
     }
 
     private static AlertSeverity Severity(FeatureRule<ForecastEnsembleInput> rule, DomainForecast<ForecastPoint> weather)
@@ -42,7 +42,7 @@ public sealed class WeatherAlertsTests
         var result = Run(rule, Now, ForecastWithEnsemble(weather, EnsembleDay()));
         return result is null
             ? AlertSeverity.None
-            : Assert.IsAssignableFrom<AlertFeatureResult>(result).Severity;
+            : Assert.IsType<AlertFeatureResult>(result, exactMatch: false).Severity;
     }
 
     [Theory]
@@ -196,16 +196,10 @@ public sealed class WeatherAlertsTests
     }
 
     [Fact]
-    public void Missing_weather_produces_no_alert()
-    {
-        Assert.Null(Run(new FrostAlert(Opts(new FrostConfig { Thresholds = FrostConfig.DefaultThresholds })), Now, new LocationForecast(Lucerne)));
-    }
+    public void Missing_weather_produces_no_alert() => Assert.Null(Run(new FrostAlert(Opts(new FrostConfig { Thresholds = FrostConfig.DefaultThresholds })), Now, new LocationForecast(Lucerne)));
 
     [Fact]
-    public void Missing_ensemble_produces_no_alert_for_ensemble_requiring_alerts()
-    {
-        Assert.Null(Run(new FrostAlert(Opts(new FrostConfig { Thresholds = FrostConfig.DefaultThresholds })), Now, ForecastOnly(Uniform(p => p with { Temperature = -6.0 }))));
-    }
+    public void Missing_ensemble_produces_no_alert_for_ensemble_requiring_alerts() => Assert.Null(Run(new FrostAlert(Opts(new FrostConfig { Thresholds = FrostConfig.DefaultThresholds })), Now, ForecastOnly(Uniform(p => p with { Temperature = -6.0 }))));
 
     [Fact]
     public void Independent_features_alert_independently_on_the_same_forecast()
@@ -224,10 +218,7 @@ public sealed class WeatherAlertsTests
     }
 
     [Fact]
-    public void A_disabled_feature_reports_itself_as_disabled()
-    {
-        Assert.False(new FrostAlert(Opts(new FrostConfig { Enabled = false, Thresholds = FrostConfig.DefaultThresholds })).Enabled);
-    }
+    public void A_disabled_feature_reports_itself_as_disabled() => Assert.False(new FrostAlert(Opts(new FrostConfig { Enabled = false, Thresholds = FrostConfig.DefaultThresholds })).Enabled);
 
     [Fact]
     public void The_nineteen_weather_alerts_are_alert_features_of_the_weather_category()

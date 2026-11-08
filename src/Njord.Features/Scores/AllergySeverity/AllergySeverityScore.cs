@@ -67,7 +67,7 @@ public sealed class AllergySeverityScore(IOptions<AllergySeverityConfig> config)
         return new AllergySeverityScoreResult(ctx.Location, peak, severities[start].Time, length) { Windows = windows };
     }
 
-    private static double? Severity(AirQualityPoint air, ForecastPoint weather, ForecastPoint? previous)
+    internal static double? Severity(AirQualityPoint air, ForecastPoint weather, ForecastPoint? previous)
     {
         double?[] species = [air.BirchPollen, air.GrassPollen, air.Alder, air.Mugwort];
         var present = species.OfType<double>().ToList();

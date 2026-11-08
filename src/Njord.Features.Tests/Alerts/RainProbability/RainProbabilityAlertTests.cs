@@ -20,7 +20,7 @@ public sealed class RainProbabilityAlertTests
         var result = Run(rule, Now, ForecastWithEnsemble(weather, EnsembleDay()));
         return result is null
             ? AlertSeverity.None
-            : Assert.IsAssignableFrom<AlertFeatureResult>(result).Severity;
+            : Assert.IsType<AlertFeatureResult>(result, exactMatch: false).Severity;
     }
 
     [Theory]

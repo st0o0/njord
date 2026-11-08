@@ -63,16 +63,10 @@ public sealed class SwimmingConditionsAlertTests
     }
 
     [Fact]
-    public void Hours_beyond_the_24_hour_window_are_ignored()
-    {
-        Assert.Null(RunWith(M.Point(30, 2.6)));
-    }
+    public void Hours_beyond_the_24_hour_window_are_ignored() => Assert.Null(RunWith(M.Point(30, 2.6)));
 
     [Fact]
-    public void Marine_data_without_weather_fires_on_waves()
-    {
-        Assert.NotNull(Run(Feature(), Now, new LocationForecast(Lucerne, Marine: M.MarineForecast(M.Point(0, 2.6)))));
-    }
+    public void Marine_data_without_weather_fires_on_waves() => Assert.NotNull(Run(Feature(), Now, new LocationForecast(Lucerne, Marine: M.MarineForecast(M.Point(0, 2.6)))));
 
     [Fact]
     public void Wave_height_is_required_and_water_temperature_is_optional()

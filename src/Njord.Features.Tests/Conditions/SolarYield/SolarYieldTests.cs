@@ -41,16 +41,10 @@ public sealed class SolarYieldTests
     }
 
     [Fact]
-    public void The_requirements_ask_for_global_tilted_irradiance()
-    {
-        Assert.Equal(ForecastParams.GlobalTiltedIrradiance, Feature().Descriptor.Requirements.Forecast);
-    }
+    public void The_requirements_ask_for_global_tilted_irradiance() => Assert.Equal(ForecastParams.GlobalTiltedIrradiance, Feature().Descriptor.Requirements.Forecast);
 
     [Fact]
-    public void Nothing_is_reported_without_radiation_data()
-    {
-        Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
-    }
+    public void Nothing_is_reported_without_radiation_data() => Assert.Null(Run(Feature(), Now, ForecastOnly(Day())));
 
     // 12 forecast hours today (12:00 to 23:00) and 24 forecast hours tomorrow, both as irradiance on the panel.
     private const double KwhPerWatt = PeakKw / 1000.0 * Efficiency;
@@ -90,22 +84,13 @@ public sealed class SolarYieldTests
     }
 
     [Fact]
-    public void A_cloudy_tomorrow_after_a_surplus_today_charges_the_battery()
-    {
-        Assert.Equal(BatteryStrategy.ChargeBattery, Battery(800.0, 100.0).Strategy);
-    }
+    public void A_cloudy_tomorrow_after_a_surplus_today_charges_the_battery() => Assert.Equal(BatteryStrategy.ChargeBattery, Battery(800.0, 100.0).Strategy);
 
     [Fact]
-    public void A_sunny_tomorrow_after_a_low_today_conserves()
-    {
-        Assert.Equal(BatteryStrategy.Conserve, Battery(50.0, 800.0).Strategy);
-    }
+    public void A_sunny_tomorrow_after_a_low_today_conserves() => Assert.Equal(BatteryStrategy.Conserve, Battery(50.0, 800.0).Strategy);
 
     [Fact]
-    public void Similar_days_are_normal()
-    {
-        Assert.Equal(BatteryStrategy.Normal, Battery(800.0, 800.0 * 12 / 24).Strategy);
-    }
+    public void Similar_days_are_normal() => Assert.Equal(BatteryStrategy.Normal, Battery(800.0, 800.0 * 12 / 24).Strategy);
 
     [Fact]
     public void Tomorrow_uses_tilted_irradiance_not_horizontal_radiation()
@@ -125,10 +110,7 @@ public sealed class SolarYieldTests
     [InlineData(10.0, 8.0, 10.0, BatteryStrategy.Normal)]
     [InlineData(9.99, 20.0, 10.0, BatteryStrategy.Conserve)]
     [InlineData(9.99, 5.0, 10.0, BatteryStrategy.Normal)]
-    public void Strategy_boundaries(double today, double tomorrow, double capacity, BatteryStrategy expected)
-    {
-        Assert.Equal(expected, Features.Conditions.SolarYield.SolarYield.Decide(today, tomorrow, capacity));
-    }
+    public void Strategy_boundaries(double today, double tomorrow, double capacity, BatteryStrategy expected) => Assert.Equal(expected, Features.Conditions.SolarYield.SolarYield.Decide(today, tomorrow, capacity));
 
     [Fact]
     public void No_battery_result_without_forecast_irradiance_for_tomorrow()

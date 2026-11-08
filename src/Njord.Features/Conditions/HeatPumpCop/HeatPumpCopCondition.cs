@@ -34,13 +34,13 @@ public sealed class HeatPumpCopCondition(IOptions<HeatPumpCopConfig> config) : F
 
         var cops = hours.Select(point => (point.ValidFrom, Cop: CopAt(options.TargetTemperature, point.Temperature!.Value))).ToList();
         var current = cops[0].Cop;
-        var best = cops.MaxBy(entry => entry.Cop);
+        var (ValidFrom, Cop) = cops.MaxBy(entry => entry.Cop);
         return new HeatPumpCopConditionResult(
             ctx.Location,
             Math.Round(current, 2),
             Recommend(current),
-            Math.Round(best.Cop, 2),
-            best.ValidFrom.Hour);
+            Math.Round(Cop, 2),
+            ValidFrom.Hour);
     }
 
     public static double CopAt(double targetTemperature, double outsideTemperature) =>

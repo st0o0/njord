@@ -13,6 +13,9 @@ public sealed class DustConfig : IConfigSection, IHasArrayDefaults
 
     public void ApplyDefaults()
     {
-        if (Thresholds is { Length: 0 }) Thresholds = DefaultThresholds;
+        if (Thresholds is { Length: 0 })
+        {
+            Thresholds = DefaultThresholds;
+        }
     }
 }

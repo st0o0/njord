@@ -20,7 +20,7 @@ public sealed class ClearSkyUvAlertTests
         var result = Run(rule, Now, ForecastOnly(weather));
         return result is null
             ? AlertSeverity.None
-            : Assert.IsAssignableFrom<AlertFeatureResult>(result).Severity;
+            : Assert.IsType<AlertFeatureResult>(result, exactMatch: false).Severity;
     }
 
     [Theory]

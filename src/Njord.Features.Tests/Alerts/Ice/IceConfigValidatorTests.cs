@@ -8,10 +8,7 @@ public sealed class IceConfigValidatorTests
     private readonly IceConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new IceConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new IceConfig()).Succeeded);
 
     [Fact]
     public void A_window_hours_below_one_is_rejected()

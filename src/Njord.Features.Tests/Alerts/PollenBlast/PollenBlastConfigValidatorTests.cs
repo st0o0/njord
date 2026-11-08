@@ -8,10 +8,7 @@ public sealed class PollenBlastConfigValidatorTests
     private readonly PollenBlastConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new PollenBlastConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new PollenBlastConfig()).Succeeded);
 
     [Fact]
     public void A_non_positive_temperature_threshold_is_rejected()

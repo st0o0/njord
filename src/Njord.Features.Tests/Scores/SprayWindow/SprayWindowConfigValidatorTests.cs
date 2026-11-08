@@ -8,10 +8,7 @@ public sealed class SprayWindowConfigValidatorTests
     private readonly SprayWindowConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new SprayWindowConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new SprayWindowConfig()).Succeeded);
 
     [Fact]
     public void A_non_positive_max_wind_speed_is_rejected()

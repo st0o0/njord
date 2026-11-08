@@ -8,10 +8,7 @@ public sealed class AsthmaRiskConfigValidatorTests
     private readonly AsthmaRiskConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new AsthmaRiskConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new AsthmaRiskConfig()).Succeeded);
 
     [Fact]
     public void Weights_not_summing_to_100_are_rejected()

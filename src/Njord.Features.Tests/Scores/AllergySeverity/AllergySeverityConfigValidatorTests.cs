@@ -8,10 +8,7 @@ public sealed class AllergySeverityConfigValidatorTests
     private readonly AllergySeverityConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new AllergySeverityConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new AllergySeverityConfig()).Succeeded);
 
     [Theory]
     [InlineData(nameof(AllergySeverityConfig.MinWindowScore))]

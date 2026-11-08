@@ -8,10 +8,7 @@ public sealed class SmogRiskConfigValidatorTests
     private readonly SmogRiskConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new SmogRiskConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new SmogRiskConfig()).Succeeded);
 
     [Fact]
     public void A_non_positive_boundary_layer_threshold_is_rejected()

@@ -8,16 +8,10 @@ public sealed class VisibilityConfigValidatorTests
     private readonly VisibilityConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new VisibilityConfig { Thresholds = VisibilityConfig.DefaultThresholds }).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new VisibilityConfig { Thresholds = VisibilityConfig.DefaultThresholds }).Succeeded);
 
     [Fact]
-    public void Descending_thresholds_are_accepted()
-    {
-        Assert.True(_validator.Validate(null, new VisibilityConfig { Thresholds = [800, 150, 30] }).Succeeded);
-    }
+    public void Descending_thresholds_are_accepted() => Assert.True(_validator.Validate(null, new VisibilityConfig { Thresholds = [800, 150, 30] }).Succeeded);
 
     [Fact]
     public void Ascending_thresholds_are_rejected()

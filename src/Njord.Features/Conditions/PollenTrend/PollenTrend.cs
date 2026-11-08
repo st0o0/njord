@@ -65,12 +65,12 @@ public sealed class PollenTrend(IOptions<PollenTrendConfig> config) : FeatureRul
                 trends[type] = Classify(currentValues.Average(v => v.Value), previousValues.Average());
             }
 
-            var top = currentValues.MaxBy(v => v.Value);
-            if (top.Value > peakValue)
+            var (ValidFrom, Value) = currentValues.MaxBy(v => v.Value);
+            if (Value > peakValue)
             {
-                peakValue = top.Value;
+                peakValue = Value;
                 peakType = type;
-                peakTime = top.ValidFrom;
+                peakTime = ValidFrom;
             }
         }
 

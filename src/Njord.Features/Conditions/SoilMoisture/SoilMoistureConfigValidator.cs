@@ -13,7 +13,9 @@ public sealed class SoilMoistureConfigValidator : IValidateOptions<SoilMoistureC
         failures.Require(options.DryThreshold > 0, $"DryThreshold must be positive, got {options.DryThreshold}.");
         failures.Require(options.WetThreshold > 0, $"WetThreshold must be positive, got {options.WetThreshold}.");
         if (options.DryThreshold >= options.WetThreshold)
+        {
             failures.Add($"DryThreshold ({options.DryThreshold}) must be less than WetThreshold ({options.WetThreshold}).");
+        }
 
         return failures.ToResult();
     }

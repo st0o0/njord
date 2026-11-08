@@ -92,10 +92,7 @@ public sealed class InversionDetectionConditionTests
     [InlineData(2.0, 499, InversionStrength.Mild)]
     [InlineData(4.01, 299, InversionStrength.Extreme)]
     [InlineData(4.01, 300, InversionStrength.Strong)]
-    public void Strength_boundaries(double diff, double layer, InversionStrength expected)
-    {
-        Assert.Equal(expected, InversionDetectionCondition.ClassifyStrength(diff, layer));
-    }
+    public void Strength_boundaries(double diff, double layer, InversionStrength expected) => Assert.Equal(expected, InversionDetectionCondition.ClassifyStrength(diff, layer));
 
     [Fact]
     public void Nothing_is_reported_without_the_80m_temperature()

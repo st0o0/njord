@@ -32,7 +32,7 @@ public sealed class PressureDropAlert(IOptions<PressureDropConfig> config) : Fea
             return null;
         }
 
-        var (maxDrop, endPoint) = MaxDrop(window, ctx.Now);
+        var (maxDrop, _) = MaxDrop(window, ctx.Now);
         var dropThreshold = config.Value.Threshold;
         var severeThreshold = config.Value.SevereThreshold;
 

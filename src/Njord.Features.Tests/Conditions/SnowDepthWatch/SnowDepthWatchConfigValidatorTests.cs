@@ -7,10 +7,7 @@ public sealed class SnowDepthWatchConfigValidatorTests
     private readonly SnowDepthWatchConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new SnowDepthWatchConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new SnowDepthWatchConfig()).Succeeded);
 
     [Fact]
     public void Non_ascending_thresholds_are_rejected()

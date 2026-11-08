@@ -8,10 +8,7 @@ public sealed class FrostDepthConfigValidatorTests
     private readonly FrostDepthConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new FrostDepthConfig()).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new FrostDepthConfig()).Succeeded);
 
     [Fact]
     public void A_zero_pipe_depth_is_rejected()

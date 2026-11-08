@@ -8,16 +8,10 @@ public sealed class HumidityConfigValidatorTests
     private readonly HumidityConfigValidator _validator = new();
 
     [Fact]
-    public void The_defaults_are_valid()
-    {
-        Assert.True(_validator.Validate(null, new HumidityConfig { Thresholds = HumidityConfig.DefaultThresholds }).Succeeded);
-    }
+    public void The_defaults_are_valid() => Assert.True(_validator.Validate(null, new HumidityConfig { Thresholds = HumidityConfig.DefaultThresholds }).Succeeded);
 
     [Fact]
-    public void Ascending_thresholds_are_accepted()
-    {
-        Assert.True(_validator.Validate(null, new HumidityConfig { Thresholds = [14, 19, 22] }).Succeeded);
-    }
+    public void Ascending_thresholds_are_accepted() => Assert.True(_validator.Validate(null, new HumidityConfig { Thresholds = [14, 19, 22] }).Succeeded);
 
     [Fact]
     public void Descending_thresholds_are_rejected()

@@ -33,10 +33,7 @@ public sealed class AirQualityAlertsTests
     }
 
     [Fact]
-    public void Pollen_below_the_first_level_raises_nothing()
-    {
-        Assert.Null(Run(Pollen(), Now, With((_, p) => p with { BirchPollen = 19.9 })));
-    }
+    public void Pollen_below_the_first_level_raises_nothing() => Assert.Null(Run(Pollen(), Now, With((_, p) => p with { BirchPollen = 19.9 })));
 
     [Fact]
     public void The_strongest_pollen_in_the_window_decides()
@@ -119,10 +116,7 @@ public sealed class AirQualityAlertsTests
     }
 
     [Fact]
-    public void Missing_air_quality_data_raises_nothing()
-    {
-        Assert.Null(Run(Pm25(), Now, new LocationForecast(Lucerne)));
-    }
+    public void Missing_air_quality_data_raises_nothing() => Assert.Null(Run(Pm25(), Now, new LocationForecast(Lucerne)));
 
     [Fact]
     public void Each_feature_requests_its_own_air_quality_parameters()

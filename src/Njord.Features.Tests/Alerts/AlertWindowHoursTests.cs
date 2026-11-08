@@ -132,7 +132,7 @@ public sealed class AlertWindowHoursTests
         var forecast = new LocationForecast(
             Lucerne,
             AirQuality: Njord.Tests.Shared.AirQualityFixture.Day((h, p) => h == 20 ? p with { Dust = 500.0 } : p));
-        DustAlert Create(int hours) => new(Opts(new DustConfig { Enabled = true, WindowHours = hours, Thresholds = DustConfig.DefaultThresholds }));
+        static DustAlert Create(int hours) => new(Opts(new DustConfig { Enabled = true, WindowHours = hours, Thresholds = DustConfig.DefaultThresholds }));
 
         Assert.Multiple(
             () => Assert.NotNull(Run(Create(FullWindow), Now, forecast)),
