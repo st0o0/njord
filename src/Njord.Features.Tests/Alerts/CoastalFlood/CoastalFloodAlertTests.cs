@@ -65,6 +65,32 @@ public sealed class CoastalFloodAlertTests
     }
 
     [Fact]
+    public void Elevated_sea_level_produces_orange()
+    {
+        var weather = Day((_, p) => p with { WindSpeed = 2.0 });
+        var marine = MarineDay(seaLevel: 0.6, waveHeight: 0.5);
+        var forecast = new LocationForecast(Lucerne, weather, Marine: marine, Ensemble: EnsembleDay());
+
+        var result = Run(Rule(), Now, forecast);
+        Assert.NotNull(result);
+        var alert = Assert.IsType<CoastalFloodAlertResult>(result, exactMatch: false);
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+    }
+
+    [Fact]
+    public void Both_wave_and_wind_factors_produce_orange()
+    {
+        var weather = Day((_, p) => p with { WindSpeed = 5.0 });
+        var marine = MarineDay(seaLevel: 0.35, waveHeight: 2.0);
+        var forecast = new LocationForecast(Lucerne, weather, Marine: marine, Ensemble: EnsembleDay());
+
+        var result = Run(Rule(), Now, forecast);
+        Assert.NotNull(result);
+        var alert = Assert.IsType<CoastalFloodAlertResult>(result, exactMatch: false);
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+    }
+
+    [Fact]
     public void Missing_marine_data_skips_alert()
     {
         var weather = Day((_, p) => p with { WindSpeed = 10.0 });

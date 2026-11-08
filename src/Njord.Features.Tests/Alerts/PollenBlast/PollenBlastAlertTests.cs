@@ -3,6 +3,7 @@ using Njord.Core.AirQuality;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Features.Alerts.PollenBlast;
+using Njord.Messages.Alerts;
 using Njord.Messages.Results.Alerts;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
@@ -61,6 +62,56 @@ public sealed class PollenBlastAlertTests
         var current = Forecast(dryWeather, noPollen);
 
         var result = Run(Rule(), Now, past, past, current);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void Very_high_pollen_after_rain_produces_red()
+    {
+        var rainyWeather = Day((_, p) => p with { Temperature = 20.0, WindSpeed = 3.0, Precipitation = 5.0 });
+        var dryWeather = Day((_, p) => p with { Temperature = 20.0, WindSpeed = 3.0, Precipitation = 0.0 });
+        var lowPollen = CleanAir(24, (_, p) => p with { GrassPollen = 5.0 });
+        var extremePollen = CleanAir(24, (_, p) => p with { GrassPollen = 120.0 });
+
+        var result = Run(Rule(), Now, Forecast(rainyWeather, lowPollen), Forecast(dryWeather, lowPollen), Forecast(dryWeather, extremePollen));
+        Assert.NotNull(result);
+        var alert = Assert.IsType<PollenBlastAlertResult>(result, exactMatch: false);
+        Assert.Equal(AlertSeverity.Red, alert.Severity);
+    }
+
+    [Fact]
+    public void Moderate_pollen_after_rain_produces_yellow()
+    {
+        var rainyWeather = Day((_, p) => p with { Temperature = 20.0, WindSpeed = 3.0, Precipitation = 5.0 });
+        var dryWeather = Day((_, p) => p with { Temperature = 20.0, WindSpeed = 3.0, Precipitation = 0.0 });
+        var lowPollen = CleanAir(24, (_, p) => p with { BirchPollen = 5.0 });
+        var risePollen = CleanAir(24, (_, p) => p with { BirchPollen = 25.0 });
+
+        var result = Run(Rule(), Now, Forecast(rainyWeather, lowPollen), Forecast(dryWeather, lowPollen), Forecast(dryWeather, risePollen));
+        Assert.NotNull(result);
+        var alert = Assert.IsType<PollenBlastAlertResult>(result, exactMatch: false);
+        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
+    }
+
+    [Fact]
+    public void Insufficient_history_does_not_trigger()
+    {
+        var dryWeather = Day((_, p) => p with { Temperature = 20.0, WindSpeed = 3.0, Precipitation = 0.0 });
+        var highPollen = CleanAir(24, (_, p) => p with { BirchPollen = 100.0 });
+
+        var result = Run(Rule(), Now, Forecast(dryWeather, highPollen), Forecast(dryWeather, highPollen));
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void Wet_current_conditions_do_not_trigger()
+    {
+        var rainyWeather = Day((_, p) => p with { Temperature = 20.0, WindSpeed = 3.0, Precipitation = 5.0 });
+        var lowPollen = CleanAir(24, (_, p) => p with { BirchPollen = 5.0 });
+        var highPollen = CleanAir(24, (_, p) => p with { BirchPollen = 100.0 });
+        var wetCurrent = Day((_, p) => p with { Temperature = 20.0, WindSpeed = 3.0, Precipitation = 2.0 });
+
+        var result = Run(Rule(), Now, Forecast(rainyWeather, lowPollen), Forecast(rainyWeather, lowPollen), Forecast(wetCurrent, highPollen));
         Assert.Null(result);
     }
 }
