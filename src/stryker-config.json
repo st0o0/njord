@@ -4,8 +4,8 @@
     "reporters": ["progress", "cleartext", "html", "json", "markdown"],
     "thresholds": {
       "high": 80,
-      "low": 60,
-      "break": 60
+      "low": 65,
+      "break": 65
     },
     "ignore-mutations": ["string"],
     "mutate": [
