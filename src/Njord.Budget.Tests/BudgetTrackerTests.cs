@@ -13,7 +13,7 @@ namespace Njord.Budget.Tests;
 
 public sealed class BudgetTrackerTests : Akka.Hosting.TestKit.TestKit
 {
-    private readonly FakeTimeProvider _time = new FakeTimeProvider(TestTimeConstants.BudgetEpoch);
+    private readonly FakeTimeProvider _time = new(TestTimeConstants.BudgetEpoch);
     private IOptions<PollingOptions> _polling = Options.Create(AppSettingsDefaults.Options<PollingOptions>());
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) =>

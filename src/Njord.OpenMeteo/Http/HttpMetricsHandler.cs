@@ -17,7 +17,7 @@ internal sealed class HttpMetricsHandler : DelegatingHandler
         var sw = Stopwatch.StartNew();
         try
         {
-            var response = await base.SendAsync(request, cancellationToken);
+            var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
             sw.Stop();
 
             Telemetry.HttpRequests.Add(1, new KeyValuePair<string, object?>("status_class", ToStatusClass((int)response.StatusCode)));

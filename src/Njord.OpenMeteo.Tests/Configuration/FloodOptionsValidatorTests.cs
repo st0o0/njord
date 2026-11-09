@@ -8,10 +8,7 @@ public sealed class FloodOptionsValidatorTests
     private readonly FloodOptionsValidator _validator = new();
 
     [Fact]
-    public void Should_accept_the_default_options()
-    {
-        Assert.True(_validator.Validate(null, new FloodOptions()).Succeeded);
-    }
+    public void Should_accept_the_default_options() => Assert.True(_validator.Validate(null, new FloodOptions()).Succeeded);
 
     [Theory]
     [InlineData(0)]

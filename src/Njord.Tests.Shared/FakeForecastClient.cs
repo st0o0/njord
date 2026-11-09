@@ -26,7 +26,7 @@ public sealed class FakeForecastClient : IDomainClient
     public async Task<FetchResult> FetchAsync(double latitude, double longitude, DateTimeOffset now, CancellationToken cancellationToken)
     {
         Interlocked.Increment(ref _calls);
-        await _release.Task.WaitAsync(cancellationToken);
+        await _release.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         if (Throws)
         {

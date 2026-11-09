@@ -42,17 +42,21 @@ public sealed class OpsGrpcServiceTests : Akka.Hosting.TestKit.TestKit
 
     private sealed class FakePollManager : ReceiveActor
     {
-        public FakePollManager() =>
+        public FakePollManager()
+        {
             Receive<QueryPollStates>(_ => Sender.Tell(new PollStatesResult(
             [
                 new PollStateEntry(new Location("Lucerne", 47.05, 8.31), Messages.Polling.PollPhase.Steady,
                     TestTimeConstants.BudgetEpoch, null, 0, null),
             ])));
+        }
     }
 
     private sealed class FakeBudgetTracker : ReceiveActor
     {
-        public FakeBudgetTracker() =>
+        public FakeBudgetTracker()
+        {
             Receive<QueryBudgetStatus>(_ => Sender.Tell(new BudgetStatusResult(40, 4, 300_000, 10_000)));
+        }
     }
 }

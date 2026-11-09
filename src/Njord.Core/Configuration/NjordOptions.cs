@@ -14,7 +14,9 @@ public sealed class NjordOptions : IConfigSection
         foreach (var location in ResolvedLocations)
         {
             if (location.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
                 return location;
+            }
         }
 
         return null;

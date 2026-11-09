@@ -8,16 +8,10 @@ public sealed class SeasonalOptionsValidatorTests
     private readonly SeasonalOptionsValidator _validator = new();
 
     [Fact]
-    public void Should_accept_the_default_options()
-    {
-        Assert.True(_validator.Validate(null, new SeasonalOptions()).Succeeded);
-    }
+    public void Should_accept_the_default_options() => Assert.True(_validator.Validate(null, new SeasonalOptions()).Succeeded);
 
     [Fact]
-    public void Should_accept_seven_forecast_months()
-    {
-        Assert.True(_validator.Validate(null, new SeasonalOptions { ForecastMonths = 7 }).Succeeded);
-    }
+    public void Should_accept_seven_forecast_months() => Assert.True(_validator.Validate(null, new SeasonalOptions { ForecastMonths = 7 }).Succeeded);
 
     [Theory]
     [InlineData(0)]

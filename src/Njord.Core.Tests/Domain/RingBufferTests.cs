@@ -87,8 +87,5 @@ public sealed class RingBufferTests
     }
 
     [Fact]
-    public void Zero_capacity_throws()
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new RingBuffer<int>(0));
-    }
+    public void Zero_capacity_throws() => Assert.Throws<ArgumentOutOfRangeException>(() => new RingBuffer<int>(0));
 }

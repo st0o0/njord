@@ -29,10 +29,7 @@ public sealed class BudgetGuardTests
     private static PollingOptions WithMonthlyBudget(int perMonth) => new() { Budget = new RequestBudget(perMonth, 600) };
 
     [Fact]
-    public void Should_accept_usage_within_eighty_percent_of_the_budget()
-    {
-        Assert.Null(Violation(Scope(), new PollingOptions(), Resolved()));
-    }
+    public void Should_accept_usage_within_eighty_percent_of_the_budget() => Assert.Null(Violation(Scope(), new PollingOptions(), Resolved()));
 
     [Fact]
     public void Should_report_usage_above_eighty_percent_of_the_budget()
@@ -91,11 +88,9 @@ public sealed class BudgetGuardTests
     }
 
     [Fact]
-    public void Should_charge_nothing_for_weather_when_it_is_not_required()
-    {
+    public void Should_charge_nothing_for_weather_when_it_is_not_required() =>
         // Only air quality: 0.357 x 720 = 257 calls; guard 264 of 330.
         Assert.Null(Violation(Scope(), WithMonthlyBudget(330), Resolved(ForecastParams.None)));
-    }
 
     [Fact]
     public void Should_weigh_the_flood_domain_by_its_forecast_days()

@@ -122,8 +122,8 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
             .RunWith(Sink.Seq<PipelineEvent>(), Sys.Materializer())
             .WaitAsync(TimeSpan.FromSeconds(5), ct);
 
-        Assert.Single(events);
-        Assert.IsNotType<Heartbeat>(events[0]);
+        var item = Assert.Single(events);
+        Assert.IsNotType<Heartbeat>(item);
     }
 
     private async Task<(IActorRef Consumer, ISourceQueueWithComplete<PipelineEvent> Pipeline)> StartAsync()

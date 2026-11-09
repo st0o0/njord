@@ -26,7 +26,7 @@ internal sealed class PipelineHealthCheck(
 
         try
         {
-            var health = await manager.Ask<PollHealthResult>(new QueryPollHealth(), AskTimeout, cancellationToken);
+            var health = await manager.Ask<PollHealthResult>(new QueryPollHealth(), AskTimeout, cancellationToken).ConfigureAwait(false);
             return Evaluate(health, polling.Value.PollInterval, timeProvider.GetUtcNow(), options.Value);
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)

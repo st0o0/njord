@@ -370,7 +370,7 @@ public sealed class FeatureEngineTests
 
         var call = Assert.Single(rule.Calls);
         Assert.Multiple(
-            () => Assert.Equal(["ecmwf", "ukmo"], call.Models.Keys.Order().ToArray()),
+            () => Assert.Equal(["ecmwf", "ukmo"], [.. call.Models.Keys.Order()]),
             () => Assert.Equal(8.0, call.Models["ukmo"].Points[0].Temperature),
             () => Assert.Null(Assert.IsType<ForecastDataReceived>(events[0]).ModelId),
             () => Assert.Contains(events, e => e is ProbeResult));

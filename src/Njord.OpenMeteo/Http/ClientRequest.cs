@@ -58,7 +58,7 @@ internal static class ClientRequest
     {
         try
         {
-            var response = await request();
+            var response = await request().ConfigureAwait(false);
             return response is null ? new FetchEmpty() : map(response);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)

@@ -49,10 +49,7 @@ public sealed class DomainRequirementsResolutionTests
     }
 
     [Fact]
-    public void Disabled_features_are_ignored()
-    {
-        Assert.Equal([DomainKind.Forecast, DomainKind.Ensemble], Resolve(Frost, DisabledPollen).RequiredDomains());
-    }
+    public void Disabled_features_are_ignored() => Assert.Equal([DomainKind.Forecast, DomainKind.Ensemble], Resolve(Frost, DisabledPollen).RequiredDomains());
 
     [Fact]
     public void No_features_produce_defaults()
@@ -64,20 +61,11 @@ public sealed class DomainRequirementsResolutionTests
     }
 
     [Fact]
-    public void Base_params_are_applied()
-    {
-        Assert.True(Resolve(Frost).AllForecast.HasFlag(ForecastParams.WeatherCode));
-    }
+    public void Base_params_are_applied() => Assert.True(Resolve(Frost).AllForecast.HasFlag(ForecastParams.WeatherCode));
 
     [Fact]
-    public void Base_params_do_not_add_unrequired_domains()
-    {
-        Assert.False(Resolve(Frost).Requires(DomainKind.AirQuality));
-    }
+    public void Base_params_do_not_add_unrequired_domains() => Assert.False(Resolve(Frost).Requires(DomainKind.AirQuality));
 
     [Fact]
-    public void Ensemble_domain_is_required_when_features_need_spread()
-    {
-        Assert.True(Resolve(Frost).Requires(DomainKind.Ensemble));
-    }
+    public void Ensemble_domain_is_required_when_features_need_spread() => Assert.True(Resolve(Frost).Requires(DomainKind.Ensemble));
 }

@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Njord.Core.Domain;
 using Njord.Core.Flood;
 using Njord.Core.Forecast;
@@ -8,6 +7,7 @@ namespace Njord.Core.Tests.Domain;
 public sealed class ForecastQueriesTests
 {
     private static readonly DateTimeOffset Midnight = new(2026, 7, 1, 0, 0, 0, TimeSpan.Zero);
+    private static readonly int[] sourceArray = [0, 12, 24];
 
     private static DomainForecast<FloodPoint> Hourly(params int[] hours) =>
         new(DomainKind.Flood, Midnight, TimeResolution.Hourly,
@@ -25,10 +25,7 @@ public sealed class ForecastQueriesTests
     }
 
     [Fact]
-    public void Should_return_null_when_the_time_is_past_the_last_slot()
-    {
-        Assert.Null(ForecastQueries.ValueAt(Hourly(0, 1, 2), Midnight.AddHours(3)));
-    }
+    public void Should_return_null_when_the_time_is_past_the_last_slot() => Assert.Null(ForecastQueries.ValueAt(Hourly(0, 1, 2), Midnight.AddHours(3)));
 
     [Fact]
     public void Should_return_points_inside_the_window_inclusive_of_both_ends()
@@ -50,21 +47,18 @@ public sealed class ForecastQueriesTests
     }
 
     [Fact]
-    public void Should_return_null_when_no_point_is_within_the_allowed_gap()
-    {
-        Assert.Null(ForecastQueries.Nearest(Hourly(0, 6), Midnight.AddHours(3), TimeSpan.FromHours(1)));
-    }
+    public void Should_return_null_when_no_point_is_within_the_allowed_gap() => Assert.Null(ForecastQueries.Nearest(Hourly(0, 6), Midnight.AddHours(3), TimeSpan.FromHours(1)));
 
     [Fact]
     public void Should_correlate_hourly_points_with_the_daily_point_covering_them()
     {
         var hourly = new DomainForecast<ForecastPoint>(
             DomainKind.Forecast, Midnight, TimeResolution.Hourly,
-            [.. new[] { 0, 12, 24 }.Select(h =>
+            [.. sourceArray.Select(h =>
                 new ForecastPoint(Midnight.AddHours(h), h, h, 0, 0, 0, 0, 1013, 0, 50, 0, 0))]);
         var daily = new DomainForecast<FloodPoint>(
             DomainKind.Flood, Midnight, TimeResolution.Daily,
-            ImmutableArray.Create(new FloodPoint(Midnight, 99)));
+            [new FloodPoint(Midnight, 99)]);
 
         var pairs = ForecastQueries.Correlate(hourly, daily);
 

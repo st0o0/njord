@@ -24,17 +24,34 @@ public static class CatalogMessageMappingExtensions
         var schemas = new List<CatalogDomainSchema>();
 
         if (requirements.AllForecast != default)
+        {
             schemas.Add(new CatalogDomainSchema(DomainKind.Forecast, ParamFieldNames.ResolveFields(requirements.AllForecast, ParamFieldNames.Forecast)));
+        }
+
         if (requirements.AllEnsemble != default)
+        {
             schemas.Add(new CatalogDomainSchema(DomainKind.Ensemble, ParamFieldNames.ResolveFields(requirements.AllEnsemble, ParamFieldNames.Ensemble)));
+        }
+
         if (requirements.AllAirQuality != default)
+        {
             schemas.Add(new CatalogDomainSchema(DomainKind.AirQuality, ParamFieldNames.ResolveFields(requirements.AllAirQuality, ParamFieldNames.AirQuality)));
+        }
+
         if (requirements.AllFlood != default)
+        {
             schemas.Add(new CatalogDomainSchema(DomainKind.Flood, ParamFieldNames.ResolveFields(requirements.AllFlood, ParamFieldNames.Flood)));
+        }
+
         if (requirements.AllMarine != default)
+        {
             schemas.Add(new CatalogDomainSchema(DomainKind.Marine, ParamFieldNames.ResolveFields(requirements.AllMarine, ParamFieldNames.Marine)));
+        }
+
         if (requirements.AllSeasonal != default)
+        {
             schemas.Add(new CatalogDomainSchema(DomainKind.Seasonal, ParamFieldNames.ResolveFields(requirements.AllSeasonal, ParamFieldNames.Seasonal)));
+        }
 
         return schemas;
     }

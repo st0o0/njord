@@ -18,9 +18,9 @@ public sealed record LocationForecast(
     ImmutableDictionary<string, DomainForecast<ForecastPoint>>? ForecastModels = null,
     ImmutableDictionary<string, DomainForecast<ForecastPoint>>? EnsembleModels = null)
 {
-    public ImmutableDictionary<string, DomainForecast<ForecastPoint>> ForecastModelMap => ForecastModels ?? ImmutableDictionary<string, DomainForecast<ForecastPoint>>.Empty;
+    public ImmutableDictionary<string, DomainForecast<ForecastPoint>> ForecastModelMap => ForecastModels ?? [];
 
-    public ImmutableDictionary<string, DomainForecast<ForecastPoint>> EnsembleModelMap => EnsembleModels ?? ImmutableDictionary<string, DomainForecast<ForecastPoint>>.Empty;
+    public ImmutableDictionary<string, DomainForecast<ForecastPoint>> EnsembleModelMap => EnsembleModels ?? [];
 
     public LocationForecast WithForecastModel(string modelId, DomainForecast<ForecastPoint> forecast) =>
         this with { ForecastModels = ForecastModelMap.SetItem(modelId, forecast) };

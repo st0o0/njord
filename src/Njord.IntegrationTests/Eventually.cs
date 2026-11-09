@@ -19,7 +19,7 @@ internal static class Eventually
             {
                 try
                 {
-                    await assertion();
+                    await assertion().ConfigureAwait(false);
                     return;
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -27,7 +27,7 @@ internal static class Eventually
                     last = ex;
                 }
             }
-            while (await timer.WaitForNextTickAsync(bound.Token));
+            while (await timer.WaitForNextTickAsync(bound.Token).ConfigureAwait(false));
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -42,9 +42,9 @@ internal static class Eventually
         T? found = null;
         await AssertAsync(async () =>
         {
-            found = await probe();
+            found = await probe().ConfigureAwait(false);
             Assert.NotNull(found);
-        }, cancellationToken, within);
+        }, cancellationToken, within).ConfigureAwait(false);
         return found!;
     }
 }

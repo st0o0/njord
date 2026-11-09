@@ -43,7 +43,7 @@ internal sealed record PollManagerState(
 
         return new PollManagerState(
             states,
-            ImmutableDictionary<IActorRef, string>.Empty,
+            [],
             ImmutableDictionary.Create<string, int>(StringComparer.OrdinalIgnoreCase),
             discoveryInterval,
             now,

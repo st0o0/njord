@@ -11,10 +11,7 @@ public sealed class ConfidenceThresholdsTests
     [InlineData(0.5, ConfidenceLevel.High)]
     [InlineData(4.0, ConfidenceLevel.Low)]
     [InlineData(2.0, ConfidenceLevel.Medium)]
-    public void LevelFor_classifies_standard_deviation(double? stdDev, ConfidenceLevel expected)
-    {
-        Assert.Equal(expected, Thresholds.LevelFor(stdDev));
-    }
+    public void LevelFor_classifies_standard_deviation(double? stdDev, ConfidenceLevel expected) => Assert.Equal(expected, Thresholds.LevelFor(stdDev));
 
     [Fact]
     public void LevelFor_returns_high_at_the_boundary()

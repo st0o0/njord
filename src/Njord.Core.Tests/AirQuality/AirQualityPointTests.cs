@@ -23,10 +23,7 @@ public sealed class AirQualityPointTests
     }
 
     [Fact]
-    public void Should_report_true_when_nothing_is_requested()
-    {
-        Assert.True(new AirQualityPoint(At).HasFields(AirQualityParams.None));
-    }
+    public void Should_report_true_when_nothing_is_requested() => Assert.True(new AirQualityPoint(At).HasFields(AirQualityParams.None));
 
     [Fact]
     public void Should_ignore_fields_that_are_not_requested()

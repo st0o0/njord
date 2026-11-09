@@ -41,7 +41,7 @@ internal static class PollWorkerPersistenceMappingExtensions
                     d.MissCount,
                     d.NextPollAt,
                     d.ConsecutiveFailures))
-            : ImmutableDictionary<DomainKind, DomainPollState>.Empty;
+            : [];
 
         // Ensure enabled domains have entries
         if (enabledDomains is { Count: > 0 })

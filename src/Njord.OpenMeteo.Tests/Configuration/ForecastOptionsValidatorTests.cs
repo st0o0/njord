@@ -8,10 +8,7 @@ public sealed class ForecastOptionsValidatorTests
     private readonly ForecastOptionsValidator _validator = new();
 
     [Fact]
-    public void Should_accept_defaults_with_empty_models()
-    {
-        Assert.True(_validator.Validate(null, new ForecastOptions()).Succeeded);
-    }
+    public void Should_accept_defaults_with_empty_models() => Assert.True(_validator.Validate(null, new ForecastOptions()).Succeeded);
 
     [Theory]
     [InlineData(0)]

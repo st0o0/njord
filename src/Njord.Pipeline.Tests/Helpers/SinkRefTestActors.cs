@@ -30,19 +30,13 @@ internal sealed class FakePipelineWithFullGraph : ReceiveActor
         broadcastHubSource
             .RunWith(Sink.ForEach<int>(x => received.TrySetResult(x)), mat);
 
-        Receive<RequestSinkRef>(_ =>
-        {
-            StreamRefs.SinkRef<int>()
+        Receive<RequestSinkRef>(_ => StreamRefs.SinkRef<int>()
                 .To(mergeHubSink)
                 .Run(mat)
                 .PipeTo(Sender, Self,
                     sr => new SinkRefResponse(sr),
-                    _ => null!);
-        });
-        Receive<RequestSourceRef>(_ =>
-        {
-            Sender.Tell(new SourceRefResponse());
-        });
+                    _ => null!));
+        Receive<RequestSourceRef>(_ => Sender.Tell(new SourceRefResponse()));
     }
 }
 
@@ -65,15 +59,12 @@ internal sealed class ThrottledPipelineActor : ReceiveActor
         broadcastHubSource
             .RunWith(Sink.ForEach<int>(x => received.TrySetResult(x)), mat);
 
-        Receive<RequestSinkRef>(_ =>
-        {
-            StreamRefs.SinkRef<int>()
+        Receive<RequestSinkRef>(_ => StreamRefs.SinkRef<int>()
                 .To(mergeHubSink)
                 .Run(mat)
                 .PipeTo(Sender, Self,
                     sr => new SinkRefResponse(sr),
-                    _ => null!);
-        });
+                    _ => null!));
     }
 }
 

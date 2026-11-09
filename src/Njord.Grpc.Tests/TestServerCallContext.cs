@@ -21,7 +21,7 @@ internal sealed class TestServerCallContext : ServerCallContext
     protected override Metadata ResponseTrailersCore => [];
     protected override Status StatusCore { get; set; }
     protected override WriteOptions? WriteOptionsCore { get; set; }
-    protected override AuthContext AuthContextCore => new("test", new Dictionary<string, List<AuthProperty>>());
+    protected override AuthContext AuthContextCore => new("test", []);
 
     protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions? options)
         => throw new NotImplementedException();

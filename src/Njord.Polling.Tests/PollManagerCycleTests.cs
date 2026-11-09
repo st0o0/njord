@@ -14,7 +14,7 @@ namespace Njord.Polling.Tests;
 // The data-change counter comes from the workers' reports.
 public sealed class PollManagerCycleTests : Akka.Hosting.TestKit.TestKit
 {
-    private readonly FakeTimeProvider _time = new FakeTimeProvider(TestTimeConstants.PipelineEpoch);
+    private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private readonly string _location = $"cycle{Guid.NewGuid():N}";
     private readonly ConcurrentQueue<(string Instrument, double Value)> _measurements = new();
     private readonly IOptions<NjordOptions> _njordOptions;
@@ -22,12 +22,14 @@ public sealed class PollManagerCycleTests : Akka.Hosting.TestKit.TestKit
         Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = TimeSpan.FromHours(1)));
     private IActorRef _manager = null!;
 
-    public PollManagerCycleTests() =>
+    public PollManagerCycleTests()
+    {
         _njordOptions = Options.Create(new NjordOptions
         {
             Locations = [new LocationOptions { Name = _location, Latitude = 47.05, Longitude = 8.31 }],
             ResolvedLocations = [new Location(_location, 47.05, 8.31)],
         });
+    }
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {

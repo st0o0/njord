@@ -11,7 +11,7 @@ public static class TestServiceInfo
 
     public abstract class StubRule(FeatureCategory category, string name, bool enabled = true) : IFeatureRule
     {
-        public FeatureDescriptor Descriptor { get; } = new(OutputKind.Score, category, name, default);
+        public FeatureDescriptor Descriptor { get; } = new(OutputKind.Score, category, name, new DomainRequirements());
 
         public bool Enabled { get; } = enabled;
 

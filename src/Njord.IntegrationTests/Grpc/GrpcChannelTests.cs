@@ -11,13 +11,13 @@ public sealed class GrpcChannelTests : IAsyncLifetime
     private NjordTestHost Host => _host ?? throw new InvalidOperationException("The host is not started.");
 
     public async ValueTask InitializeAsync() =>
-        _host = await NjordTestHost.StartAsync(_directory.Path, cancellationToken: TestContext.Current.CancellationToken);
+        _host = await NjordTestHost.StartAsync(_directory.Path, cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
 
     public async ValueTask DisposeAsync()
     {
         if (_host is not null)
         {
-            await _host.DisposeAsync();
+            await _host.DisposeAsync().ConfigureAwait(false);
         }
 
         _directory.Dispose();
@@ -79,7 +79,7 @@ public sealed class GrpcChannelTests : IAsyncLifetime
             Assert.Equal(1, triggered.TriggeredCount);
             using var next = CancellationTokenSource.CreateLinkedTokenSource(ct);
             next.CancelAfter(TimeSpan.FromSeconds(2));
-            Assert.True(await call.ResponseStream.MoveNext(next.Token), "The stream ended before an update arrived.");
+            Assert.True(await call.ResponseStream.MoveNext(next.Token).ConfigureAwait(false), "The stream ended before an update arrived.");
             Assert.Equal("luzern", call.ResponseStream.Current.Location);
         }, ct);
     }

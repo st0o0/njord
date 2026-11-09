@@ -8,7 +8,7 @@ namespace Njord.Pipeline.Tests.Helpers;
 
 public sealed class SinkRefPersistentConsumerTests : Akka.Hosting.TestKit.TestKit
 {
-    protected IMaterializer Mat => Sys.Materializer();
+    private IMaterializer Mat => Sys.Materializer();
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {

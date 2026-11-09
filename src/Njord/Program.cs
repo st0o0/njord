@@ -26,4 +26,4 @@ builder.Setups()
 var app = builder.Build();
 app.Setups().Add<NjordApplicationSetup>();
 
-await app.RunAsync();
+await app.RunAsync().ConfigureAwait(false);

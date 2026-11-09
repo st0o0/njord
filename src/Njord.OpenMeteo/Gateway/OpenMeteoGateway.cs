@@ -153,7 +153,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
                 try
                 {
                     var result = await gated.Client!.FetchAsync(location.Latitude, location.Longitude,
-                        timeProvider.GetUtcNow(), stopped);
+                        timeProvider.GetUtcNow(), stopped).ConfigureAwait(false);
                     var success = result is FetchSuccess;
                     Telemetry.FetchTotal.Add(1, locationTag, domainKey,
                         new KeyValuePair<string, object?>("outcome", success ? "success" : "failure"));

@@ -91,7 +91,10 @@ public sealed class PollWorkerLifecycleTests : Akka.Hosting.TestKit.TestKit
     {
         PollWorkerReport? last = null;
         for (var i = 0; i < count; i++)
+        {
             last = await _manager.ExpectMsgAsync<PollWorkerReport>(TimeSpan.FromSeconds(5), cancellationToken: ct);
+        }
+
         return last!;
     }
 

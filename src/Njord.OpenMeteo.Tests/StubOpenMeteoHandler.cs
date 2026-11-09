@@ -18,7 +18,7 @@ internal sealed class StubOpenMeteoHandler(Func<HttpRequestMessage, HttpResponse
     public static string? RawPathAndQuery(HttpRequestMessage request)
     {
         var raw = request.RequestUri?.OriginalString;
-        return raw is null ? null : raw[raw.IndexOf('/', raw.IndexOf("//", StringComparison.Ordinal) + 2)..];
+        return raw?[raw.IndexOf('/', raw.IndexOf("//", StringComparison.Ordinal) + 2)..];
     }
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

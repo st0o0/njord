@@ -10,13 +10,13 @@ public sealed class HostSmokeTests : IAsyncLifetime
     private NjordTestHost? _host;
 
     public async ValueTask InitializeAsync() =>
-        _host = await NjordTestHost.StartAsync(_directory.Path, cancellationToken: TestContext.Current.CancellationToken);
+        _host = await NjordTestHost.StartAsync(_directory.Path, cancellationToken: TestContext.Current.CancellationToken).ConfigureAwait(false);
 
     public async ValueTask DisposeAsync()
     {
         if (_host is not null)
         {
-            await _host.DisposeAsync();
+            await _host.DisposeAsync().ConfigureAwait(false);
         }
 
         _directory.Dispose();

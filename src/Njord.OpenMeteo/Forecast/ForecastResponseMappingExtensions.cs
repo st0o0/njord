@@ -28,14 +28,14 @@ internal static class ForecastResponseMappingExtensions
     {
         if (response.Hourly is not { } hourly || hourly.Count == 0)
         {
-            return ImmutableDictionary<string, DomainForecast<ForecastPoint>>.Empty;
+            return [];
         }
 
         var modelData = SplitByModel(hourly);
 
         if (modelData.IsEmpty)
         {
-            return ImmutableDictionary<string, DomainForecast<ForecastPoint>>.Empty;
+            return [];
         }
 
         var time = hourly.TryGetValue(TimeKey, out var t) ? JsonNode.Parse(t.GetRawText()) : new JsonArray();
@@ -95,7 +95,7 @@ internal static class ForecastResponseMappingExtensions
 
         return plain.Count > 0
             ? ImmutableDictionary<string, JsonObject>.Empty.Add(string.Empty, plain)
-            : ImmutableDictionary<string, JsonObject>.Empty;
+            : [];
     }
 
     private static bool TrySplit(string key, out string baseName, out string? model)

@@ -6,9 +6,7 @@ namespace Njord.Persistence.Tests;
 public static class ModuleInitializer
 {
     [ModuleInitializer]
-    public static void Init()
-    {
+    public static void Init() =>
         // CLI-first workflow: never launch a diff tool, just fail with the diff.
         DiffRunner.Disabled = true;
-    }
 }

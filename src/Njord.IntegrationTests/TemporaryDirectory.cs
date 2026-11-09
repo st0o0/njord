@@ -5,7 +5,10 @@ public sealed class TemporaryDirectory : IDisposable
 {
     public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "njord-it-" + Guid.NewGuid().ToString("N"));
 
-    public TemporaryDirectory() => Directory.CreateDirectory(Path);
+    public TemporaryDirectory()
+    {
+        Directory.CreateDirectory(Path);
+    }
 
     public void Dispose()
     {

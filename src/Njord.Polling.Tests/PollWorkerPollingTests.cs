@@ -84,7 +84,10 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
     {
         PollWorkerReport? last = null;
         for (var i = 0; i < count; i++)
+        {
             last = await _manager.ExpectMsgAsync<PollWorkerReport>(TimeSpan.FromSeconds(5), cancellationToken: ct);
+        }
+
         return last!;
     }
 
@@ -176,7 +179,9 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
         }
 
         for (var i = 0; i < EnabledDomains.Count; i++)
+        {
             reports.Add(await _manager.ExpectMsgAsync<PollWorkerReport>(TimeSpan.FromSeconds(5), cancellationToken: ct));
+        }
 
         var third = reports[^1];
         Assert.Multiple(
@@ -232,7 +237,9 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
         await _gateway.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
 
         foreach (var (sender, domain) in inFlight)
+        {
             sender.Tell(ForDomain(Completed(42), domain));
+        }
 
         await DrainReportsAsync(EnabledDomains.Count, ct);
     }

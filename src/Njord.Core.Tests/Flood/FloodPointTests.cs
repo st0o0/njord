@@ -23,10 +23,7 @@ public sealed class FloodPointTests
     }
 
     [Fact]
-    public void Should_report_true_when_nothing_is_requested()
-    {
-        Assert.True(new FloodPoint(At).HasFields(FloodParams.None));
-    }
+    public void Should_report_true_when_nothing_is_requested() => Assert.True(new FloodPoint(At).HasFields(FloodParams.None));
 
     [Fact]
     public void Should_ignore_fields_that_are_not_requested()

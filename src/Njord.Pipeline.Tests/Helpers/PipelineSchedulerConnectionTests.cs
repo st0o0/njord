@@ -7,10 +7,7 @@ namespace Njord.Pipeline.Tests.Helpers;
 
 public sealed class PipelineSchedulerConnectionTests : Akka.Hosting.TestKit.TestKit
 {
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
-    {
-        builder.AddTestPersistence();
-    }
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) => builder.AddTestPersistence();
 
     [Fact(Timeout = 30000)]
     public async Task Persistent_scheduler_connects_and_offers_through_full_pipeline()

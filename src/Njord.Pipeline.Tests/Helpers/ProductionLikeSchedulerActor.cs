@@ -104,8 +104,5 @@ internal sealed class ProductionLikeSchedulerActor : ReceivePersistentActor
         Command<SchedulePoll>(_ => Stash.Stash());
     }
 
-    private void Ready()
-    {
-        Command<SchedulePoll>(_ => { });
-    }
+    private void Ready() => Command<SchedulePoll>(_ => { });
 }

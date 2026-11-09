@@ -84,7 +84,10 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
     {
         PollWorkerReport? last = null;
         for (var i = 0; i < count; i++)
+        {
             last = await _manager.ExpectMsgAsync<PollWorkerReport>(TimeSpan.FromSeconds(5), cancellationToken: ct);
+        }
+
         return last!;
     }
 
@@ -202,7 +205,9 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         var worker = await StartedWorkerAsync(ct);
         await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Forecast, PollFailureReason.Transport, "simulated"), ct);
         for (var i = 0; i < 3; i++)
+        {
             await FailOnceAsync(worker, ct);
+        }
 
         await StopAsync(worker, ct);
         var recovered = CreateWorker();
@@ -220,7 +225,9 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         var worker = await StartedWorkerAsync(ct);
         await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Forecast, PollFailureReason.Transport, "simulated"), ct);
         for (var i = 0; i < 4; i++)
+        {
             await FailOnceAsync(worker, ct);
+        }
 
         worker.Tell(new TriggerLocationPoll(TargetId));
         var report = await AnswerAllAndLastReportAsync(

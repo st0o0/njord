@@ -8,16 +8,10 @@ public sealed class MarineOptionsValidatorTests
     private readonly MarineOptionsValidator _validator = new();
 
     [Fact]
-    public void Should_accept_the_default_options()
-    {
-        Assert.True(_validator.Validate(null, new MarineOptions()).Succeeded);
-    }
+    public void Should_accept_the_default_options() => Assert.True(_validator.Validate(null, new MarineOptions()).Succeeded);
 
     [Fact]
-    public void Should_accept_sixteen_forecast_days()
-    {
-        Assert.True(_validator.Validate(null, new MarineOptions { ForecastDays = 16 }).Succeeded);
-    }
+    public void Should_accept_sixteen_forecast_days() => Assert.True(_validator.Validate(null, new MarineOptions { ForecastDays = 16 }).Succeeded);
 
     [Theory]
     [InlineData(0)]

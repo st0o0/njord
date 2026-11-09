@@ -8,10 +8,7 @@ public sealed class AirQualityOptionsValidatorTests
     private readonly AirQualityOptionsValidator _validator = new();
 
     [Fact]
-    public void Should_accept_the_default_options()
-    {
-        Assert.True(_validator.Validate(null, new AirQualityOptions()).Succeeded);
-    }
+    public void Should_accept_the_default_options() => Assert.True(_validator.Validate(null, new AirQualityOptions()).Succeeded);
 
     [Theory]
     [InlineData(0)]

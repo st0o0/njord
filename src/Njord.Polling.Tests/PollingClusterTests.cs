@@ -23,7 +23,7 @@ public sealed class PollingClusterTests : Akka.Hosting.TestKit.TestKit
 {
     private static readonly string[] Targets = ["lucerne", "zurich"];
 
-    private readonly FakeTimeProvider _time = new FakeTimeProvider(TestTimeConstants.PipelineEpoch);
+    private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private TestProbe _requests = null!;
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)

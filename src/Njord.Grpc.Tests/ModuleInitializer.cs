@@ -6,8 +6,5 @@ namespace Njord.Grpc.Tests;
 public static class ModuleInitializer
 {
     [ModuleInitializer]
-    public static void Init()
-    {
-        DiffRunner.Disabled = true;
-    }
+    public static void Init() => DiffRunner.Disabled = true;
 }

@@ -7,7 +7,7 @@ internal static class ForecastTrimmingExtensions
 {
     private static class FlagCache<TParams> where TParams : struct, Enum
     {
-        public static readonly TParams[] NonZero = Enum.GetValues<TParams>().Where(f => Convert.ToInt64(f) != 0).ToArray();
+        public static readonly TParams[] NonZero = [.. Enum.GetValues<TParams>().Where(f => Convert.ToInt64(f) != 0)];
     }
 
     public static DomainForecast<T>? TrimTrailing<T, TParams>(

@@ -37,7 +37,7 @@ public sealed class FakeEnsembleClient : IDomainClient
         var forecast = new DomainForecast<EnsemblePoint>(DomainKind.Ensemble, now, TimeResolution.Hourly, [point]);
 
         var models = ModelIds.IsDefaultOrEmpty
-            ? ImmutableDictionary<string, IDomainForecast>.Empty
+            ? []
             : ModelIds.ToImmutableDictionary(
                 id => id,
                 id => (IDomainForecast)new DomainForecast<ForecastPoint>(DomainKind.Forecast, now, TimeResolution.Hourly,

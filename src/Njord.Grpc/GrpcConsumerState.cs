@@ -10,6 +10,6 @@ internal sealed record GrpcConsumerState(
     ImmutableDictionary<(Location Location, Type Type), FeatureResult> Results)
 {
     public static readonly GrpcConsumerState Empty = new(
-        ImmutableDictionary<(Location, DomainKind, string?), PipelineEvent>.Empty,
-        ImmutableDictionary<(Location, Type), FeatureResult>.Empty);
+        [],
+        []);
 }

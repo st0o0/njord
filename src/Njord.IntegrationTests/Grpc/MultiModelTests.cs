@@ -23,13 +23,13 @@ public sealed class MultiModelTests : IAsyncLifetime
                 settings["Njord:Features:EnsembleModelComparison:Enabled"] = "true";
             },
             TestContext.Current.CancellationToken,
-            [Primary, Secondary]);
+            [Primary, Secondary]).ConfigureAwait(false);
 
     public async ValueTask DisposeAsync()
     {
         if (_host is not null)
         {
-            await _host.DisposeAsync();
+            await _host.DisposeAsync().ConfigureAwait(false);
         }
 
         _directory.Dispose();

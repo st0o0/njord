@@ -24,7 +24,7 @@ internal static class ActorAskExtensions
         var limit = timeout ?? DefaultTimeout;
         try
         {
-            return await actor.Ask<TResponse>(message, limit, context.CancellationToken);
+            return await actor.Ask<TResponse>(message, limit, context.CancellationToken).ConfigureAwait(false);
         }
         catch (AskTimeoutException)
         {

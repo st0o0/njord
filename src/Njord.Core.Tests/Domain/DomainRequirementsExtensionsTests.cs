@@ -20,8 +20,5 @@ public sealed class DomainRequirementsExtensionsTests
     }
 
     [Fact]
-    public void Should_list_no_domains_for_empty_requirements()
-    {
-        Assert.Empty(new DomainRequirements().RequiredDomains());
-    }
+    public void Should_list_no_domains_for_empty_requirements() => Assert.Empty(new DomainRequirements().RequiredDomains());
 }

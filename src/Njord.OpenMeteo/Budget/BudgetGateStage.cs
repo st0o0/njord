@@ -35,10 +35,7 @@ internal sealed class BudgetGateStage<T> : GraphStage<FlowShape<T, T>>
             SetHandler(stage.Out, this);
         }
 
-        public override void PreStart()
-        {
-            ScheduleRepeatedly(RefreshTimer, RefreshInterval, RefreshInterval);
-        }
+        public override void PreStart() => ScheduleRepeatedly(RefreshTimer, RefreshInterval, RefreshInterval);
 
         public void OnPush()
         {
@@ -64,9 +61,13 @@ internal sealed class BudgetGateStage<T> : GraphStage<FlowShape<T, T>>
         public void OnUpstreamFinish()
         {
             if (_parked is not null && IsTimerActive(RetryTimer))
+            {
                 _willStop = true;
+            }
             else
+            {
                 CompleteStage();
+            }
         }
 
         public void OnUpstreamFailure(Exception e) => FailStage(e);
@@ -91,7 +92,10 @@ internal sealed class BudgetGateStage<T> : GraphStage<FlowShape<T, T>>
                 _tracker.Tell(new RecordApiCall(weight));
                 Push(_stage.Out, elem);
                 _parked = null;
-                if (_willStop) CompleteStage();
+                if (_willStop)
+                {
+                    CompleteStage();
+                }
             }
             else
             {
@@ -110,7 +114,11 @@ internal sealed class BudgetGateStage<T> : GraphStage<FlowShape<T, T>>
         private TimeSpan EstimateDelay(int weight)
         {
             var deficit = weight - _tokens;
-            if (deficit <= 0) return TimeSpan.FromMilliseconds(10);
+            if (deficit <= 0)
+            {
+                return TimeSpan.FromMilliseconds(10);
+            }
+
             var seconds = deficit / _tokensPerSecond;
             return seconds < 0.01
                 ? TimeSpan.FromMilliseconds(10)

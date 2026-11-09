@@ -14,7 +14,11 @@ public sealed class ParamFieldNamesTests
     {
         foreach (var value in Enum.GetValues<ForecastParams>())
         {
-            if (value == ForecastParams.None) continue;
+            if (value == ForecastParams.None)
+            {
+                continue;
+            }
+
             Assert.True(ParamFieldNames.Forecast.ContainsKey(value), $"Missing mapping for ForecastParams.{value}");
         }
     }
@@ -24,7 +28,11 @@ public sealed class ParamFieldNamesTests
     {
         foreach (var value in Enum.GetValues<EnsembleParams>())
         {
-            if (value == EnsembleParams.None) continue;
+            if (value == EnsembleParams.None)
+            {
+                continue;
+            }
+
             Assert.True(ParamFieldNames.Ensemble.ContainsKey(value), $"Missing mapping for EnsembleParams.{value}");
         }
     }
@@ -34,7 +42,11 @@ public sealed class ParamFieldNamesTests
     {
         foreach (var value in Enum.GetValues<AirQualityParams>())
         {
-            if (value == AirQualityParams.None) continue;
+            if (value == AirQualityParams.None)
+            {
+                continue;
+            }
+
             Assert.True(ParamFieldNames.AirQuality.ContainsKey(value), $"Missing mapping for AirQualityParams.{value}");
         }
     }
@@ -44,7 +56,11 @@ public sealed class ParamFieldNamesTests
     {
         foreach (var value in Enum.GetValues<FloodParams>())
         {
-            if (value is FloodParams.None or FloodParams.Ensemble) continue;
+            if (value is FloodParams.None or FloodParams.Ensemble)
+            {
+                continue;
+            }
+
             Assert.True(ParamFieldNames.Flood.ContainsKey(value), $"Missing mapping for FloodParams.{value}");
         }
     }
@@ -54,7 +70,11 @@ public sealed class ParamFieldNamesTests
     {
         foreach (var value in Enum.GetValues<MarineParams>())
         {
-            if (value == MarineParams.None) continue;
+            if (value == MarineParams.None)
+            {
+                continue;
+            }
+
             Assert.True(ParamFieldNames.Marine.ContainsKey(value), $"Missing mapping for MarineParams.{value}");
         }
     }
@@ -64,7 +84,11 @@ public sealed class ParamFieldNamesTests
     {
         foreach (var value in Enum.GetValues<SeasonalParams>())
         {
-            if (value == SeasonalParams.None) continue;
+            if (value == SeasonalParams.None)
+            {
+                continue;
+            }
+
             Assert.True(ParamFieldNames.Seasonal.ContainsKey(value), $"Missing mapping for SeasonalParams.{value}");
         }
     }
@@ -73,28 +97,19 @@ public sealed class ParamFieldNamesTests
     [InlineData(AirQualityParams.Pm25, "pm25")]
     [InlineData(AirQualityParams.Pm10, "pm10")]
     [InlineData(AirQualityParams.BirchPollen, "birch_pollen")]
-    public void Air_quality_spot_check(AirQualityParams param, string expected)
-    {
-        Assert.Equal(expected, ParamFieldNames.AirQuality[param]);
-    }
+    public void Air_quality_spot_check(AirQualityParams param, string expected) => Assert.Equal(expected, ParamFieldNames.AirQuality[param]);
 
     [Theory]
     [InlineData(MarineParams.WavePeriod, "wave_period")]
     [InlineData(MarineParams.WaveHeight, "wave_height")]
     [InlineData(MarineParams.OceanCurrentVelocity, "ocean_current_velocity")]
-    public void Marine_spot_check(MarineParams param, string expected)
-    {
-        Assert.Equal(expected, ParamFieldNames.Marine[param]);
-    }
+    public void Marine_spot_check(MarineParams param, string expected) => Assert.Equal(expected, ParamFieldNames.Marine[param]);
 
     [Theory]
     [InlineData(ForecastParams.WeatherCode, "weather_code")]
     [InlineData(ForecastParams.Temperature, "temperature")]
     [InlineData(ForecastParams.WetBulbTemperature, "wet_bulb_temperature_2m")]
-    public void Forecast_spot_check(ForecastParams param, string expected)
-    {
-        Assert.Equal(expected, ParamFieldNames.Forecast[param]);
-    }
+    public void Forecast_spot_check(ForecastParams param, string expected) => Assert.Equal(expected, ParamFieldNames.Forecast[param]);
 
     [Fact]
     public void Resolve_fields_returns_matching_field_names()

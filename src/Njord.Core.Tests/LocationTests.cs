@@ -14,10 +14,7 @@ public sealed class LocationTests
     }
 
     [Fact]
-    public void Should_treat_locations_with_different_names_as_different()
-    {
-        Assert.NotEqual(new Location("Lucerne", 47.05, 8.31), new Location("Zurich", 47.05, 8.31));
-    }
+    public void Should_treat_locations_with_different_names_as_different() => Assert.NotEqual(new Location("Lucerne", 47.05, 8.31), new Location("Zurich", 47.05, 8.31));
 
     [Fact]
     public void Should_collapse_case_variants_in_a_hash_set()

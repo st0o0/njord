@@ -140,10 +140,7 @@ public sealed class OpenMeteoResponseMappingsTests
     }
 
     [Fact]
-    public void A_weather_response_without_hourly_data_maps_to_nothing()
-    {
-        Assert.Empty(ParseWeather("""{"latitude":0,"longitude":0}""").ToModelForecasts(Run, Model));
-    }
+    public void A_weather_response_without_hourly_data_maps_to_nothing() => Assert.Empty(ParseWeather("""{"latitude":0,"longitude":0}""").ToModelForecasts(Run, Model));
 
     [Fact]
     public void An_air_quality_response_maps_to_hourly_points_with_optional_pollen()

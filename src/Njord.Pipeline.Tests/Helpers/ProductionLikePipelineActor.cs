@@ -32,23 +32,17 @@ internal sealed class ProductionLikePipelineActor : ReceiveActor, IWithStash
         broadcastHubSource
             .RunWith(Sink.ForEach<int>(x => offered.TrySetResult(x)), mat);
 
-        Receive<RequestPipelineSink>(_ =>
-        {
-            StreamRefs.SinkRef<int>()
+        Receive<RequestPipelineSink>(_ => StreamRefs.SinkRef<int>()
                 .To(mergeHubSink)
                 .Run(mat)
                 .PipeTo(Sender, Self,
                     sr => new PipelineSinkResponse(sr),
-                    _ => null!);
-        });
-        Receive<RequestPipelineSource>(_ =>
-        {
-            broadcastHubSource
+                    _ => null!));
+        Receive<RequestPipelineSource>(_ => broadcastHubSource
                 .RunWith(StreamRefs.SourceRef<int>(), mat)
                 .PipeTo(Sender, Self,
                     sr => new PipelineSourceResponse(sr),
-                    _ => null!);
-        });
+                    _ => null!));
     }
 }
 

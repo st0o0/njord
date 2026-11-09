@@ -94,8 +94,5 @@ internal sealed class PersistentConsumerActor : ReceivePersistentActor
         Command<DoOffer>(_ => Stash.Stash());
     }
 
-    private void Ready()
-    {
-        CommandAny(_ => { });
-    }
+    private void Ready() => CommandAny(_ => { });
 }

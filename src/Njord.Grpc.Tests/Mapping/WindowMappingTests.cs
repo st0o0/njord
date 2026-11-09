@@ -60,10 +60,7 @@ public sealed class WindowMappingTests
     [InlineData(DomainLimitingKind.Visibility, ProtoLimitingKind.Visibility)]
     [InlineData(DomainLimitingKind.Thunderstorm, ProtoLimitingKind.Thunderstorm)]
     [InlineData(DomainLimitingKind.Darkness, ProtoLimitingKind.Darkness)]
-    public void Limiting_kind_maps_to_proto(DomainLimitingKind kind, ProtoLimitingKind expected)
-    {
-        Assert.Equal(expected, kind.ToProto());
-    }
+    public void Limiting_kind_maps_to_proto(DomainLimitingKind kind, ProtoLimitingKind expected) => Assert.Equal(expected, kind.ToProto());
 
     [Fact]
     public void Score_without_windows_maps_to_empty_repeated()

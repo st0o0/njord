@@ -26,7 +26,7 @@ public sealed record PollWorkerState(
     ImmutableDictionary<DomainKind, DomainPollState> Domains)
 {
     public static readonly PollWorkerState Empty =
-        new(null, false, TimeSpan.Zero, ImmutableDictionary<DomainKind, DomainPollState>.Empty);
+        new(null, false, TimeSpan.Zero, []);
 
     public static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
     public static readonly TimeSpan PipelineUnavailableRetry = TimeSpan.FromSeconds(5);

@@ -13,20 +13,14 @@ public sealed class SeverityThresholdsTests
     [InlineData(-7, AlertSeverity.Orange, -5)]
     [InlineData(-12, AlertSeverity.Red, -10)]
     public void Should_classify_minimum_scans_by_the_lowest_crossed_level(
-        double value, AlertSeverity severity, double threshold)
-    {
-        Assert.Equal((severity, threshold), Cold.Classify(value));
-    }
+        double value, AlertSeverity severity, double threshold) => Assert.Equal((severity, threshold), Cold.Classify(value));
 
     [Theory]
     [InlineData(25, AlertSeverity.None)]
     [InlineData(31, AlertSeverity.Yellow)]
     [InlineData(36, AlertSeverity.Orange)]
     [InlineData(41, AlertSeverity.Red)]
-    public void Should_classify_maximum_scans_by_the_highest_crossed_level(double value, AlertSeverity severity)
-    {
-        Assert.Equal(severity, Hot.Classify(value).Severity);
-    }
+    public void Should_classify_maximum_scans_by_the_highest_crossed_level(double value, AlertSeverity severity) => Assert.Equal(severity, Hot.Classify(value).Severity);
 
     [Fact]
     public void Should_include_the_boundary_unless_strict()

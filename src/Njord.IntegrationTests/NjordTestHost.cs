@@ -23,8 +23,6 @@ namespace Njord.IntegrationTests;
 // gRPC services are called over a real GrpcChannel; the Kestrel port split is not exercised.
 public sealed class NjordTestHost : IAsyncDisposable
 {
-    private readonly GrpcChannel _channel;
-
     private NjordTestHost(WebApplication app, FakeForecastClient weather, FakeAirQualityClient airQuality, FakeFloodClient flood, FakeMarineClient marine, string dataDirectory)
     {
         App = app;
@@ -34,7 +32,7 @@ public sealed class NjordTestHost : IAsyncDisposable
         Marine = marine;
         DataDirectory = dataDirectory;
         Http = app.GetTestClient();
-        _channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions { HttpHandler = app.GetTestServer().CreateHandler() });
+        Channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions { HttpHandler = app.GetTestServer().CreateHandler() });
     }
 
     public WebApplication App { get; }
@@ -51,7 +49,7 @@ public sealed class NjordTestHost : IAsyncDisposable
 
     public HttpClient Http { get; }
 
-    public GrpcChannel Channel => _channel;
+    public GrpcChannel Channel { get; }
 
     public static IReadOnlyDictionary<string, string?> DefaultSettings(string dataDirectory) => new Dictionary<string, string?>
     {
@@ -118,15 +116,15 @@ public sealed class NjordTestHost : IAsyncDisposable
 
         var app = builder.Build();
         app.Setups().Add<NjordApplicationSetup>();
-        await app.StartAsync(cancellationToken);
+        await app.StartAsync(cancellationToken).ConfigureAwait(false);
         return new NjordTestHost(app, weather, airQuality, flood, marine, dataDirectory);
     }
 
     public async ValueTask DisposeAsync()
     {
-        _channel.Dispose();
+        Channel.Dispose();
         Http.Dispose();
-        await App.StopAsync();
-        await App.DisposeAsync();
+        await App.StopAsync().ConfigureAwait(false);
+        await App.DisposeAsync().ConfigureAwait(false);
     }
 }

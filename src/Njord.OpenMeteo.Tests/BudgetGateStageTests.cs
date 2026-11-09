@@ -12,7 +12,7 @@ public sealed class BudgetGateStageTests : Akka.Hosting.TestKit.TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
-    private Flow<int, int, NotUsed> CreateStage(
+    private static Flow<int, int, NotUsed> CreateStage(
         SwitchableBudgetProvider rate, TestProbe tracker, int maxCallWeight = 1)
     {
         return Flow.FromGraph(new BudgetGateStage<int>(
@@ -37,8 +37,8 @@ public sealed class BudgetGateStageTests : Akka.Hosting.TestKit.TestKit
         queue.Complete();
         var result = await sink.WaitAsync(TimeSpan.FromSeconds(5), ct);
 
-        Assert.Single(result);
-        Assert.Equal(42, result[0]);
+        var item = Assert.Single(result);
+        Assert.Equal(42, item);
         await tracker.ExpectMsgAsync<RecordApiCall>(cancellationToken: ct);
     }
 
@@ -68,6 +68,8 @@ public sealed class BudgetGateStageTests : Akka.Hosting.TestKit.TestKit
         await tracker.ExpectMsgAsync<RecordApiCall>(cancellationToken: ct);
     }
 
+    private static readonly int[] expected = [10, 20, 30];
+
     [Fact(Timeout = 15000)]
     public async Task Consecutive_heavy_elements_are_serialized_not_rejected()
     {
@@ -89,7 +91,7 @@ public sealed class BudgetGateStageTests : Akka.Hosting.TestKit.TestKit
         var result = await sink.WaitAsync(TimeSpan.FromSeconds(10), ct);
 
         Assert.Equal(3, result.Count);
-        Assert.Equal(new[] { 10, 20, 30 }, result.ToArray());
+        Assert.Equal(expected, result.ToArray());
     }
 
     [Fact(Timeout = 10000)]

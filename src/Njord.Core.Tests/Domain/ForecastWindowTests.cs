@@ -26,16 +26,10 @@ public sealed class ForecastWindowTests
     }
 
     [Fact]
-    public void Should_default_to_24_hours_half_open()
-    {
-        Assert.Equal(24, Hourly(48).NextHours(Midnight).Count);
-    }
+    public void Should_default_to_24_hours_half_open() => Assert.Equal(24, Hourly(48).NextHours(Midnight).Count);
 
     [Fact]
-    public void Should_include_the_end_boundary_when_inclusive()
-    {
-        Assert.Equal(25, Hourly(48).NextHoursInclusive(Midnight).Count);
-    }
+    public void Should_include_the_end_boundary_when_inclusive() => Assert.Equal(25, Hourly(48).NextHoursInclusive(Midnight).Count);
 
     [Fact]
     public void Should_anchor_days_to_utc_midnight()

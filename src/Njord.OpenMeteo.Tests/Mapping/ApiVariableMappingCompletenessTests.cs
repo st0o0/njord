@@ -44,7 +44,7 @@ public sealed class ApiVariableMappingCompletenessTests
     [Fact]
     public void Should_map_every_flood_flag_to_a_distinct_named_api_variable()
     {
-        var flags = Enum.GetValues<FloodParams>().Where(f => f != FloodParams.None && f != FloodParams.Ensemble).ToList();
+        var flags = Enum.GetValues<FloodParams>().Where(f => f is not FloodParams.None and not FloodParams.Ensemble).ToList();
 
         var variables = flags.Select(f => f.ToApiVariable()).ToList();
 

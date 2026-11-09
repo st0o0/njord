@@ -22,7 +22,7 @@ public sealed class GatewayRestartTests : Akka.Hosting.TestKit.TestKit
 
     private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
 
-    private readonly FakeTimeProvider _time = new FakeTimeProvider(TestTimeConstants.PipelineEpoch);
+    private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private readonly FakeForecastClient _weather = new();
     private readonly FakeAirQualityClient _airQuality = new();
     private readonly FakeFloodClient _flood = new();

@@ -27,10 +27,7 @@ public sealed class WeatherGrpcService(
     private readonly CatalogResult _catalog = scope.Value.ToCatalog(models.Value, requirements.Value);
     private readonly IMaterializer _mat = actorSystem.Materializer();
 
-    public override async Task<GetCatalogResponse> GetCatalog(GetCatalogRequest request, ServerCallContext context)
-    {
-        return _catalog.ToProto();
-    }
+    public override async Task<GetCatalogResponse> GetCatalog(GetCatalogRequest request, ServerCallContext context) => _catalog.ToProto();
 
     public override async Task<DomainDataUpdate> GetDomainData(GetDomainDataRequest request, ServerCallContext context)
     {
@@ -44,7 +41,7 @@ public sealed class WeatherGrpcService(
         var primary = location.Models.FirstOrDefault() ?? string.Empty;
         var modelId = ResolveModel(request, domain, location, primary);
         var result = await actorRegistry.AskAsync<IGrpcConsumer, DomainDataResponse>(
-            new QueryDomainData(location.Location, domain, modelId), context);
+            new QueryDomainData(location.Location, domain, modelId), context).ConfigureAwait(false);
 
         return result switch
         {
@@ -59,7 +56,7 @@ public sealed class WeatherGrpcService(
         var location = FindLocation(_catalog, request.Location);
 
         var result = await actorRegistry.AskAsync<IGrpcConsumer, LatestAnalysisResponse>(
-            new QueryLatestAnalysis(location.Location), context);
+            new QueryLatestAnalysis(location.Location), context).ConfigureAwait(false);
 
         return result.ToProto(timeProvider.GetUtcNow());
     }
@@ -74,10 +71,10 @@ public sealed class WeatherGrpcService(
             .Where(d => d != Domain.Unspecified)
             .Select(d => d.ToDomain())
             .ToHashSet();
-        var sourceRef = await RequestGrpcStreamAsync(context);
+        var sourceRef = await RequestGrpcStreamAsync(context).ConfigureAwait(false);
 
         var killSwitch = KillSwitches.Shared($"grpc-domain-{context.Peer}");
-        await using var ctr = context.CancellationToken.Register(killSwitch.Shutdown);
+        await using var ctr = context.CancellationToken.Register(killSwitch.Shutdown).ConfigureAwait(false);
 
         await sourceRef.Source
             .Where(e => e.ToDomainKind() is { } kind
@@ -91,12 +88,12 @@ public sealed class WeatherGrpcService(
                     : null;
                 if (update is not null)
                 {
-                    await responseStream.WriteAsync(update, context.CancellationToken);
+                    await responseStream.WriteAsync(update, context.CancellationToken).ConfigureAwait(false);
                 }
 
                 return update;
             })
-            .RunWith(Sink.Ignore<DomainDataUpdate?>(), _mat);
+            .RunWith(Sink.Ignore<DomainDataUpdate?>(), _mat).ConfigureAwait(false);
     }
 
     public override async Task StreamEnrichments(
@@ -105,10 +102,10 @@ public sealed class WeatherGrpcService(
         ServerCallContext context)
     {
         var location = ResolveStreamLocation(request.Location);
-        var sourceRef = await RequestGrpcStreamAsync(context);
+        var sourceRef = await RequestGrpcStreamAsync(context).ConfigureAwait(false);
 
         var killSwitch = KillSwitches.Shared($"grpc-enrichment-{context.Peer}");
-        await using var ctr = context.CancellationToken.Register(killSwitch.Shutdown);
+        await using var ctr = context.CancellationToken.Register(killSwitch.Shutdown).ConfigureAwait(false);
 
         await sourceRef.Source
             .Where(e => e.ToEnrichmentLocation() is { } eventLocation && (location is not { } wanted || eventLocation == wanted))
@@ -118,12 +115,12 @@ public sealed class WeatherGrpcService(
                 var evt = update.ToEnrichmentEvent(timeProvider.GetUtcNow());
                 if (evt is not null)
                 {
-                    await responseStream.WriteAsync(evt, context.CancellationToken);
+                    await responseStream.WriteAsync(evt, context.CancellationToken).ConfigureAwait(false);
                 }
 
                 return evt;
             })
-            .RunWith(Sink.Ignore<EnrichmentEvent?>(), _mat);
+            .RunWith(Sink.Ignore<EnrichmentEvent?>(), _mat).ConfigureAwait(false);
     }
 
     private static string? ResolveModel(GetDomainDataRequest request, DomainKind domain, CatalogLocation location, string primary)
@@ -159,7 +156,7 @@ public sealed class WeatherGrpcService(
     private async Task<ISourceRef<PipelineEvent>> RequestGrpcStreamAsync(ServerCallContext context)
     {
         var reply = await actorRegistry.AskAsync<IGrpcConsumer, RequestGrpcStreamResponse>(
-            new RequestGrpcStream(0), context);
+            new RequestGrpcStream(0), context).ConfigureAwait(false);
 
         return reply switch
         {

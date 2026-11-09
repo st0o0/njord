@@ -22,10 +22,7 @@ public sealed class NjordOptionsValidatorTests
     }
 
     [Fact]
-    public void Should_accept_a_minimal_valid_scope()
-    {
-        Assert.True(_validator.Validate(null, Valid()).Succeeded);
-    }
+    public void Should_accept_a_minimal_valid_scope() => Assert.True(_validator.Validate(null, Valid()).Succeeded);
 
     [Fact]
     public void Should_reject_a_scope_without_locations()

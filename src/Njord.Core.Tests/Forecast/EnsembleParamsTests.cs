@@ -16,10 +16,7 @@ public sealed class EnsembleParamsTests
     }
 
     [Fact]
-    public void None_has_no_flags()
-    {
-        Assert.False(EnsembleParams.None.HasFlag(EnsembleParams.TemperatureSpread));
-    }
+    public void None_has_no_flags() => Assert.False(EnsembleParams.None.HasFlag(EnsembleParams.TemperatureSpread));
 
     [Fact]
     public void All_flags_are_distinct_powers_of_two()
@@ -29,7 +26,7 @@ public sealed class EnsembleParamsTests
             .Select(p => (long)p)
             .ToList();
 
-        Assert.All(values, v => Assert.True((v & (v - 1)) == 0));
+        Assert.All(values, v => Assert.Equal(0, (v & (v - 1))));
         Assert.Equal(values.Count, values.Distinct().Count());
     }
 }

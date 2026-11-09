@@ -40,7 +40,7 @@ public sealed class OpsGrpcService(
         try
         {
             var response =
-                await actorRegistry.AskAsync<IBudgetTracker, BudgetStatusResult>(new QueryBudgetStatus(), context);
+                await actorRegistry.AskAsync<IBudgetTracker, BudgetStatusResult>(new QueryBudgetStatus(), context).ConfigureAwait(false);
             if (response is BudgetStatusResult result)
             {
                 budget = result;
@@ -65,7 +65,7 @@ public sealed class OpsGrpcService(
             Budget = budget.ToProto(),
         };
 
-        if (await AskPollStatesAsync(context) is { } entries)
+        if (await AskPollStatesAsync(context).ConfigureAwait(false) is { } entries)
         {
             status.Models.AddRange(entries.Select(e => e.ToModelStatus()));
         }
@@ -86,7 +86,7 @@ public sealed class OpsGrpcService(
     {
         var response = new GetTargetsResponse();
 
-        if (await AskPollStatesAsync(context) is { } entries)
+        if (await AskPollStatesAsync(context).ConfigureAwait(false) is { } entries)
         {
             response.Targets.AddRange(entries.Select(e => e.ToTriggerTarget()));
         }
@@ -102,7 +102,7 @@ public sealed class OpsGrpcService(
     {
         var location = string.IsNullOrEmpty(request.Location) ? (Location?)null : new Location(request.Location, 0, 0);
         var response = await actorRegistry.AskAsync<IPollManager, TriggerImmediatePollResponse>(
-            new TriggerImmediatePoll(location), context);
+            new TriggerImmediatePoll(location), context).ConfigureAwait(false);
 
         switch (response)
         {
@@ -121,7 +121,7 @@ public sealed class OpsGrpcService(
         try
         {
             var response =
-                await actorRegistry.AskAsync<IPollManager, PollStatesResult>(new QueryPollStates(), context);
+                await actorRegistry.AskAsync<IPollManager, PollStatesResult>(new QueryPollStates(), context).ConfigureAwait(false);
             return response is PollStatesResult result ? result.Entries : null;
         }
         catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded)

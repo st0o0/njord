@@ -9,10 +9,14 @@ public sealed class EnsembleOptionsValidator : IValidateOptions<EnsembleOptions>
         List<string> failures = [];
 
         if (options.ForecastDays is < 1 or > 35)
+        {
             failures.Add($"Ensemble.ForecastDays must be between 1 and 35, got {options.ForecastDays}");
+        }
 
         if (options.Models.Length == 0)
+        {
             failures.Add("Ensemble.Models must contain at least one model.");
+        }
 
         failures.AddRange(options.Models
             .GroupBy(m => m).Where(g => g.Count() > 1)

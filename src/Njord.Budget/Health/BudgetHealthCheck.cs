@@ -22,7 +22,7 @@ internal sealed class BudgetHealthCheck(ActorRegistry registry, IOptions<HealthO
 
         try
         {
-            var status = await tracker.Ask<BudgetStatusResult>(new QueryBudgetStatus(), AskTimeout, cancellationToken);
+            var status = await tracker.Ask<BudgetStatusResult>(new QueryBudgetStatus(), AskTimeout, cancellationToken).ConfigureAwait(false);
             return Evaluate(status, options.Value.BudgetDegradedBelowPercent);
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)

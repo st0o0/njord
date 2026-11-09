@@ -17,7 +17,7 @@ namespace Njord.OpenMeteo.Tests;
 
 public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
 {
-    private readonly FakeTimeProvider _time = new FakeTimeProvider(TestTimeConstants.PipelineEpoch);
+    private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private readonly FakeForecastClient _weather = new();
     private readonly FakeAirQualityClient _airQuality = new();
     private readonly FakeFloodClient _flood = new();

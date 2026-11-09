@@ -58,11 +58,13 @@ public sealed class OpenMeteoSetup : ISetup<IServiceCollection>
             {
                 ConnectCallback = async (context, ct) =>
                 {
-                    var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    socket.NoDelay = true;
+                    var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+                    {
+                        NoDelay = true
+                    };
                     try
                     {
-                        await socket.ConnectAsync(context.DnsEndPoint, ct);
+                        await socket.ConnectAsync(context.DnsEndPoint, ct).ConfigureAwait(false);
                         return new NetworkStream(socket, ownsSocket: true);
                     }
                     catch
