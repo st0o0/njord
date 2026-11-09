@@ -17,7 +17,8 @@ All code, specs, docs, and communication in English.
 ### Project skills (njord-specific)
 
 - `njord-enrichment-feature` - **Load before adding/changing an enrichment.**
-  `FeatureRule<TInput>`, `FeatureDescriptor`, `<Name>Config`, registration, result/contract, Config Builder.
+  `FeatureRule<TInput>`, `FeatureDescriptor` (incl. `EntityMetadata` for v3 entity definition),
+  `<Name>Config`, registration, result/contract, Config Builder.
 - `njord-actor-spec` - **Load before writing actor or persistence-record
   tests.** `Akka.Hosting.TestKit.TestKit`, in-memory persistence, `FakeTimeProvider`, Verify.
 - `e2e-test` - Full-stack check (njord + ha-njord + Home Assistant) via Docker Compose.
