@@ -32,9 +32,9 @@ src/
     Polling/            #   CallWeight (fractional), DomainCallConfig, RequestBudget (free-tier constants, DailyLimit), FetchTimeouts
   Njord.Messages/       # Contracts (-> Core, Akka.Streams for ISinkRef/ISourceRef):
                         #   Alerts/ (enums, thresholds), Budget/ (QueryBudgetStatus, RecordApiCall),
-                        #   Config/ (CatalogResult), Fetch/ (FetchDomain*, FetchResult*, QueryDomainData),
+                        #   Config/ (CatalogResult), Fetch/ (FetchDomain*, FetchResult*),
                         #   Polling/ (StartPolling, StopPolling, PollWorkerReport, QueryPoll*, PollTarget),
-                        #   Stream/ (DomainDataReceived, PipelineEvent, RequestForecast/Pipeline/GrpcStream*),
+                        #   Stream/ (DomainDataReceived, PipelineEvent, RequestForecast/Pipeline*),
                         #   Results/ (FeatureResult, IFeatureRule, FeatureRule<T>,
                         #     Alerts/, Scores/, Conditions/, Trends/, Forecasts/)
   Njord.Persistence/    # Extend-only records, no Njord refs: Events/Budget, Events/Polling
@@ -51,8 +51,8 @@ src/
                         #   side by side (Alerts/ Scores/ Conditions/ Trends/ Forecasts/ Weather/ Observations/),
                         #   <Kind>/Shared/ and top-level Shared/ (Scoring), ServiceCollectionExtensions.AddFeatures;
                         #   typed inputs stay in Core
-  Njord.Grpc/           # v2: WeatherGrpcService, OpsGrpcService; v3: NjordGrpcService, ManifestBuilder,
-                        #   EntityIdLookup, GrpcConsumer (v2+v3 state), ActorAsk, Mapping/ (v2), Mapping/V3/ (v3)
+  Njord.Grpc/           # NjordGrpcService, ManifestBuilder, EntityIdLookup, GrpcConsumer (entity state),
+                        #   ActorAsk, Mapping/ (per-OutputKind mappers, namespace Njord.Grpc.Mapping)
   Njord/                # Host: Program.cs (setup chain), Configuration/ (setups: ISetup<T> classes), Health/
 
   Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
@@ -61,8 +61,8 @@ src/
   Njord.IntegrationTests/       # whole host via TestServer (same setup chain as Program.cs)
   Njord.Architecture.Tests/     # ArchUnitNET rules (ArchitectureTests)
   Njord.Tests.Shared/           # small shared fakes and builders (not a test project)
-protos/njord/v2/                # gRPC contracts (legacy): weather.proto, ops.proto, common.proto
-protos/njord/v3/                # gRPC v3 entity-first: njord.proto (NjordService: GetManifest, Subscribe, GetStatus, TriggerPoll)
+protos/njord/                   # gRPC contract: njord.proto (package njord, csharp_namespace Njord.Grpc.Proto;
+                                #   NjordService: GetManifest, Subscribe, GetStatus, TriggerPoll)
 docs/                           # VitePress site incl. the Config Builder (docs/.vitepress/theme/builder)
 ```
 
@@ -107,19 +107,19 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 - **Consumers are output adapters via SourceRef** (`GrpcConsumer`); no relay
   actors. No consumer slows the hub: bounded drop-oldest buffers.
 - **gRPC is an adapter.** Resolve a marker, `ActorAsk` with a `Njord.Messages` message, map with `ToProto()`.
-  v2 (`WeatherService`, `OpsService`) and v3 (`NjordService`) run side-by-side; v2 is removed once ha-njord
-  migrates to v3.
-- **v3 is entity-first.** `ManifestBuilder` builds entity definitions from `FeatureDescriptor.EntityMetadata` x
+  `NjordGrpcService` (base `Proto.NjordService.NjordServiceBase`) is the single gRPC service.
+- **Entity-first gRPC.** `ManifestBuilder` builds entity definitions from `FeatureDescriptor.EntityMetadata` x
   locations at startup. `NjordGrpcService.GetManifest` returns them. `Subscribe` provides a unified stream
-  (snapshot-on-connect, `EntityStateUpdate`, availability events) replacing v2's separate domain/enrichment streams.
-  Mapping is generic per `OutputKind` (7 value types in `Mapping/V3/`) instead of per feature (65 in v2).
-  `EntityIdLookup` maps `(FeatureResult type, location)` to entity_id. `GrpcConsumer` maintains both v2
-  (`DomainData`/`Results`) and v3 (`EntityStates`/`StaleEntities`) state, with a separate v3 `BroadcastHub<EntityEvent>`.
+  (snapshot-on-connect, `EntityStateUpdate`, availability events).
+  Mapping is generic per `OutputKind` (7 value types in `Mapping/`) instead of per feature.
+  `EntityIdLookup` maps `(FeatureResult type, location)` to entity_id. `GrpcConsumer` maintains entity
+  state (`EntityStates`/`StaleEntities`) with a `BroadcastHub<Proto.EntityEvent>`.
+  Proto-generated types live in `Njord.Grpc.Proto` and are referenced with the `Proto.` prefix.
 - **`Njord.Messages` refs Core and Akka.Streams** (for `ISinkRef`/`ISourceRef`); all inter-actor messages
   including stream handshakes live in Messages (namespaces: Fetch, Polling, Stream, Results).
 - **Rules emit typed `FeatureResult`s** (`AlertResult`, `ScoreResult`, `ConditionResult`, `TrendResult`,
-  `ForecastResult`, `WeatherResult`, `ObservationResult` and their feature-specific records); v2 gRPC delivers
-  each as an `EnrichmentEvent` (per-feature oneof), v3 delivers as `EntityStateUpdate` (per-OutputKind oneof).
+  `ForecastResult`, `WeatherResult`, `ObservationResult` and their feature-specific records); gRPC delivers
+  each as an `EntityStateUpdate` (per-OutputKind oneof).
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow`.
 - **Zone rules are tests** (`ArchitectureTests`): Forecast/Messages/Persistence reference no other Njord
   project (Messages only Forecast), no Akka in Messages/Persistence, domain projects independent, all classes sealed.
@@ -135,7 +135,7 @@ SINGLETONS (Cluster Singleton)
 ├─ ForecastPipeline (non-persistent, BackoffOnFailure)             [Pipeline]
 │  └─ MergeHub<DomainDataReceived> -> FeatureEngine -> IFeatureRule[] -> BroadcastHub<PipelineEvent>
 ├─ BudgetTracker (persistent, BackoffOnFailure)                    [Budget]
-└─ GrpcConsumer (SourceRef consumer, BackoffOnFailure, v3 entity stream + availability)  [Grpc]
+└─ GrpcConsumer (SourceRef consumer, BackoffOnFailure, entity stream + availability)  [Grpc]
 
 SHARD REGIONS (Sharded Entity)
 └─ PollWorker (persistent, entity = location, "poll-worker", no passivation)  [Polling]
@@ -190,12 +190,12 @@ SHARD REGIONS (Sharded Entity)
 - Feels-like is `apparent_temperature` from the API, no own computation.
 - Thresholds live in the feature's own config (`Njord:Features:<Name>`, e.g. three-step severity arrays), validated by its `<Name>ConfigValidator`.
 - Options are read at startup (`IOptions<T>`); no hot reload, no runtime config writer.
-- **v3 entity-first gRPC API** alongside v2. `protos/njord/v3/njord.proto` defines `NjordService` with
-  `GetManifest` (entity definitions from `FeatureDescriptor.EntityMetadata` x locations), `Subscribe`
-  (unified entity stream with snapshot-on-connect and availability), `GetStatus`, `TriggerPoll`. Seven
-  generic value types per `OutputKind` (`WeatherValue`, `AlertValue`, `ScoreValue`, `ConditionValue`,
-  `TrendValue`, `ForecastValue`, `ObservationValue`) replace 65 per-feature oneof cases. Adding a new
-  feature requires no proto or ha-njord changes. v2 stays until ha-njord migrates.
+- **Entity-first gRPC API.** `protos/njord/njord.proto` (package `njord`, `csharp_namespace = "Njord.Grpc.Proto"`)
+  defines `NjordService` with `GetManifest` (entity definitions from `FeatureDescriptor.EntityMetadata` x
+  locations), `Subscribe` (unified entity stream with snapshot-on-connect and availability), `GetStatus`,
+  `TriggerPoll`. Seven generic value types per `OutputKind` (`WeatherValue`, `AlertValue`, `ScoreValue`,
+  `ConditionValue`, `TrendValue`, `ForecastValue`, `ObservationValue`) replace per-feature oneof cases.
+  Adding a new feature requires no proto or ha-njord changes.
 
 ## Build & test
 

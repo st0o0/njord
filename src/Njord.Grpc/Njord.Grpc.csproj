@@ -9,8 +9,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Protobuf Include="..\..\protos\njord\v2\*.proto" GrpcServices="Both" ProtoRoot="..\..\protos" />
-        <Protobuf Include="..\..\protos\njord\v3\*.proto" GrpcServices="Server" ProtoRoot="..\..\protos" />
+        <Protobuf Include="..\..\protos\njord\*.proto" GrpcServices="Both" ProtoRoot="..\..\protos" />
     </ItemGroup>
 
     <ItemGroup>

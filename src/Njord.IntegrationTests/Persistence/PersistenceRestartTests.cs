@@ -1,5 +1,5 @@
 using Microsoft.Data.Sqlite;
-using Njord.Grpc.V2;
+using Njord.Grpc.Proto;
 
 namespace Njord.IntegrationTests.Persistence;
 
@@ -11,7 +11,7 @@ public sealed class PersistenceRestartTests : IDisposable
     public void Dispose() => _directory.Dispose();
 
     private static async Task<StatusResponse> StatusAsync(NjordTestHost host, CancellationToken ct) =>
-        await new OpsService.OpsServiceClient(host.Channel).GetStatusAsync(new GetStatusRequest(), cancellationToken: ct).ConfigureAwait(true);
+        await new NjordService.NjordServiceClient(host.Channel).GetStatusAsync(new StatusRequest(), cancellationToken: ct).ConfigureAwait(true);
 
     [Fact(Timeout = 60_000)]
     public async Task Budget_usage_and_poll_state_of_the_first_lifetime_are_recovered_by_the_second()
@@ -22,14 +22,14 @@ public sealed class PersistenceRestartTests : IDisposable
         var first = await NjordTestHost.StartAsync(_directory.Path, cancellationToken: ct).ConfigureAwait(true);
         await using (first.ConfigureAwait(true))
         {
-            var ops = new OpsService.OpsServiceClient(first.Channel);
+            var client = new NjordService.NjordServiceClient(first.Channel);
 
             // One discovery round, then two triggered rounds. Budget grows with each round.
             await Eventually.AssertAsync(async () =>
                 Assert.True((await StatusAsync(first, ct).ConfigureAwait(true)).Budget.MonthlyUsed > 0), ct);
             var afterDiscovery = (await StatusAsync(first, ct).ConfigureAwait(true)).Budget.MonthlyUsed;
-            await ops.TriggerPollAsync(new TriggerPollRequest { Location = "luzern" }, cancellationToken: ct).ConfigureAwait(true);
-            await ops.TriggerPollAsync(new TriggerPollRequest { Location = "luzern" }, cancellationToken: ct).ConfigureAwait(true);
+            await client.TriggerPollAsync(new TriggerPollRequest { Location = "luzern" }, cancellationToken: ct).ConfigureAwait(true);
+            await client.TriggerPollAsync(new TriggerPollRequest { Location = "luzern" }, cancellationToken: ct).ConfigureAwait(true);
             await Eventually.AssertAsync(async () =>
             {
                 var actual = (await StatusAsync(first, ct).ConfigureAwait(true)).Budget.MonthlyUsed;

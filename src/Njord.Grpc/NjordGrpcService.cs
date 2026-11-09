@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Configuration;
-using Njord.Grpc.Mapping.V3;
+using Njord.Grpc.Mapping;
 using Njord.Messages.Budget;
 using Njord.Messages.Polling;
 using Njord.Messages.Results;
@@ -26,7 +26,7 @@ public sealed class NjordGrpcService(
     TimeProvider timeProvider,
     IOptions<PollingOptions> polling,
     IEnumerable<IFeatureRule> features,
-    ILogger<NjordGrpcService> logger) : V3.NjordService.NjordServiceBase
+    ILogger<NjordGrpcService> logger) : Proto.NjordService.NjordServiceBase
 {
     private static readonly string _version =
         typeof(NjordGrpcService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
@@ -36,16 +36,16 @@ public sealed class NjordGrpcService(
 
     private readonly IMaterializer _mat = actorSystem.Materializer();
 
-    public override Task<V3.ManifestResponse> GetManifest(V3.ManifestRequest request, ServerCallContext context)
+    public override Task<Proto.ManifestResponse> GetManifest(Proto.ManifestRequest request, ServerCallContext context)
     {
-        var response = new V3.ManifestResponse();
+        var response = new Proto.ManifestResponse();
         response.Entities.AddRange(manifest.Entities);
         return Task.FromResult(response);
     }
 
     public override async Task Subscribe(
-        V3.SubscribeRequest request,
-        IServerStreamWriter<V3.EntityEvent> responseStream,
+        Proto.SubscribeRequest request,
+        IServerStreamWriter<Proto.EntityEvent> responseStream,
         ServerCallContext context)
     {
         var reply = await actorRegistry.AskAsync<IGrpcConsumer, RequestEntityStreamResponse>(
@@ -73,16 +73,16 @@ public sealed class NjordGrpcService(
         await sourceRef.Source
             .Select(e => wanted is null ? e : Filter(e, wanted))
             .Where(e => e is not null)
-            .Via(killSwitch.Flow<V3.EntityEvent?>())
+            .Via(killSwitch.Flow<Proto.EntityEvent?>())
             .SelectAsync(1, async e =>
             {
                 await responseStream.WriteAsync(e!, context.CancellationToken).ConfigureAwait(false);
                 return e;
             })
-            .RunWith(Sink.Ignore<V3.EntityEvent?>(), _mat).ConfigureAwait(false);
+            .RunWith(Sink.Ignore<Proto.EntityEvent?>(), _mat).ConfigureAwait(false);
     }
 
-    public override async Task<V3.StatusResponse> GetStatus(V3.StatusRequest request, ServerCallContext context)
+    public override async Task<Proto.StatusResponse> GetStatus(Proto.StatusRequest request, ServerCallContext context)
     {
         var uptime = timeProvider.GetUtcNow() - _processStart;
 
@@ -108,7 +108,7 @@ public sealed class NjordGrpcService(
             budgetPartial = true;
         }
 
-        var status = new V3.StatusResponse
+        var status = new Proto.StatusResponse
         {
             Version = _version,
             BudgetPartial = budgetPartial,
@@ -134,7 +134,7 @@ public sealed class NjordGrpcService(
         return status;
     }
 
-    public override async Task<V3.TriggerPollResponse> TriggerPoll(V3.TriggerPollRequest request, ServerCallContext context)
+    public override async Task<Proto.TriggerPollResponse> TriggerPoll(Proto.TriggerPollRequest request, ServerCallContext context)
     {
         var location = string.IsNullOrEmpty(request.Location) ? (Location?)null : new Location(request.Location, 0, 0);
         var response = await actorRegistry.AskAsync<IPollManager, TriggerImmediatePollResponse>(
@@ -152,19 +152,19 @@ public sealed class NjordGrpcService(
         throw new RpcException(new GrpcStatus(StatusCode.Internal, $"Unexpected reply: {response.GetType().Name}"));
     }
 
-    private static V3.EntityEvent? Filter(V3.EntityEvent evt, HashSet<string> wanted)
+    private static Proto.EntityEvent? Filter(Proto.EntityEvent evt, HashSet<string> wanted)
     {
         switch (evt.EventCase)
         {
-            case V3.EntityEvent.EventOneofCase.Snapshot:
-                var snapshot = new V3.EntitySnapshot();
+            case Proto.EntityEvent.EventOneofCase.Snapshot:
+                var snapshot = new Proto.EntitySnapshot();
                 snapshot.States.AddRange(evt.Snapshot.States.Where(s => wanted.Contains(s.EntityId)));
-                return new V3.EntityEvent { Snapshot = snapshot };
-            case V3.EntityEvent.EventOneofCase.StateUpdate:
+                return new Proto.EntityEvent { Snapshot = snapshot };
+            case Proto.EntityEvent.EventOneofCase.StateUpdate:
                 return wanted.Contains(evt.StateUpdate.EntityId) ? evt : null;
-            case V3.EntityEvent.EventOneofCase.Unavailable:
+            case Proto.EntityEvent.EventOneofCase.Unavailable:
                 return wanted.Contains(evt.Unavailable.EntityId) ? evt : null;
-            case V3.EntityEvent.EventOneofCase.Available:
+            case Proto.EntityEvent.EventOneofCase.Available:
                 return wanted.Contains(evt.Available.EntityId) ? evt : null;
             default:
                 return null;

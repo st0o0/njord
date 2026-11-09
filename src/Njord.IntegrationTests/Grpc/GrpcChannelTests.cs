@@ -1,4 +1,4 @@
-using Njord.Grpc.V2;
+using Njord.Grpc.Proto;
 
 namespace Njord.IntegrationTests.Grpc;
 
@@ -24,63 +24,42 @@ public sealed class GrpcChannelTests : IAsyncLifetime
     }
 
     [Fact(Timeout = 30_000)]
-    public async Task The_catalog_lists_the_configured_location()
+    public async Task The_manifest_lists_the_configured_location()
     {
         var ct = TestContext.Current.CancellationToken;
-        var client = new WeatherService.WeatherServiceClient(Host.Channel);
+        var client = new NjordService.NjordServiceClient(Host.Channel);
 
-        var catalog = await client.GetCatalogAsync(new GetCatalogRequest(), cancellationToken: ct);
+        var manifest = await client.GetManifestAsync(new ManifestRequest(), cancellationToken: ct);
 
-        var location = Assert.Single(catalog.Locations);
-        Assert.Equal("luzern", location.Name);
+        Assert.Contains(manifest.Entities, e => e.Location == "luzern");
     }
 
     [Fact(Timeout = 30_000)]
     public async Task The_status_reports_a_poll_state_for_every_configured_target()
     {
         var ct = TestContext.Current.CancellationToken;
-        var client = new OpsService.OpsServiceClient(Host.Channel);
+        var client = new NjordService.NjordServiceClient(Host.Channel);
 
         await Eventually.AssertAsync(async () =>
         {
-            var status = await client.GetStatusAsync(new GetStatusRequest(), cancellationToken: ct);
+            var status = await client.GetStatusAsync(new StatusRequest(), cancellationToken: ct);
             Assert.Equal(["luzern"], status.Models.Select(m => m.Location).Order());
         }, ct);
     }
 
     [Fact(Timeout = 30_000)]
-    public async Task Weather_data_polled_through_the_fake_client_is_served_by_the_weather_service()
+    public async Task Entity_updates_are_delivered_via_subscribe()
     {
         var ct = TestContext.Current.CancellationToken;
-        var client = new WeatherService.WeatherServiceClient(Host.Channel);
-
-        var forecast = await Eventually.ValueAsync(async () =>
-        {
-            var response = await client.GetDomainDataAsync(new GetDomainDataRequest { Location = "luzern", Domain = Domain.Forecast }, cancellationToken: ct);
-            return response.Forecast?.Points.Count > 0 ? response : null;
-        }, ct);
-
-        Assert.Multiple(
-            () => Assert.Equal("luzern", forecast.Location),
-            () => Assert.Equal(Domain.Forecast, forecast.Domain));
-    }
-
-    [Fact(Timeout = 30_000)]
-    public async Task A_triggered_poll_is_streamed_to_a_domain_data_subscriber()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var weather = new WeatherService.WeatherServiceClient(Host.Channel);
-        var ops = new OpsService.OpsServiceClient(Host.Channel);
+        var client = new NjordService.NjordServiceClient(Host.Channel);
 
         await Eventually.AssertAsync(async () =>
         {
-            using var call = weather.StreamDomainData(new StreamDomainDataRequest { Location = "luzern" }, cancellationToken: ct);
-            var triggered = await ops.TriggerPollAsync(new TriggerPollRequest { Location = "luzern" }, cancellationToken: ct);
-            Assert.Equal(1, triggered.TriggeredCount);
+            using var call = client.Subscribe(new SubscribeRequest { Location = "luzern" }, cancellationToken: ct);
+            await client.TriggerPollAsync(new TriggerPollRequest { Location = "luzern" }, cancellationToken: ct);
             using var next = CancellationTokenSource.CreateLinkedTokenSource(ct);
             next.CancelAfter(TimeSpan.FromSeconds(2));
             Assert.True(await call.ResponseStream.MoveNext(next.Token).ConfigureAwait(false), "The stream ended before an update arrived.");
-            Assert.Equal("luzern", call.ResponseStream.Current.Location);
         }, ct);
     }
 }

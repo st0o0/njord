@@ -25,7 +25,7 @@ public sealed class NjordGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     {
         var service = CreateService(new EntityTestRule("Heat"), new EntityTestRule("Frost"), new EntityTestRule("Fog", enabled: false));
 
-        var manifest = await service.GetManifest(new V3.ManifestRequest(),
+        var manifest = await service.GetManifest(new Proto.ManifestRequest(),
             TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Equal(["vienna_frost", "vienna_heat"], manifest.Entities.Select(e => e.EntityId).Order());
@@ -36,7 +36,7 @@ public sealed class NjordGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     {
         var service = CreateService(new EntityTestRule("Heat"));
 
-        var status = await service.GetStatus(new V3.StatusRequest(),
+        var status = await service.GetStatus(new Proto.StatusRequest(),
             TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         var model = Assert.Single(status.Models);
@@ -44,7 +44,7 @@ public sealed class NjordGrpcServiceTests : Akka.Hosting.TestKit.TestKit
             () => Assert.Equal(40, status.Budget.MonthlyUsed),
             () => Assert.Equal(["Forecast:Heat"], status.ActiveEnrichments),
             () => Assert.Equal("Vienna", model.Location),
-            () => Assert.Equal(V3.PollPhase.Steady, model.Phase));
+            () => Assert.Equal(Proto.PollPhase.Steady, model.Phase));
     }
 
     private NjordGrpcService CreateService(params EntityTestRule[] rules)

@@ -98,7 +98,7 @@ public sealed class ManifestBuilderTests
         var builder = Build(rules, [_vienna]);
 
         var entity = Assert.Single(builder.Entities);
-        Assert.Equal(V3.EntityPlatform.Sensor, entity.Platform);
+        Assert.Equal(Proto.EntityPlatform.Sensor, entity.Platform);
         Assert.Equal("pm25", entity.DeviceClass);
         Assert.Equal("mdi:molecule", entity.Icon);
         Assert.Equal("µg/m³", entity.Unit);

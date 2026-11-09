@@ -4,21 +4,21 @@ using System.Text.RegularExpressions;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Messages.Results;
-using ProtoEntityPlatform = Njord.Grpc.V3.EntityPlatform;
-using ProtoOutputKind = Njord.Grpc.V3.OutputKind;
+using ProtoEntityPlatform = Njord.Grpc.Proto.EntityPlatform;
+using ProtoOutputKind = Njord.Grpc.Proto.OutputKind;
 
 namespace Njord.Grpc;
 
 public sealed class ManifestBuilder
 {
-    private readonly IReadOnlyList<V3.EntityDefinition> _entities;
+    private readonly IReadOnlyList<Proto.EntityDefinition> _entities;
 
     public ManifestBuilder(
         IEnumerable<IFeatureRule> rules,
         NjordOptions options,
         ActiveModels activeModels)
     {
-        var list = new List<V3.EntityDefinition>();
+        var list = new List<Proto.EntityDefinition>();
 
         foreach (var location in options.ResolvedLocations)
         {
@@ -60,16 +60,16 @@ public sealed class ManifestBuilder
         _entities = list;
     }
 
-    public IReadOnlyList<V3.EntityDefinition> Entities => _entities;
+    public IReadOnlyList<Proto.EntityDefinition> Entities => _entities;
 
-    private static V3.EntityDefinition BuildDefinition(
+    private static Proto.EntityDefinition BuildDefinition(
         string locationSlug,
         string locationName,
         FeatureDescriptor descriptor,
         string entityId)
     {
         var meta = descriptor.EntityMetadata;
-        return new V3.EntityDefinition
+        return new Proto.EntityDefinition
         {
             EntityId = entityId,
             Location = locationName,

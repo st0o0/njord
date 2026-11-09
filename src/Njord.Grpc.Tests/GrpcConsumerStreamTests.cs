@@ -41,8 +41,8 @@ public sealed class GrpcConsumerStreamTests : Akka.Hosting.TestKit.TestKit
         {
             var completed = Assert.IsType<RequestEntityStreamCompleted>(
                 await consumer.Ask<RequestEntityStreamResponse>(new RequestEntityStream(1), _askTimeout, ct));
-            var first = await completed.SourceRef.Source.RunWith(Sink.First<V3.EntityEvent>(), Sys.Materializer());
-            Assert.Equal(V3.EntityEvent.EventOneofCase.Snapshot, first.EventCase);
+            var first = await completed.SourceRef.Source.RunWith(Sink.First<Proto.EntityEvent>(), Sys.Materializer());
+            Assert.Equal(Proto.EntityEvent.EventOneofCase.Snapshot, first.EventCase);
             var state = Assert.Single(first.Snapshot.States);
             Assert.Equal("vienna_heat", state.EntityId);
         }, TimeSpan.FromSeconds(5), cancellationToken: ct);
@@ -56,8 +56,8 @@ public sealed class GrpcConsumerStreamTests : Akka.Hosting.TestKit.TestKit
         var completed = Assert.IsType<RequestEntityStreamCompleted>(
             await consumer.Ask<RequestEntityStreamResponse>(new RequestEntityStream(1), _askTimeout, ct));
         var received = completed.SourceRef.Source
-            .Where(e => e.EventCase == V3.EntityEvent.EventOneofCase.StateUpdate)
-            .RunWith(Sink.First<V3.EntityEvent>(), Sys.Materializer());
+            .Where(e => e.EventCase == Proto.EntityEvent.EventOneofCase.StateUpdate)
+            .RunWith(Sink.First<Proto.EntityEvent>(), Sys.Materializer());
 
         await AwaitAssertAsync(async () =>
         {

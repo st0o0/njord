@@ -220,7 +220,7 @@ public sealed class ArchitectureTests
         Classes().That().Are(_grpcLayer)
             .And().AreNotAbstract()
             .And().DoNotHaveNameContaining("<")
-            .And().DoNotResideInNamespace("Njord.Grpc.V2")
+            .And().DoNotResideInNamespace("Njord.Grpc.Proto")
             .Should().BeSealed()
             .Check(_architecture);
     }

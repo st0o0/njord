@@ -5,8 +5,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Google.Protobuf.WellKnownTypes;
 using Njord.Core;
-using Njord.Grpc.Mapping.V3;
-using Njord.Messages.Fetch;
+using Njord.Grpc.Mapping;
 using Njord.Messages.Results;
 using Njord.Messages.Stream;
 using Terp.Akka;
@@ -27,11 +26,8 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
     private readonly TimeProvider _timeProvider;
     private IMaterializer _mat = null!;
 
-    private IActorRef _hubInput = ActorRefs.Nobody;
-    private Source<PipelineEvent, NotUsed> _clientHubSource = Source.Empty<PipelineEvent>();
-
     private IActorRef _entityHubInput = ActorRefs.Nobody;
-    private Source<V3.EntityEvent, NotUsed> _entityHubSource = Source.Empty<V3.EntityEvent>();
+    private Source<Proto.EntityEvent, NotUsed> _entityHubSource = Source.Empty<Proto.EntityEvent>();
 
     private GrpcConsumerState _state = GrpcConsumerState.Empty;
 
@@ -48,9 +44,6 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
         _lookup = lookup;
         _timeProvider = timeProvider;
 
-        Receive<QueryDomainData>(HandleQueryDomainData);
-        Receive<QueryLatestAnalysis>(HandleQueryLatestAnalysis);
-        Receive<RequestGrpcStream>(HandleStreamRequest);
         Receive<RequestEntityStream>(HandleEntityStreamRequest);
         Receive<PipelineEvent>(OnPipelineEvent);
         Receive<StreamCompleted>(_ => ReconnectToPipeline());
@@ -64,20 +57,11 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
     {
         _mat = Context.Materializer();
 
-        var (hubInput, hubSource) = Source.ActorRef<PipelineEvent>(256, OverflowStrategy.DropHead)
-            .ToMaterialized(BroadcastHub.Sink<PipelineEvent>(bufferSize: 2), Keep.Both)
+        var (entityInput, entitySource) = Source.ActorRef<Proto.EntityEvent>(256, OverflowStrategy.DropHead)
+            .ToMaterialized(BroadcastHub.Sink<Proto.EntityEvent>(bufferSize: 2), Keep.Both)
             .Run(_mat);
 
-        hubSource.RunWith(Sink.Ignore<PipelineEvent>(), _mat);
-
-        _hubInput = hubInput;
-        _clientHubSource = hubSource;
-
-        var (entityInput, entitySource) = Source.ActorRef<V3.EntityEvent>(256, OverflowStrategy.DropHead)
-            .ToMaterialized(BroadcastHub.Sink<V3.EntityEvent>(bufferSize: 2), Keep.Both)
-            .Run(_mat);
-
-        entitySource.RunWith(Sink.Ignore<V3.EntityEvent>(), _mat);
+        entitySource.RunWith(Sink.Ignore<Proto.EntityEvent>(), _mat);
 
         _entityHubInput = entityInput;
         _entityHubSource = entitySource;
@@ -106,14 +90,11 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
 
     private void OnPipelineEvent(PipelineEvent evt)
     {
-        _state = _state.Apply(evt);
-        _hubInput.Tell(evt);
-
         if (evt is FeatureResult result && _lookup.Find(result) is { } entityId)
         {
             var now = _timeProvider.GetUtcNow();
             _state = _state.ApplyEntity(entityId, result, now);
-            _entityHubInput.Tell(new V3.EntityEvent { StateUpdate = result.ToEntityStateUpdate(entityId, now) });
+            _entityHubInput.Tell(new Proto.EntityEvent { StateUpdate = result.ToEntityStateUpdate(entityId, now) });
         }
     }
 
@@ -126,64 +107,32 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
         foreach (var id in unavailable)
         {
             var since = _state.EntityStates[id].LastUpdated;
-            _entityHubInput.Tell(new V3.EntityEvent
+            _entityHubInput.Tell(new Proto.EntityEvent
             {
-                Unavailable = new V3.EntityUnavailable { EntityId = id, Since = Timestamp.FromDateTimeOffset(since) },
+                Unavailable = new Proto.EntityUnavailable { EntityId = id, Since = Timestamp.FromDateTimeOffset(since) },
             });
         }
 
         foreach (var id in available)
         {
-            _entityHubInput.Tell(new V3.EntityEvent
+            _entityHubInput.Tell(new Proto.EntityEvent
             {
-                Available = new V3.EntityAvailable { EntityId = id, RecoveredAt = Timestamp.FromDateTimeOffset(now) },
+                Available = new Proto.EntityAvailable { EntityId = id, RecoveredAt = Timestamp.FromDateTimeOffset(now) },
             });
         }
     }
 
-    private void HandleQueryDomainData(QueryDomainData msg)
-    {
-        Sender.Tell(_state.GetDomainData(msg.Location, msg.Domain, msg.ModelId) is { } latest
-            ? new DomainDataResult(latest)
-            : new DomainDataNotAvailable(msg.Location, msg.Domain, msg.ModelId));
-    }
-
-    private void HandleQueryLatestAnalysis(QueryLatestAnalysis msg)
-    {
-        var results = _state.GetLatestResults(msg.Location);
-        Sender.Tell(results.Count == 0
-            ? new LatestAnalysisNotAvailable(msg.Location)
-            : new LatestAnalysisResult(msg.Location, results));
-    }
-
-    private void HandleStreamRequest(RequestGrpcStream msg)
-    {
-        var snapshot = _state.DomainData.Values
-            .Concat<PipelineEvent>(_state.Results.Values);
-
-        Source.From(snapshot)
-            .Concat(_clientHubSource)
-            .KeepAlive<PipelineEvent, PipelineEvent, NotUsed>(_keepAliveInterval, () => Heartbeat.Instance)
-            .Buffer(StreamClientBufferSize, OverflowStrategy.Backpressure)
-            .IdleTimeout(_clientIdleTimeout)
-            .Where(e => e is not Heartbeat)
-            .RunWith(StreamRefs.SourceRef<PipelineEvent>(), _mat)
-            .PipeTo(Sender, Self,
-                sr => new RequestGrpcStreamCompleted(msg.RequestId, sr),
-                ex => new RequestGrpcStreamFailed(msg.RequestId, ex));
-    }
-
     private void HandleEntityStreamRequest(RequestEntityStream msg)
     {
-        var snapshot = new V3.EntitySnapshot();
+        var snapshot = new Proto.EntitySnapshot();
         snapshot.States.AddRange(_state.EntityStates.Values
             .OrderBy(e => e.EntityId, StringComparer.Ordinal)
             .Select(e => e.Result.ToEntityStateUpdate(e.EntityId, e.LastUpdated)));
 
-        var initial = new List<V3.EntityEvent> { new() { Snapshot = snapshot } };
-        initial.AddRange(_state.StaleEntities.Order(StringComparer.Ordinal).Select(id => new V3.EntityEvent
+        var initial = new List<Proto.EntityEvent> { new() { Snapshot = snapshot } };
+        initial.AddRange(_state.StaleEntities.Order(StringComparer.Ordinal).Select(id => new Proto.EntityEvent
         {
-            Unavailable = new V3.EntityUnavailable
+            Unavailable = new Proto.EntityUnavailable
             {
                 EntityId = id,
                 Since = Timestamp.FromDateTimeOffset(_state.EntityStates[id].LastUpdated),
@@ -192,11 +141,11 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
 
         Source.From(initial)
             .Concat(_entityHubSource)
-            .KeepAlive<V3.EntityEvent, V3.EntityEvent, NotUsed>(_keepAliveInterval, () => new V3.EntityEvent())
+            .KeepAlive<Proto.EntityEvent, Proto.EntityEvent, NotUsed>(_keepAliveInterval, () => new Proto.EntityEvent())
             .Buffer(StreamClientBufferSize, OverflowStrategy.Backpressure)
             .IdleTimeout(_clientIdleTimeout)
-            .Where(e => e.EventCase != V3.EntityEvent.EventOneofCase.None)
-            .RunWith(StreamRefs.SourceRef<V3.EntityEvent>(), _mat)
+            .Where(e => e.EventCase != Proto.EntityEvent.EventOneofCase.None)
+            .RunWith(StreamRefs.SourceRef<Proto.EntityEvent>(), _mat)
             .PipeTo(Sender, Self,
                 sr => new RequestEntityStreamCompleted(msg.RequestId, sr),
                 ex => new RequestEntityStreamFailed(msg.RequestId, ex));

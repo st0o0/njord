@@ -1,4 +1,4 @@
-using Njord.Grpc.V2;
+using Njord.Grpc.Proto;
 
 namespace Njord.IntegrationTests.Grpc;
 
@@ -36,23 +36,22 @@ public sealed class MultiModelTests : IAsyncLifetime
     }
 
     [Fact(Timeout = 30_000)]
-    public async Task Each_effective_model_is_served_separately_and_an_unknown_model_is_not_found()
+    public async Task Each_configured_model_creates_a_separate_weather_entity()
     {
         var ct = TestContext.Current.CancellationToken;
-        var client = new WeatherService.WeatherServiceClient(Host.Channel);
+        var client = new NjordService.NjordServiceClient(Host.Channel);
 
-        var primary = await Eventually.ValueAsync(async () =>
-        {
-            var response = await client.GetDomainDataAsync(new GetDomainDataRequest { Location = "luzern", Domain = Domain.Forecast }, cancellationToken: ct);
-            return response.Forecast?.Points.Count > 0 ? response : null;
-        }, ct);
-        var secondary = await client.GetDomainDataAsync(
-            new GetDomainDataRequest { Location = "luzern", Domain = Domain.Forecast, Model = Secondary }, cancellationToken: ct);
-        var unknown = await Assert.ThrowsAsync<global::Grpc.Core.RpcException>(async () =>
-            await client.GetDomainDataAsync(new GetDomainDataRequest { Location = "luzern", Domain = Domain.Forecast, Model = "icon_d2" }, cancellationToken: ct));
+        var manifest = await client.GetManifestAsync(new ManifestRequest(), cancellationToken: ct);
+
+        var weatherEntities = manifest.Entities
+            .Where(e => e.OutputKind == OutputKind.Weather)
+            .Select(e => e.EntityId)
+            .Order()
+            .ToList();
 
         Assert.Multiple(
-            () => Assert.NotEqual(primary.Forecast.Points[0].Temperature, secondary.Forecast.Points[0].Temperature),
-            () => Assert.Equal(global::Grpc.Core.StatusCode.NotFound, unknown.StatusCode));
+            () => Assert.Contains(weatherEntities, id => id.Contains("luzern") && !id.Contains("ensemble")),
+            () => Assert.Contains(weatherEntities, id => id.Contains("ecmwf_ifs025_ensemble_mean")),
+            () => Assert.Contains(weatherEntities, id => id.Contains("ecmwf_aifs025_ensemble_mean")));
     }
 }

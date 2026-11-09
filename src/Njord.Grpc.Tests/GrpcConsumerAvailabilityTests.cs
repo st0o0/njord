@@ -85,15 +85,15 @@ public sealed class GrpcConsumerAvailabilityTests : Akka.Hosting.TestKit.TestKit
         var completed = Assert.IsType<RequestEntityStreamCompleted>(
             await consumer.Ask<RequestEntityStreamResponse>(new RequestEntityStream(1), _askTimeout, ct));
         var unavailable = completed.SourceRef.Source
-            .Where(e => e.EventCase == V3.EntityEvent.EventOneofCase.Unavailable)
-            .RunWith(Sink.First<V3.EntityEvent>(), Sys.Materializer());
+            .Where(e => e.EventCase == Proto.EntityEvent.EventOneofCase.Unavailable)
+            .RunWith(Sink.First<Proto.EntityEvent>(), Sys.Materializer());
 
         await pipeline.OfferAsync(EnrichmentEvents.Alerts(_vienna, _time.GetUtcNow()), ct);
         await AwaitAssertAsync(async () =>
         {
             var snapshot = Assert.IsType<RequestEntityStreamCompleted>(
                 await consumer.Ask<RequestEntityStreamResponse>(new RequestEntityStream(2), _askTimeout, ct));
-            var first = await snapshot.SourceRef.Source.RunWith(Sink.First<V3.EntityEvent>(), Sys.Materializer());
+            var first = await snapshot.SourceRef.Source.RunWith(Sink.First<Proto.EntityEvent>(), Sys.Materializer());
             Assert.Single(first.Snapshot.States);
         }, TimeSpan.FromSeconds(5), cancellationToken: ct);
 
