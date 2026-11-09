@@ -26,11 +26,11 @@ dotnet run --project src/Njord.Messages.Tests/Njord.Messages.Tests.csproj
 
 ## 3. Weather and Observation features
 
-- [ ] 3.1 Add `WeatherRule` in `src/Njord.Features/Weather/WeatherRule.cs`: a `FeatureRule<ForecastInput>` with `OutputKind.Weather`, `FeatureCategory.Forecast`, `Name: "Weather"`, requirements for temperature/weather_code/humidity/wind_speed/wind_direction/pressure/apparent_temperature, `EntityMetadata(EntityPlatform.Weather)`. Always enabled (no config toggle or a config with `Enabled = true` and no override). `Evaluate` maps the current `ForecastPoint` to `WeatherResult` with current conditions and the full forecast array. Tests: `src/Njord.Features.Tests/Weather/WeatherRuleTests.cs` (evaluate with data, skip when no data, result structure).
+- [x] 3.1 Add `WeatherRule` in `src/Njord.Features/Weather/WeatherRule.cs`: a `FeatureRule<ForecastInput>` with `OutputKind.Weather`, `FeatureCategory.Forecast`, `Name: "Weather"`, requirements for temperature/weather_code/humidity/wind_speed/wind_direction/pressure/apparent_temperature, `EntityMetadata(EntityPlatform.Weather)`. Always enabled (no config toggle or a config with `Enabled = true` and no override). `Evaluate` maps the current `ForecastPoint` to `WeatherResult` with current conditions and the full forecast array. Tests: `src/Njord.Features.Tests/Weather/WeatherRuleTests.cs` (evaluate with data, skip when no data, result structure).
 
-- [ ] 3.2 Add sample Observation features to validate the pattern. At minimum: `Pm25ObservationRule` (AirQuality), `WaveHeightObservationRule` (Marine), `FloodDischargeObservationRule` (Flood), `UvIndexObservationRule` (Forecast). Each in `src/Njord.Features/Observations/<Name>/`. Each is a trivial `FeatureRule` that extracts one field and returns `ObservationResult`. Tests: `src/Njord.Features.Tests/Observations/<Name>Tests.cs` (evaluate with data, null when field missing).
+- [x] 3.2 Add sample Observation features to validate the pattern. At minimum: `Pm25ObservationRule` (AirQuality), `WaveHeightObservationRule` (Marine), `FloodDischargeObservationRule` (Flood), `UvIndexObservationRule` (Forecast). Each in `src/Njord.Features/Observations/<Name>/`. Each is a trivial `FeatureRule` that extracts one field and returns `ObservationResult`. Tests: `src/Njord.Features.Tests/Observations/<Name>Tests.cs` (evaluate with data, null when field missing).
 
-- [ ] 3.3 Register `WeatherRule` and all Observation features in `src/Njord.Features/ServiceCollectionExtensions.cs` via `AddFeature<>()`. WeatherRule may need a dedicated registration path if it has no config class (always enabled). Run all feature tests.
+- [x] 3.3 Register `WeatherRule` and all Observation features in `src/Njord.Features/ServiceCollectionExtensions.cs` via `AddFeature<>()`. WeatherRule may need a dedicated registration path if it has no config class (always enabled). Run all feature tests.
 
 ### Validation
 
@@ -41,9 +41,9 @@ dotnet run --project src/Njord.Architecture.Tests/Njord.Architecture.Tests.cspro
 
 ## 4. v3 Proto
 
-- [ ] 4.1 Create `protos/njord/v3/njord.proto` with the v3 service definition: `NjordService` with `GetManifest`, `Subscribe`, `GetStatus`, `TriggerPoll`. Define all message types: `ManifestRequest`/`ManifestResponse`, `EntityDefinition` (entity_id, location, feature, platform, device_class, icon, unit, category, output_kind), `SubscribeRequest` (optional location filter), `EntityEvent` (oneof: snapshot, state_update, unavailable, available), `EntityStateUpdate` (entity_id, updated_at, value oneof with 7 types), `WeatherValue`, `AlertValue`, `ScoreValue`, `ConditionValue`, `TrendValue`, `ForecastValue`, `ObservationValue`, `StatusRequest`/`StatusResponse` (reuse v2 semantics), `TriggerPollRequest`/`TriggerPollResponse`. Use `google.protobuf.Timestamp` for times.
+- [x] 4.1 Create `protos/njord/v3/njord.proto` with the v3 service definition: `NjordService` with `GetManifest`, `Subscribe`, `GetStatus`, `TriggerPoll`. Define all message types: `ManifestRequest`/`ManifestResponse`, `EntityDefinition` (entity_id, location, feature, platform, device_class, icon, unit, category, output_kind), `SubscribeRequest` (optional location filter), `EntityEvent` (oneof: snapshot, state_update, unavailable, available), `EntityStateUpdate` (entity_id, updated_at, value oneof with 7 types), `WeatherValue`, `AlertValue`, `ScoreValue`, `ConditionValue`, `TrendValue`, `ForecastValue`, `ObservationValue`, `StatusRequest`/`StatusResponse` (reuse v2 semantics), `TriggerPollRequest`/`TriggerPollResponse`. Use `google.protobuf.Timestamp` for times.
 
-- [ ] 4.2 Wire the v3 proto into the build. Add it to `src/Njord.Grpc/Njord.Grpc.csproj` Protobuf items (Server). Verify `dotnet build` generates the C# stubs. Ensure v2 protos remain and still build.
+- [x] 4.2 Wire the v3 proto into the build. Add it to `src/Njord.Grpc/Njord.Grpc.csproj` Protobuf items (Server). Verify `dotnet build` generates the C# stubs. Ensure v2 protos remain and still build.
 
 ### Validation
 
@@ -53,7 +53,7 @@ dotnet build src/Njord.slnx
 
 ## 5. ManifestBuilder
 
-- [ ] 5.1 Create `ManifestBuilder` in `src/Njord.Grpc/ManifestBuilder.cs`. Takes `IEnumerable<IFeatureRule>`, `NjordOptions`, and `ActiveModels`. Builds `IReadOnlyList<EntityDefinition>` by iterating enabled rules x locations. Entity ID format: `{location_slug}_{feature_snake}` (primary weather: `{slug}_weather`, secondary model: `{slug}_{model_slug}_weather`). Register as singleton in DI. Tests: `src/Njord.Grpc.Tests/ManifestBuilderTests.cs` (multiple locations, disabled features excluded, secondary models, entity ID format, deterministic output).
+- [x] 5.1 Create `ManifestBuilder` in `src/Njord.Grpc/ManifestBuilder.cs`. Takes `IEnumerable<IFeatureRule>`, `NjordOptions`, and `ActiveModels`. Builds `IReadOnlyList<EntityDefinition>` by iterating enabled rules x locations. Entity ID format: `{location_slug}_{feature_snake}` (primary weather: `{slug}_weather`, secondary model: `{slug}_{model_slug}_weather`). Register as singleton in DI. Tests: `src/Njord.Grpc.Tests/ManifestBuilderTests.cs` (multiple locations, disabled features excluded, secondary models, entity ID format, deterministic output).
 
 ### Validation
 

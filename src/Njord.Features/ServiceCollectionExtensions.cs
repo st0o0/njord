@@ -59,6 +59,10 @@ using Njord.Features.Forecasts.EnsembleModelComparison;
 using Njord.Features.Forecasts.ForecastModelComparison;
 using Njord.Features.Forecasts.GrowingDegree;
 using Njord.Features.Forecasts.SeasonalOutlook;
+using Njord.Features.Observations.FloodDischarge;
+using Njord.Features.Observations.Pm25;
+using Njord.Features.Observations.UvIndex;
+using Njord.Features.Observations.WaveHeight;
 using Njord.Features.Scores.AllergySeverity;
 using Njord.Features.Scores.AsthmaRisk;
 using Njord.Features.Scores.Bbq;
@@ -67,6 +71,7 @@ using Njord.Features.Scores.Outdoor;
 using Njord.Features.Scores.SleepQuality;
 using Njord.Features.Scores.SprayWindow;
 using Njord.Features.Trends.ConfidenceTrend;
+using Njord.Features.Weather;
 using Njord.Messages.Results;
 
 namespace Njord.Features;
@@ -171,6 +176,15 @@ public static class ServiceCollectionExtensions
         services.AddFeature<ForecastModelComparison, ForecastModelComparisonConfig>();
         services.AddFeature<GrowingDegree, GrowingDegreeConfig, GrowingDegreeConfigValidator>();
         services.AddFeature<SeasonalOutlook, SeasonalOutlookConfig>();
+
+        // Weather
+        services.AddFeature<WeatherRule, WeatherConfig>();
+
+        // Observations
+        services.AddFeature<Pm25Observation, Pm25ObservationConfig>();
+        services.AddFeature<WaveHeightObservation, WaveHeightObservationConfig>();
+        services.AddFeature<FloodDischargeObservation, FloodDischargeObservationConfig>();
+        services.AddFeature<UvIndexObservation, UvIndexObservationConfig>();
 
         return services;
     }

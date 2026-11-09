@@ -1,0 +1,253 @@
+syntax = "proto3";
+
+package njord.v3;
+
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "Njord.Grpc.V3";
+
+service NjordService {
+  rpc GetManifest (ManifestRequest) returns (ManifestResponse);
+  rpc Subscribe (SubscribeRequest) returns (stream EntityEvent);
+  rpc GetStatus (StatusRequest) returns (StatusResponse);
+  rpc TriggerPoll (TriggerPollRequest) returns (TriggerPollResponse);
+}
+
+// ═══════════════════════════════════════
+// Manifest
+// ═══════════════════════════════════════
+
+message ManifestRequest {}
+
+message ManifestResponse {
+  repeated EntityDefinition entities = 1;
+}
+
+message EntityDefinition {
+  string entity_id = 1;
+  string location = 2;
+  string feature = 3;
+  EntityPlatform platform = 4;
+  string device_class = 5;
+  string unit = 6;
+  string icon = 7;
+  string category = 8;
+  OutputKind output_kind = 9;
+}
+
+enum EntityPlatform {
+  ENTITY_PLATFORM_UNSPECIFIED = 0;
+  ENTITY_PLATFORM_WEATHER = 1;
+  ENTITY_PLATFORM_SENSOR = 2;
+  ENTITY_PLATFORM_BINARY_SENSOR = 3;
+}
+
+enum OutputKind {
+  OUTPUT_KIND_UNSPECIFIED = 0;
+  OUTPUT_KIND_ALERT = 1;
+  OUTPUT_KIND_SCORE = 2;
+  OUTPUT_KIND_CONDITION = 3;
+  OUTPUT_KIND_TREND = 4;
+  OUTPUT_KIND_FORECAST = 5;
+  OUTPUT_KIND_WEATHER = 6;
+  OUTPUT_KIND_OBSERVATION = 7;
+}
+
+// ═══════════════════════════════════════
+// Subscribe stream
+// ═══════════════════════════════════════
+
+message SubscribeRequest {
+  string location = 1;
+}
+
+message EntityEvent {
+  oneof event {
+    EntitySnapshot snapshot = 1;
+    EntityStateUpdate state_update = 2;
+    EntityUnavailable unavailable = 3;
+    EntityAvailable available = 4;
+  }
+}
+
+message EntitySnapshot {
+  repeated EntityStateUpdate states = 1;
+}
+
+message EntityStateUpdate {
+  string entity_id = 1;
+  google.protobuf.Timestamp updated_at = 2;
+  oneof value {
+    WeatherValue weather = 10;
+    AlertValue alert = 11;
+    ScoreValue score = 12;
+    ConditionValue condition = 13;
+    TrendValue trend = 14;
+    ForecastValue forecast = 15;
+    ObservationValue observation = 16;
+  }
+}
+
+message EntityUnavailable {
+  string entity_id = 1;
+  google.protobuf.Timestamp since = 2;
+}
+
+message EntityAvailable {
+  string entity_id = 1;
+  google.protobuf.Timestamp recovered_at = 2;
+}
+
+// ═══════════════════════════════════════
+// Value types (one per OutputKind)
+// ═══════════════════════════════════════
+
+message WeatherValue {
+  double temperature = 1;
+  double apparent_temperature = 2;
+  double humidity = 3;
+  double wind_speed = 4;
+  double wind_direction = 5;
+  double pressure = 6;
+  string condition = 7;
+  repeated WeatherForecastPoint hourly_forecast = 8;
+}
+
+message WeatherForecastPoint {
+  google.protobuf.Timestamp time = 1;
+  double temperature = 2;
+  double apparent_temperature = 3;
+  double humidity = 4;
+  double wind_speed = 5;
+  double wind_direction = 6;
+  double pressure = 7;
+  string condition = 8;
+  optional double precipitation_probability = 9;
+  optional double precipitation = 10;
+  optional double cloud_cover = 11;
+}
+
+message AlertValue {
+  AlertSeverity severity = 1;
+  double confidence = 2;
+  double trigger_value = 3;
+  double threshold = 4;
+  optional double peak_value = 5;
+  optional int32 hours_until = 6;
+  optional int32 duration_hours = 7;
+  ConfidenceLevel confidence_level = 8;
+  map<string, double> extra = 15;
+}
+
+message ScoreValue {
+  int32 score = 1;
+  google.protobuf.Timestamp best_start = 2;
+  int32 best_hours = 3;
+}
+
+message ConditionValue {
+  bool active = 1;
+  map<string, double> extra = 15;
+}
+
+message TrendValue {
+  map<string, double> extra = 15;
+}
+
+message ForecastValue {
+  map<string, double> extra = 15;
+}
+
+message ObservationValue {
+  double value = 1;
+}
+
+// ═══════════════════════════════════════
+// Shared enums
+// ═══════════════════════════════════════
+
+enum AlertSeverity {
+  ALERT_SEVERITY_NONE = 0;
+  ALERT_SEVERITY_YELLOW = 1;
+  ALERT_SEVERITY_ORANGE = 2;
+  ALERT_SEVERITY_RED = 3;
+}
+
+enum ConfidenceLevel {
+  CONFIDENCE_LEVEL_UNSPECIFIED = 0;
+  CONFIDENCE_LEVEL_LOW = 1;
+  CONFIDENCE_LEVEL_MEDIUM = 2;
+  CONFIDENCE_LEVEL_HIGH = 3;
+}
+
+// ═══════════════════════════════════════
+// Status (reuses v2 semantics)
+// ═══════════════════════════════════════
+
+message StatusRequest {}
+
+message StatusResponse {
+  string version = 1;
+  int64 uptime_seconds = 2;
+  google.protobuf.Timestamp process_start = 3;
+  BudgetStatus budget = 4;
+  repeated ModelStatus models = 5;
+  repeated string active_enrichments = 6;
+  bool budget_partial = 7;
+  bool models_partial = 8;
+}
+
+message BudgetStatus {
+  int64 monthly_limit = 1;
+  int64 monthly_used = 2;
+  int64 daily_limit = 3;
+  int64 daily_used = 4;
+  double usage_percent = 5;
+}
+
+enum PollPhase {
+  POLL_PHASE_UNSPECIFIED = 0;
+  POLL_PHASE_DISCOVERY = 1;
+  POLL_PHASE_STEADY = 2;
+}
+
+message ModelStatus {
+  string location = 1;
+  google.protobuf.Timestamp next_poll = 4;
+  optional google.protobuf.Timestamp last_change = 5;
+  int32 miss_count = 6;
+  optional int64 cycle_seconds = 7;
+  PollPhase phase = 8;
+}
+
+// ═══════════════════════════════════════
+// Targets
+// ═══════════════════════════════════════
+
+message GetTargetsRequest {}
+
+message GetTargetsResponse {
+  repeated TriggerTarget targets = 1;
+}
+
+message TriggerTarget {
+  string location = 1;
+  google.protobuf.Timestamp next_poll = 4;
+  optional google.protobuf.Timestamp last_change = 5;
+  int32 miss_count = 6;
+  optional int64 cycle_seconds = 7;
+  PollPhase phase = 8;
+}
+
+// ═══════════════════════════════════════
+// Trigger
+// ═══════════════════════════════════════
+
+message TriggerPollRequest {
+  string location = 1;
+}
+
+message TriggerPollResponse {
+  int32 triggered_count = 1;
+  repeated string targets = 2;
+}
