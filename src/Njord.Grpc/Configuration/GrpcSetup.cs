@@ -1,8 +1,12 @@
 using Akka.Cluster.Hosting;
 using Akka.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Actors;
+using Njord.Core.Configuration;
+using Njord.Messages.Results;
 using Terp.Akka;
 using Terp.Akka.Hosting;
 using Terp.Hosting;
@@ -14,6 +18,14 @@ public sealed class GrpcSetup : ISetup<IServiceCollection>
     public void Setup(IServiceCollection services, SetupContext context)
     {
         services.AddGrpc();
+        services.AddSingleton(sp => new ManifestBuilder(
+            sp.GetServices<IFeatureRule>(),
+            sp.GetRequiredService<IOptions<NjordOptions>>().Value,
+            sp.GetRequiredService<IOptions<ActiveModels>>().Value));
+        services.AddSingleton(sp => new EntityIdLookup(
+            sp.GetServices<IFeatureRule>(),
+            sp.GetRequiredService<IOptions<NjordOptions>>().Value));
+        services.TryAddSingleton(TimeProvider.System);
         services.AddActorRegistration<GrpcActorRegistration>();
     }
 }

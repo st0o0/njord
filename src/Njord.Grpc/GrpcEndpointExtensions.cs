@@ -8,6 +8,7 @@ public static class GrpcEndpointExtensions
     {
         app.MapGrpcService<WeatherGrpcService>();
         app.MapGrpcService<OpsGrpcService>();
+        app.MapGrpcService<NjordGrpcService>();
         return app;
     }
 }

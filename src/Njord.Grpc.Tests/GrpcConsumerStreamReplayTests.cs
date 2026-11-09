@@ -11,6 +11,8 @@ namespace Njord.Grpc.Tests;
 
 public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
 {
+    private static readonly EntityIdLookup _emptyLookup = new([], new Njord.Core.Configuration.NjordOptions());
+
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
     private static readonly DateTimeOffset _anchor = TestTimeConstants.BudgetEpoch;
@@ -133,7 +135,7 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
             $"pipeline-{Guid.NewGuid():N}");
         ActorRegistry.Register<IForecastPipeline>(pipeline, overwrite: true);
 
-        var consumer = Sys.ActorOf(Props.Create(() => new GrpcConsumer()), $"grpc-consumer-{Guid.NewGuid():N}");
+        var consumer = Sys.ActorOf(Props.Create(() => new GrpcConsumer(_emptyLookup, TimeProvider.System)), $"grpc-consumer-{Guid.NewGuid():N}");
         var testPipeline = await ready.Task.WaitAsync(TimeSpan.FromSeconds(15), TestContext.Current.CancellationToken);
         return (consumer, testPipeline.Queue);
     }

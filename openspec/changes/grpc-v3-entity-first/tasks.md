@@ -63,9 +63,9 @@ dotnet run --project src/Njord.Grpc.Tests/Njord.Grpc.Tests.csproj
 
 ## 6. Generic per-OutputKind mapping
 
-- [ ] 6.1 Create v3 mapping extensions in `src/Njord.Grpc/Mapping/V3/`: `AlertValueMappingExtensions.cs`, `ScoreValueMappingExtensions.cs`, `ConditionValueMappingExtensions.cs`, `TrendValueMappingExtensions.cs`, `ForecastValueMappingExtensions.cs`, `ObservationValueMappingExtensions.cs`, `WeatherValueMappingExtensions.cs`. Each maps from the corresponding `FeatureResult` subclass to the v3 proto value type. One extension per OutputKind, no per-feature logic. Tests: `src/Njord.Grpc.Tests/Mapping/V3/<Kind>ValueMappingTests.cs` for each mapper.
+- [x] 6.1 Create v3 mapping extensions in `src/Njord.Grpc/Mapping/V3/`: `AlertValueMappingExtensions.cs`, `ScoreValueMappingExtensions.cs`, `ConditionValueMappingExtensions.cs`, `TrendValueMappingExtensions.cs`, `ForecastValueMappingExtensions.cs`, `ObservationValueMappingExtensions.cs`, `WeatherValueMappingExtensions.cs`. Each maps from the corresponding `FeatureResult` subclass to the v3 proto value type. One extension per OutputKind, no per-feature logic. Tests: `src/Njord.Grpc.Tests/Mapping/V3/<Kind>ValueMappingTests.cs` for each mapper.
 
-- [ ] 6.2 Create `EntityStateUpdateMappingExtensions` in `src/Njord.Grpc/Mapping/V3/EntityStateUpdateMappingExtensions.cs`. Dispatches `FeatureResult` -> appropriate value mapper based on result base type (7-arm switch on OutputKind or result type). Returns `EntityStateUpdate` proto with entity_id and updated_at. Tests: `src/Njord.Grpc.Tests/Mapping/V3/EntityStateUpdateMappingTests.cs` (all 7 OutputKinds, unknown type throws).
+- [x] 6.2 Create `EntityStateUpdateMappingExtensions` in `src/Njord.Grpc/Mapping/V3/EntityStateUpdateMappingExtensions.cs`. Dispatches `FeatureResult` -> appropriate value mapper based on result base type (7-arm switch on OutputKind or result type). Returns `EntityStateUpdate` proto with entity_id and updated_at. Tests: `src/Njord.Grpc.Tests/Mapping/V3/EntityStateUpdateMappingTests.cs` (all 7 OutputKinds, unknown type throws).
 
 ### Validation
 
@@ -75,9 +75,9 @@ dotnet run --project src/Njord.Grpc.Tests/Njord.Grpc.Tests.csproj
 
 ## 7. GrpcConsumer v3 state model
 
-- [ ] 7.1 Extend `GrpcConsumer` to support entity-keyed state alongside existing state. Add `ImmutableDictionary<string, EntityState>` keyed by entity_id. `EntityState` holds `FeatureResult` and `DateTimeOffset LastUpdated`. Build a startup lookup from registered `IFeatureRule[]`: `(Type resultType, string location) -> string entityId`. On each `PipelineEvent`, update both the existing v2 state and the new v3 entity state. Tests: `src/Njord.Grpc.Tests/GrpcConsumerEntityStateTests.cs` (feature result maps to entity_id, domain data maps to weather/observation entities, unknown result type is ignored).
+- [x] 7.1 Extend `GrpcConsumer` to support entity-keyed state alongside existing state. Add `ImmutableDictionary<string, EntityState>` keyed by entity_id. `EntityState` holds `FeatureResult` and `DateTimeOffset LastUpdated`. Build a startup lookup from registered `IFeatureRule[]`: `(Type resultType, string location) -> string entityId`. On each `PipelineEvent`, update both the existing v2 state and the new v3 entity state. Tests: `src/Njord.Grpc.Tests/GrpcConsumerEntityStateTests.cs` (feature result maps to entity_id, domain data maps to weather/observation entities, unknown result type is ignored).
 
-- [ ] 7.2 Add `RequestEntityStream` message handling to `GrpcConsumer`. Returns `ISourceRef<EntityEvent>` using the same `Source.From(snapshot).Concat(hub)` pattern. Snapshot sends all current entity states as `EntityStateUpdate`. Live events flow from a new v3 BroadcastHub that receives `EntityEvent` mapped from `PipelineEvent`. Keep-alive 30s, buffer 256 DropHead, idle timeout 90s. Tests: `src/Njord.Grpc.Tests/GrpcConsumerStreamTests.cs` (snapshot on connect, live updates, keep-alive does not appear as event).
+- [x] 7.2 Add `RequestEntityStream` message handling to `GrpcConsumer`. Returns `ISourceRef<EntityEvent>` using the same `Source.From(snapshot).Concat(hub)` pattern. Snapshot sends all current entity states as `EntityStateUpdate`. Live events flow from a new v3 BroadcastHub that receives `EntityEvent` mapped from `PipelineEvent`. Keep-alive 30s, buffer 256 DropHead, idle timeout 90s. Tests: `src/Njord.Grpc.Tests/GrpcConsumerStreamTests.cs` (snapshot on connect, live updates, keep-alive does not appear as event).
 
 ### Validation
 
@@ -87,7 +87,7 @@ dotnet run --project src/Njord.Grpc.Tests/Njord.Grpc.Tests.csproj
 
 ## 8. Availability tracking
 
-- [ ] 8.1 Add availability tracking to `GrpcConsumer`. Track `DateTimeOffset` of last update per entity. Use `IWithTimers` to schedule a periodic check (every 60s). When an entity's last update exceeds `poll_interval * StaleFactor` (from `HealthOptions`, default 2.5), emit `EntityUnavailable` to the v3 hub. When fresh data arrives for a stale entity, emit `EntityAvailable`. The staleness threshold per entity comes from its required domain's poll interval. Tests: `src/Njord.Grpc.Tests/GrpcConsumerAvailabilityTests.cs` (entity becomes unavailable after threshold, becomes available on fresh data, non-stale entity stays available). Use `FakeTimeProvider` for time control.
+- [x] 8.1 Add availability tracking to `GrpcConsumer`. Track `DateTimeOffset` of last update per entity. Use `IWithTimers` to schedule a periodic check (every 60s). When an entity's last update exceeds `poll_interval * StaleFactor` (from `HealthOptions`, default 2.5), emit `EntityUnavailable` to the v3 hub. When fresh data arrives for a stale entity, emit `EntityAvailable`. The staleness threshold per entity comes from its required domain's poll interval. Tests: `src/Njord.Grpc.Tests/GrpcConsumerAvailabilityTests.cs` (entity becomes unavailable after threshold, becomes available on fresh data, non-stale entity stays available). Use `FakeTimeProvider` for time control.
 
 ### Validation
 
@@ -97,9 +97,9 @@ dotnet run --project src/Njord.Grpc.Tests/Njord.Grpc.Tests.csproj
 
 ## 9. NjordGrpcService (v3)
 
-- [ ] 9.1 Create `NjordGrpcService` in `src/Njord.Grpc/NjordGrpcService.cs` implementing the v3 `NjordService.NjordServiceBase`. `GetManifest` returns the singleton manifest. `Subscribe` gets `ISourceRef<EntityEvent>` from GrpcConsumer via `RequestEntityStream`, applies KillSwitch + CancellationToken bridge, writes each `EntityEvent` to the gRPC response stream (same pattern as v2 `StreamDomainData`). Optional location filter in `SubscribeRequest`. `GetStatus` and `TriggerPoll` delegate to the same actors as v2 `OpsGrpcService`. Tests: `src/Njord.Grpc.Tests/NjordGrpcServiceTests.cs` (manifest returns correct count, subscribe streams events, status and trigger_poll work).
+- [x] 9.1 Create `NjordGrpcService` in `src/Njord.Grpc/NjordGrpcService.cs` implementing the v3 `NjordService.NjordServiceBase`. `GetManifest` returns the singleton manifest. `Subscribe` gets `ISourceRef<EntityEvent>` from GrpcConsumer via `RequestEntityStream`, applies KillSwitch + CancellationToken bridge, writes each `EntityEvent` to the gRPC response stream (same pattern as v2 `StreamDomainData`). Optional location filter in `SubscribeRequest`. `GetStatus` and `TriggerPoll` delegate to the same actors as v2 `OpsGrpcService`. Tests: `src/Njord.Grpc.Tests/NjordGrpcServiceTests.cs` (manifest returns correct count, subscribe streams events, status and trigger_poll work).
 
-- [ ] 9.2 Register `NjordGrpcService` in the Host alongside existing v2 services. Both v2 and v3 services are mapped to Kestrel. Update `src/Njord/Configuration/GrpcSetup.cs` (or the relevant setup) to add `endpoints.MapGrpcService<NjordGrpcService>()`. Verify both v2 and v3 services respond.
+- [x] 9.2 Register `NjordGrpcService` in the Host alongside existing v2 services. Both v2 and v3 services are mapped to Kestrel. Update `src/Njord/Configuration/GrpcSetup.cs` (or the relevant setup) to add `endpoints.MapGrpcService<NjordGrpcService>()`. Verify both v2 and v3 services respond.
 
 ### Validation
 
@@ -110,7 +110,7 @@ dotnet run --project src/Njord.Grpc.Tests/Njord.Grpc.Tests.csproj
 
 ## 10. Integration verification
 
-- [ ] 10.1 Run all test projects to verify no regressions. Existing v2 functionality must be unchanged.
+- [x] 10.1 Run all test projects to verify no regressions. Existing v2 functionality must be unchanged.
 
 ```
 dotnet build src/Njord.slnx
