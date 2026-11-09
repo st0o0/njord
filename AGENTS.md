@@ -48,9 +48,11 @@ src/
   Njord.Polling/        # PollManager, PollWorker (+ state, mappings), polling Telemetry, Configuration/ (BudgetGuard, PollingOptionsValidator)
   Njord.Pipeline/       # Stream/ (ForecastPipeline, FeatureEngine), Health/ (PipelineHealthCheck), Telemetry
   Njord.Features/       # (-> Core) every feature: <OutputKind>/<Feature>/ with FeatureRule + <Name>Config (+ validator)
-                        #   side by side (Alerts/ Scores/ Conditions/ Trends/ Forecasts/), <Kind>/Shared/ and top-level
-                        #   Shared/ (Scoring), ServiceCollectionExtensions.AddFeatures; typed inputs stay in Core
-  Njord.Grpc/           # WeatherGrpcService, OpsGrpcService, ActorAsk, GrpcConsumer, Mapping/
+                        #   side by side (Alerts/ Scores/ Conditions/ Trends/ Forecasts/ Weather/ Observations/),
+                        #   <Kind>/Shared/ and top-level Shared/ (Scoring), ServiceCollectionExtensions.AddFeatures;
+                        #   typed inputs stay in Core
+  Njord.Grpc/           # v2: WeatherGrpcService, OpsGrpcService; v3: NjordGrpcService, ManifestBuilder,
+                        #   EntityIdLookup, GrpcConsumer (v2+v3 state), ActorAsk, Mapping/ (v2), Mapping/V3/ (v3)
   Njord/                # Host: Program.cs (setup chain), Configuration/ (setups: ISetup<T> classes), Health/
 
   Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
@@ -59,7 +61,8 @@ src/
   Njord.IntegrationTests/       # whole host via TestServer (same setup chain as Program.cs)
   Njord.Architecture.Tests/     # ArchUnitNET rules (ArchitectureTests)
   Njord.Tests.Shared/           # small shared fakes and builders (not a test project)
-protos/njord/v2/                # gRPC contracts: weather.proto, ops.proto, common.proto
+protos/njord/v2/                # gRPC contracts (legacy): weather.proto, ops.proto, common.proto
+protos/njord/v3/                # gRPC v3 entity-first: njord.proto (NjordService: GetManifest, Subscribe, GetStatus, TriggerPoll)
 docs/                           # VitePress site incl. the Config Builder (docs/.vitepress/theme/builder)
 ```
 
@@ -75,7 +78,7 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
   Fetched domains = union of the `Requirements` of the enabled features (`DomainRequirements`, OR-ed at startup and registered as `IOptions<DomainRequirements>`).
 - **Every feature is a `FeatureRule<TInput>`** (an `IFeatureRule`) in `Njord.Features/<OutputKind>/<Feature>/`: a
   `FeatureDescriptor` (`Output` (`OutputKind`), `Category`, `Name` (the config section name), `Requirements`: a `DomainRequirements` of
-  per-domain `XxxParams` flags, `PollDepth`), `Enabled` from its own config, `Project(LocationForecast)` to a typed
+  per-domain `XxxParams` flags, `PollDepth`, `EntityMetadata`: platform/device_class/icon/unit for HA entity definition), `Enabled` from its own config, `Project(LocationForecast)` to a typed
   input (null skips the rule) and `Evaluate(FeatureContext<TInput>)` returning one result event or null. Required
   flags gate dispatch (missing data skips the rule), `Optional*` flags are requested from the API but never gate.
   `FeatureEngine` runs only the enabled rules whose domain got new data and hands them a ring of the last

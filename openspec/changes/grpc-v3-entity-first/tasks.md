@@ -133,6 +133,6 @@ dotnet run --project src/Njord.Architecture.Tests/Njord.Architecture.Tests.cspro
 dotnet run --project src/Njord.IntegrationTests/Njord.IntegrationTests.csproj
 ```
 
-- [ ] 10.2 Update `AGENTS.md` and `CLAUDE.md` to document v3 proto, new OutputKinds, EntityMetadata, ManifestBuilder, and the unified Subscribe stream. Update the actor topology diagram to show v3 path.
+- [x] 10.2 Update `AGENTS.md` and `CLAUDE.md` to document v3 proto, new OutputKinds, EntityMetadata, ManifestBuilder, and the unified Subscribe stream. Update the actor topology diagram to show v3 path.
 
-- [ ] 10.3 Update `docs/data/features.json` with the new Weather and Observation features. Update the Config Builder if needed (`docs/.vitepress/theme/builder/`).
+- [x] 10.3 Update `docs/data/features.json` with the new Weather and Observation features. Update the Config Builder if needed (`docs/.vitepress/theme/builder/`).
