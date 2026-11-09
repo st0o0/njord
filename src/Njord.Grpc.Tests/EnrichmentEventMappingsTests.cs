@@ -670,7 +670,7 @@ public sealed class EnrichmentEventMappingsTests
     }
 
     [Fact]
-    public void Feature_results_without_a_mapping_are_rejected() => Assert.Throws<ArgumentOutOfRangeException>(() => new UnmappedResult(_lucerne).ToEnrichmentEvent(_stamp));
+    public void Feature_results_without_a_mapping_return_null() => Assert.Null(new UnmappedResult(_lucerne).ToEnrichmentEvent(_stamp));
 
     private sealed record UnmappedResult(Location Location) : FeatureResult(Location);
 }

@@ -411,7 +411,7 @@ internal static class EnrichmentEventMappingExtensions
             UpdatedAt = now.ToTimestamp(),
             GrowingDegree = r.ToProto(),
         },
-        FeatureResult r => throw new ArgumentOutOfRangeException(nameof(pipelineEvent), r.GetType().Name, "Unmapped feature result"),
+        FeatureResult => null,
         _ => null,
     };
 
