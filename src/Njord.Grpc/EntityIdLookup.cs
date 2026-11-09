@@ -14,6 +14,7 @@ public sealed class EntityIdLookup
             .ToList());
 
     private readonly Dictionary<(Type Type, string Location), string> _ids = [];
+    private readonly Dictionary<(string FeatureName, string Location), string> _observationIds = [];
 
     public EntityIdLookup(IEnumerable<IFeatureRule> rules, NjordOptions options)
     {
@@ -28,6 +29,10 @@ public sealed class EntityIdLookup
                 {
                     _ids[(typeof(WeatherResult), location.Name)] = $"{slug}_weather";
                 }
+                else if (descriptor.Output == OutputKind.Observation)
+                {
+                    _observationIds[(descriptor.Name, location.Name)] = $"{slug}_{ManifestBuilder.ToSnakeCase(descriptor.Name)}";
+                }
                 else if (FindResultType(descriptor.Name) is { } type)
                 {
                     _ids[(type, location.Name)] = $"{slug}_{ManifestBuilder.ToSnakeCase(descriptor.Name)}";
@@ -36,10 +41,13 @@ public sealed class EntityIdLookup
         }
     }
 
-    public int Count => _ids.Count;
+    public int Count => _ids.Count + _observationIds.Count;
 
-    public string? Find(FeatureResult result) =>
-        _ids.GetValueOrDefault((result.GetType(), result.Location.Name));
+    public string? Find(FeatureResult result) => result switch
+    {
+        ObservationResult obs => _observationIds.GetValueOrDefault((obs.FeatureName, obs.Location.Name)),
+        _ => _ids.GetValueOrDefault((result.GetType(), result.Location.Name))
+    };
 
     private static Type? FindResultType(string featureName)
     {

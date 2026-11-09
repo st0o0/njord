@@ -10,16 +10,17 @@ public sealed class ObservationResultTests
     [Fact]
     public void Construction_with_value()
     {
-        var result = new ObservationResult(_vienna, 42.5);
+        var result = new ObservationResult(_vienna, "TestFeature", 42.5);
 
         Assert.Equal(_vienna, result.Location);
+        Assert.Equal("TestFeature", result.FeatureName);
         Assert.Equal(42.5, result.Value);
     }
 
     [Fact]
     public void Is_a_feature_result()
     {
-        var result = new ObservationResult(_vienna, 12.3);
+        var result = new ObservationResult(_vienna, "TestFeature", 12.3);
 
         Assert.IsAssignableFrom<FeatureResult>(result);
     }
@@ -27,8 +28,8 @@ public sealed class ObservationResultTests
     [Fact]
     public void Record_equality()
     {
-        var a = new ObservationResult(_vienna, 42.5);
-        var b = new ObservationResult(_vienna, 42.5);
+        var a = new ObservationResult(_vienna, "TestFeature", 42.5);
+        var b = new ObservationResult(_vienna, "TestFeature", 42.5);
 
         Assert.Equal(a, b);
     }

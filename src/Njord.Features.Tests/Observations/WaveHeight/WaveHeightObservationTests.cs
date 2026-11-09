@@ -24,6 +24,7 @@ public sealed class WaveHeightObservationTests
     {
         var result = Assert.IsType<ObservationResult>(Run(Rule(), _now, Build(1.8)));
 
+        Assert.Equal("WaveHeightObservation", result.FeatureName);
         Assert.Equal(1.8, result.Value);
     }
 

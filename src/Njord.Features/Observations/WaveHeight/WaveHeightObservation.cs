@@ -22,6 +22,6 @@ public sealed class WaveHeightObservation(IOptions<WaveHeightObservationConfig> 
 
     protected override PipelineEvent? Evaluate(FeatureContext<MarineInput> ctx) =>
         ForecastQueries.ValueAt(ctx.Current.Marine, ctx.Now) is { WaveHeight: { } value }
-            ? new ObservationResult(ctx.Location, value)
+            ? new ObservationResult(ctx.Location, Descriptor.Name, value)
             : null;
 }

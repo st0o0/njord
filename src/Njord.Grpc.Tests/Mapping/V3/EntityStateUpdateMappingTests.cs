@@ -76,7 +76,7 @@ public sealed class EntityStateUpdateMappingTests
     [Fact]
     public void Observation_dispatches()
     {
-        var result = new ObservationResult(_vienna, 21.5);
+        var result = new ObservationResult(_vienna, "TestObservation", 21.5);
 
         Assert.Equal(EntityStateUpdate.ValueOneofCase.Observation, result.ToEntityStateUpdate("e", _updatedAt).ValueCase);
     }

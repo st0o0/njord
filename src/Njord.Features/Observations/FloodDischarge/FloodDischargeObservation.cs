@@ -22,6 +22,6 @@ public sealed class FloodDischargeObservation(IOptions<FloodDischargeObservation
 
     protected override PipelineEvent? Evaluate(FeatureContext<FloodInput> ctx) =>
         ForecastQueries.ValueAt(ctx.Current.Flood, ctx.Now) is { Discharge: { } value }
-            ? new ObservationResult(ctx.Location, value)
+            ? new ObservationResult(ctx.Location, Descriptor.Name, value)
             : null;
 }

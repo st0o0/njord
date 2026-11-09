@@ -24,6 +24,7 @@ public sealed class UvIndexObservationTests
     {
         var result = Assert.IsType<ObservationResult>(Run(Rule(), _now, Build(6.5)));
 
+        Assert.Equal("UvIndexObservation", result.FeatureName);
         Assert.Equal(6.5, result.Value);
     }
 

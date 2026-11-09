@@ -24,6 +24,7 @@ public sealed class Pm25ObservationTests
     {
         var result = Assert.IsType<ObservationResult>(Run(Rule(), _now, Build(12.5)));
 
+        Assert.Equal("Pm25Observation", result.FeatureName);
         Assert.Equal(12.5, result.Value);
     }
 

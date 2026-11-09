@@ -22,6 +22,6 @@ public sealed class UvIndexObservation(IOptions<UvIndexObservationConfig> config
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) =>
         ForecastQueries.ValueAt(ctx.Current.Forecast, ctx.Now) is { UvIndex: { } value }
-            ? new ObservationResult(ctx.Location, value)
+            ? new ObservationResult(ctx.Location, Descriptor.Name, value)
             : null;
 }

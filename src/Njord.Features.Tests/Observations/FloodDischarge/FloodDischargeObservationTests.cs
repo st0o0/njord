@@ -24,6 +24,7 @@ public sealed class FloodDischargeObservationTests
     {
         var result = Assert.IsType<ObservationResult>(Run(Rule(), _now, Build(310.0)));
 
+        Assert.Equal("FloodDischargeObservation", result.FeatureName);
         Assert.Equal(310.0, result.Value);
     }
 

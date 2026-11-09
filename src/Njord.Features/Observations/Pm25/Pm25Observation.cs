@@ -22,6 +22,6 @@ public sealed class Pm25Observation(IOptions<Pm25ObservationConfig> config) : Fe
 
     protected override PipelineEvent? Evaluate(FeatureContext<AqInput> ctx) =>
         ForecastQueries.ValueAt(ctx.Current.AirQuality, ctx.Now) is { Pm25: { } value }
-            ? new ObservationResult(ctx.Location, value)
+            ? new ObservationResult(ctx.Location, Descriptor.Name, value)
             : null;
 }
