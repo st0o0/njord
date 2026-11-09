@@ -23,7 +23,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private const int ForecastBufferSize = 16;
 
     // A restarted gateway keeps its ActorRef, so a late handshake answer of the previous incarnation must not match.
-    private static long AttachCounter;
+    private static long _attachCounter;
 
     private sealed record Offered(FetchDomain Request, IQueueOfferResult Result);
 
@@ -59,7 +59,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private readonly int _maxCallWeight;
     private readonly IActorRef _pollRegion;
     private readonly CancellationTokenSource _stopped = new();
-    private readonly long _attachId = Interlocked.Increment(ref AttachCounter);
+    private readonly long _attachId = Interlocked.Increment(ref _attachCounter);
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
     private ISourceQueueWithComplete<FetchDomain>? _requestQueue;

@@ -18,7 +18,7 @@ namespace Njord.Grpc.Tests;
 
 public sealed class ProtoMappingsTests
 {
-    private static readonly DateTimeOffset Anchor = TestTimeConstants.BudgetEpoch;
+    private static readonly DateTimeOffset _anchor = TestTimeConstants.BudgetEpoch;
 
     [Fact]
     public void Alert_results_map_key_severity_and_optional_values()
@@ -26,7 +26,7 @@ public sealed class ProtoMappingsTests
         var result = new HeatAlertResult(DomainData.Lucerne, DomainAlertSeverity.Orange, 0.85, 33.0, 30.0, -4.0, null, null,
             Messages.Alerts.ConfidenceLevel.High, 34.0);
 
-        var evt = result.ToEnrichmentEvent(Anchor);
+        var evt = result.ToEnrichmentEvent(_anchor);
 
         Assert.NotNull(evt);
         var alert = evt.Heat.Alert;
@@ -53,7 +53,7 @@ public sealed class ProtoMappingsTests
     [Fact]
     public void Weather_events_map_to_a_domain_data_update_with_the_model_run()
     {
-        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
+        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(_anchor, 2));
 
         var update = evt.ToDomainDataUpdate();
 
@@ -61,7 +61,7 @@ public sealed class ProtoMappingsTests
         Assert.Multiple(
             () => Assert.Equal("Lucerne", update.Location),
             () => Assert.Equal(Domain.Forecast, update.Domain),
-            () => Assert.Equal(Anchor, update.ModelRun.ToDateTimeOffset()),
+            () => Assert.Equal(_anchor, update.ModelRun.ToDateTimeOffset()),
             () => Assert.Equal(DomainDataUpdate.DataOneofCase.Forecast, update.DataCase),
             () => Assert.Equal(2, update.Forecast.Points.Count));
     }
@@ -69,14 +69,14 @@ public sealed class ProtoMappingsTests
     [Fact]
     public void Poll_state_entries_map_to_model_status_with_optional_values()
     {
-        var entry = new PollStateEntry(DomainData.Lucerne, DomainPollPhase.Steady, Anchor.AddHours(1), null, 2, 3600);
+        var entry = new PollStateEntry(DomainData.Lucerne, DomainPollPhase.Steady, _anchor.AddHours(1), null, 2, 3600);
 
         var status = entry.ToModelStatus();
 
         Assert.Multiple(
             () => Assert.Equal("Lucerne", status.Location),
             () => Assert.Equal(V2.PollPhase.Steady, status.Phase),
-            () => Assert.Equal(Anchor.AddHours(1).ToTimestamp(), status.NextPoll),
+            () => Assert.Equal(_anchor.AddHours(1).ToTimestamp(), status.NextPoll),
             () => Assert.Equal(2, status.MissCount),
             () => Assert.Null(status.LastChange),
             () => Assert.Equal(3600, status.CycleSeconds));
@@ -97,24 +97,24 @@ public sealed class ProtoMappingsTests
     [Fact]
     public void A_raised_alert_maps_to_an_alerts_enrichment_event()
     {
-        var evt = EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor).ToEnrichmentEvent(Anchor);
+        var evt = EnrichmentEvents.Alerts(DomainData.Lucerne, _anchor).ToEnrichmentEvent(_anchor);
 
         Assert.NotNull(evt);
         Assert.Multiple(
             () => Assert.Equal("Lucerne", evt.Location),
-            () => Assert.Equal(Anchor.ToTimestamp(), evt.UpdatedAt),
+            () => Assert.Equal(_anchor.ToTimestamp(), evt.UpdatedAt),
             () => Assert.Equal(EnrichmentEvent.FeatureOneofCase.Heat, evt.FeatureCase));
     }
 
     [Fact]
     public void A_lifestyle_event_maps_to_a_lifestyle_enrichment_event_stamped_with_the_given_time()
     {
-        var evt = new LaundryScoreResult(DomainData.Lucerne, 80, Anchor, 4).ToEnrichmentEvent(Anchor.AddHours(1));
+        var evt = new LaundryScoreResult(DomainData.Lucerne, 80, _anchor, 4).ToEnrichmentEvent(_anchor.AddHours(1));
 
         Assert.NotNull(evt);
         Assert.Multiple(
             () => Assert.Equal("Lucerne", evt.Location),
-            () => Assert.Equal(Anchor.AddHours(1).ToTimestamp(), evt.UpdatedAt),
+            () => Assert.Equal(_anchor.AddHours(1).ToTimestamp(), evt.UpdatedAt),
             () => Assert.Equal(EnrichmentEvent.FeatureOneofCase.Laundry, evt.FeatureCase),
             () => Assert.Equal(80, evt.Laundry.Score.Score),
             () => Assert.Equal(4, evt.Laundry.Score.BestHours));
@@ -123,10 +123,10 @@ public sealed class ProtoMappingsTests
     [Fact]
     public void Enrichment_locations_cover_alerts_and_lifestyle_but_not_domain_data()
     {
-        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 1));
+        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(_anchor, 1));
 
         Assert.Multiple(
-            () => Assert.Equal(DomainData.Lucerne, EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor).ToEnrichmentLocation()),
+            () => Assert.Equal(DomainData.Lucerne, EnrichmentEvents.Alerts(DomainData.Lucerne, _anchor).ToEnrichmentLocation()),
             () => Assert.Equal(DomainData.Bern, new CommuteSafetyResult(DomainData.Bern, Messages.Results.Conditions.CommuteLevel.Safe, []).ToEnrichmentLocation()),
             () => Assert.Null(weather.ToEnrichmentLocation()));
     }
@@ -134,8 +134,8 @@ public sealed class ProtoMappingsTests
     [Fact]
     public void Ensemble_events_map_to_a_domain_data_update_with_spread_fields()
     {
-        var points = new[] { new EnsemblePoint(Anchor, 1.5, 0.3, 2.1) };
-        var forecast = new DomainForecast<EnsemblePoint>(DomainKind.Ensemble, Anchor, TimeResolution.Hourly, [.. points]);
+        var points = new[] { new EnsemblePoint(_anchor, 1.5, 0.3, 2.1) };
+        var forecast = new DomainForecast<EnsemblePoint>(DomainKind.Ensemble, _anchor, TimeResolution.Hourly, [.. points]);
         var evt = new EnsembleDataReceived(DomainData.Lucerne, forecast);
 
         var update = evt.ToDomainDataUpdate();
@@ -154,9 +154,9 @@ public sealed class ProtoMappingsTests
     [Fact]
     public void Events_without_an_enrichment_have_no_enrichment_event()
     {
-        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 1));
+        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(_anchor, 1));
 
-        Assert.Null(weather.ToEnrichmentEvent(Anchor));
+        Assert.Null(weather.ToEnrichmentEvent(_anchor));
     }
 
     [Theory]

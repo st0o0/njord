@@ -18,7 +18,8 @@ public sealed class NightVentilation(IOptions<NightVentilationConfig> config) : 
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
         Name: "NightVentilation",
-        new DomainRequirements(Forecast: ForecastParams.Temperature));
+        new DomainRequirements(Forecast: ForecastParams.Temperature),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 

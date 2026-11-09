@@ -15,7 +15,8 @@ public sealed class WetBulbDangerAlert(IOptions<WetBulbDangerConfig> config) : F
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "WetBulbDanger",
-        new DomainRequirements(Forecast: ForecastParams.WetBulbTemperature, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.WetBulbTemperature, Ensemble: EnsembleParams.TemperatureSpread),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

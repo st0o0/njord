@@ -8,7 +8,7 @@ namespace Njord.OpenMeteo.Tests;
 
 public sealed class ForecastModelResponseTests
 {
-    private static readonly DateTimeOffset Run = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _run = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
 
     private static ForecastResponse Parse(string json) =>
         Assert.IsType<ForecastResponse>(JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.ForecastResponse));
@@ -16,7 +16,7 @@ public sealed class ForecastModelResponseTests
     [Fact]
     public void A_single_model_response_with_plain_keys_is_keyed_by_the_requested_model()
     {
-        var forecasts = Parse(OpenMeteoFixtures.ForecastSingleModel).ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
+        var forecasts = Parse(OpenMeteoFixtures.ForecastSingleModel).ToModelForecasts(_run, "ecmwf_ifs025_ensemble_mean");
 
         var forecast = Assert.Single(forecasts);
         Assert.Multiple(
@@ -29,7 +29,7 @@ public sealed class ForecastModelResponseTests
     {
         var response = Parse(OpenMeteoFixtures.ForecastThreeModels);
 
-        var forecasts = response.ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
+        var forecasts = response.ToModelForecasts(_run, "ecmwf_ifs025_ensemble_mean");
 
         Assert.Multiple(
             () => Assert.Equal(2, forecasts.Count),
@@ -40,7 +40,7 @@ public sealed class ForecastModelResponseTests
     [Fact]
     public void Member_series_are_ignored()
     {
-        var forecasts = Parse(OpenMeteoFixtures.ForecastThreeModels).ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
+        var forecasts = Parse(OpenMeteoFixtures.ForecastThreeModels).ToModelForecasts(_run, "ecmwf_ifs025_ensemble_mean");
 
         Assert.DoesNotContain(forecasts.Keys, k => k.StartsWith("member", StringComparison.Ordinal));
     }
@@ -48,7 +48,7 @@ public sealed class ForecastModelResponseTests
     [Fact]
     public void A_model_whose_values_are_all_null_is_omitted()
     {
-        var forecasts = Parse(OpenMeteoFixtures.ForecastThreeModels).ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
+        var forecasts = Parse(OpenMeteoFixtures.ForecastThreeModels).ToModelForecasts(_run, "ecmwf_ifs025_ensemble_mean");
 
         Assert.False(forecasts.ContainsKey("ukmo_global_ensemble_mean_20km"));
     }
@@ -56,7 +56,7 @@ public sealed class ForecastModelResponseTests
     [Fact]
     public void A_response_without_hourly_data_yields_no_forecast()
     {
-        var forecasts = Parse("""{"latitude":47.0,"longitude":8.0}""").ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
+        var forecasts = Parse("""{"latitude":47.0,"longitude":8.0}""").ToModelForecasts(_run, "ecmwf_ifs025_ensemble_mean");
 
         Assert.Empty(forecasts);
     }
@@ -65,7 +65,7 @@ public sealed class ForecastModelResponseTests
     public void Unknown_keys_are_silently_dropped()
     {
         var forecasts = Parse("""{"latitude":47.0,"longitude":8.0,"hourly":{"time":[1000],"temperature_2m":[20.5],"unknown_variable":[99.0]}}""")
-            .ToModelForecasts(Run, "ecmwf_ifs025_ensemble_mean");
+            .ToModelForecasts(_run, "ecmwf_ifs025_ensemble_mean");
 
         var forecast = Assert.Single(forecasts);
         Assert.Equal(20.5, forecast.Value.Points[0].Temperature);

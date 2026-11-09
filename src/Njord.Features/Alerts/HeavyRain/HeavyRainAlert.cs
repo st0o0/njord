@@ -15,7 +15,8 @@ public sealed class HeavyRainAlert(IOptions<HeavyRainConfig> config) : FeatureRu
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "HeavyRain",
-        new DomainRequirements(Forecast: ForecastParams.Precipitation, Ensemble: EnsembleParams.PrecipitationSpread));
+        new DomainRequirements(Forecast: ForecastParams.Precipitation, Ensemble: EnsembleParams.PrecipitationSpread),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

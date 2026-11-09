@@ -26,11 +26,11 @@ public sealed record MarinePoint(
     double? InvertBarometerHeight = null,
     double? WavePeakPeriod = null) : IHasValidTime
 {
-    private static readonly MarineParams[] Flags =
+    private static readonly MarineParams[] _flags =
         [.. Enum.GetValues<MarineParams>().Where(p => p != MarineParams.None)];
 
     public bool HasFields(MarineParams required) =>
-        Flags.All(flag => !required.HasFlag(flag) || Has(flag));
+        _flags.All(flag => !required.HasFlag(flag) || Has(flag));
 
     private bool Has(MarineParams param) => param switch
     {

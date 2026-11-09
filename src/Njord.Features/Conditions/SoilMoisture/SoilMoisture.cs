@@ -14,7 +14,8 @@ public sealed class SoilMoisture(IOptions<SoilMoistureConfig> config) : FeatureR
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
         Name: "SoilMoisture",
-        new DomainRequirements(Forecast: ForecastParams.SoilMoisture0To1cm));
+        new DomainRequirements(Forecast: ForecastParams.SoilMoisture0To1Cm),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -24,7 +25,7 @@ public sealed class SoilMoisture(IOptions<SoilMoistureConfig> config) : FeatureR
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
         var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
-        if (window.LowestBy(p => p.SoilMoisture0To1cm) is not { SoilMoisture0To1cm: { } moisture })
+        if (window.LowestBy(p => p.SoilMoisture0To1Cm) is not { SoilMoisture0To1Cm: { } moisture })
         {
             return null;
         }

@@ -17,8 +17,8 @@ public sealed class InversionDetectionConditionTests
         var forecast = ForecastOnly(Uniform(point => point with
         {
             Temperature = surface,
-            Temperature80m = t80,
-            Temperature120m = t120,
+            Temperature80M = t80,
+            Temperature120M = t120,
             BoundaryLayerHeight = layer,
             CloudCover = cloud,
             WindSpeed = wind,
@@ -97,7 +97,7 @@ public sealed class InversionDetectionConditionTests
     [Fact]
     public void Nothing_is_reported_without_the_80m_temperature()
     {
-        var forecast = ForecastOnly(Uniform(point => point with { Temperature80m = null }));
+        var forecast = ForecastOnly(Uniform(point => point with { Temperature80M = null }));
 
         Assert.Null(Run(Feature(), Now, forecast));
     }

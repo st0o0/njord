@@ -13,7 +13,7 @@ public sealed class PollManager : ReceiveActor, IWithTimers
 {
     private sealed record RestartWorker(string LocationName);
 
-    private static readonly BackoffPolicy RetryPolicy =
+    private static readonly BackoffPolicy _retryPolicy =
         Backoff.Create(TimeSpan.FromSeconds(1), maxDelay: TimeSpan.FromSeconds(30));
 
     private readonly TimeProvider _timeProvider;
@@ -80,7 +80,7 @@ public sealed class PollManager : ReceiveActor, IWithTimers
             return;
         }
 
-        var delay = RetryPolicy.DelayWithJitter(previousAttempts);
+        var delay = _retryPolicy.DelayWithJitter(previousAttempts);
         _log.Warning("Poll worker {LocationName} terminated - starting it again in {Delay}", targetId, delay);
         Timers.StartSingleTimer($"restart-{targetId}", new RestartWorker(targetId), delay);
     }

@@ -5,7 +5,6 @@ using Status = Grpc.Core.Status;
 
 namespace Njord.Grpc;
 
-// Resolves an actor by its marker and asks it, turning actor unavailability into a gRPC status.
 internal static class ActorAskExtensions
 {
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(5);

@@ -15,13 +15,13 @@ public sealed class DomainRequirementsResolutionTests
         public PipelineEvent? Execute(RingBuffer<LocationForecast> ring, DateTimeOffset now) => null;
     }
 
-    private static readonly StubRule Frost = new("Frost", true,
+    private static readonly StubRule _frost = new("Frost", true,
         new(Forecast: ForecastParams.Temperature | ForecastParams.WindGusts, Ensemble: EnsembleParams.TemperatureSpread));
 
-    private static readonly StubRule Pollen = new("Pollen", true,
+    private static readonly StubRule _pollen = new("Pollen", true,
         new(AirQuality: AirQualityParams.BirchPollen));
 
-    private static readonly StubRule DisabledPollen = new("Pollen", false,
+    private static readonly StubRule _disabledPollen = new("Pollen", false,
         new(AirQuality: AirQualityParams.BirchPollen));
 
     private static DomainRequirements Resolve(params IFeatureRule[] rules) =>
@@ -32,7 +32,7 @@ public sealed class DomainRequirementsResolutionTests
     [Fact]
     public void Enabled_features_produce_correct_requirements()
     {
-        var requirements = Resolve(Frost, Pollen);
+        var requirements = Resolve(_frost, _pollen);
 
         Assert.Multiple(
             () => Assert.True(requirements.Requires(DomainKind.Forecast)),
@@ -45,11 +45,11 @@ public sealed class DomainRequirementsResolutionTests
     {
         Assert.Equal(
             [DomainKind.Forecast, DomainKind.AirQuality, DomainKind.Ensemble],
-            Resolve(Frost, Pollen).RequiredDomains());
+            Resolve(_frost, _pollen).RequiredDomains());
     }
 
     [Fact]
-    public void Disabled_features_are_ignored() => Assert.Equal([DomainKind.Forecast, DomainKind.Ensemble], Resolve(Frost, DisabledPollen).RequiredDomains());
+    public void Disabled_features_are_ignored() => Assert.Equal([DomainKind.Forecast, DomainKind.Ensemble], Resolve(_frost, _disabledPollen).RequiredDomains());
 
     [Fact]
     public void No_features_produce_defaults()
@@ -61,11 +61,11 @@ public sealed class DomainRequirementsResolutionTests
     }
 
     [Fact]
-    public void Base_params_are_applied() => Assert.True(Resolve(Frost).AllForecast.HasFlag(ForecastParams.WeatherCode));
+    public void Base_params_are_applied() => Assert.True(Resolve(_frost).AllForecast.HasFlag(ForecastParams.WeatherCode));
 
     [Fact]
-    public void Base_params_do_not_add_unrequired_domains() => Assert.False(Resolve(Frost).Requires(DomainKind.AirQuality));
+    public void Base_params_do_not_add_unrequired_domains() => Assert.False(Resolve(_frost).Requires(DomainKind.AirQuality));
 
     [Fact]
-    public void Ensemble_domain_is_required_when_features_need_spread() => Assert.True(Resolve(Frost).Requires(DomainKind.Ensemble));
+    public void Ensemble_domain_is_required_when_features_need_spread() => Assert.True(Resolve(_frost).Requires(DomainKind.Ensemble));
 }

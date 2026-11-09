@@ -14,7 +14,8 @@ public sealed class Pm25Alert(IOptions<Pm25Config> config) : FeatureRule<AqInput
         OutputKind.Alert,
         FeatureCategory.AirQuality,
         Name: "Pm25",
-        new DomainRequirements(AirQuality: AirQualityParams.Pm25));
+        new DomainRequirements(AirQuality: AirQualityParams.Pm25),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

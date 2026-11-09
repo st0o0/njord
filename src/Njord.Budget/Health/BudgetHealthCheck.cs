@@ -10,7 +10,7 @@ namespace Njord.Budget.Health;
 
 internal sealed class BudgetHealthCheck(ActorRegistry registry, IOptions<HealthOptions> options) : IHealthCheck
 {
-    private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan _askTimeout = TimeSpan.FromSeconds(3);
 
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context, CancellationToken cancellationToken = default)
@@ -22,7 +22,7 @@ internal sealed class BudgetHealthCheck(ActorRegistry registry, IOptions<HealthO
 
         try
         {
-            var status = await tracker.Ask<BudgetStatusResult>(new QueryBudgetStatus(), AskTimeout, cancellationToken).ConfigureAwait(false);
+            var status = await tracker.Ask<BudgetStatusResult>(new QueryBudgetStatus(), _askTimeout, cancellationToken).ConfigureAwait(false);
             return Evaluate(status, options.Value.BudgetDegradedBelowPercent);
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)

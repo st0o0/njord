@@ -16,7 +16,7 @@ namespace Njord.Polling;
 public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 {
     private const int SnapshotInterval = 50;
-    private static readonly TimeSpan DefaultReplyTimeout = TimeSpan.FromSeconds(90);
+    private static readonly TimeSpan _defaultReplyTimeout = TimeSpan.FromSeconds(90);
 
     private sealed record PollDomain(DomainKind Domain);
 
@@ -176,7 +176,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
         _inFlight.Add(domain);
         gateway.Tell(new FetchDomain(target.Location, domain));
-        Timers.StartSingleTimer(ReplyTimerKey(domain), new FetchReplyTimeout(domain), DefaultReplyTimeout);
+        Timers.StartSingleTimer(ReplyTimerKey(domain), new FetchReplyTimeout(domain), _defaultReplyTimeout);
     }
 
     private void OnFetchDomainResponse(FetchDomainResponse reply)
@@ -200,7 +200,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         }
 
         var failed = new FetchDomainFailed(target.Location, msg.Domain, PollFailureReason.Transport,
-            $"Gateway did not answer within {DefaultReplyTimeout}");
+            $"Gateway did not answer within {_defaultReplyTimeout}");
         LogDomainOutcome(msg.Domain, failed);
         OnDomainFetchResult(msg.Domain, failed);
     }

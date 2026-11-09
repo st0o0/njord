@@ -14,9 +14,10 @@ public sealed class InversionDetectionCondition(IOptions<InversionDetectionConfi
         OutputKind.Condition,
         FeatureCategory.Insight,
         Name: "InversionDetection",
-        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.Temperature80m
+        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.Temperature80M
             | ForecastParams.BoundaryLayerHeight | ForecastParams.CloudCover | ForecastParams.WindSpeed,
-            OptionalForecast: ForecastParams.Temperature120m | ForecastParams.Visibility));
+            OptionalForecast: ForecastParams.Temperature120M | ForecastParams.Visibility),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -26,7 +27,7 @@ public sealed class InversionDetectionCondition(IOptions<InversionDetectionConfi
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
         var point = ForecastQueries.Upcoming(ctx.Current.Forecast, ctx.Now, 1).FirstOrDefault();
-        if (point is not { Temperature: { } surface, Temperature80m: { } t80, BoundaryLayerHeight: { } layer }
+        if (point is not { Temperature: { } surface, Temperature80M: { } t80, BoundaryLayerHeight: { } layer }
             || point.ValidFrom != ctx.Now.HourStart())
         {
             return null;

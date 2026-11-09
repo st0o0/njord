@@ -15,16 +15,16 @@ namespace Njord.Grpc.Tests;
 
 public sealed class EnrichmentEventMappingsTests
 {
-    private static readonly DateTimeOffset Anchor = TestTimeConstants.BudgetEpoch;
-    private static readonly DateTimeOffset Stamp = Anchor.AddHours(1);
-    private static readonly Location Lucerne = DomainData.Lucerne;
+    private static readonly DateTimeOffset _anchor = TestTimeConstants.BudgetEpoch;
+    private static readonly DateTimeOffset _stamp = _anchor.AddHours(1);
+    private static readonly Location _lucerne = DomainData.Lucerne;
 
     private static V2.EnrichmentEvent Map(FeatureResult result)
     {
-        var evt = result.ToEnrichmentEvent(Stamp);
+        var evt = result.ToEnrichmentEvent(_stamp);
         Assert.NotNull(evt);
-        Assert.Equal(Lucerne.Name, evt.Location);
-        Assert.Equal(Stamp.ToTimestamp(), evt.UpdatedAt);
+        Assert.Equal(_lucerne.Name, evt.Location);
+        Assert.Equal(_stamp.ToTimestamp(), evt.UpdatedAt);
         return evt;
     }
 
@@ -45,14 +45,14 @@ public sealed class EnrichmentEventMappingsTests
     {
         Assert.Multiple(
             () => Assert.Equal(expectedScore, score.Score),
-            () => Assert.Equal(Anchor.ToTimestamp(), score.BestStart),
+            () => Assert.Equal(_anchor.ToTimestamp(), score.BestStart),
             () => Assert.Equal(3, score.BestHours));
     }
 
     [Fact]
     public void Optional_alert_values_stay_unset_when_absent()
     {
-        var evt = Map(new HeatAlertResult(Lucerne, AlertSeverity.Yellow, 0.5, 1.0, 2.0, null, null, null, ConfidenceLevel.Low, 3.0));
+        var evt = Map(new HeatAlertResult(_lucerne, AlertSeverity.Yellow, 0.5, 1.0, 2.0, null, null, null, ConfidenceLevel.Low, 3.0));
 
         Assert.Multiple(
             () => Assert.False(evt.Heat.Alert.HasPeakValue),
@@ -64,7 +64,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Frost_alerts_map_to_the_frost_case()
     {
-        var evt = Map(new FrostAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, -4.0, 5));
+        var evt = Map(new FrostAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, -4.0, 5));
 
         Assert.Equal(Case.Frost, evt.FeatureCase);
         AssertAlert(evt.Frost.Alert);
@@ -75,7 +75,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Heat_alerts_map_to_the_heat_case()
     {
-        var evt = Map(new HeatAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 35.5));
+        var evt = Map(new HeatAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 35.5));
 
         Assert.Equal(Case.Heat, evt.FeatureCase);
         AssertAlert(evt.Heat.Alert);
@@ -85,7 +85,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Storm_alerts_map_to_the_storm_case()
     {
-        var evt = Map(new StormAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 28.0));
+        var evt = Map(new StormAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 28.0));
 
         Assert.Equal(Case.Storm, evt.FeatureCase);
         AssertAlert(evt.Storm.Alert);
@@ -95,7 +95,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Heavy_rain_alerts_map_to_the_heavy_rain_case()
     {
-        var evt = Map(new HeavyRainAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 4, 6));
+        var evt = Map(new HeavyRainAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 4, 6));
 
         Assert.Equal(Case.HeavyRain, evt.FeatureCase);
         AssertAlert(evt.HeavyRain.Alert);
@@ -106,7 +106,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Uv_alerts_map_to_the_uv_case()
     {
-        var evt = Map(new UvAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, UvLevel.VeryHigh, 9.5));
+        var evt = Map(new UvAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, UvLevel.VeryHigh, 9.5));
 
         Assert.Equal(Case.Uv, evt.FeatureCase);
         AssertAlert(evt.Uv.Alert);
@@ -117,7 +117,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Fog_alerts_map_to_the_fog_case()
     {
-        var evt = Map(new FogAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 7));
+        var evt = Map(new FogAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 7));
 
         Assert.Equal(Case.Fog, evt.FeatureCase);
         AssertAlert(evt.Fog.Alert);
@@ -127,7 +127,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Snow_alerts_map_to_the_snow_case()
     {
-        var evt = Map(new SnowAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 15.0, 800.0));
+        var evt = Map(new SnowAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 15.0, 800.0));
 
         Assert.Equal(Case.Snow, evt.FeatureCase);
         AssertAlert(evt.Snow.Alert);
@@ -138,7 +138,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Snow_alerts_without_a_freezing_level_leave_it_unset()
     {
-        var evt = Map(new SnowAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 15.0, null));
+        var evt = Map(new SnowAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 15.0, null));
 
         Assert.False(evt.Snow.HasFreezingLevel);
     }
@@ -146,7 +146,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Pressure_drop_alerts_map_to_the_pressure_drop_case()
     {
-        var evt = Map(new PressureDropAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 11.0));
+        var evt = Map(new PressureDropAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 11.0));
 
         Assert.Equal(Case.PressureDrop, evt.FeatureCase);
         AssertAlert(evt.PressureDrop.Alert);
@@ -156,7 +156,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Thunderstorm_alerts_map_to_the_thunderstorm_case()
     {
-        var evt = Map(new ThunderstormAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
+        var evt = Map(new ThunderstormAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
 
         Assert.Equal(Case.Thunderstorm, evt.FeatureCase);
         AssertAlert(evt.Thunderstorm.Alert);
@@ -165,7 +165,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Ice_alerts_map_to_the_ice_case()
     {
-        var evt = Map(new IceAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, -2.0, 3, true));
+        var evt = Map(new IceAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, -2.0, 3, true));
 
         Assert.Equal(Case.Ice, evt.FeatureCase);
         AssertAlert(evt.Ice.Alert);
@@ -177,7 +177,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Wind_chill_alerts_map_to_the_wind_chill_case()
     {
-        var evt = Map(new WindChillAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, -20.0, 1.5, ExposureRisk.Frostbite10Minutes));
+        var evt = Map(new WindChillAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, -20.0, 1.5, ExposureRisk.Frostbite10Minutes));
 
         Assert.Equal(Case.WindChill, evt.FeatureCase);
         AssertAlert(evt.WindChill.Alert);
@@ -189,7 +189,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Wind_chill_alerts_without_an_exposure_risk_leave_it_unset()
     {
-        var evt = Map(new WindChillAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, -20.0, 1.5, null));
+        var evt = Map(new WindChillAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, -20.0, 1.5, null));
 
         Assert.False(evt.WindChill.HasExposureRisk);
     }
@@ -197,7 +197,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Visibility_alerts_map_to_the_visibility_case()
     {
-        var evt = Map(new VisibilityAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 150.0, 5));
+        var evt = Map(new VisibilityAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 150.0, 5));
 
         Assert.Equal(Case.Visibility, evt.FeatureCase);
         AssertAlert(evt.Visibility.Alert);
@@ -208,7 +208,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Tropical_night_alerts_map_to_the_tropical_night_case()
     {
-        var evt = Map(new TropicalNightAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 21.5, 6));
+        var evt = Map(new TropicalNightAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 21.5, 6));
 
         Assert.Equal(Case.TropicalNight, evt.FeatureCase);
         AssertAlert(evt.TropicalNight.Alert);
@@ -219,7 +219,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Humidity_alerts_map_to_the_humidity_case()
     {
-        var evt = Map(new HumidityAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 19.0, ComfortLevel.Oppressive));
+        var evt = Map(new HumidityAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 19.0, ComfortLevel.Oppressive));
 
         Assert.Equal(Case.Humidity, evt.FeatureCase);
         AssertAlert(evt.Humidity.Alert);
@@ -230,7 +230,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Humidity_alerts_without_a_comfort_level_leave_it_unset()
     {
-        var evt = Map(new HumidityAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 19.0, null));
+        var evt = Map(new HumidityAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High, 19.0, null));
 
         Assert.False(evt.Humidity.HasComfortLevel);
     }
@@ -238,7 +238,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Pollen_alerts_map_to_the_pollen_case()
     {
-        var evt = Map(new PollenAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
+        var evt = Map(new PollenAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
 
         Assert.Equal(Case.Pollen, evt.FeatureCase);
         AssertAlert(evt.Pollen.Alert);
@@ -247,7 +247,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Pm25_alerts_map_to_the_pm25_case()
     {
-        var evt = Map(new Pm25AlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
+        var evt = Map(new Pm25AlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
 
         Assert.Equal(Case.Pm25, evt.FeatureCase);
         AssertAlert(evt.Pm25.Alert);
@@ -256,7 +256,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Dust_alerts_map_to_the_dust_case()
     {
-        var evt = Map(new DustAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
+        var evt = Map(new DustAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
 
         Assert.Equal(Case.Dust, evt.FeatureCase);
         AssertAlert(evt.Dust.Alert);
@@ -265,7 +265,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Flood_risk_alerts_map_to_the_flood_risk_case()
     {
-        var evt = Map(new FloodRiskAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
+        var evt = Map(new FloodRiskAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
 
         Assert.Equal(Case.FloodRisk, evt.FeatureCase);
         AssertAlert(evt.FloodRisk.Alert);
@@ -274,7 +274,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Flood_rain_alerts_map_to_the_flood_rain_case()
     {
-        var evt = Map(new FloodRainAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
+        var evt = Map(new FloodRainAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
 
         Assert.Equal(Case.FloodRain, evt.FeatureCase);
         AssertAlert(evt.FloodRain.Alert);
@@ -283,7 +283,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Swimming_conditions_alerts_map_to_the_swimming_conditions_case()
     {
-        var evt = Map(new SwimmingConditionsAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
+        var evt = Map(new SwimmingConditionsAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
 
         Assert.Equal(Case.SwimmingConditions, evt.FeatureCase);
         AssertAlert(evt.SwimmingConditions.Alert);
@@ -292,7 +292,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Bbq_scores_map_to_the_bbq_case()
     {
-        var evt = Map(new BbqScoreResult(Lucerne, 71, Anchor, 3));
+        var evt = Map(new BbqScoreResult(_lucerne, 71, _anchor, 3));
 
         Assert.Equal(Case.Bbq, evt.FeatureCase);
         AssertScore(evt.Bbq.Score, 71);
@@ -301,7 +301,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Compound_heat_stress_alerts_map_to_the_compound_heat_stress_case()
     {
-        var evt = Map(new CompoundHeatStressAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
+        var evt = Map(new CompoundHeatStressAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
 
         Assert.Equal(Case.CompoundHeatStress, evt.FeatureCase);
         AssertAlert(evt.CompoundHeatStress.Alert);
@@ -310,7 +310,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Migraine_risk_alerts_map_to_the_migraine_risk_case()
     {
-        var evt = Map(new MigraineRiskAlertResult(Lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
+        var evt = Map(new MigraineRiskAlertResult(_lucerne, AlertSeverity.Orange, 0.8, 10.0, 5.0, 12.0, 2, 3, ConfidenceLevel.High));
 
         Assert.Equal(Case.MigraineRisk, evt.FeatureCase);
         AssertAlert(evt.MigraineRisk.Alert);
@@ -319,7 +319,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Sleep_quality_scores_map_to_the_sleep_quality_case()
     {
-        var evt = Map(new SleepQualityScoreResult(Lucerne, 74, Anchor, 3));
+        var evt = Map(new SleepQualityScoreResult(_lucerne, 74, _anchor, 3));
 
         Assert.Equal(Case.SleepQuality, evt.FeatureCase);
         AssertScore(evt.SleepQuality.Score, 74);
@@ -328,7 +328,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Asthma_risk_scores_map_to_the_asthma_risk_case()
     {
-        var evt = Map(new AsthmaRiskScoreResult(Lucerne, 74, Anchor, 3));
+        var evt = Map(new AsthmaRiskScoreResult(_lucerne, 74, _anchor, 3));
 
         Assert.Equal(Case.AsthmaRisk, evt.FeatureCase);
         AssertScore(evt.AsthmaRisk.Score, 74);
@@ -337,7 +337,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Allergy_severity_scores_map_to_the_allergy_severity_case()
     {
-        var evt = Map(new AllergySeverityScoreResult(Lucerne, 74, Anchor, 3));
+        var evt = Map(new AllergySeverityScoreResult(_lucerne, 74, _anchor, 3));
 
         Assert.Equal(Case.AllergySeverity, evt.FeatureCase);
         AssertScore(evt.AllergySeverity.Score, 74);
@@ -346,7 +346,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Laundry_scores_map_to_the_laundry_case()
     {
-        var evt = Map(new LaundryScoreResult(Lucerne, 72, Anchor, 3));
+        var evt = Map(new LaundryScoreResult(_lucerne, 72, _anchor, 3));
 
         Assert.Equal(Case.Laundry, evt.FeatureCase);
         AssertScore(evt.Laundry.Score, 72);
@@ -355,7 +355,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Outdoor_scores_map_to_the_outdoor_case()
     {
-        var evt = Map(new OutdoorScoreResult(Lucerne, 73, Anchor, 3));
+        var evt = Map(new OutdoorScoreResult(_lucerne, 73, _anchor, 3));
 
         Assert.Equal(Case.Outdoor, evt.FeatureCase);
         AssertScore(evt.Outdoor.Score, 73);
@@ -364,7 +364,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Surf_conditions_scores_map_to_the_surf_conditions_case()
     {
-        var evt = Map(new SurfConditionsResult(Lucerne, 74, Anchor, 3));
+        var evt = Map(new SurfConditionsResult(_lucerne, 74, _anchor, 3));
 
         Assert.Equal(Case.SurfConditions, evt.FeatureCase);
         AssertScore(evt.SurfConditions.Score, 74);
@@ -373,7 +373,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Commute_safety_maps_to_the_commute_safety_case()
     {
-        var evt = Map(new CommuteSafetyResult(Lucerne, CommuteLevel.Dangerous, [CommuteHazard.Ice, CommuteHazard.Fog]));
+        var evt = Map(new CommuteSafetyResult(_lucerne, CommuteLevel.Dangerous, [CommuteHazard.Ice, CommuteHazard.Fog]));
 
         Assert.Equal(Case.CommuteSafety, evt.FeatureCase);
         Assert.Equal(V2.CommuteLevel.Dangerous, evt.CommuteSafety.Level);
@@ -383,21 +383,21 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Ventilation_windows_map_to_the_ventilation_window_case()
     {
-        var evt = Map(new VentilationWindowResult(Lucerne, Anchor, Anchor.AddHours(5)));
+        var evt = Map(new VentilationWindowResult(_lucerne, _anchor, _anchor.AddHours(5)));
 
         Assert.Equal(Case.VentilationWindow, evt.FeatureCase);
-        Assert.Equal(Anchor.ToTimestamp(), evt.VentilationWindow.BestStart);
-        Assert.Equal(Anchor.AddHours(5).ToTimestamp(), evt.VentilationWindow.BestEnd);
+        Assert.Equal(_anchor.ToTimestamp(), evt.VentilationWindow.BestStart);
+        Assert.Equal(_anchor.AddHours(5).ToTimestamp(), evt.VentilationWindow.BestEnd);
     }
 
     [Fact]
     public void Night_ventilation_maps_to_the_night_ventilation_case()
     {
-        var evt = Map(new NightVentilationResult(Lucerne, Anchor, Anchor.AddHours(8), 14.5, 31.0));
+        var evt = Map(new NightVentilationResult(_lucerne, _anchor, _anchor.AddHours(8), 14.5, 31.0));
 
         Assert.Equal(Case.NightVentilation, evt.FeatureCase);
-        Assert.Equal(Anchor.ToTimestamp(), evt.NightVentilation.OpenAt);
-        Assert.Equal(Anchor.AddHours(8).ToTimestamp(), evt.NightVentilation.CloseAt);
+        Assert.Equal(_anchor.ToTimestamp(), evt.NightVentilation.OpenAt);
+        Assert.Equal(_anchor.AddHours(8).ToTimestamp(), evt.NightVentilation.CloseAt);
         Assert.Equal(14.5, evt.NightVentilation.LowTemperature);
         Assert.Equal(31.0, evt.NightVentilation.TomorrowPeak);
     }
@@ -405,18 +405,18 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Exercise_advisories_map_to_the_exercise_advisory_case()
     {
-        var evt = Map(new ExerciseAdvisoryResult(Lucerne, ExerciseLevel.Avoid, [ExerciseFactor.Pm25, ExerciseFactor.Ozone], Anchor.AddHours(4)));
+        var evt = Map(new ExerciseAdvisoryResult(_lucerne, ExerciseLevel.Avoid, [ExerciseFactor.Pm25, ExerciseFactor.Ozone], _anchor.AddHours(4)));
 
         Assert.Equal(Case.ExerciseAdvisory, evt.FeatureCase);
         Assert.Equal(V2.ExerciseLevel.Avoid, evt.ExerciseAdvisory.Level);
         Assert.Equal([V2.ExerciseFactor.Pm25, V2.ExerciseFactor.Ozone], evt.ExerciseAdvisory.Reasons);
-        Assert.Equal(Anchor.AddHours(4).ToTimestamp(), evt.ExerciseAdvisory.BestWindow);
+        Assert.Equal(_anchor.AddHours(4).ToTimestamp(), evt.ExerciseAdvisory.BestWindow);
     }
 
     [Fact]
     public void Gardening_maps_to_the_gardening_case()
     {
-        var evt = Map(new GardeningResult(Lucerne, GardeningAdvice.Hold, false, true, true));
+        var evt = Map(new GardeningResult(_lucerne, GardeningAdvice.Hold, false, true, true));
 
         Assert.Equal(Case.Gardening, evt.FeatureCase);
         Assert.Equal(V2.GardeningAdvice.Hold, evt.Gardening.Advice);
@@ -428,11 +428,11 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Flood_timelines_map_to_the_flood_timeline_case()
     {
-        var evt = Map(new FloodTimelineResult(Lucerne, FloodStatus.AboveWarning, Anchor.AddDays(3), 300.0, 2));
+        var evt = Map(new FloodTimelineResult(_lucerne, FloodStatus.AboveWarning, _anchor.AddDays(3), 300.0, 2));
 
         Assert.Equal(Case.FloodTimeline, evt.FeatureCase);
         Assert.Equal(V2.FloodStatus.AboveWarning, evt.FloodTimeline.Status);
-        Assert.Equal(Anchor.AddDays(3).ToTimestamp(), evt.FloodTimeline.PeakTime);
+        Assert.Equal(_anchor.AddDays(3).ToTimestamp(), evt.FloodTimeline.PeakTime);
         Assert.Equal(300.0, evt.FloodTimeline.PeakDischarge);
         Assert.Equal(2, evt.FloodTimeline.DaysAboveWarning);
     }
@@ -440,7 +440,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Heat_pump_cop_maps_to_the_heat_pump_cop_case()
     {
-        var evt = Map(new HeatPumpCopConditionResult(Lucerne, 4.2, HeatPumpRecommendation.Ideal, 4.8, 14));
+        var evt = Map(new HeatPumpCopConditionResult(_lucerne, 4.2, HeatPumpRecommendation.Ideal, 4.8, 14));
 
         Assert.Equal(Case.HeatPumpCop, evt.FeatureCase);
         Assert.Multiple(
@@ -453,7 +453,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Irrigation_need_maps_to_the_irrigation_need_case()
     {
-        var evt = Map(new IrrigationNeedConditionResult(Lucerne, IrrigationAdvice.Water, 18.5, 0.4, 3.2));
+        var evt = Map(new IrrigationNeedConditionResult(_lucerne, IrrigationAdvice.Water, 18.5, 0.4, 3.2));
 
         Assert.Equal(Case.IrrigationNeed, evt.FeatureCase);
         Assert.Multiple(
@@ -466,7 +466,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Frost_depth_maps_to_the_frost_depth_case()
     {
-        var evt = Map(new FrostDepthConditionResult(Lucerne, 22.5, FrostDepthRisk.Moderate, 4.0, -1.5));
+        var evt = Map(new FrostDepthConditionResult(_lucerne, 22.5, FrostDepthRisk.Moderate, 4.0, -1.5));
 
         Assert.Equal(Case.FrostDepth, evt.FeatureCase);
         Assert.Multiple(
@@ -479,7 +479,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Inversion_detection_maps_to_the_inversion_detection_case()
     {
-        var evt = Map(new InversionDetectionConditionResult(Lucerne, InversionStrength.Strong, InversionType.Radiation, 2.5, 400));
+        var evt = Map(new InversionDetectionConditionResult(_lucerne, InversionStrength.Strong, InversionType.Radiation, 2.5, 400));
 
         Assert.Equal(Case.InversionDetection, evt.FeatureCase);
         Assert.Multiple(
@@ -492,7 +492,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Atmospheric_stability_maps_to_the_atmospheric_stability_case()
     {
-        var evt = Map(new AtmosphericStabilityConditionResult(Lucerne, StabilityClass.Unstable, 1500, 20, -4));
+        var evt = Map(new AtmosphericStabilityConditionResult(_lucerne, StabilityClass.Unstable, 1500, 20, -4));
 
         Assert.Equal(Case.AtmosphericStability, evt.FeatureCase);
         Assert.Multiple(
@@ -505,7 +505,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Cloud_ceiling_maps_to_the_cloud_ceiling_case()
     {
-        var evt = Map(new CloudCeilingConditionResult(Lucerne, CeilingCategory.Low, 900, 80, 20, 10));
+        var evt = Map(new CloudCeilingConditionResult(_lucerne, CeilingCategory.Low, 900, 80, 20, 10));
 
         Assert.Equal(Case.CloudCeiling, evt.FeatureCase);
         Assert.Multiple(
@@ -519,7 +519,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Spray_window_scores_map_to_the_spray_window_case()
     {
-        var evt = Map(new SprayWindowScoreResult(Lucerne, 90, Anchor, 3));
+        var evt = Map(new SprayWindowScoreResult(_lucerne, 90, _anchor, 3));
 
         Assert.Equal(Case.SprayWindow, evt.FeatureCase);
         AssertScore(evt.SprayWindow.Score, 90);
@@ -528,7 +528,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Solar_battery_strategy_maps_to_the_solar_battery_strategy_case()
     {
-        var evt = Map(new SolarBatteryStrategyConditionResult(Lucerne, BatteryStrategy.FeedIn, 12.5, 20.1));
+        var evt = Map(new SolarBatteryStrategyConditionResult(_lucerne, BatteryStrategy.FeedIn, 12.5, 20.1));
 
         Assert.Equal(Case.SolarBatteryStrategy, evt.FeatureCase);
         Assert.Multiple(
@@ -540,7 +540,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Solar_yield_maps_to_the_solar_yield_case()
     {
-        var evt = Map(new SolarYieldResult(Lucerne, 4.2, 13));
+        var evt = Map(new SolarYieldResult(_lucerne, 4.2, 13));
 
         Assert.Equal(Case.SolarYield, evt.FeatureCase);
         Assert.Equal(4.2, evt.SolarYield.KwhPerKwp);
@@ -550,7 +550,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Approaching_fronts_map_to_the_approaching_front_case()
     {
-        var evt = Map(new ApproachingFrontResult(Lucerne, 2.0, 6.0, 3.0));
+        var evt = Map(new ApproachingFrontResult(_lucerne, 2.0, 6.0, 3.0));
 
         Assert.Equal(Case.ApproachingFront, evt.FeatureCase);
         Assert.Equal(2.0, evt.ApproachingFront.EstimatedInHours);
@@ -561,7 +561,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Confidence_trends_map_to_the_confidence_trend_case()
     {
-        var evt = Map(new ConfidenceTrendResult(Lucerne, ConfidenceTrendDirection.Diverging, 0.4, 1.4, 1.0));
+        var evt = Map(new ConfidenceTrendResult(_lucerne, ConfidenceTrendDirection.Diverging, 0.4, 1.4, 1.0));
 
         Assert.Equal(Case.ConfidenceTrend, evt.FeatureCase);
         Assert.Equal(V2.ConfidenceTrendDirection.Diverging, evt.ConfidenceTrend.Direction);
@@ -573,12 +573,12 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Pollen_trends_map_to_the_pollen_trend_case()
     {
-        var evt = Map(new PollenTrendResult(Lucerne, PollenType.Grass, Anchor.AddHours(7),
+        var evt = Map(new PollenTrendResult(_lucerne, PollenType.Grass, _anchor.AddHours(7),
             PollenTrendDirection.Rising, PollenTrendDirection.Stable, PollenTrendDirection.Falling, PollenTrendDirection.Rising));
 
         Assert.Equal(Case.PollenTrend, evt.FeatureCase);
         Assert.Equal(V2.PollenType.Grass, evt.PollenTrend.PeakType);
-        Assert.Equal(Anchor.AddHours(7).ToTimestamp(), evt.PollenTrend.PeakTime);
+        Assert.Equal(_anchor.AddHours(7).ToTimestamp(), evt.PollenTrend.PeakTime);
         Assert.Equal(V2.PollenTrendDirection.Rising, evt.PollenTrend.Birch);
         Assert.Equal(V2.PollenTrendDirection.Stable, evt.PollenTrend.Grass);
         Assert.Equal(V2.PollenTrendDirection.Falling, evt.PollenTrend.Alder);
@@ -588,7 +588,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Pollen_trends_without_a_peak_leave_the_optional_values_unset()
     {
-        var evt = Map(new PollenTrendResult(Lucerne, null, null, null, null, null, null));
+        var evt = Map(new PollenTrendResult(_lucerne, null, null, null, null, null, null));
 
         Assert.Multiple(
             () => Assert.False(evt.PollenTrend.HasPeakType),
@@ -600,7 +600,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Seasonal_outlooks_map_to_the_seasonal_outlook_case_with_one_entry_per_month()
     {
-        var evt = Map(new SeasonalOutlookResult(Lucerne,
+        var evt = Map(new SeasonalOutlookResult(_lucerne,
         [
             new SeasonalMonth(new DateOnly(2026, 11, 1), 1.5, -20.0, ConfidenceLevel.Medium),
             new SeasonalMonth(new DateOnly(2026, 12, 1), -0.5, 35.0, ConfidenceLevel.Low),
@@ -623,7 +623,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Ensemble_model_comparisons_map_to_the_ensemble_model_comparison_case()
     {
-        var evt = Map(new EnsembleModelComparisonResult(Lucerne,
+        var evt = Map(new EnsembleModelComparisonResult(_lucerne,
         [
             new ModelComparisonDay(new DateOnly(2026, 7, 11),
             [
@@ -643,7 +643,7 @@ public sealed class EnrichmentEventMappingsTests
     [Fact]
     public void Forecast_model_comparisons_map_to_the_forecast_model_comparison_case_with_one_entry_per_model_and_day()
     {
-        var evt = Map(new ForecastModelComparisonResult(Lucerne,
+        var evt = Map(new ForecastModelComparisonResult(_lucerne,
         [
             new ModelComparisonDay(new DateOnly(2026, 7, 11),
             [
@@ -670,7 +670,7 @@ public sealed class EnrichmentEventMappingsTests
     }
 
     [Fact]
-    public void Feature_results_without_a_mapping_are_rejected() => Assert.Throws<ArgumentOutOfRangeException>(() => new UnmappedResult(Lucerne).ToEnrichmentEvent(Stamp));
+    public void Feature_results_without_a_mapping_are_rejected() => Assert.Throws<ArgumentOutOfRangeException>(() => new UnmappedResult(_lucerne).ToEnrichmentEvent(_stamp));
 
     private sealed record UnmappedResult(Location Location) : FeatureResult(Location);
 }

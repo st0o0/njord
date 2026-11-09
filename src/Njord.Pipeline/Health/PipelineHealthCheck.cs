@@ -14,7 +14,7 @@ internal sealed class PipelineHealthCheck(
     IOptions<PollingOptions> polling,
     IOptions<HealthOptions> options) : IHealthCheck
 {
-    private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan _askTimeout = TimeSpan.FromSeconds(3);
 
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context, CancellationToken cancellationToken = default)
@@ -26,7 +26,7 @@ internal sealed class PipelineHealthCheck(
 
         try
         {
-            var health = await manager.Ask<PollHealthResult>(new QueryPollHealth(), AskTimeout, cancellationToken).ConfigureAwait(false);
+            var health = await manager.Ask<PollHealthResult>(new QueryPollHealth(), _askTimeout, cancellationToken).ConfigureAwait(false);
             return Evaluate(health, polling.Value.PollInterval, timeProvider.GetUtcNow(), options.Value);
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)

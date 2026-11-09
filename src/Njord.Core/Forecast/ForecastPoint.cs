@@ -33,8 +33,8 @@ public sealed record ForecastPoint(
     double? SnowfallHeight = null,
     double? UvIndexClearSky = null,
     double? Showers = null,
-    double? SoilMoisture0To1cm = null,
-    double? SoilMoisture1To3cm = null,
+    double? SoilMoisture0To1Cm = null,
+    double? SoilMoisture1To3Cm = null,
     double? Evapotranspiration = null,
     double? VapourPressureDeficit = null,
     double? BoundaryLayerHeight = null,
@@ -44,24 +44,24 @@ public sealed record ForecastPoint(
     double? ConvectiveInhibition = null,
     double? LiftedIndex = null,
     double? SurfacePressure = null,
-    double? WindSpeed80m = null,
-    double? WindDirection80m = null,
-    double? WindSpeed120m = null,
-    double? WindDirection120m = null,
-    double? Temperature80m = null,
-    double? Temperature120m = null,
-    double? WindSpeed100m = null,
-    double? WindDirection100m = null,
+    double? WindSpeed80M = null,
+    double? WindDirection80M = null,
+    double? WindSpeed120M = null,
+    double? WindDirection120M = null,
+    double? Temperature80M = null,
+    double? Temperature120M = null,
+    double? WindSpeed100M = null,
+    double? WindDirection100M = null,
     double? ThunderstormProbability = null,
     double? PrecipitationType = null,
     double? SurfaceTemperature = null,
     double? SnowfallWaterEquivalent = null) : IHasValidTime
 {
-    private static readonly ForecastParams[] Flags =
+    private static readonly ForecastParams[] _flags =
         [.. Enum.GetValues<ForecastParams>().Where(p => p != ForecastParams.None)];
 
     public bool HasFields(ForecastParams required) =>
-        Flags.All(flag => !required.HasFlag(flag) || Has(flag));
+        _flags.All(flag => !required.HasFlag(flag) || Has(flag));
 
     private bool Has(ForecastParams param) => param switch
     {
@@ -96,8 +96,8 @@ public sealed record ForecastPoint(
         ForecastParams.SnowfallHeight => SnowfallHeight is not null,
         ForecastParams.UvIndexClearSky => UvIndexClearSky is not null,
         ForecastParams.Showers => Showers is not null,
-        ForecastParams.SoilMoisture0To1cm => SoilMoisture0To1cm is not null,
-        ForecastParams.SoilMoisture1To3cm => SoilMoisture1To3cm is not null,
+        ForecastParams.SoilMoisture0To1Cm => SoilMoisture0To1Cm is not null,
+        ForecastParams.SoilMoisture1To3Cm => SoilMoisture1To3Cm is not null,
         ForecastParams.Evapotranspiration => Evapotranspiration is not null,
         ForecastParams.VapourPressureDeficit => VapourPressureDeficit is not null,
         ForecastParams.BoundaryLayerHeight => BoundaryLayerHeight is not null,
@@ -107,14 +107,14 @@ public sealed record ForecastPoint(
         ForecastParams.ConvectiveInhibition => ConvectiveInhibition is not null,
         ForecastParams.LiftedIndex => LiftedIndex is not null,
         ForecastParams.SurfacePressure => SurfacePressure is not null,
-        ForecastParams.WindSpeed80m => WindSpeed80m is not null,
-        ForecastParams.WindDirection80m => WindDirection80m is not null,
-        ForecastParams.WindSpeed120m => WindSpeed120m is not null,
-        ForecastParams.WindDirection120m => WindDirection120m is not null,
-        ForecastParams.Temperature80m => Temperature80m is not null,
-        ForecastParams.Temperature120m => Temperature120m is not null,
-        ForecastParams.WindSpeed100m => WindSpeed100m is not null,
-        ForecastParams.WindDirection100m => WindDirection100m is not null,
+        ForecastParams.WindSpeed80M => WindSpeed80M is not null,
+        ForecastParams.WindDirection80M => WindDirection80M is not null,
+        ForecastParams.WindSpeed120M => WindSpeed120M is not null,
+        ForecastParams.WindDirection120M => WindDirection120M is not null,
+        ForecastParams.Temperature80M => Temperature80M is not null,
+        ForecastParams.Temperature120M => Temperature120M is not null,
+        ForecastParams.WindSpeed100M => WindSpeed100M is not null,
+        ForecastParams.WindDirection100M => WindDirection100M is not null,
         ForecastParams.ThunderstormProbability => ThunderstormProbability is not null,
         ForecastParams.PrecipitationType => PrecipitationType is not null,
         ForecastParams.SurfaceTemperature => SurfaceTemperature is not null,

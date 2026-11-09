@@ -5,16 +5,16 @@ namespace Njord.Persistence.Tests;
 
 public sealed class WireFormatTests
 {
-    private static readonly DateTimeOffset Utc = new(2026, 7, 15, 10, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _utc = new(2026, 7, 15, 10, 0, 0, TimeSpan.Zero);
 
-    private static readonly PersistedPollWorkerState State = new(
+    private static readonly PersistedPollWorkerState _state = new(
         "lucerne", true, TimeSpan.FromMinutes(20),
-        [new PersistedDomainState(0, 42, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 2, Utc, TimeSpan.FromHours(3), Utc.AddHours(3))],
+        [new PersistedDomainState(0, 42, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 2, _utc, TimeSpan.FromHours(3), _utc.AddHours(3))],
         47.05, 8.31);
 
     [Fact]
     public Task Poll_worker_state_shape() =>
-        Verify(JsonConvert.SerializeObject(State, Formatting.Indented));
+        Verify(JsonConvert.SerializeObject(_state, Formatting.Indented));
 
     [Fact]
     public Task Poll_worker_event_shape() =>

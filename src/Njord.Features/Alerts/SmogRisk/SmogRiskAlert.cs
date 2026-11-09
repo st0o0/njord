@@ -15,7 +15,8 @@ public sealed class SmogRiskAlert(IOptions<SmogRiskConfig> config) : FeatureRule
         OutputKind.Alert,
         FeatureCategory.AirQuality,
         Name: "SmogRisk",
-        new DomainRequirements(Forecast: ForecastParams.BoundaryLayerHeight, AirQuality: AirQualityParams.Pm25));
+        new DomainRequirements(Forecast: ForecastParams.BoundaryLayerHeight, AirQuality: AirQualityParams.Pm25),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

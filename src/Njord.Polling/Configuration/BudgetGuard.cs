@@ -16,9 +16,9 @@ internal static class BudgetGuard
 
     internal const double SeasonalMinimumRequestWeight = 1.3;
 
-    private static readonly TimeSpan Month = TimeSpan.FromDays(30);
+    private static readonly TimeSpan _month = TimeSpan.FromDays(30);
 
-    private static readonly DomainKind[] PerCycleDomains =
+    private static readonly DomainKind[] _perCycleDomains =
     [
         DomainKind.Forecast, DomainKind.Ensemble, DomainKind.AirQuality, DomainKind.Flood, DomainKind.Marine,
     ];
@@ -28,14 +28,14 @@ internal static class BudgetGuard
     {
         var locationCount = scope.ResolvedLocations.Count;
 
-        var domainCallsPerCycle = locationCount * PerCycleDomains.Count(requirements.Requires);
+        var domainCallsPerCycle = locationCount * _perCycleDomains.Count(requirements.Requires);
         var weightPerCycle = ForecastWeight(requirements, callConfig)
             + EnsembleWeight(requirements, callConfig)
             + AirQualityWeight(requirements, callConfig)
             + FloodWeight(requirements, callConfig)
             + MarineWeight(requirements, callConfig);
 
-        var cyclesPerMonth = Month.TotalMinutes / polling.PollInterval.TotalMinutes;
+        var cyclesPerMonth = _month.TotalMinutes / polling.PollInterval.TotalMinutes;
         var seasonalCalls = locationCount * SeasonalWeightPerMonth(requirements, callConfig);
         var projectedMonthly = (long)Math.Round(locationCount * weightPerCycle * cyclesPerMonth + seasonalCalls);
 

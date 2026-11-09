@@ -19,11 +19,11 @@ public sealed record SeasonalWeeklyPoint(
     double? PrecipitationAnomalyGt10 = null,
     double? PrecipitationAnomalyGt20 = null) : IHasValidTime
 {
-    private static readonly SeasonalWeeklyParams[] Flags =
+    private static readonly SeasonalWeeklyParams[] _flags =
         [.. Enum.GetValues<SeasonalWeeklyParams>().Where(p => p != SeasonalWeeklyParams.None)];
 
     public bool HasFields(SeasonalWeeklyParams required) =>
-        Flags.All(flag => !required.HasFlag(flag) || Has(flag));
+        _flags.All(flag => !required.HasFlag(flag) || Has(flag));
 
     private bool Has(SeasonalWeeklyParams param) => param switch
     {

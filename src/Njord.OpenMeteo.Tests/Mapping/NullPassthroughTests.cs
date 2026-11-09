@@ -9,7 +9,7 @@ namespace Njord.OpenMeteo.Tests.Mapping;
 
 public sealed class NullPassthroughTests
 {
-    private static readonly DateTimeOffset Run = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _run = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
     private const long Hour0 = 1_783_771_200;
     private const string Model = "ecmwf_ifs025_ensemble_mean";
 
@@ -23,7 +23,7 @@ public sealed class NullPassthroughTests
             {"latitude":47.0,"longitude":8.0,"hourly":{"time":[1783771200],"temperature_2m":[0.0]}}
             """);
 
-        var forecasts = response.ToModelForecasts(Run, Model);
+        var forecasts = response.ToModelForecasts(_run, Model);
 
         var point = Assert.Single(Assert.Single(forecasts).Value.Points);
         Assert.Multiple(
@@ -42,7 +42,7 @@ public sealed class NullPassthroughTests
             "temperature_2m":[0.0,0.0],"wind_speed_10m":[0.0,null]}}
             """);
 
-        var forecasts = response.ToModelForecasts(Run, Model);
+        var forecasts = response.ToModelForecasts(_run, Model);
         var forecast = Assert.Single(forecasts).Value;
 
         Assert.Equal(2, forecast.Points.Length);
@@ -54,7 +54,7 @@ public sealed class NullPassthroughTests
         var response = new AirQualityResponse(47.0, 8.0,
             new AirQualityHourlyData(Time: [Hour0], Pm25: [8.0]));
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecast = response.ToDomainForecast(_run);
 
         Assert.NotNull(forecast);
         var point = Assert.Single(forecast.Points);
@@ -70,7 +70,7 @@ public sealed class NullPassthroughTests
         var response = new FloodResponse(47.0, 8.0,
             new FloodDailyData(Time: [Hour0], DischargeMedian: [3.5]));
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecast = response.ToDomainForecast(_run);
 
         Assert.NotNull(forecast);
         var point = Assert.Single(forecast.Points);
@@ -85,7 +85,7 @@ public sealed class NullPassthroughTests
         var response = new MarineResponse(47.0, 8.0,
             new MarineHourlyData(Time: [Hour0], WaveHeight: [1.2]));
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecast = response.ToDomainForecast(_run);
 
         Assert.NotNull(forecast);
         var point = Assert.Single(forecast.Points);

@@ -163,4 +163,4 @@ public enum CurrentStrength { Weak, Moderate, Strong, VeryStrong }
 
 public sealed record OceanCurrentsResult(Location Location, CurrentStrength Strength, double PeakVelocityKmh, double? Direction) : ConditionFeatureResult(Location);
 
-public sealed record ElevatedWindResult(Location Location, double Speed80m, double Direction80m, double? Speed120m, double? Direction120m) : ConditionFeatureResult(Location);
+public sealed record ElevatedWindResult(Location Location, double Speed80M, double Direction80M, double? Speed120M, double? Direction120M) : ConditionFeatureResult(Location);

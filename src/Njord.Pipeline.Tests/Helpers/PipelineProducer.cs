@@ -8,12 +8,12 @@ namespace Njord.Pipeline.Tests.Helpers;
 // A test producer: asks the pipeline for a SinkRef and runs a backpressured queue into it.
 public static class PipelineProducer
 {
-    private static long NextRequestId;
+    private static long _nextRequestId;
 
     public static async Task<ISourceQueueWithComplete<DomainDataReceived>> AttachAsync(
         IActorRef pipeline, ActorSystem system, CancellationToken ct)
     {
-        var requestId = Interlocked.Increment(ref NextRequestId);
+        var requestId = Interlocked.Increment(ref _nextRequestId);
         var response = await pipeline.Ask<RequestForecastSinkResponse>(
             new RequestForecastSink(requestId), TimeSpan.FromSeconds(10), ct);
         var completed = response as RequestForecastSinkCompleted
@@ -31,7 +31,7 @@ public static class PipelineProducer
     public static async Task<IActorRef> AttachConsumerAsync(IActorRef pipeline, ActorSystem system, IActorRef probe, CancellationToken ct)
     {
         var output = await pipeline.Ask<RequestPipelineOutputResponse>(
-            new RequestPipelineOutput(Interlocked.Increment(ref NextRequestId)), TimeSpan.FromSeconds(10), ct);
+            new RequestPipelineOutput(Interlocked.Increment(ref _nextRequestId)), TimeSpan.FromSeconds(10), ct);
         var completed = output as RequestPipelineOutputCompleted
             ?? throw new InvalidOperationException($"Pipeline answered {output} instead of a SourceRef");
         completed.SourceRef.Source

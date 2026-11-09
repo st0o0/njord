@@ -20,7 +20,8 @@ public sealed class CommuteSafety(IOptions<CommuteSafetyConfig> config) : Featur
         FeatureCategory.Lifestyle,
         Name: "Commute",
         new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.DewPoint | ForecastParams.Humidity
-            | ForecastParams.Precipitation | ForecastParams.WindSpeed));
+            | ForecastParams.Precipitation | ForecastParams.WindSpeed),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 

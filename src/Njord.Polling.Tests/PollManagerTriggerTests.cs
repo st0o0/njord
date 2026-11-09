@@ -13,7 +13,7 @@ namespace Njord.Polling.Tests;
 // A probe plays the poll shard region; the test plays the workers by sending their reports.
 public sealed class PollManagerTriggerTests : Akka.Hosting.TestKit.TestKit
 {
-    private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
+    private static readonly TimeSpan _discovery = TimeSpan.FromMinutes(20);
     private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private TestProbe _region = null!;
 
@@ -32,7 +32,7 @@ public sealed class PollManagerTriggerTests : Akka.Hosting.TestKit.TestKit
     });
 
     private readonly IOptions<PollingOptions> _pollingOptions =
-        Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = Discovery));
+        Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = _discovery));
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
@@ -44,7 +44,7 @@ public sealed class PollManagerTriggerTests : Akka.Hosting.TestKit.TestKit
         });
     }
 
-    private static readonly PollTarget[] Targets =
+    private static readonly PollTarget[] _targets =
     [
         new(new Location("lucerne", 0, 0)),
         new(new Location("zurich", 0, 0)),
@@ -56,10 +56,10 @@ public sealed class PollManagerTriggerTests : Akka.Hosting.TestKit.TestKit
     private async Task<IActorRef> StartedManagerAsync(CancellationToken ct)
     {
         var manager = CreateManager();
-        foreach (var target in Targets)
+        foreach (var target in _targets)
         {
             var start = await _region.ExpectMsgAsync<StartPolling>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-            Assert.Equal(new StartPolling(target, Discovery), start);
+            Assert.Equal(new StartPolling(target, _discovery), start);
         }
 
         return manager;
@@ -91,9 +91,9 @@ public sealed class PollManagerTriggerTests : Akka.Hosting.TestKit.TestKit
             new TriggerImmediatePoll(null), TimeSpan.FromSeconds(15), ct);
 
         Assert.Multiple(
-            () => Assert.Equal(Targets.Length, result.Count),
-            () => Assert.Equal(Targets.Select(t => t.ToString()), result.Targets));
-        foreach (var target in Targets)
+            () => Assert.Equal(_targets.Length, result.Count),
+            () => Assert.Equal(_targets.Select(t => t.ToString()), result.Targets));
+        foreach (var target in _targets)
         {
             var trigger = await _region.ExpectMsgAsync<TriggerLocationPoll>(TimeSpan.FromSeconds(5), cancellationToken: ct);
             Assert.Equal(target.Id, trigger.LocationName);

@@ -15,7 +15,8 @@ public sealed class ForecastModelComparison(
         OutputKind.Forecast,
         FeatureCategory.Forecast,
         Name: "ForecastModelComparison",
-        new DomainRequirements(Forecast: ForecastParams.Temperature));
+        new DomainRequirements(Forecast: ForecastParams.Temperature),
+        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor));
 
     public override bool Enabled => config.Value.Enabled;
 

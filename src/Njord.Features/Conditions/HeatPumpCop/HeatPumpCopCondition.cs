@@ -14,7 +14,8 @@ public sealed class HeatPumpCopCondition(IOptions<HeatPumpCopConfig> config) : F
         OutputKind.Condition,
         FeatureCategory.Energy,
         Name: "HeatPumpCop",
-        new DomainRequirements(Forecast: ForecastParams.Temperature));
+        new DomainRequirements(Forecast: ForecastParams.Temperature),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -34,13 +35,13 @@ public sealed class HeatPumpCopCondition(IOptions<HeatPumpCopConfig> config) : F
 
         var cops = hours.Select(point => (point.ValidFrom, Cop: CopAt(options.TargetTemperature, point.Temperature!.Value))).ToList();
         var current = cops[0].Cop;
-        var (ValidFrom, Cop) = cops.MaxBy(entry => entry.Cop);
+        var (validFrom, cop) = cops.MaxBy(entry => entry.Cop);
         return new HeatPumpCopConditionResult(
             ctx.Location,
             Math.Round(current, 2),
             Recommend(current),
-            Math.Round(Cop, 2),
-            ValidFrom.Hour);
+            Math.Round(cop, 2),
+            validFrom.Hour);
     }
 
     public static double CopAt(double targetTemperature, double outsideTemperature) =>

@@ -13,7 +13,8 @@ public sealed class RagweedPollen(IOptions<RagweedPollenConfig> config) : Featur
         OutputKind.Condition,
         FeatureCategory.AirQuality,
         Name: "RagweedPollen",
-        new DomainRequirements(AirQuality: AirQualityParams.RagweedPollen));
+        new DomainRequirements(AirQuality: AirQualityParams.RagweedPollen),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 

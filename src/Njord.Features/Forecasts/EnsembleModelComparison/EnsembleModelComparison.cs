@@ -15,7 +15,8 @@ public sealed class EnsembleModelComparison(
         OutputKind.Forecast,
         FeatureCategory.Forecast,
         Name: "EnsembleModelComparison",
-        new DomainRequirements(Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Ensemble: EnsembleParams.TemperatureSpread),
+        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor));
 
     public override bool Enabled => config.Value.Enabled;
 

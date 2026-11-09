@@ -27,7 +27,8 @@ public sealed class ExerciseAdvisory(IOptions<ExerciseAdvisoryConfig> config) : 
         new DomainRequirements(
         Forecast: ForecastParams.Temperature | ForecastParams.Humidity,
         AirQuality: AirQualityParams.Pm25 | AirQualityParams.Ozone,
-        OptionalForecast: ForecastParams.UvIndex));
+        OptionalForecast: ForecastParams.UvIndex),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 

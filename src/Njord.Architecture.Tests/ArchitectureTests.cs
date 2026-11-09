@@ -8,195 +8,195 @@ namespace Njord.Architecture.Tests;
 
 public sealed class ArchitectureTests
 {
-    private static readonly Assembly MessagesAssembly = typeof(Messages.AssemblyMarker).Assembly;
-    private static readonly Assembly PersistenceAssembly = typeof(Persistence.AssemblyMarker).Assembly;
-    private static readonly Assembly CoreAssembly = typeof(Core.AssemblyMarker).Assembly;
-    private static readonly Assembly OpenMeteoAssembly = typeof(OpenMeteo.AssemblyMarker).Assembly;
-    private static readonly Assembly BudgetAssembly = typeof(Budget.AssemblyMarker).Assembly;
-    private static readonly Assembly PollingAssembly = typeof(Polling.AssemblyMarker).Assembly;
-    private static readonly Assembly PipelineAssembly = typeof(Pipeline.AssemblyMarker).Assembly;
-    private static readonly Assembly FeaturesAssembly = typeof(Features.AssemblyMarker).Assembly;
-    private static readonly Assembly GrpcAssembly = typeof(Grpc.AssemblyMarker).Assembly;
+    private static readonly Assembly _messagesAssembly = typeof(Messages.AssemblyMarker).Assembly;
+    private static readonly Assembly _persistenceAssembly = typeof(Persistence.AssemblyMarker).Assembly;
+    private static readonly Assembly _coreAssembly = typeof(Core.AssemblyMarker).Assembly;
+    private static readonly Assembly _openMeteoAssembly = typeof(OpenMeteo.AssemblyMarker).Assembly;
+    private static readonly Assembly _budgetAssembly = typeof(Budget.AssemblyMarker).Assembly;
+    private static readonly Assembly _pollingAssembly = typeof(Polling.AssemblyMarker).Assembly;
+    private static readonly Assembly _pipelineAssembly = typeof(Pipeline.AssemblyMarker).Assembly;
+    private static readonly Assembly _featuresAssembly = typeof(Features.AssemblyMarker).Assembly;
+    private static readonly Assembly _grpcAssembly = typeof(Grpc.AssemblyMarker).Assembly;
 
-    private static readonly ArchUnitNET.Domain.Architecture Architecture =
+    private static readonly ArchUnitNET.Domain.Architecture _architecture =
         new ArchLoader()
             .LoadAssemblies(
-                MessagesAssembly,
-                PersistenceAssembly,
-                CoreAssembly,
-                OpenMeteoAssembly,
-                BudgetAssembly,
-                PollingAssembly,
-                PipelineAssembly,
-                FeaturesAssembly,
-                GrpcAssembly)
+                _messagesAssembly,
+                _persistenceAssembly,
+                _coreAssembly,
+                _openMeteoAssembly,
+                _budgetAssembly,
+                _pollingAssembly,
+                _pipelineAssembly,
+                _featuresAssembly,
+                _grpcAssembly)
             .Build();
 
     private static IObjectProvider<IType> InAssembly(Assembly assembly)
         => Types().That().ResideInAssembly(assembly)
             .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage");
 
-    private static readonly IObjectProvider<IType> MessagesLayer = InAssembly(MessagesAssembly);
-    private static readonly IObjectProvider<IType> PersistenceLayer = InAssembly(PersistenceAssembly);
-    private static readonly IObjectProvider<IType> CoreLayer = InAssembly(CoreAssembly);
-    private static readonly IObjectProvider<IType> OpenMeteoLayer = InAssembly(OpenMeteoAssembly);
-    private static readonly IObjectProvider<IType> BudgetLayer = InAssembly(BudgetAssembly);
-    private static readonly IObjectProvider<IType> PollingLayer = InAssembly(PollingAssembly);
-    private static readonly IObjectProvider<IType> PipelineLayer = InAssembly(PipelineAssembly);
-    private static readonly IObjectProvider<IType> FeaturesLayer = InAssembly(FeaturesAssembly);
-    private static readonly IObjectProvider<IType> GrpcLayer = InAssembly(GrpcAssembly);
+    private static readonly IObjectProvider<IType> _messagesLayer = InAssembly(_messagesAssembly);
+    private static readonly IObjectProvider<IType> _persistenceLayer = InAssembly(_persistenceAssembly);
+    private static readonly IObjectProvider<IType> _coreLayer = InAssembly(_coreAssembly);
+    private static readonly IObjectProvider<IType> _openMeteoLayer = InAssembly(_openMeteoAssembly);
+    private static readonly IObjectProvider<IType> _budgetLayer = InAssembly(_budgetAssembly);
+    private static readonly IObjectProvider<IType> _pollingLayer = InAssembly(_pollingAssembly);
+    private static readonly IObjectProvider<IType> _pipelineLayer = InAssembly(_pipelineAssembly);
+    private static readonly IObjectProvider<IType> _featuresLayer = InAssembly(_featuresAssembly);
+    private static readonly IObjectProvider<IType> _grpcLayer = InAssembly(_grpcAssembly);
 
     [Fact]
     public void Messages_should_not_depend_on_layers_above_core()
     {
-        Types().That().Are(MessagesLayer)
-            .Should().NotDependOnAnyTypesThat().Are(PersistenceLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(OpenMeteoLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(BudgetLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PollingLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PipelineLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(FeaturesLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(GrpcLayer)
-            .Check(Architecture);
+        Types().That().Are(_messagesLayer)
+            .Should().NotDependOnAnyTypesThat().Are(_persistenceLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_openMeteoLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_budgetLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pollingLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pipelineLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_featuresLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_grpcLayer)
+            .Check(_architecture);
     }
 
     [Fact]
     public void Persistence_should_not_depend_on_any_project()
     {
-        Types().That().Are(PersistenceLayer)
-            .Should().NotDependOnAnyTypesThat().Are(MessagesLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(CoreLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(OpenMeteoLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(BudgetLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PollingLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PipelineLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(FeaturesLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(GrpcLayer)
-            .Check(Architecture);
+        Types().That().Are(_persistenceLayer)
+            .Should().NotDependOnAnyTypesThat().Are(_messagesLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_coreLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_openMeteoLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_budgetLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pollingLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pipelineLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_featuresLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_grpcLayer)
+            .Check(_architecture);
     }
 
     [Fact]
     public void Core_should_not_depend_on_messages_or_feature_libraries()
     {
-        Types().That().Are(CoreLayer)
-            .Should().NotDependOnAnyTypesThat().Are(MessagesLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(OpenMeteoLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(BudgetLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PollingLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PipelineLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(FeaturesLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(GrpcLayer)
-            .Check(Architecture);
+        Types().That().Are(_coreLayer)
+            .Should().NotDependOnAnyTypesThat().Are(_messagesLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_openMeteoLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_budgetLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pollingLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pipelineLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_featuresLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_grpcLayer)
+            .Check(_architecture);
     }
 
     [Fact]
     public void OpenMeteo_should_not_depend_on_other_feature_libraries()
     {
-        Types().That().Are(OpenMeteoLayer)
-            .Should().NotDependOnAnyTypesThat().Are(BudgetLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PollingLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PipelineLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(FeaturesLayer)
-            .Check(Architecture);
+        Types().That().Are(_openMeteoLayer)
+            .Should().NotDependOnAnyTypesThat().Are(_budgetLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pollingLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pipelineLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_featuresLayer)
+            .Check(_architecture);
     }
 
     [Fact]
     public void Budget_should_not_depend_on_other_feature_libraries()
     {
-        Types().That().Are(BudgetLayer)
-            .Should().NotDependOnAnyTypesThat().Are(OpenMeteoLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PollingLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PipelineLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(FeaturesLayer)
-            .Check(Architecture);
+        Types().That().Are(_budgetLayer)
+            .Should().NotDependOnAnyTypesThat().Are(_openMeteoLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pollingLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pipelineLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_featuresLayer)
+            .Check(_architecture);
     }
 
     [Fact]
     public void Polling_should_not_depend_on_other_feature_libraries()
     {
-        Types().That().Are(PollingLayer)
-            .Should().NotDependOnAnyTypesThat().Are(OpenMeteoLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(BudgetLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PipelineLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(FeaturesLayer)
-            .Check(Architecture);
+        Types().That().Are(_pollingLayer)
+            .Should().NotDependOnAnyTypesThat().Are(_openMeteoLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_budgetLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pipelineLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_featuresLayer)
+            .Check(_architecture);
     }
 
     [Fact]
     public void Pipeline_should_not_depend_on_other_feature_libraries()
     {
-        Types().That().Are(PipelineLayer)
-            .Should().NotDependOnAnyTypesThat().Are(OpenMeteoLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(BudgetLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PollingLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(FeaturesLayer)
-            .Check(Architecture);
+        Types().That().Are(_pipelineLayer)
+            .Should().NotDependOnAnyTypesThat().Are(_openMeteoLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_budgetLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pollingLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_featuresLayer)
+            .Check(_architecture);
     }
 
     [Fact]
     public void Features_should_not_depend_on_other_feature_libraries()
     {
-        Types().That().Are(FeaturesLayer)
-            .Should().NotDependOnAnyTypesThat().Are(OpenMeteoLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(BudgetLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PollingLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PipelineLayer)
-            .Check(Architecture);
+        Types().That().Are(_featuresLayer)
+            .Should().NotDependOnAnyTypesThat().Are(_openMeteoLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_budgetLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pollingLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pipelineLayer)
+            .Check(_architecture);
     }
 
     [Fact]
     public void Feature_libraries_should_not_depend_on_adapters()
     {
-        Types().That().Are(OpenMeteoLayer)
-            .Should().NotDependOnAnyTypesThat().Are(GrpcLayer)
-            .Check(Architecture);
+        Types().That().Are(_openMeteoLayer)
+            .Should().NotDependOnAnyTypesThat().Are(_grpcLayer)
+            .Check(_architecture);
 
-        Types().That().Are(BudgetLayer)
-            .Should().NotDependOnAnyTypesThat().Are(GrpcLayer)
-            .Check(Architecture);
+        Types().That().Are(_budgetLayer)
+            .Should().NotDependOnAnyTypesThat().Are(_grpcLayer)
+            .Check(_architecture);
 
-        Types().That().Are(PollingLayer)
-            .Should().NotDependOnAnyTypesThat().Are(GrpcLayer)
-            .Check(Architecture);
+        Types().That().Are(_pollingLayer)
+            .Should().NotDependOnAnyTypesThat().Are(_grpcLayer)
+            .Check(_architecture);
 
-        Types().That().Are(PipelineLayer)
-            .Should().NotDependOnAnyTypesThat().Are(GrpcLayer)
-            .Check(Architecture);
+        Types().That().Are(_pipelineLayer)
+            .Should().NotDependOnAnyTypesThat().Are(_grpcLayer)
+            .Check(_architecture);
 
-        Types().That().Are(FeaturesLayer)
-            .Should().NotDependOnAnyTypesThat().Are(GrpcLayer)
-            .Check(Architecture);
+        Types().That().Are(_featuresLayer)
+            .Should().NotDependOnAnyTypesThat().Are(_grpcLayer)
+            .Check(_architecture);
     }
 
     [Fact]
     public void Grpc_should_not_depend_on_feature_libraries()
     {
-        Types().That().Are(GrpcLayer)
-            .Should().NotDependOnAnyTypesThat().Are(OpenMeteoLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(BudgetLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PollingLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(PipelineLayer)
-            .AndShould().NotDependOnAnyTypesThat().Are(FeaturesLayer)
-            .Check(Architecture);
+        Types().That().Are(_grpcLayer)
+            .Should().NotDependOnAnyTypesThat().Are(_openMeteoLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_budgetLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pollingLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_pipelineLayer)
+            .AndShould().NotDependOnAnyTypesThat().Are(_featuresLayer)
+            .Check(_architecture);
     }
 
     [Fact]
     public void Messages_should_not_depend_on_akka_beyond_streams()
     {
-        Types().That().Are(MessagesLayer)
+        Types().That().Are(_messagesLayer)
             .Should().NotDependOnAnyTypesThat().ResideInNamespaceMatching(@"^Akka\.Actor(\..*)?$")
             .AndShould().NotDependOnAnyTypesThat().ResideInNamespaceMatching(@"^Akka\.Cluster(\..*)?$")
             .AndShould().NotDependOnAnyTypesThat().ResideInNamespaceMatching(@"^Akka\.Persistence(\..*)?$")
             .AndShould().NotDependOnAnyTypesThat().ResideInNamespaceMatching(@"^Akka\.Hosting(\..*)?$")
-            .Check(Architecture);
+            .Check(_architecture);
     }
 
     [Fact]
     public void Persistence_should_not_depend_on_akka()
     {
-        Types().That().Are(PersistenceLayer)
+        Types().That().Are(_persistenceLayer)
             .Should().NotDependOnAnyTypesThat().ResideInNamespaceMatching(@"^Akka(\..*)?$")
-            .Check(Architecture);
+            .Check(_architecture);
     }
 
     [Fact]
@@ -204,8 +204,8 @@ public sealed class ArchitectureTests
     {
         var allLayers = new[]
         {
-            MessagesLayer, PersistenceLayer, CoreLayer, OpenMeteoLayer,
-            BudgetLayer, PollingLayer, PipelineLayer, FeaturesLayer
+            _messagesLayer, _persistenceLayer, _coreLayer, _openMeteoLayer,
+            _budgetLayer, _pollingLayer, _pipelineLayer, _featuresLayer
         };
 
         foreach (var layer in allLayers)
@@ -214,14 +214,14 @@ public sealed class ArchitectureTests
                 .And().AreNotAbstract()
                 .And().DoNotHaveNameContaining("<")
                 .Should().BeSealed()
-                .Check(Architecture);
+                .Check(_architecture);
         }
 
-        Classes().That().Are(GrpcLayer)
+        Classes().That().Are(_grpcLayer)
             .And().AreNotAbstract()
             .And().DoNotHaveNameContaining("<")
             .And().DoNotResideInNamespace("Njord.Grpc.V2")
             .Should().BeSealed()
-            .Check(Architecture);
+            .Check(_architecture);
     }
 }

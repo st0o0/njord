@@ -4,7 +4,7 @@ namespace Njord.OpenMeteo.Configuration;
 
 public static class AirQualityRegionExtensions
 {
-    private static readonly AirQualityParams AllRegionBound =
+    private static readonly AirQualityParams _allRegionBound =
         AirQualityParams.Ammonia | AirQualityParams.OlivePollen | AirQualityParams.UsAqi;
 
     public static AirQualityParams RegionBoundFlags(this AirQualityRegion region) => region switch
@@ -16,5 +16,5 @@ public static class AirQualityRegionExtensions
     };
 
     public static AirQualityParams ApplyRegionFilter(this AirQualityParams flags, AirQualityRegion region) =>
-        (flags & ~AllRegionBound) | (flags & region.RegionBoundFlags());
+        (flags & ~_allRegionBound) | (flags & region.RegionBoundFlags());
 }

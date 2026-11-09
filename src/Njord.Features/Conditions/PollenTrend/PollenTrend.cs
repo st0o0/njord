@@ -12,7 +12,7 @@ public sealed class PollenTrend(IOptions<PollenTrendConfig> config) : FeatureRul
     public const double ChangeThreshold = 0.10;
     public const double MinimumChange = 1.0;
 
-    private static readonly (PollenType Type, Func<AirQualityPoint, double?> Read)[] PollenTypes =
+    private static readonly (PollenType Type, Func<AirQualityPoint, double?> Read)[] _pollenTypes =
     [
         (PollenType.Birch, p => p.BirchPollen),
         (PollenType.Grass, p => p.GrassPollen),
@@ -26,7 +26,8 @@ public sealed class PollenTrend(IOptions<PollenTrendConfig> config) : FeatureRul
         Name: "PollenTrend",
         new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
         | AirQualityParams.Alder | AirQualityParams.Mugwort),
-        PollDepth: 1);
+        PollDepth: 1,
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -47,7 +48,7 @@ public sealed class PollenTrend(IOptions<PollenTrendConfig> config) : FeatureRul
         PollenType? peakType = null;
         DateTimeOffset? peakTime = null;
         var peakValue = 0.0;
-        foreach (var (type, read) in PollenTypes)
+        foreach (var (type, read) in _pollenTypes)
         {
             var currentValues = currentPoints
                 .Select(p => (p.ValidFrom, Value: read(p)))
@@ -65,12 +66,12 @@ public sealed class PollenTrend(IOptions<PollenTrendConfig> config) : FeatureRul
                 trends[type] = Classify(currentValues.Average(v => v.Value), previousValues.Average());
             }
 
-            var (ValidFrom, Value) = currentValues.MaxBy(v => v.Value);
-            if (Value > peakValue)
+            var (validFrom, value) = currentValues.MaxBy(v => v.Value);
+            if (value > peakValue)
             {
-                peakValue = Value;
+                peakValue = value;
                 peakType = type;
-                peakTime = ValidFrom;
+                peakTime = validFrom;
             }
         }
 

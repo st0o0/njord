@@ -26,7 +26,8 @@ public sealed class VentilationWindow(IOptions<VentilationWindowConfig> config) 
         Forecast: ForecastParams.Temperature | ForecastParams.Precipitation,
         AirQuality: AirQualityParams.Pm25,
         OptionalAirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
-            | AirQualityParams.Alder | AirQualityParams.Mugwort));
+            | AirQualityParams.Alder | AirQualityParams.Mugwort),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 

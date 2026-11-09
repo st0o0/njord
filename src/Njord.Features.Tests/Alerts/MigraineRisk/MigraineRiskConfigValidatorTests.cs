@@ -13,7 +13,7 @@ public sealed class MigraineRiskConfigValidatorTests
     [Fact]
     public void A_non_positive_pressure_6h_threshold_is_rejected()
     {
-        var result = _validator.Validate(null, new MigraineRiskConfig { PressureThreshold6h = 0 });
+        var result = _validator.Validate(null, new MigraineRiskConfig { PressureThreshold6H = 0 });
 
         Assert.Contains("PressureThreshold6h must be positive", ValidationAssert.SingleFailure(result));
     }
@@ -21,7 +21,7 @@ public sealed class MigraineRiskConfigValidatorTests
     [Fact]
     public void A_non_positive_pressure_24h_threshold_is_rejected()
     {
-        var result = _validator.Validate(null, new MigraineRiskConfig { PressureThreshold24h = 0 });
+        var result = _validator.Validate(null, new MigraineRiskConfig { PressureThreshold24H = 0 });
 
         Assert.Contains("PressureThreshold24h must be positive", ValidationAssert.SingleFailure(result));
     }

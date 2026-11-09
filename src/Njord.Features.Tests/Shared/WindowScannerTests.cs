@@ -5,10 +5,10 @@ namespace Njord.Features.Tests.Shared;
 
 public sealed class WindowScannerTests
 {
-    private static readonly DateTimeOffset Start = new(2026, 6, 1, 6, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _start = new(2026, 6, 1, 6, 0, 0, TimeSpan.Zero);
 
     private static List<HourlyScore> Hours(params double[] scores) =>
-        [.. scores.Select((score, i) => new HourlyScore(Start.AddHours(i), score))];
+        [.. scores.Select((score, i) => new HourlyScore(_start.AddHours(i), score))];
 
     [Fact]
     public void Empty_input_returns_no_windows() => Assert.Empty(WindowScanner.Scan([]));
@@ -23,8 +23,8 @@ public sealed class WindowScannerTests
 
         var window = Assert.Single(windows);
         Assert.Multiple(
-            () => Assert.Equal(Start.AddHours(1), window.Start),
-            () => Assert.Equal(Start.AddHours(4), window.End),
+            () => Assert.Equal(_start.AddHours(1), window.Start),
+            () => Assert.Equal(_start.AddHours(4), window.End),
             () => Assert.Equal(60, window.Score),
             () => Assert.Null(window.Limiting));
     }
@@ -51,7 +51,7 @@ public sealed class WindowScannerTests
         var windows = WindowScanner.Scan(Hours(80, 0, 70, 70, 70, 0), minHours: 3);
 
         var window = Assert.Single(windows);
-        Assert.Equal(Start.AddHours(2), window.Start);
+        Assert.Equal(_start.AddHours(2), window.Start);
     }
 
     [Fact]
@@ -59,9 +59,9 @@ public sealed class WindowScannerTests
     {
         var scores = new List<HourlyScore>
         {
-            new(Start, 80),
-            new(Start.AddHours(1), 80),
-            new(Start.AddHours(2), 10, LimitingKind.Rain, 3.5),
+            new(_start, 80),
+            new(_start.AddHours(1), 80),
+            new(_start.AddHours(2), 10, LimitingKind.Rain, 3.5),
         };
 
         var window = Assert.Single(WindowScanner.Scan(scores));
@@ -69,7 +69,7 @@ public sealed class WindowScannerTests
         Assert.NotNull(window.Limiting);
         Assert.Multiple(
             () => Assert.Equal(LimitingKind.Rain, window.Limiting.Kind),
-            () => Assert.Equal(Start.AddHours(2), window.Limiting.From),
+            () => Assert.Equal(_start.AddHours(2), window.Limiting.From),
             () => Assert.Equal(3.5, window.Limiting.Value));
     }
 
@@ -89,7 +89,7 @@ public sealed class WindowScannerTests
 
         var window = Assert.Single(windows);
         Assert.Equal(51, window.Score);
-        Assert.Equal(Start, window.Start);
+        Assert.Equal(_start, window.Start);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class WindowScannerTests
         var windows = WindowScanner.Scan(Hours(80, 80, 80, 80, 10), minHours: 2);
 
         var window = Assert.Single(windows);
-        Assert.Equal(Start.AddHours(4), window.End);
+        Assert.Equal(_start.AddHours(4), window.End);
     }
 
     [Fact]

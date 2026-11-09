@@ -15,7 +15,8 @@ public sealed class TropicalNightAlert(IOptions<TropicalNightConfig> config) : F
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "TropicalNight",
-        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.IsDay, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.IsDay, Ensemble: EnsembleParams.TemperatureSpread),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

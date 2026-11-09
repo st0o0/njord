@@ -13,25 +13,25 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
-    private static readonly DateTimeOffset Anchor = TestTimeConstants.BudgetEpoch;
-    private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
+    private static readonly DateTimeOffset _anchor = TestTimeConstants.BudgetEpoch;
+    private static readonly TimeSpan _askTimeout = TimeSpan.FromSeconds(3);
 
     [Fact(Timeout = 30000)]
     public async Task Stream_replays_cached_domain_data_before_live_events()
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
-        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
+        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(_anchor, 2));
 
         await pipeline.OfferAsync(weather, ct);
         await AwaitAssertAsync(async () =>
         {
             var q = await consumer.Ask<DomainDataResponse>(
-                new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), AskTimeout, ct);
+                new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), _askTimeout, ct);
             Assert.IsType<DomainDataResult>(q);
         }, TimeSpan.FromSeconds(5), cancellationToken: ct);
 
-        var response = await consumer.Ask<RequestGrpcStreamResponse>(new RequestGrpcStream(1), AskTimeout, ct);
+        var response = await consumer.Ask<RequestGrpcStreamResponse>(new RequestGrpcStream(1), _askTimeout, ct);
         var completed = Assert.IsType<RequestGrpcStreamCompleted>(response);
 
         var first = await completed.SourceRef.Source
@@ -47,13 +47,13 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
 
-        var response = await consumer.Ask<RequestGrpcStreamResponse>(new RequestGrpcStream(1), AskTimeout, ct);
+        var response = await consumer.Ask<RequestGrpcStreamResponse>(new RequestGrpcStream(1), _askTimeout, ct);
         var completed = Assert.IsType<RequestGrpcStreamCompleted>(response);
 
         var first = completed.SourceRef.Source
             .RunWith(Sink.First<PipelineEvent>(), Sys.Materializer());
 
-        var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor);
+        var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, _anchor);
         await AwaitAssertAsync(async () =>
         {
             await pipeline.OfferAsync(alert, ct);
@@ -69,9 +69,9 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
 
-        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
-        var flood = new FloodDataReceived(DomainData.Lucerne, DomainData.Flood(Anchor));
-        var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor);
+        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(_anchor, 2));
+        var flood = new FloodDataReceived(DomainData.Lucerne, DomainData.Flood(_anchor));
+        var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, _anchor);
 
         await pipeline.OfferAsync(weather, ct);
         await pipeline.OfferAsync(flood, ct);
@@ -80,11 +80,11 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
         await AwaitAssertAsync(async () =>
         {
             var q = await consumer.Ask<LatestAnalysisResponse>(
-                new QueryLatestAnalysis(DomainData.Lucerne), AskTimeout, ct);
+                new QueryLatestAnalysis(DomainData.Lucerne), _askTimeout, ct);
             Assert.IsType<LatestAnalysisResult>(q);
         }, TimeSpan.FromSeconds(5), cancellationToken: ct);
 
-        var response = await consumer.Ask<RequestGrpcStreamResponse>(new RequestGrpcStream(1), AskTimeout, ct);
+        var response = await consumer.Ask<RequestGrpcStreamResponse>(new RequestGrpcStream(1), _askTimeout, ct);
         var completed = Assert.IsType<RequestGrpcStreamCompleted>(response);
 
         var replayed = await completed.SourceRef.Source
@@ -104,17 +104,17 @@ public sealed class GrpcConsumerStreamReplayTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
-        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
+        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(_anchor, 2));
 
         await pipeline.OfferAsync(weather, ct);
         await AwaitAssertAsync(async () =>
         {
             var q = await consumer.Ask<DomainDataResponse>(
-                new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), AskTimeout, ct);
+                new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), _askTimeout, ct);
             Assert.IsType<DomainDataResult>(q);
         }, TimeSpan.FromSeconds(5), cancellationToken: ct);
 
-        var response = await consumer.Ask<RequestGrpcStreamResponse>(new RequestGrpcStream(1), AskTimeout, ct);
+        var response = await consumer.Ask<RequestGrpcStreamResponse>(new RequestGrpcStream(1), _askTimeout, ct);
         var completed = Assert.IsType<RequestGrpcStreamCompleted>(response);
 
         var events = await completed.SourceRef.Source

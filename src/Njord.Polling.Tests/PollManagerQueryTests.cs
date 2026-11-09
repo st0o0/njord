@@ -13,7 +13,7 @@ namespace Njord.Polling.Tests;
 // A probe plays the poll shard region; the test plays the workers by sending their reports.
 public sealed class PollManagerQueryTests : Akka.Hosting.TestKit.TestKit
 {
-    private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
+    private static readonly TimeSpan _discovery = TimeSpan.FromMinutes(20);
     private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private TestProbe _region = null!;
 
@@ -32,7 +32,7 @@ public sealed class PollManagerQueryTests : Akka.Hosting.TestKit.TestKit
     });
 
     private readonly IOptions<PollingOptions> _pollingOptions =
-        Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = Discovery));
+        Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = _discovery));
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
@@ -44,7 +44,7 @@ public sealed class PollManagerQueryTests : Akka.Hosting.TestKit.TestKit
         });
     }
 
-    private static readonly PollTarget[] Targets =
+    private static readonly PollTarget[] _targets =
     [
         new(new Location("lucerne", 0, 0)),
         new(new Location("zurich", 0, 0)),
@@ -56,10 +56,10 @@ public sealed class PollManagerQueryTests : Akka.Hosting.TestKit.TestKit
     private async Task<IActorRef> StartedManagerAsync(CancellationToken ct)
     {
         var manager = CreateManager();
-        foreach (var target in Targets)
+        foreach (var target in _targets)
         {
             var start = await _region.ExpectMsgAsync<StartPolling>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-            Assert.Equal(new StartPolling(target, Discovery), start);
+            Assert.Equal(new StartPolling(target, _discovery), start);
         }
 
         return manager;
@@ -67,7 +67,7 @@ public sealed class PollManagerQueryTests : Akka.Hosting.TestKit.TestKit
 
     private PollStateEntry Entry(PollTarget target, PollPhase phase = PollPhase.Discovery, int misses = 0,
         DateTimeOffset? lastChange = null, long? cycle = null) =>
-        new(target.Location, phase, _time.GetUtcNow() + Discovery, lastChange, misses, cycle);
+        new(target.Location, phase, _time.GetUtcNow() + _discovery, lastChange, misses, cycle);
 
     private static async Task<PollStatesResult> QueryAsync(IActorRef manager, CancellationToken ct) =>
         await manager.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(15), ct);
@@ -80,14 +80,14 @@ public sealed class PollManagerQueryTests : Akka.Hosting.TestKit.TestKit
 
         var states = await QueryAsync(manager, ct);
 
-        Assert.Equal(Targets.Length, states.Entries.Count);
+        Assert.Equal(_targets.Length, states.Entries.Count);
         Assert.All(states.Entries, e => Assert.Multiple(
             () => Assert.Equal(PollPhase.Discovery, e.Phase),
             () => Assert.Equal(_time.GetUtcNow(), e.NextPollUtc),
             () => Assert.Null(e.LastChangeUtc),
             () => Assert.Null(e.CycleSeconds),
             () => Assert.Equal(0, e.MissCount)));
-        Assert.Equal(Targets.Select(t => t.Location), states.Entries.Select(e => e.Location));
+        Assert.Equal(_targets.Select(t => t.Location), states.Entries.Select(e => e.Location));
     }
 
     [Fact(Timeout = 30_000)]
@@ -96,12 +96,12 @@ public sealed class PollManagerQueryTests : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var manager = await StartedManagerAsync(ct);
         var change = _time.GetUtcNow();
-        var steady = Entry(Targets[0], PollPhase.Steady, lastChange: change, cycle: 10800);
-        var missed = Entry(Targets[1], misses: 1, lastChange: change);
+        var steady = Entry(_targets[0], PollPhase.Steady, lastChange: change, cycle: 10800);
+        var missed = Entry(_targets[1], misses: 1, lastChange: change);
 
-        manager.Tell(new PollWorkerReport(Targets[0], PollWorkerOutcome.Changed, steady));
-        manager.Tell(new PollWorkerReport(Targets[1], PollWorkerOutcome.Changed, missed with { MissCount = 0 }));
-        manager.Tell(new PollWorkerReport(Targets[1], PollWorkerOutcome.Unchanged, missed));
+        manager.Tell(new PollWorkerReport(_targets[0], PollWorkerOutcome.Changed, steady));
+        manager.Tell(new PollWorkerReport(_targets[1], PollWorkerOutcome.Changed, missed with { MissCount = 0 }));
+        manager.Tell(new PollWorkerReport(_targets[1], PollWorkerOutcome.Unchanged, missed));
 
         var states = await QueryAsync(manager, ct);
         Assert.Multiple(
@@ -120,7 +120,7 @@ public sealed class PollManagerQueryTests : Akka.Hosting.TestKit.TestKit
 
         var states = await QueryAsync(manager, ct);
         Assert.Multiple(
-            () => Assert.Equal(Targets.Length, states.Entries.Count),
+            () => Assert.Equal(_targets.Length, states.Entries.Count),
             () => Assert.DoesNotContain(states.Entries, e => e.Location.Name == "atlantis"),
             () => Assert.All(states.Entries, e => Assert.Null(e.LastChangeUtc)));
     }
@@ -142,12 +142,12 @@ public sealed class PollManagerQueryTests : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var manager = await StartedManagerAsync(ct);
 
-        manager.Tell(new PollWorkerReport(Targets[0], PollWorkerOutcome.Failed, Entry(Targets[0])));
+        manager.Tell(new PollWorkerReport(_targets[0], PollWorkerOutcome.Failed, Entry(_targets[0])));
         await QueryAsync(manager, ct);
         var afterFailure = await manager.Ask<PollHealthResult>(new QueryPollHealth(), TimeSpan.FromSeconds(3), ct);
 
         _time.Advance(TimeSpan.FromMinutes(1));
-        manager.Tell(new PollWorkerReport(Targets[0], PollWorkerOutcome.Unchanged, Entry(Targets[0])));
+        manager.Tell(new PollWorkerReport(_targets[0], PollWorkerOutcome.Unchanged, Entry(_targets[0])));
         await QueryAsync(manager, ct);
 
         var afterSuccess = await manager.Ask<PollHealthResult>(new QueryPollHealth(), TimeSpan.FromSeconds(3), ct);

@@ -5,13 +5,13 @@ namespace Njord.IntegrationTests;
 // failure is rethrown when the bound is reached, so the test names what it was waiting for.
 internal static class Eventually
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromMilliseconds(100);
+    private static readonly TimeSpan _interval = TimeSpan.FromMilliseconds(100);
 
     public static async Task AssertAsync(Func<Task> assertion, CancellationToken cancellationToken, TimeSpan? within = null)
     {
         using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         bound.CancelAfter(within ?? TimeSpan.FromSeconds(15));
-        using var timer = new PeriodicTimer(Interval);
+        using var timer = new PeriodicTimer(_interval);
         Exception? last = null;
         try
         {

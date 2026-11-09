@@ -18,7 +18,8 @@ public sealed class BbqScore(IOptions<BbqConfig> config) : FeatureRule<ForecastI
         Name: "Bbq",
         new DomainRequirements(Forecast: ForecastParams.Precipitation | ForecastParams.Temperature | ForecastParams.WindSpeed
             | ForecastParams.PrecipitationProbability | ForecastParams.CloudCover,
-            OptionalForecast: ForecastParams.IsDay));
+            OptionalForecast: ForecastParams.IsDay),
+        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor, Unit: "%"));
 
     public override bool Enabled => config.Value.Enabled;
 

@@ -18,7 +18,8 @@ public sealed class FloodRiskAlert(IOptions<FloodRiskConfig> config) : FeatureRu
         FeatureCategory.Flood,
         Name: "FloodRisk",
         new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75
-            | FloodParams.DischargeMax));
+            | FloodParams.DischargeMax),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

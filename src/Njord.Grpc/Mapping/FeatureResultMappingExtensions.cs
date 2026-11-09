@@ -345,11 +345,11 @@ internal static class FeatureResultMappingExtensions
         var proto = new V2.ElevatedWindCondition
         {
             Condition = new V2.ConditionData(),
-            Speed80M = r.Speed80m,
-            Direction80M = r.Direction80m,
+            Speed80M = r.Speed80M,
+            Direction80M = r.Direction80M,
         };
-        if (r.Speed120m is { } s120) { proto.Speed120M = s120; }
-        if (r.Direction120m is { } d120) { proto.Direction120M = d120; }
+        if (r.Speed120M is { } s120) { proto.Speed120M = s120; }
+        if (r.Direction120M is { } d120) { proto.Direction120M = d120; }
         return proto;
     }
 

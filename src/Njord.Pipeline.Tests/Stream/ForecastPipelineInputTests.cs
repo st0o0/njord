@@ -18,11 +18,11 @@ public sealed class ForecastPipelineInputTests : Akka.Hosting.TestKit.TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
-    private static readonly DateTimeOffset Start = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _start = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
 
     private IActorRef CreatePipeline(IReadOnlyList<IFeatureRule>? features = null)
     {
-        var time = new FakeTimeProvider(Start);
+        var time = new FakeTimeProvider(_start);
         var rules = features ?? FeatureServices.AllFeatureRules();
         return Sys.ActorOf(Props.Create(() => new ForecastPipeline(time, rules)), $"pipeline-{Guid.NewGuid():N}");
     }
@@ -31,10 +31,10 @@ public sealed class ForecastPipelineInputTests : Akka.Hosting.TestKit.TestKit
         [new FrostAlert(Options.Create(new FrostConfig { Enabled = false, Thresholds = FrostConfig.DefaultThresholds }))];
 
     private static DomainDataReceived Forecast(Location location, double temperature = 10.0) =>
-        DomainData.Received(location, DomainData.Forecast(Start, 48, (_, p) => p with { Temperature = temperature }));
+        DomainData.Received(location, DomainData.Forecast(_start, 48, (_, p) => p with { Temperature = temperature }));
 
     private static DomainDataReceived Ensemble(Location location) =>
-        DomainData.Received(location, DomainData.Ensemble(Start, temperatureSpread: 0.5));
+        DomainData.Received(location, DomainData.Ensemble(_start, temperatureSpread: 0.5));
 
     [Fact(Timeout = 30000)]
     public async Task The_output_is_available_before_any_producer_attaches()

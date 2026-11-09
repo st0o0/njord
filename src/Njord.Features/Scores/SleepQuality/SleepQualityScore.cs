@@ -25,7 +25,8 @@ public sealed class SleepQualityScore(IOptions<SleepQualityConfig> config) : Fea
             Forecast: ForecastParams.Temperature | ForecastParams.Humidity
                 | ForecastParams.WindGusts | ForecastParams.Cape | ForecastParams.Precipitation,
             AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen | AirQualityParams.Pm25,
-            OptionalForecast: ForecastParams.ApparentTemperature));
+            OptionalForecast: ForecastParams.ApparentTemperature),
+        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor, Unit: "%"));
 
     public override bool Enabled => config.Value.Enabled;
 

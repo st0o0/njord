@@ -15,20 +15,20 @@ public sealed class ElevatedWindTests
     public void Returns_result_when_80m_wind_present()
     {
         var rule = new Features.Conditions.ElevatedWind.ElevatedWind(Opts(new ElevatedWindConfig { Enabled = true }));
-        var weather = Uniform(p => p with { WindSpeed80m = 12.5, WindDirection80m = 270, WindSpeed120m = 14.1, WindDirection120m = 265 });
+        var weather = Uniform(p => p with { WindSpeed80M = 12.5, WindDirection80M = 270, WindSpeed120M = 14.1, WindDirection120M = 265 });
         var result = Run(rule, Now, ForecastOnly(weather));
         var condition = Assert.IsType<ElevatedWindResult>(result);
-        Assert.Equal(12.5, condition.Speed80m);
-        Assert.Equal(270, condition.Direction80m);
-        Assert.Equal(14.1, condition.Speed120m);
-        Assert.Equal(265, condition.Direction120m);
+        Assert.Equal(12.5, condition.Speed80M);
+        Assert.Equal(270, condition.Direction80M);
+        Assert.Equal(14.1, condition.Speed120M);
+        Assert.Equal(265, condition.Direction120M);
     }
 
     [Fact]
     public void Returns_null_when_80m_data_missing()
     {
         var rule = new Features.Conditions.ElevatedWind.ElevatedWind(Opts(new ElevatedWindConfig { Enabled = true }));
-        var weather = Uniform(p => p with { WindSpeed80m = null, WindDirection80m = null });
+        var weather = Uniform(p => p with { WindSpeed80M = null, WindDirection80M = null });
         var result = Run(rule, Now, ForecastOnly(weather));
         Assert.Null(result);
     }
@@ -37,10 +37,10 @@ public sealed class ElevatedWindTests
     public void Speed_120m_is_optional()
     {
         var rule = new Features.Conditions.ElevatedWind.ElevatedWind(Opts(new ElevatedWindConfig { Enabled = true }));
-        var weather = Uniform(p => p with { WindSpeed80m = 10.0, WindDirection80m = 180, WindSpeed120m = null, WindDirection120m = null });
+        var weather = Uniform(p => p with { WindSpeed80M = 10.0, WindDirection80M = 180, WindSpeed120M = null, WindDirection120M = null });
         var result = Run(rule, Now, ForecastOnly(weather));
         var condition = Assert.IsType<ElevatedWindResult>(result);
-        Assert.Null(condition.Speed120m);
-        Assert.Null(condition.Direction120m);
+        Assert.Null(condition.Speed120M);
+        Assert.Null(condition.Direction120M);
     }
 }

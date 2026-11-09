@@ -5,14 +5,14 @@ namespace Njord.Grpc.Tests;
 
 public sealed class SampleMappingsTests
 {
-    private static readonly DateTimeOffset At = new(2026, 7, 1, 6, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _at = new(2026, 7, 1, 6, 0, 0, TimeSpan.Zero);
 
     [Fact]
     public void Forecast_extended_values_map_to_their_own_fields()
     {
-        var sample = new ForecastPoint(At, WindDirection: 1, SnowDepth: 2, ShortwaveRadiation: 3, DirectRadiation: 4,
+        var sample = new ForecastPoint(_at, WindDirection: 1, SnowDepth: 2, ShortwaveRadiation: 3, DirectRadiation: 4,
             DiffuseRadiation: 5, DirectNormalIrradiance: 6, SunshineDuration: 7, GlobalTiltedIrradiance: 8,
-            WetBulbTemperature: 9, SnowfallHeight: 10, WindSpeed100m: 11, WindDirection100m: 12,
+            WetBulbTemperature: 9, SnowfallHeight: 10, WindSpeed100M: 11, WindDirection100M: 12,
             ThunderstormProbability: 13, PrecipitationType: 14, SurfaceTemperature: 15,
             SnowfallWaterEquivalent: 16).ToProto();
 
@@ -38,7 +38,7 @@ public sealed class SampleMappingsTests
     [Fact]
     public void Missing_forecast_extended_values_stay_unset()
     {
-        var sample = new ForecastPoint(At, Temperature: 20).ToProto();
+        var sample = new ForecastPoint(_at, Temperature: 20).ToProto();
 
         Assert.Multiple(
             () => Assert.False(sample.HasWindDirection10M),
@@ -49,10 +49,10 @@ public sealed class SampleMappingsTests
     [Fact]
     public void Ensemble_spread_values_map_to_their_own_fields()
     {
-        var sample = new EnsemblePoint(At, PressureMslSpread: 1, CloudCoverSpread: 2, WindGustsSpread: 3,
+        var sample = new EnsemblePoint(_at, PressureMslSpread: 1, CloudCoverSpread: 2, WindGustsSpread: 3,
             CapeSpread: 4, SnowfallSpread: 5, RainSpread: 6, DewPointSpread: 7, HumiditySpread: 8,
             SurfacePressureSpread: 9, WindDirectionSpread: 10, WetBulbTemperatureSpread: 11,
-            WindSpeed100mSpread: 12).ToProto();
+            WindSpeed100MSpread: 12).ToProto();
 
         Assert.Multiple(
             () => Assert.Equal(1, sample.PressureMslSpread),

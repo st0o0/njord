@@ -4,12 +4,12 @@ namespace Njord.OpenMeteo.Http;
 
 internal sealed class HttpMetricsHandler : DelegatingHandler
 {
-    private static readonly string[] StatusClasses = ["0xx", "1xx", "2xx", "3xx", "4xx", "5xx"];
+    private static readonly string[] _statusClasses = ["0xx", "1xx", "2xx", "3xx", "4xx", "5xx"];
 
     private static string ToStatusClass(int statusCode)
     {
         var index = statusCode / 100;
-        return (uint)index < (uint)StatusClasses.Length ? StatusClasses[index] : "unknown";
+        return (uint)index < (uint)_statusClasses.Length ? _statusClasses[index] : "unknown";
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

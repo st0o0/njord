@@ -13,8 +13,9 @@ public sealed class ElevatedWind(IOptions<ElevatedWindConfig> config) : FeatureR
         OutputKind.Condition,
         FeatureCategory.Energy,
         Name: "ElevatedWind",
-        new DomainRequirements(Forecast: ForecastParams.WindSpeed80m | ForecastParams.WindDirection80m,
-            OptionalForecast: ForecastParams.WindSpeed120m | ForecastParams.WindDirection120m));
+        new DomainRequirements(Forecast: ForecastParams.WindSpeed80M | ForecastParams.WindDirection80M,
+            OptionalForecast: ForecastParams.WindSpeed120M | ForecastParams.WindDirection120M),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -25,16 +26,16 @@ public sealed class ElevatedWind(IOptions<ElevatedWindConfig> config) : FeatureR
     {
         var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
         var current = window.FirstOrDefault();
-        if (current is not { WindSpeed80m: { } speed80, WindDirection80m: { } dir80 })
+        if (current is not { WindSpeed80M: { } speed80, WindDirection80M: { } dir80 })
         {
             return null;
         }
 
         return new ElevatedWindResult(
             ctx.Location,
-            Speed80m: Math.Round(speed80, 1),
-            Direction80m: Math.Round(dir80, 0),
-            Speed120m: current.WindSpeed120m is { } s120 ? Math.Round(s120, 1) : null,
-            Direction120m: current.WindDirection120m is { } d120 ? Math.Round(d120, 0) : null);
+            Speed80M: Math.Round(speed80, 1),
+            Direction80M: Math.Round(dir80, 0),
+            Speed120M: current.WindSpeed120M is { } s120 ? Math.Round(s120, 1) : null,
+            Direction120M: current.WindDirection120M is { } d120 ? Math.Round(d120, 0) : null);
     }
 }

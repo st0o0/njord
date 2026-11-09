@@ -14,10 +14,10 @@ namespace Njord.Polling.Tests;
 public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
 {
     private const string TargetId = "lucerne";
-    private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
-    private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
-    private static readonly PollTarget Target = new(Lucerne);
-    private static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Forecast, DomainKind.AirQuality];
+    private static readonly TimeSpan _discovery = TimeSpan.FromMinutes(20);
+    private static readonly Location _lucerne = new("lucerne", 47.05, 8.31);
+    private static readonly PollTarget _target = new(_lucerne);
+    private static readonly IReadOnlyList<DomainKind> _enabledDomains = [DomainKind.Forecast, DomainKind.AirQuality];
 
     private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private TestProbe _gateway = null!;
@@ -38,12 +38,12 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
     private IActorRef CreateWorker(IReadOnlyList<DomainKind>? domains = null, string entityId = TargetId) =>
         Sys.ActorOf(Props.Create(() => new PollWorker(
             entityId, _time, Options.Create(new PollingOptions()),
-            Options.Create(TestRequirements.For(domains ?? EnabledDomains)))), $"worker-{Guid.NewGuid():N}");
+            Options.Create(TestRequirements.For(domains ?? _enabledDomains)))), $"worker-{Guid.NewGuid():N}");
 
     private async Task<IActorRef> StartedWorkerAsync(CancellationToken ct)
     {
         var worker = CreateWorker();
-        worker.Tell(new StartPolling(Target, Discovery));
+        worker.Tell(new StartPolling(_target, _discovery));
         await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         return worker;
     }
@@ -60,24 +60,24 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
 
     private async Task AnswerAllAsync(FetchDomainResponse reply, CancellationToken ct)
     {
-        foreach (var _ in EnabledDomains)
+        foreach (var _ in _enabledDomains)
         {
             var request = await ExpectRequestAsync(ct);
             _gateway.LastSender.Tell(ForDomain(reply, request.Domain));
         }
 
-        await DrainReportsAsync(EnabledDomains.Count, ct);
+        await DrainReportsAsync(_enabledDomains.Count, ct);
     }
 
     private async Task<PollWorkerReport> AnswerAllAndLastReportAsync(FetchDomainResponse reply, CancellationToken ct)
     {
-        foreach (var _ in EnabledDomains)
+        foreach (var _ in _enabledDomains)
         {
             var request = await ExpectRequestAsync(ct);
             _gateway.LastSender.Tell(ForDomain(reply, request.Domain));
         }
 
-        return await DrainReportsAsync(EnabledDomains.Count, ct);
+        return await DrainReportsAsync(_enabledDomains.Count, ct);
     }
 
     private async Task<PollWorkerReport> DrainReportsAsync(int count, CancellationToken ct)
@@ -99,7 +99,7 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
         _ => reply,
     };
 
-    private static FetchDomainCompleted Completed(int hash) => new(Lucerne, DomainKind.Forecast, hash);
+    private static FetchDomainCompleted Completed(int hash) => new(_lucerne, DomainKind.Forecast, hash);
 
     private async Task StopAsync(IActorRef worker, CancellationToken ct)
     {
@@ -114,17 +114,17 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
     public async Task A_first_start_reports_the_initial_state_and_polls_immediately()
     {
         var ct = TestContext.Current.CancellationToken;
-        CreateWorker().Tell(new StartPolling(Target, Discovery));
+        CreateWorker().Tell(new StartPolling(_target, _discovery));
 
         var report = await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         var request = await ExpectRequestAsync(ct);
 
         Assert.Multiple(
-            () => Assert.Equal(Target, report.Target),
+            () => Assert.Equal(_target, report.Target),
             () => Assert.Equal(PollPhase.Discovery, report.State.Phase),
             () => Assert.Equal(_time.GetUtcNow(), report.State.NextPollUtc),
             () => Assert.Null(report.State.LastChangeUtc),
-            () => Assert.Equal(Lucerne, request.Location),
+            () => Assert.Equal(_lucerne, request.Location),
             () => Assert.Equal(DomainKind.Forecast, request.Domain));
     }
 
@@ -138,7 +138,7 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
 
         Assert.Multiple(
             () => Assert.Equal(_time.GetUtcNow(), report.State.LastChangeUtc),
-            () => Assert.Equal(_time.GetUtcNow() + Discovery, report.State.NextPollUtc),
+            () => Assert.Equal(_time.GetUtcNow() + _discovery, report.State.NextPollUtc),
             () => Assert.Equal(0, report.State.MissCount));
     }
 
@@ -172,13 +172,13 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
         _time.Advance(TimeSpan.FromHours(3));
         worker.Tell(new TriggerLocationPoll(TargetId));
         var reports = new List<PollWorkerReport>();
-        foreach (var _ in EnabledDomains)
+        foreach (var _ in _enabledDomains)
         {
             var request = await ExpectRequestAsync(ct);
             _gateway.LastSender.Tell(ForDomain(Completed(3), request.Domain));
         }
 
-        for (var i = 0; i < EnabledDomains.Count; i++)
+        for (var i = 0; i < _enabledDomains.Count; i++)
         {
             reports.Add(await _manager.ExpectMsgAsync<PollWorkerReport>(TimeSpan.FromSeconds(5), cancellationToken: ct));
         }
@@ -199,8 +199,8 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
             new FetchDomainCompleted(new Location("LUCERNE", 0, 0), DomainKind.Forecast, 42), ct);
 
         Assert.Multiple(
-            () => Assert.Equal(Target, report.Target),
-            () => Assert.Equal(Lucerne, report.State.Location),
+            () => Assert.Equal(_target, report.Target),
+            () => Assert.Equal(_lucerne, report.State.Location),
             () => Assert.NotNull(report.State.LastChangeUtc));
     }
 
@@ -213,7 +213,7 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
         IReadOnlyList<DomainKind> domains = [DomainKind.Forecast, DomainKind.Flood];
         var worker = CreateWorker(domains);
 
-        worker.Tell(new StartPolling(Target, Discovery));
+        worker.Tell(new StartPolling(_target, _discovery));
 
         var first = await ExpectRequestAsync(ct);
         var second = await ExpectRequestAsync(ct);
@@ -227,7 +227,7 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
         var inFlight = new List<(IActorRef Sender, DomainKind Domain)>();
-        foreach (var _ in EnabledDomains)
+        foreach (var _ in _enabledDomains)
         {
             var request = await ExpectRequestAsync(ct);
             inFlight.Add((_gateway.LastSender, request.Domain));
@@ -241,7 +241,7 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
             sender.Tell(ForDomain(Completed(42), domain));
         }
 
-        await DrainReportsAsync(EnabledDomains.Count, ct);
+        await DrainReportsAsync(_enabledDomains.Count, ct);
     }
 
     [Fact(Timeout = 30_000)]
@@ -254,7 +254,7 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
         worker.Tell(new TriggerLocationPoll(TargetId));
 
         var request = await ExpectRequestAsync(ct);
-        Assert.Equal(Target, new PollTarget(request.Location));
+        Assert.Equal(_target, new PollTarget(request.Location));
     }
 
     [Fact(Timeout = 30_000)]
@@ -294,7 +294,7 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
         var worker = await StartedWorkerAsync(ct);
         await AnswerAllAsync(Completed(42), ct);
 
-        worker.Tell(new StartPolling(Target, TimeSpan.FromMilliseconds(100)));
+        worker.Tell(new StartPolling(_target, TimeSpan.FromMilliseconds(100)));
 
         await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         var next = await ExpectRequestAsync(ct);
@@ -308,7 +308,7 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
         var worker = await StartedWorkerAsync(ct);
         await AnswerAllAsync(Completed(42), ct);
 
-        worker.Tell(new StartPolling(Target, TimeSpan.FromHours(2)));
+        worker.Tell(new StartPolling(_target, TimeSpan.FromHours(2)));
 
         var report = await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         Assert.Equal(_time.GetUtcNow() + TimeSpan.FromHours(2), report.State.NextPollUtc);
@@ -321,10 +321,10 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
         var worker = await StartedWorkerAsync(ct);
         await AnswerAllAsync(Completed(42), ct);
 
-        worker.Tell(new StartPolling(Target, Discovery));
+        worker.Tell(new StartPolling(_target, _discovery));
 
         var report = await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
-        Assert.Equal(_time.GetUtcNow() + Discovery, report.State.NextPollUtc);
+        Assert.Equal(_time.GetUtcNow() + _discovery, report.State.NextPollUtc);
         await _gateway.ExpectNoMsgAsync(TimeSpan.FromSeconds(1), ct);
     }
 
@@ -336,15 +336,15 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
 
-        foreach (var _ in EnabledDomains)
+        foreach (var _ in _enabledDomains)
         {
             var request = await ExpectRequestAsync(ct);
             _gateway.LastSender.Tell(request.Domain == DomainKind.Forecast
-                ? new FetchDomainCompleted(Lucerne, DomainKind.Forecast, 1)
-                : new FetchDomainFailed(Lucerne, request.Domain, PollFailureReason.Transport, "down"));
+                ? new FetchDomainCompleted(_lucerne, DomainKind.Forecast, 1)
+                : new FetchDomainFailed(_lucerne, request.Domain, PollFailureReason.Transport, "down"));
         }
 
-        await DrainReportsAsync(EnabledDomains.Count, ct);
+        await DrainReportsAsync(_enabledDomains.Count, ct);
         await StopAsync(worker, ct);
 
         _time.Advance(TimeSpan.FromMinutes(2));

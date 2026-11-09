@@ -14,7 +14,8 @@ public sealed class SnowDepthWatch(IOptions<SnowDepthWatchConfig> config) : Feat
         OutputKind.Condition,
         FeatureCategory.Forecast,
         Name: "SnowDepthWatch",
-        new DomainRequirements(Forecast: ForecastParams.SnowDepth));
+        new DomainRequirements(Forecast: ForecastParams.SnowDepth),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 

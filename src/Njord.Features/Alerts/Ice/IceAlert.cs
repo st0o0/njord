@@ -16,7 +16,8 @@ public sealed class IceAlert(IOptions<IceConfig> config) : FeatureRule<ForecastE
         Name: "Ice",
         new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.Precipitation,
             OptionalForecast: ForecastParams.Rain | ForecastParams.SoilTemperature | ForecastParams.WeatherCode,
-            Ensemble: EnsembleParams.PrecipitationSpread));
+            Ensemble: EnsembleParams.PrecipitationSpread),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -49,12 +50,12 @@ public sealed class IceAlert(IOptions<IceConfig> config) : FeatureRule<ForecastE
 
     private (AlertSeverity Severity, double Threshold) Classify(ForecastPoint p)
     {
-        const double FreezingPoint = 0.0;
+        const double freezingPoint = 0.0;
         return p.WeatherCode switch
         {
-            66 or 67 => (AlertSeverity.Red, FreezingPoint),
-            56 or 57 => (AlertSeverity.Orange, FreezingPoint),
-            _ when (p.Rain ?? p.Precipitation) > 0 && p.Temperature <= FreezingPoint => (AlertSeverity.Red, FreezingPoint),
+            66 or 67 => (AlertSeverity.Red, freezingPoint),
+            56 or 57 => (AlertSeverity.Orange, freezingPoint),
+            _ when (p.Rain ?? p.Precipitation) > 0 && p.Temperature <= freezingPoint => (AlertSeverity.Red, freezingPoint),
             _ when (p.Rain ?? p.Precipitation) > 0 && p.Temperature <= config.Value.Threshold => (AlertSeverity.Yellow, config.Value.Threshold),
             _ => (AlertSeverity.None, config.Value.Threshold),
         };

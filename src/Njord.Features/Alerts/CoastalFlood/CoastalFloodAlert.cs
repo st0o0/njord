@@ -20,7 +20,8 @@ public sealed class CoastalFloodAlert(IOptions<CoastalFloodConfig> config) : Fea
             Forecast: ForecastParams.WindSpeed,
             Ensemble: EnsembleParams.TemperatureSpread,
             OptionalMarine: MarineParams.WaveDirection,
-            OptionalForecast: ForecastParams.WindDirection));
+            OptionalForecast: ForecastParams.WindDirection),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

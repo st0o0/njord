@@ -15,7 +15,8 @@ public sealed class FrostAlert(IOptions<FrostConfig> config) : FeatureRule<Forec
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Frost",
-        new DomainRequirements(Forecast: ForecastParams.Temperature, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.Temperature, Ensemble: EnsembleParams.TemperatureSpread),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

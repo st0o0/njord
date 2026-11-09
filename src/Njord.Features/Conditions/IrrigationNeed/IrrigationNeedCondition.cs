@@ -17,9 +17,10 @@ public sealed class IrrigationNeedCondition(IOptions<IrrigationNeedConfig> confi
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
         Name: "IrrigationNeed",
-        new DomainRequirements(Forecast: ForecastParams.Evapotranspiration | ForecastParams.SoilMoisture0To1cm
+        new DomainRequirements(Forecast: ForecastParams.Evapotranspiration | ForecastParams.SoilMoisture0To1Cm
             | ForecastParams.VapourPressureDeficit | ForecastParams.Rain | ForecastParams.PrecipitationProbability
-            | ForecastParams.Temperature));
+            | ForecastParams.Temperature),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -29,7 +30,7 @@ public sealed class IrrigationNeedCondition(IOptions<IrrigationNeedConfig> confi
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
         var hours = ctx.Current.Forecast.NextHours(ctx.Now);
-        if (hours.Count == 0 || hours[0].SoilMoisture0To1cm is not { } moisture)
+        if (hours.Count == 0 || hours[0].SoilMoisture0To1Cm is not { } moisture)
         {
             return null;
         }

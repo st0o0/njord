@@ -20,9 +20,10 @@ public sealed class FireRiskAlert(IOptions<FireRiskConfig> config) : FeatureRule
         Name: "FireRisk",
         new DomainRequirements(
             Forecast: ForecastParams.Temperature | ForecastParams.Humidity | ForecastParams.WindSpeed
-                | ForecastParams.SoilMoisture0To1cm | ForecastParams.Precipitation,
+                | ForecastParams.SoilMoisture0To1Cm | ForecastParams.Precipitation,
             OptionalForecast: ForecastParams.IsDay,
-            Ensemble: EnsembleParams.TemperatureSpread));
+            Ensemble: EnsembleParams.TemperatureSpread),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -49,7 +50,7 @@ public sealed class FireRiskAlert(IOptions<FireRiskConfig> config) : FeatureRule
         {
             weatherSum += WeatherScore(p.Temperature!.Value, p.Humidity!.Value, p.WindSpeed!.Value, cfg);
 
-            if (p.SoilMoisture0To1cm is { } m)
+            if (p.SoilMoisture0To1Cm is { } m)
             {
                 soilCount++;
                 soilSum += m <= cfg.SoilMoistureThreshold

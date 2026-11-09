@@ -18,7 +18,8 @@ public sealed class SurfConditions(IOptions<SurfConditionsConfig> config) : Feat
         new DomainRequirements(
         Marine: MarineParams.SwellWaveHeight | MarineParams.SwellWavePeriod,
         OptionalMarine: MarineParams.SwellWaveDirection | MarineParams.WindWaveHeight,
-        OptionalForecast: ForecastParams.WindDirection));
+        OptionalForecast: ForecastParams.WindDirection),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 

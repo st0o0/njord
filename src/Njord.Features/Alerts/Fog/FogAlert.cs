@@ -14,7 +14,8 @@ public sealed class FogAlert(IOptions<FogConfig> config) : FeatureRule<ForecastI
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Fog",
-        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.DewPoint | ForecastParams.WindSpeed | ForecastParams.Humidity));
+        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.DewPoint | ForecastParams.WindSpeed | ForecastParams.Humidity),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

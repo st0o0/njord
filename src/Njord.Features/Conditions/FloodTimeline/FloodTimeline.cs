@@ -13,7 +13,8 @@ public sealed class FloodTimeline(IOptions<FloodTimelineConfig> config) : Featur
         OutputKind.Condition,
         FeatureCategory.Flood,
         Name: "FloodTimeline",
-        new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeP75));
+        new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeP75),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 

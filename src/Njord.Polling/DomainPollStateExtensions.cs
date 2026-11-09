@@ -5,7 +5,7 @@ namespace Njord.Polling;
 
 public static class DomainPollStateExtensions
 {
-    private static readonly TimeSpan MaxRetryBackoff = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan _maxRetryBackoff = TimeSpan.FromMinutes(15);
     private const int MaxMissesBeforeFallback = 5;
 
     internal static readonly TimeSpan SteadyBuffer = TimeSpan.FromSeconds(30);
@@ -72,6 +72,6 @@ public static class DomainPollStateExtensions
     private static TimeSpan RetryBackoff(int count)
     {
         var delay = TimeSpan.FromMinutes(Math.Pow(2, count - 1));
-        return delay > MaxRetryBackoff ? MaxRetryBackoff : delay;
+        return delay > _maxRetryBackoff ? _maxRetryBackoff : delay;
     }
 }

@@ -4,8 +4,8 @@ namespace Njord.Messages.Tests.Alerts;
 
 public sealed class SeverityThresholdsTests
 {
-    private static readonly SeverityThresholds Cold = new(0, -5, -10, ScanDirection.Min);
-    private static readonly SeverityThresholds Hot = new(30, 35, 40, ScanDirection.Max);
+    private static readonly SeverityThresholds _cold = new(0, -5, -10, ScanDirection.Min);
+    private static readonly SeverityThresholds _hot = new(30, 35, 40, ScanDirection.Max);
 
     [Theory]
     [InlineData(5, AlertSeverity.None, 0)]
@@ -13,25 +13,25 @@ public sealed class SeverityThresholdsTests
     [InlineData(-7, AlertSeverity.Orange, -5)]
     [InlineData(-12, AlertSeverity.Red, -10)]
     public void Should_classify_minimum_scans_by_the_lowest_crossed_level(
-        double value, AlertSeverity severity, double threshold) => Assert.Equal((severity, threshold), Cold.Classify(value));
+        double value, AlertSeverity severity, double threshold) => Assert.Equal((severity, threshold), _cold.Classify(value));
 
     [Theory]
     [InlineData(25, AlertSeverity.None)]
     [InlineData(31, AlertSeverity.Yellow)]
     [InlineData(36, AlertSeverity.Orange)]
     [InlineData(41, AlertSeverity.Red)]
-    public void Should_classify_maximum_scans_by_the_highest_crossed_level(double value, AlertSeverity severity) => Assert.Equal(severity, Hot.Classify(value).Severity);
+    public void Should_classify_maximum_scans_by_the_highest_crossed_level(double value, AlertSeverity severity) => Assert.Equal(severity, _hot.Classify(value).Severity);
 
     [Fact]
     public void Should_include_the_boundary_unless_strict()
     {
         Assert.Multiple(
-            () => Assert.Equal(AlertSeverity.Yellow, Hot.Classify(30).Severity),
-            () => Assert.Equal(AlertSeverity.None, Hot.Classify(30, strict: true).Severity),
-            () => Assert.Equal(AlertSeverity.Yellow, Cold.Classify(0).Severity),
-            () => Assert.Equal(AlertSeverity.None, Cold.Classify(0, strict: true).Severity),
-            () => Assert.True(Cold.CrossesAdvisory(0)),
-            () => Assert.False(Cold.CrossesAdvisory(0, strict: true)));
+            () => Assert.Equal(AlertSeverity.Yellow, _hot.Classify(30).Severity),
+            () => Assert.Equal(AlertSeverity.None, _hot.Classify(30, strict: true).Severity),
+            () => Assert.Equal(AlertSeverity.Yellow, _cold.Classify(0).Severity),
+            () => Assert.Equal(AlertSeverity.None, _cold.Classify(0, strict: true).Severity),
+            () => Assert.True(_cold.CrossesAdvisory(0)),
+            () => Assert.False(_cold.CrossesAdvisory(0, strict: true)));
     }
 
     [Fact]

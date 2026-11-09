@@ -7,7 +7,7 @@ namespace Njord.Features.Tests.Forecasts.Shared;
 
 public sealed class ModelComparisonHelperTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _now = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
 
     private static DomainForecast<ForecastPoint> ModelForecast(DateTimeOffset start, int hours, double temp, double precip) =>
         new(DomainKind.Forecast, start, TimeResolution.Hourly,
@@ -18,11 +18,11 @@ public sealed class ModelComparisonHelperTests
     public void Two_models_with_overlapping_days_produce_comparison()
     {
         var models = ImmutableDictionary.CreateRange([
-            KeyValuePair.Create("model_a", ModelForecast(Now, 48, 20.0, 1.0)),
-            KeyValuePair.Create("model_b", ModelForecast(Now, 48, 22.0, 2.0)),
+            KeyValuePair.Create("model_a", ModelForecast(_now, 48, 20.0, 1.0)),
+            KeyValuePair.Create("model_b", ModelForecast(_now, 48, 22.0, 2.0)),
         ]);
 
-        var result = ModelComparisonHelper.CompareDays(models, Now);
+        var result = ModelComparisonHelper.CompareDays(models, _now);
 
         Assert.NotEmpty(result);
         Assert.True(result.Length >= 2);
@@ -37,13 +37,13 @@ public sealed class ModelComparisonHelperTests
     [Fact]
     public void Past_only_data_returns_empty()
     {
-        var yesterday = Now.AddDays(-2);
+        var yesterday = _now.AddDays(-2);
         var models = ImmutableDictionary.CreateRange([
             KeyValuePair.Create("model_a", ModelForecast(yesterday, 24, 20.0, 1.0)),
             KeyValuePair.Create("model_b", ModelForecast(yesterday, 24, 22.0, 2.0)),
         ]);
 
-        var result = ModelComparisonHelper.CompareDays(models, Now);
+        var result = ModelComparisonHelper.CompareDays(models, _now);
 
         Assert.Empty(result);
     }
@@ -51,13 +51,13 @@ public sealed class ModelComparisonHelperTests
     [Fact]
     public void Null_temperature_and_precipitation_are_preserved()
     {
-        var points = ImmutableArray.Create(new ForecastPoint(Now));
+        var points = ImmutableArray.Create(new ForecastPoint(_now));
         var models = ImmutableDictionary.CreateRange([
-            KeyValuePair.Create("model_a", new DomainForecast<ForecastPoint>(DomainKind.Forecast, Now, TimeResolution.Hourly, points)),
-            KeyValuePair.Create("model_b", new DomainForecast<ForecastPoint>(DomainKind.Forecast, Now, TimeResolution.Hourly, points)),
+            KeyValuePair.Create("model_a", new DomainForecast<ForecastPoint>(DomainKind.Forecast, _now, TimeResolution.Hourly, points)),
+            KeyValuePair.Create("model_b", new DomainForecast<ForecastPoint>(DomainKind.Forecast, _now, TimeResolution.Hourly, points)),
         ]);
 
-        var result = ModelComparisonHelper.CompareDays(models, Now);
+        var result = ModelComparisonHelper.CompareDays(models, _now);
 
         var item = Assert.Single(result);
         foreach (var model in item.Models)
@@ -72,14 +72,14 @@ public sealed class ModelComparisonHelperTests
     public void Window_is_limited_to_five_days()
     {
         var models = ImmutableDictionary.CreateRange([
-            KeyValuePair.Create("model_a", ModelForecast(Now, 7 * 24, 20.0, 1.0)),
-            KeyValuePair.Create("model_b", ModelForecast(Now, 7 * 24, 22.0, 2.0)),
+            KeyValuePair.Create("model_a", ModelForecast(_now, 7 * 24, 20.0, 1.0)),
+            KeyValuePair.Create("model_b", ModelForecast(_now, 7 * 24, 22.0, 2.0)),
         ]);
 
-        var result = ModelComparisonHelper.CompareDays(models, Now);
+        var result = ModelComparisonHelper.CompareDays(models, _now);
 
         Assert.True(result.Length <= ModelComparisonHelper.ComparedDays);
-        var today = DateOnly.FromDateTime(Now.UtcDateTime);
+        var today = DateOnly.FromDateTime(_now.UtcDateTime);
         foreach (var day in result)
         {
             Assert.True(day.Date >= today);

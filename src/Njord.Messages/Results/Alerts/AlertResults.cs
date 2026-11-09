@@ -164,7 +164,7 @@ public sealed record VisibilityAlertResult(
     int? DurationHours,
     ConfidenceLevel Level,
     double MinVisibility,
-    int HoursBelow1000m) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    int HoursBelow1000M) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
     HoursUntil, DurationHours, Level);
 
 public sealed record TropicalNightAlertResult(

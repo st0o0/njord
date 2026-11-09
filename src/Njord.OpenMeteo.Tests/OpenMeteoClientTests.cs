@@ -22,7 +22,7 @@ namespace Njord.OpenMeteo.Tests;
 
 public sealed class OpenMeteoClientTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 7, 11, 0, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _now = new(2026, 7, 11, 0, 0, 0, TimeSpan.Zero);
 
     private static IOptions<DomainRequirements> Needs(
         ForecastParams weather = ForecastParams.None,
@@ -62,7 +62,7 @@ public sealed class OpenMeteoClientTests
         string? captured = null;
         var http = StubOpenMeteoHandler.ClientFor(host, HttpStatusCode.OK, "{}", request => captured = StubOpenMeteoHandler.RawPathAndQuery(request));
 
-        await create(http).FetchAsync(47.05, 8.31, Now, ct);
+        await create(http).FetchAsync(47.05, 8.31, _now, ct);
 
         Assert.NotNull(captured);
         return captured;
@@ -94,7 +94,7 @@ public sealed class OpenMeteoClientTests
         var options = new ForecastOptions { Models = ["ecmwf_ifs025_ensemble_mean", "ecmwf_aifs025_ensemble_mean"] };
         var http = StubOpenMeteoHandler.ClientFor("api", HttpStatusCode.OK, OpenMeteoFixtures.ForecastThreeModels);
 
-        var result = await Forecast(http, options: options).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
+        var result = await Forecast(http, options: options).FetchAsync(47.0, 8.0, _now, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchSuccess>(result);
         var primary = Assert.IsType<DomainForecast<ForecastPoint>>(success.Forecast);
@@ -129,7 +129,7 @@ public sealed class OpenMeteoClientTests
         string[] models = ["ecmwf_ifs025_ensemble_mean", "ecmwf_aifs025_ensemble_mean"];
         var http = StubOpenMeteoHandler.ClientFor("ensemble-api", HttpStatusCode.OK, OpenMeteoFixtures.EnsembleMultiModel);
 
-        var result = await Ensemble(http, EnsembleParams.TemperatureSpread, ForecastParams.Temperature, models: models).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
+        var result = await Ensemble(http, EnsembleParams.TemperatureSpread, ForecastParams.Temperature, models: models).FetchAsync(47.0, 8.0, _now, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchSuccess>(result);
         var primary = Assert.IsType<DomainForecast<EnsemblePoint>>(success.Forecast);
@@ -246,7 +246,7 @@ public sealed class OpenMeteoClientTests
     {
         var http = StubOpenMeteoHandler.ClientFor("api", HttpStatusCode.OK, OpenMeteoFixtures.ForecastHourly);
 
-        var result = await Forecast(http).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
+        var result = await Forecast(http).FetchAsync(47.0, 8.0, _now, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchSuccess>(result);
         var forecast = Assert.IsType<DomainForecast<ForecastPoint>>(success.Forecast);
@@ -260,7 +260,7 @@ public sealed class OpenMeteoClientTests
     {
         var http = StubOpenMeteoHandler.ClientFor("ensemble-api", HttpStatusCode.OK, OpenMeteoFixtures.EnsembleSpread);
 
-        var result = await Ensemble(http, EnsembleParams.TemperatureSpread).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
+        var result = await Ensemble(http, EnsembleParams.TemperatureSpread).FetchAsync(47.0, 8.0, _now, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchSuccess>(result);
         var forecast = Assert.IsType<DomainForecast<EnsemblePoint>>(success.Forecast);
@@ -275,7 +275,7 @@ public sealed class OpenMeteoClientTests
     {
         var http = StubOpenMeteoHandler.ClientFor("flood-api", HttpStatusCode.OK, OpenMeteoFixtures.FloodDaily);
 
-        var result = await Flood(http).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
+        var result = await Flood(http).FetchAsync(47.0, 8.0, _now, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchSuccess>(result);
         var forecast = Assert.IsType<DomainForecast<FloodPoint>>(success.Forecast);
@@ -287,7 +287,7 @@ public sealed class OpenMeteoClientTests
     {
         var http = StubOpenMeteoHandler.ClientFor("marine-api", HttpStatusCode.OK, OpenMeteoFixtures.MarineHourly);
 
-        var result = await Marine(http).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
+        var result = await Marine(http).FetchAsync(47.0, 8.0, _now, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchSuccess>(result);
         var forecast = Assert.IsType<DomainForecast<MarinePoint>>(success.Forecast);
@@ -302,7 +302,7 @@ public sealed class OpenMeteoClientTests
     {
         var http = StubOpenMeteoHandler.ClientFor("api", HttpStatusCode.BadRequest, OpenMeteoFixtures.NoDataReason);
 
-        var result = await Forecast(http).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
+        var result = await Forecast(http).FetchAsync(47.0, 8.0, _now, TestContext.Current.CancellationToken);
 
         Assert.IsType<FetchEmpty>(result);
     }
@@ -315,7 +315,7 @@ public sealed class OpenMeteoClientTests
     {
         var http = StubOpenMeteoHandler.ClientFor("api", status, "");
 
-        var result = await Forecast(http).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
+        var result = await Forecast(http).FetchAsync(47.0, 8.0, _now, TestContext.Current.CancellationToken);
 
         var error = Assert.IsType<FetchError>(result);
         Assert.Equal(PollFailureReason.Transport, error.Reason);
@@ -326,7 +326,7 @@ public sealed class OpenMeteoClientTests
     {
         var http = StubOpenMeteoHandler.ClientFor("api", HttpStatusCode.OK, OpenMeteoFixtures.Malformed);
 
-        var result = await Forecast(http).FetchAsync(47.0, 8.0, Now, TestContext.Current.CancellationToken);
+        var result = await Forecast(http).FetchAsync(47.0, 8.0, _now, TestContext.Current.CancellationToken);
 
         var error = Assert.IsType<FetchError>(result);
         Assert.Equal(PollFailureReason.Transport, error.Reason);
@@ -339,6 +339,6 @@ public sealed class OpenMeteoClientTests
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         await cts.CancelAsync();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Flood(http).FetchAsync(47.0, 8.0, Now, cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Flood(http).FetchAsync(47.0, 8.0, _now, cts.Token));
     }
 }

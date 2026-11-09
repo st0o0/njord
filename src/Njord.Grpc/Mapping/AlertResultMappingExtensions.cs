@@ -45,6 +45,7 @@ internal static class AlertResultMappingExtensions
         {
             proto.EarliestFrostHours = earliestFrostHours;
         }
+
         return proto;
     }
 
@@ -106,6 +107,7 @@ internal static class AlertResultMappingExtensions
         {
             proto.FreezingLevel = freezingLevel;
         }
+
         return proto;
     }
 
@@ -149,6 +151,7 @@ internal static class AlertResultMappingExtensions
         {
             proto.ExposureRisk = exposureRisk.ToProto();
         }
+
         return proto;
     }
 
@@ -158,7 +161,7 @@ internal static class AlertResultMappingExtensions
         {
             Alert = r.ToData(),
             MinVisibility = r.MinVisibility,
-            HoursBelow1000M = r.HoursBelow1000m,
+            HoursBelow1000M = r.HoursBelow1000M,
         };
     }
 
@@ -183,6 +186,7 @@ internal static class AlertResultMappingExtensions
         {
             proto.ComfortLevel = comfortLevel.ToProto();
         }
+
         return proto;
     }
 

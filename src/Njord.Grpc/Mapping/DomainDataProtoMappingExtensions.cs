@@ -115,7 +115,7 @@ internal static class DomainDataProtoMappingExtensions
         if (p.SurfacePressureSpread is { } surfacePressure) { sample.SurfacePressureSpread = surfacePressure; }
         if (p.WindDirectionSpread is { } windDirection) { sample.WindDirection10MSpread = windDirection; }
         if (p.WetBulbTemperatureSpread is { } wetBulb) { sample.WetBulbTemperature2MSpread = wetBulb; }
-        if (p.WindSpeed100mSpread is { } wind100) { sample.WindSpeed100MSpread = wind100; }
+        if (p.WindSpeed100MSpread is { } wind100) { sample.WindSpeed100MSpread = wind100; }
         return sample;
     }
 
@@ -147,8 +147,8 @@ internal static class DomainDataProtoMappingExtensions
         if (p.IsDay is { } isDay) { sample.IsDay = isDay > 0.5; }
         if (p.UvIndexClearSky is { } uvClearSkyW) { sample.UvIndexClearSky = uvClearSkyW; }
         if (p.Showers is { } showers) { sample.Showers = showers; }
-        if (p.SoilMoisture0To1cm is { } soilMoisture01) { sample.SoilMoisture0To1Cm = soilMoisture01; }
-        if (p.SoilMoisture1To3cm is { } soilMoisture13) { sample.SoilMoisture1To3Cm = soilMoisture13; }
+        if (p.SoilMoisture0To1Cm is { } soilMoisture01) { sample.SoilMoisture0To1Cm = soilMoisture01; }
+        if (p.SoilMoisture1To3Cm is { } soilMoisture13) { sample.SoilMoisture1To3Cm = soilMoisture13; }
         if (p.Evapotranspiration is { } et0) { sample.Evapotranspiration = et0; }
         if (p.VapourPressureDeficit is { } vpd) { sample.VapourPressureDeficit = vpd; }
         if (p.BoundaryLayerHeight is { } blh) { sample.BoundaryLayerHeight = blh; }
@@ -158,12 +158,12 @@ internal static class DomainDataProtoMappingExtensions
         if (p.ConvectiveInhibition is { } cin) { sample.ConvectiveInhibition = cin; }
         if (p.LiftedIndex is { } li) { sample.LiftedIndex = li; }
         if (p.SurfacePressure is { } sp) { sample.SurfacePressure = sp; }
-        if (p.WindSpeed80m is { } ws80) { sample.WindSpeed80M = ws80; }
-        if (p.WindDirection80m is { } wd80) { sample.WindDirection80M = wd80; }
-        if (p.WindSpeed120m is { } ws120) { sample.WindSpeed120M = ws120; }
-        if (p.WindDirection120m is { } wd120) { sample.WindDirection120M = wd120; }
-        if (p.Temperature80m is { } t80) { sample.Temperature80M = t80; }
-        if (p.Temperature120m is { } t120) { sample.Temperature120M = t120; }
+        if (p.WindSpeed80M is { } ws80) { sample.WindSpeed80M = ws80; }
+        if (p.WindDirection80M is { } wd80) { sample.WindDirection80M = wd80; }
+        if (p.WindSpeed120M is { } ws120) { sample.WindSpeed120M = ws120; }
+        if (p.WindDirection120M is { } wd120) { sample.WindDirection120M = wd120; }
+        if (p.Temperature80M is { } t80) { sample.Temperature80M = t80; }
+        if (p.Temperature120M is { } t120) { sample.Temperature120M = t120; }
         if (p.WindDirection is { } wd10) { sample.WindDirection10M = wd10; }
         if (p.SnowDepth is { } snowDepth) { sample.SnowDepth = snowDepth; }
         if (p.ShortwaveRadiation is { } shortwave) { sample.ShortwaveRadiation = shortwave; }
@@ -174,8 +174,8 @@ internal static class DomainDataProtoMappingExtensions
         if (p.GlobalTiltedIrradiance is { } gti) { sample.GlobalTiltedIrradiance = gti; }
         if (p.WetBulbTemperature is { } wetBulb) { sample.WetBulbTemperature2M = wetBulb; }
         if (p.SnowfallHeight is { } snowfallHeight) { sample.SnowfallHeight = snowfallHeight; }
-        if (p.WindSpeed100m is { } ws100) { sample.WindSpeed100M = ws100; }
-        if (p.WindDirection100m is { } wd100) { sample.WindDirection100M = wd100; }
+        if (p.WindSpeed100M is { } ws100) { sample.WindSpeed100M = ws100; }
+        if (p.WindDirection100M is { } wd100) { sample.WindDirection100M = wd100; }
         if (p.ThunderstormProbability is { } thunder) { sample.ThunderstormProbability = thunder; }
         if (p.PrecipitationType is { } precipType) { sample.PrecipitationType = precipType; }
         if (p.SurfaceTemperature is { } surfaceTemp) { sample.SurfaceTemperature = surfaceTemp; }

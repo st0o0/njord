@@ -28,7 +28,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
     private Akka.TestKit.TestProbe _forecasts = null!;
     private Akka.TestKit.TestProbe _region = null!;
 
-    private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
+    private static readonly Location _lucerne = new("lucerne", 47.05, 8.31);
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
@@ -57,7 +57,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
     private async Task<(FetchDomainCompleted Completed, DomainDataReceived Received)> FetchAsync(DomainKind domain, CancellationToken ct)
     {
         await _attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-        Gateway.Tell(new FetchDomain(Lucerne, domain));
+        Gateway.Tell(new FetchDomain(_lucerne, domain));
         var completed = await _region.ExpectMsgAsync<FetchDomainCompleted>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         var received = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         return (completed, received);
@@ -139,7 +139,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
         await _attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         _flood.Fails = true;
 
-        Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Flood));
+        Gateway.Tell(new FetchDomain(_lucerne, DomainKind.Flood));
 
         var failed = await _region.ExpectMsgAsync<FetchDomainFailed>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         Assert.Multiple(
@@ -155,7 +155,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
         await _attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         _weather.Throws = true;
 
-        Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Forecast));
+        Gateway.Tell(new FetchDomain(_lucerne, DomainKind.Forecast));
 
         var failed = await _region.ExpectMsgAsync<FetchDomainFailed>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         Assert.Multiple(
@@ -174,7 +174,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
             "gateway-without-flood");
         await _attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
 
-        gateway.Tell(new FetchDomain(Lucerne, DomainKind.Flood));
+        gateway.Tell(new FetchDomain(_lucerne, DomainKind.Flood));
 
         var rejected = await _region.ExpectMsgAsync<FetchDomainRejected>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         Assert.Multiple(
@@ -188,7 +188,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
     {
         var (completed, _) = await FetchAsync(DomainKind.Forecast, TestContext.Current.CancellationToken);
 
-        Assert.Equal(Lucerne, completed.Location);
+        Assert.Equal(_lucerne, completed.Location);
     }
 
     [Fact(Timeout = 30000)]
@@ -198,10 +198,10 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
         await _attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         _weather.Throws = true;
 
-        Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Forecast));
+        Gateway.Tell(new FetchDomain(_lucerne, DomainKind.Forecast));
 
         var failed = await _region.ExpectMsgAsync<FetchDomainFailed>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-        Assert.Equal(Lucerne, failed.Location);
+        Assert.Equal(_lucerne, failed.Location);
     }
 
     [Fact(Timeout = 30000)]
@@ -215,7 +215,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
         {
             for (var i = 0; i < 100; i++)
             {
-                Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Forecast));
+                Gateway.Tell(new FetchDomain(_lucerne, DomainKind.Forecast));
             }
 
             var rejected = await _region.ExpectMsgAsync<FetchDomainRejected>(TimeSpan.FromSeconds(5), cancellationToken: ct);
@@ -234,7 +234,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
         _ensemble.ModelIds = ["ukmo", "ecmwf"];
         await _attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
 
-        Gateway.Tell(new FetchDomain(Lucerne, DomainKind.Ensemble));
+        Gateway.Tell(new FetchDomain(_lucerne, DomainKind.Ensemble));
         var completed = await _region.ExpectMsgAsync<FetchDomainCompleted>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         var first = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         var second = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TimeSpan.FromSeconds(5), cancellationToken: ct);

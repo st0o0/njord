@@ -16,7 +16,8 @@ public sealed class ConfidenceTrend(IOptions<ConfidenceTrendConfig> config) : Fe
         FeatureCategory.Insight,
         Name: "ConfidenceTrend",
         new DomainRequirements(Ensemble: EnsembleParams.TemperatureSpread),
-        PollDepth: 1);
+        PollDepth: 1,
+        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor));
 
     public override bool Enabled => config.Value.Enabled;
 

@@ -15,7 +15,8 @@ public sealed class PollenAlert(IOptions<PollenConfig> config) : FeatureRule<AqI
         FeatureCategory.AirQuality,
         Name: "Pollen",
         new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
-            | AirQualityParams.Alder | AirQualityParams.Mugwort));
+            | AirQualityParams.Alder | AirQualityParams.Mugwort),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

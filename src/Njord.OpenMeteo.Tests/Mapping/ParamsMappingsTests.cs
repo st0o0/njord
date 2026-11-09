@@ -43,8 +43,8 @@ public sealed class ParamsMappingsTests
     [InlineData(ForecastParams.WetBulbTemperature, "wet_bulb_temperature_2m")]
     [InlineData(ForecastParams.SnowfallHeight, "snowfall_height")]
     [InlineData(ForecastParams.UvIndexClearSky, "uv_index_clear_sky")]
-    [InlineData(ForecastParams.WindSpeed100m, "wind_speed_100m")]
-    [InlineData(ForecastParams.WindDirection100m, "wind_direction_100m")]
+    [InlineData(ForecastParams.WindSpeed100M, "wind_speed_100m")]
+    [InlineData(ForecastParams.WindDirection100M, "wind_direction_100m")]
     [InlineData(ForecastParams.ThunderstormProbability, "thunderstorm_probability")]
     [InlineData(ForecastParams.PrecipitationType, "precipitation_type")]
     [InlineData(ForecastParams.SurfaceTemperature, "surface_temperature")]
@@ -117,7 +117,7 @@ public sealed class ParamsMappingsTests
     [InlineData(EnsembleParams.SurfacePressureSpread, "surface_pressure_spread")]
     [InlineData(EnsembleParams.WindDirectionSpread, "wind_direction_10m_spread")]
     [InlineData(EnsembleParams.WetBulbTemperatureSpread, "wet_bulb_temperature_2m_spread")]
-    [InlineData(EnsembleParams.WindSpeed100mSpread, "wind_speed_100m_spread")]
+    [InlineData(EnsembleParams.WindSpeed100MSpread, "wind_speed_100m_spread")]
     public void Should_map_each_ensemble_flag_to_its_api_name(EnsembleParams param, string expected) =>
         Assert.Equal([expected], param.ToApiNames());
 

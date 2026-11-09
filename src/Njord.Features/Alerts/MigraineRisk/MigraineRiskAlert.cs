@@ -23,7 +23,8 @@ public sealed class MigraineRiskAlert(IOptions<MigraineRiskConfig> config) : Fea
         new DomainRequirements(
             Forecast: ForecastParams.Pressure | ForecastParams.Temperature | ForecastParams.Humidity
                 | ForecastParams.DewPoint | ForecastParams.WindDirection),
-        PollDepth: ShortLookbackHours);
+        PollDepth: ShortLookbackHours,
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -39,23 +40,23 @@ public sealed class MigraineRiskAlert(IOptions<MigraineRiskConfig> config) : Fea
             return null;
         }
 
-        var drop6h = Drop(ctx, nowHour, pressureNow, ShortLookbackHours);
-        var drop24h = Drop(ctx, nowHour, pressureNow, LongLookbackHours);
+        var drop6H = Drop(ctx, nowHour, pressureNow, ShortLookbackHours);
+        var drop24H = Drop(ctx, nowHour, pressureNow, LongLookbackHours);
 
         var level = 0;
         var trigger = 0.0;
-        var threshold = cfg.PressureThreshold6h;
-        if (drop6h >= cfg.PressureThreshold6h)
+        var threshold = cfg.PressureThreshold6H;
+        if (drop6H >= cfg.PressureThreshold6H)
         {
             level = 1;
-            trigger = drop6h;
+            trigger = drop6H;
         }
 
-        if (drop24h >= cfg.PressureThreshold24h)
+        if (drop24H >= cfg.PressureThreshold24H)
         {
             level = 2;
-            trigger = drop24h;
-            threshold = cfg.PressureThreshold24h;
+            trigger = drop24H;
+            threshold = cfg.PressureThreshold24H;
         }
 
         if (level > 0)

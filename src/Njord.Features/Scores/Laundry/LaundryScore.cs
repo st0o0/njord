@@ -18,7 +18,8 @@ public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<F
         Name: "Laundry",
         new DomainRequirements(Forecast: ForecastParams.Precipitation | ForecastParams.Temperature | ForecastParams.Humidity
             | ForecastParams.WindSpeed | ForecastParams.PrecipitationProbability | ForecastParams.CloudCover,
-        OptionalForecast: ForecastParams.SunshineDuration | ForecastParams.IsDay));
+        OptionalForecast: ForecastParams.SunshineDuration | ForecastParams.IsDay),
+        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor, Unit: "%"));
 
     public override bool Enabled => config.Value.Enabled;
 

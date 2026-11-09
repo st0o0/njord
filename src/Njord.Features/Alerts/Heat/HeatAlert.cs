@@ -15,7 +15,8 @@ public sealed class HeatAlert(IOptions<HeatConfig> config) : FeatureRule<Forecas
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Heat",
-        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.ApparentTemperature, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.ApparentTemperature, Ensemble: EnsembleParams.TemperatureSpread),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

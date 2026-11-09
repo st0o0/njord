@@ -16,13 +16,13 @@ public sealed record EnsemblePoint(
     double? SurfacePressureSpread = null,
     double? WindDirectionSpread = null,
     double? WetBulbTemperatureSpread = null,
-    double? WindSpeed100mSpread = null) : IHasValidTime
+    double? WindSpeed100MSpread = null) : IHasValidTime
 {
-    private static readonly EnsembleParams[] Flags =
+    private static readonly EnsembleParams[] _flags =
         [.. Enum.GetValues<EnsembleParams>().Where(p => p != EnsembleParams.None)];
 
     public bool HasFields(EnsembleParams required) =>
-        Flags.All(flag => !required.HasFlag(flag) || Has(flag));
+        _flags.All(flag => !required.HasFlag(flag) || Has(flag));
 
     private bool Has(EnsembleParams param) => param switch
     {
@@ -40,7 +40,7 @@ public sealed record EnsemblePoint(
         EnsembleParams.SurfacePressureSpread => SurfacePressureSpread is not null,
         EnsembleParams.WindDirectionSpread => WindDirectionSpread is not null,
         EnsembleParams.WetBulbTemperatureSpread => WetBulbTemperatureSpread is not null,
-        EnsembleParams.WindSpeed100mSpread => WindSpeed100mSpread is not null,
+        EnsembleParams.WindSpeed100MSpread => WindSpeed100MSpread is not null,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

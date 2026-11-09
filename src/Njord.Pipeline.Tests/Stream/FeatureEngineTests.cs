@@ -16,7 +16,7 @@ namespace Njord.Pipeline.Tests.Stream;
 
 public sealed class FeatureEngineTests
 {
-    private static readonly DateTimeOffset Start = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _start = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
 
     private sealed record Seen(ForecastInput Current, IReadOnlyList<ForecastInput> History);
 
@@ -45,12 +45,12 @@ public sealed class FeatureEngineTests
     private static DomainRequirements Temperature => new(Forecast: ForecastParams.Temperature);
 
     private static FeatureEngine Engine(params IFeatureRule[] rules) =>
-        new(rules, new FakeTimeProvider(Start));
+        new(rules, new FakeTimeProvider(_start));
 
     private static double? TemperatureOf(ForecastInput input) => input.Forecast.Points[0].Temperature;
 
     private static DomainDataReceived Forecast(Location location, double temperature) =>
-        DomainData.Received(location, DomainData.Forecast(Start, 4, (_, p) => p with { Temperature = temperature }));
+        DomainData.Received(location, DomainData.Forecast(_start, 4, (_, p) => p with { Temperature = temperature }));
 
     [Fact]
     public void The_domain_event_comes_first_followed_by_the_feature_result()
@@ -128,7 +128,7 @@ public sealed class FeatureEngineTests
         var engine = Engine(rule);
 
         engine.Process(Forecast(DomainData.Lucerne, 10.0));
-        engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Flood(Start)));
+        engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Flood(_start)));
         engine.Process(Forecast(DomainData.Lucerne, 1.0));
 
         var last = rule.Calls[^1];
@@ -201,7 +201,7 @@ public sealed class FeatureEngineTests
         var engine = Engine(rule);
 
         var events = engine.Process(
-            DomainData.Received(DomainData.Lucerne, DomainData.Forecast(Start, 4, (_, p) => p with { Temperature = 10.0, WeatherCode = null })));
+            DomainData.Received(DomainData.Lucerne, DomainData.Forecast(_start, 4, (_, p) => p with { Temperature = 10.0, WeatherCode = null })));
 
         Assert.Multiple(
             () => Assert.Single(rule.Calls),
@@ -233,7 +233,7 @@ public sealed class FeatureEngineTests
         engine.Process(Forecast(DomainData.Lucerne, 10.0));
         Assert.Empty(rule.Calls);
 
-        engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Flood(Start)));
+        engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Flood(_start)));
         Assert.Single(rule.Calls);
     }
 
@@ -255,9 +255,9 @@ public sealed class FeatureEngineTests
     {
         var engine = Engine(new FrostAlert(Options.Create(new FrostConfig { Thresholds = FrostConfig.DefaultThresholds })));
 
-        engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Ensemble(Start)));
+        engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Ensemble(_start)));
         var events = engine.Process(
-            DomainData.Received(DomainData.Lucerne, DomainData.Forecast(Start, 48, (_, p) => p with { Temperature = -6.0 })));
+            DomainData.Received(DomainData.Lucerne, DomainData.Forecast(_start, 48, (_, p) => p with { Temperature = -6.0 })));
 
         Assert.Equal(2, events.Count);
         Assert.IsType<ForecastDataReceived>(events[0]);
@@ -294,7 +294,7 @@ public sealed class FeatureEngineTests
         engine.Process(Forecast(DomainData.Lucerne, 10.0));
         Assert.Empty(rule.Calls);
 
-        engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Ensemble(Start)));
+        engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Ensemble(_start)));
         Assert.Single(rule.Calls);
     }
 
@@ -304,7 +304,7 @@ public sealed class FeatureEngineTests
         var rule = new EnsembleProbeRule();
         var engine = Engine(rule);
 
-        engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Ensemble(Start, temperatureSpread: 2.5)));
+        engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Ensemble(_start, temperatureSpread: 2.5)));
         engine.Process(Forecast(DomainData.Lucerne, 10.0));
 
         var call = Assert.Single(rule.Calls);
@@ -315,7 +315,7 @@ public sealed class FeatureEngineTests
     public void Data_that_does_not_match_its_domain_is_rejected()
     {
         var engine = Engine();
-        var mismatched = new DomainDataReceived(DomainData.Lucerne, DomainKind.Forecast, DomainData.Flood(Start));
+        var mismatched = new DomainDataReceived(DomainData.Lucerne, DomainKind.Forecast, DomainData.Flood(_start));
 
         var ex = Assert.Throws<ArgumentException>(() => engine.Process(mismatched));
 
@@ -342,7 +342,7 @@ public sealed class FeatureEngineTests
     }
 
     private static DomainDataReceived ModelData(Location location, string modelId, double temperature) =>
-        DomainData.Received(location, DomainData.Forecast(Start, 4, (_, p) => p with { Temperature = temperature })) with { ModelId = modelId };
+        DomainData.Received(location, DomainData.Forecast(_start, 4, (_, p) => p with { Temperature = temperature })) with { ModelId = modelId };
 
     [Fact]
     public void A_secondary_model_emits_its_data_event_but_runs_no_rule()

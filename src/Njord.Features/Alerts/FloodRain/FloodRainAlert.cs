@@ -16,7 +16,8 @@ public sealed class FloodRainAlert(IOptions<FloodRainConfig> config) : FeatureRu
         FeatureCategory.Flood,
         Name: "FloodRain",
         new DomainRequirements(Forecast: ForecastParams.Precipitation,
-            Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75));
+            Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

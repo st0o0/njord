@@ -20,7 +20,7 @@ public sealed class GatewayRestartTests : Akka.Hosting.TestKit.TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
-    private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
+    private static readonly Location _lucerne = new("lucerne", 47.05, 8.31);
 
     private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private readonly FakeForecastClient _weather = new();
@@ -50,7 +50,7 @@ public sealed class GatewayRestartTests : Akka.Hosting.TestKit.TestKit
         // The budget read fault is thrown inside the gate stage: supervision drops that one request without a reply.
         _budget.ThrowOnNextRead = true;
         _time.Advance(TimeSpan.FromSeconds(6));
-        gateway.Tell(new FetchDomain(Lucerne, DomainKind.Forecast));
+        gateway.Tell(new FetchDomain(_lucerne, DomainKind.Forecast));
 
         await FetchUntilCompletedAsync(gateway, region, ct);
 
@@ -58,7 +58,7 @@ public sealed class GatewayRestartTests : Akka.Hosting.TestKit.TestKit
             m => m is ForecastDataReceived or ConsumerCompleted or ConsumerFailed,
             TimeSpan.FromSeconds(10), cancellationToken: ct);
         var weather = Assert.IsType<ForecastDataReceived>(next);
-        Assert.Equal(Lucerne.Name, weather.Location.Name);
+        Assert.Equal(_lucerne.Name, weather.Location.Name);
     }
 
     [Fact(Timeout = 30000)]
@@ -81,7 +81,7 @@ public sealed class GatewayRestartTests : Akka.Hosting.TestKit.TestKit
 
         _budget.ThrowOnNextRead = true;
         _time.Advance(TimeSpan.FromSeconds(6));
-        gateway.Tell(new FetchDomain(Lucerne, DomainKind.Forecast));
+        gateway.Tell(new FetchDomain(_lucerne, DomainKind.Forecast));
         await FetchUntilCompletedAsync(gateway, region, ct);
 
         Assert.Equal(1, Volatile.Read(ref outputRequests));
@@ -91,7 +91,7 @@ public sealed class GatewayRestartTests : Akka.Hosting.TestKit.TestKit
     private async Task FetchUntilCompletedAsync(IActorRef gateway, Akka.TestKit.TestProbe region, CancellationToken ct) =>
         await AwaitAssertAsync(async () =>
         {
-            gateway.Tell(new FetchDomain(Lucerne, DomainKind.Forecast));
+            gateway.Tell(new FetchDomain(_lucerne, DomainKind.Forecast));
             var reply = await region.ExpectMsgAsync<FetchDomainResponse>(TimeSpan.FromSeconds(10), cancellationToken: ct);
             Assert.IsType<FetchDomainCompleted>(reply);
         }, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(200), cancellationToken: ct);

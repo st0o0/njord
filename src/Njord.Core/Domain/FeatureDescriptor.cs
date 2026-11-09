@@ -6,4 +6,5 @@ public sealed record FeatureDescriptor(
     FeatureCategory Category,
     string Name,
     DomainRequirements Requirements,
-    int PollDepth = 0);
+    int PollDepth = 0,
+    EntityMetadata? EntityMetadata = null);

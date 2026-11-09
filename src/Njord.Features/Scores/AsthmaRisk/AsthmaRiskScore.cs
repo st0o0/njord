@@ -26,7 +26,8 @@ public sealed class AsthmaRiskScore(IOptions<AsthmaRiskConfig> config) : Feature
         Name: "AsthmaRisk",
         new DomainRequirements(
             Forecast: ForecastParams.Temperature | ForecastParams.Humidity | ForecastParams.BoundaryLayerHeight,
-            AirQuality: AirQualityParams.Pm25 | AirQualityParams.Ozone | AirQualityParams.BirchPollen | AirQualityParams.GrassPollen));
+            AirQuality: AirQualityParams.Pm25 | AirQualityParams.Ozone | AirQualityParams.BirchPollen | AirQualityParams.GrassPollen),
+        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor, Unit: "%"));
 
     public override bool Enabled => config.Value.Enabled;
 

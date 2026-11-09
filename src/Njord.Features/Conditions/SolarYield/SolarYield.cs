@@ -16,7 +16,8 @@ public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<
         OutputKind.Condition,
         FeatureCategory.Energy,
         Name: "SolarYield",
-        new DomainRequirements(Forecast: ForecastParams.GlobalTiltedIrradiance));
+        new DomainRequirements(Forecast: ForecastParams.GlobalTiltedIrradiance),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -37,8 +38,8 @@ public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<
         var options = config.Value;
         var kwhPerSquareMeter = hours.Sum(hour => hour.Radiation) / 1000.0;
         var yield = kwhPerSquareMeter * options.SystemEfficiency * options.PeakKw;
-        var (ValidFrom, Radiation) = hours.MaxBy(hour => hour.Radiation);
-        return new SolarYieldResult(ctx.Location, Math.Round(yield, 2), ValidFrom.Hour);
+        var (validFrom, radiation) = hours.MaxBy(hour => hour.Radiation);
+        return new SolarYieldResult(ctx.Location, Math.Round(yield, 2), validFrom.Hour);
     }
 
     protected override IReadOnlyList<PipelineEvent> EvaluateAll(FeatureContext<ForecastInput> ctx)

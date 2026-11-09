@@ -5,12 +5,12 @@ namespace Njord.Grpc.Tests;
 
 public sealed class MarineSampleMappingsTests
 {
-    private static readonly DateTimeOffset At = new(2026, 7, 1, 6, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _at = new(2026, 7, 1, 6, 0, 0, TimeSpan.Zero);
 
     [Fact]
     public void Swell_wind_wave_and_sea_level_values_map_to_their_own_fields()
     {
-        var sample = new MarinePoint(At, WaveHeight: 1.5, WindWaveHeight: 0.5, WindWavePeriod: 4, WindWaveDirection: 90,
+        var sample = new MarinePoint(_at, WaveHeight: 1.5, WindWaveHeight: 0.5, WindWavePeriod: 4, WindWaveDirection: 90,
             WindWavePeakPeriod: 5, SwellWaveHeight: 1.4, SwellWavePeriod: 12, SwellWaveDirection: 270,
             SwellWavePeakPeriod: 14, SeaLevelHeight: 0.3).ToProto();
 
@@ -30,7 +30,7 @@ public sealed class MarineSampleMappingsTests
     [Fact]
     public void Wave_peak_period_maps_to_its_own_field()
     {
-        var sample = new MarinePoint(At, WavePeakPeriod: 9.5).ToProto();
+        var sample = new MarinePoint(_at, WavePeakPeriod: 9.5).ToProto();
 
         Assert.Equal(9.5, sample.WavePeakPeriod);
     }
@@ -38,7 +38,7 @@ public sealed class MarineSampleMappingsTests
     [Fact]
     public void Missing_swell_values_stay_unset()
     {
-        var sample = new MarinePoint(At, WaveHeight: 1.5).ToProto();
+        var sample = new MarinePoint(_at, WaveHeight: 1.5).ToProto();
 
         Assert.Multiple(
             () => Assert.False(sample.HasSwellWaveHeight),

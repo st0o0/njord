@@ -23,7 +23,8 @@ public sealed class OutdoorScore(IOptions<OutdoorConfig> config) : FeatureRule<F
         AirQuality: AirQualityParams.Pm25,
         OptionalForecast: ForecastParams.UvIndex | ForecastParams.IsDay,
         OptionalAirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
-            | AirQualityParams.Alder | AirQualityParams.Mugwort));
+            | AirQualityParams.Alder | AirQualityParams.Mugwort),
+        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor, Unit: "%"));
 
     public override bool Enabled => config.Value.Enabled;
 

@@ -27,7 +27,7 @@ public sealed class FireRiskAlertTests
             Temperature = 38.0,
             Humidity = 15.0,
             WindSpeed = 8.0,
-            SoilMoisture0To1cm = 0.05,
+            SoilMoisture0To1Cm = 0.05,
             Precipitation = 0.0,
         });
         var result = Run(weather);
@@ -44,7 +44,7 @@ public sealed class FireRiskAlertTests
             Temperature = 33.0,
             Humidity = 20.0,
             WindSpeed = 5.0,
-            SoilMoisture0To1cm = 0.05,
+            SoilMoisture0To1Cm = 0.05,
             Precipitation = 0.0,
         });
         var result = Run(weather);
@@ -62,7 +62,7 @@ public sealed class FireRiskAlertTests
             Temperature = 25.0,
             Humidity = 60.0,
             WindSpeed = 2.0,
-            SoilMoisture0To1cm = 0.30,
+            SoilMoisture0To1Cm = 0.30,
             Precipitation = 5.0,
         });
         var result = Run(weather);
@@ -77,7 +77,7 @@ public sealed class FireRiskAlertTests
             Temperature = 38.0,
             Humidity = 15.0,
             WindSpeed = 8.0,
-            SoilMoisture0To1cm = 0.05,
+            SoilMoisture0To1Cm = 0.05,
             Precipitation = 0.0,
         });
         var ensemble = EnsembleDay(spread: 0.5);
@@ -95,7 +95,7 @@ public sealed class FireRiskAlertTests
             Temperature = 10.0,
             Humidity = 15.0,
             WindSpeed = 8.0,
-            SoilMoisture0To1cm = 0.05,
+            SoilMoisture0To1Cm = 0.05,
             Precipitation = 0.0,
         });
         Assert.Null(Run(weather));
@@ -109,7 +109,7 @@ public sealed class FireRiskAlertTests
             Temperature = 38.0,
             Humidity = 75.0,
             WindSpeed = 8.0,
-            SoilMoisture0To1cm = 0.05,
+            SoilMoisture0To1Cm = 0.05,
             Precipitation = 0.0,
         });
         Assert.Null(Run(weather));
@@ -123,7 +123,7 @@ public sealed class FireRiskAlertTests
             Temperature = 35.0,
             Humidity = 25.0,
             WindSpeed = 6.0,
-            SoilMoisture0To1cm = 0.08,
+            SoilMoisture0To1Cm = 0.08,
             Precipitation = 0.0,
         });
         var result = Run(weather);
@@ -141,7 +141,7 @@ public sealed class FireRiskAlertTests
             Temperature = 33.0,
             Humidity = 20.0,
             WindSpeed = 5.0,
-            SoilMoisture0To1cm = 0.05,
+            SoilMoisture0To1Cm = 0.05,
             Precipitation = 0.0,
         });
         var wetWeather = Day((_, p) => p with
@@ -149,7 +149,7 @@ public sealed class FireRiskAlertTests
             Temperature = 33.0,
             Humidity = 20.0,
             WindSpeed = 5.0,
-            SoilMoisture0To1cm = 0.25,
+            SoilMoisture0To1Cm = 0.25,
             Precipitation = 0.0,
         });
         var dryResult = Assert.IsType<FireRiskAlertResult>(Run(dryWeather), exactMatch: false);
@@ -170,7 +170,7 @@ public sealed class FireRiskAlertTests
             Temperature = 35.0,
             Humidity = 20.0,
             WindSpeed = 6.0,
-            SoilMoisture0To1cm = 0.05,
+            SoilMoisture0To1Cm = 0.05,
             Precipitation = 0.0,
         });
         var rainyWeather = Day((_, p) => p with
@@ -178,7 +178,7 @@ public sealed class FireRiskAlertTests
             Temperature = 35.0,
             Humidity = 20.0,
             WindSpeed = 6.0,
-            SoilMoisture0To1cm = 0.05,
+            SoilMoisture0To1Cm = 0.05,
             Precipitation = 3.0,
         });
         var dryResult = Assert.IsType<FireRiskAlertResult>(Run(dryWeather), exactMatch: false);
@@ -195,7 +195,7 @@ public sealed class FireRiskAlertTests
             Temperature = 35.0,
             Humidity = 20.0,
             WindSpeed = 6.0,
-            SoilMoisture0To1cm = null,
+            SoilMoisture0To1Cm = null,
             Precipitation = 0.0,
         });
         var result = Run(weather);
@@ -210,7 +210,7 @@ public sealed class FireRiskAlertTests
             Temperature = 27.0,
             Humidity = 20.0,
             WindSpeed = 6.0,
-            SoilMoisture0To1cm = 0.05,
+            SoilMoisture0To1Cm = 0.05,
             Precipitation = 0.0,
         });
         var result = Run(weather);
@@ -227,7 +227,7 @@ public sealed class FireRiskAlertTests
             Temperature = 35.0,
             Humidity = 45.0,
             WindSpeed = 6.0,
-            SoilMoisture0To1cm = 0.05,
+            SoilMoisture0To1Cm = 0.05,
             Precipitation = 0.0,
         });
         var result = Run(weather);
@@ -244,7 +244,7 @@ public sealed class FireRiskAlertTests
             Temperature = 35.0,
             Humidity = 50.0,
             WindSpeed = 6.0,
-            SoilMoisture0To1cm = 0.05,
+            SoilMoisture0To1Cm = 0.05,
             Precipitation = 0.0,
         });
         Assert.Null(Run(weather));
@@ -258,7 +258,7 @@ public sealed class FireRiskAlertTests
             Temperature = 35.0,
             Humidity = 20.0,
             WindSpeed = 4.0,
-            SoilMoisture0To1cm = 0.05,
+            SoilMoisture0To1Cm = 0.05,
             Precipitation = 0.0,
         });
         var result = Run(weather);
@@ -275,7 +275,7 @@ public sealed class FireRiskAlertTests
             Temperature = 35.0,
             Humidity = 20.0,
             WindSpeed = 6.0,
-            SoilMoisture0To1cm = 0.20,
+            SoilMoisture0To1Cm = 0.20,
             Precipitation = 0.0,
         });
         var result = Run(weather);
@@ -292,7 +292,7 @@ public sealed class FireRiskAlertTests
             Temperature = 35.0,
             Humidity = 20.0,
             WindSpeed = 6.0,
-            SoilMoisture0To1cm = 0.15,
+            SoilMoisture0To1Cm = 0.15,
             Precipitation = 0.0,
         });
         var result = Run(weather);
@@ -309,7 +309,7 @@ public sealed class FireRiskAlertTests
             Temperature = 26.0,
             Humidity = 20.0,
             WindSpeed = 3.0,
-            SoilMoisture0To1cm = 0.20,
+            SoilMoisture0To1Cm = 0.20,
             Precipitation = 3.0,
         });
         var result = Run(weather);
@@ -327,7 +327,7 @@ public sealed class FireRiskAlertTests
             Temperature = 35.0,
             Humidity = 20.0,
             WindSpeed = 6.0,
-            SoilMoisture0To1cm = 0.05,
+            SoilMoisture0To1Cm = 0.05,
             Precipitation = 0.0,
             IsDay = hour < 12 ? 1.0 : 0.0,
         });

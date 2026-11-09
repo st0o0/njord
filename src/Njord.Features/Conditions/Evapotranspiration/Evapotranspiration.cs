@@ -13,7 +13,8 @@ public sealed class Evapotranspiration(IOptions<EvapotranspirationConfig> config
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
         Name: "Evapotranspiration",
-        new DomainRequirements(Forecast: ForecastParams.Evapotranspiration));
+        new DomainRequirements(Forecast: ForecastParams.Evapotranspiration),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 

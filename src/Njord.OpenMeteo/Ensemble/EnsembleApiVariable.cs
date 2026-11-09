@@ -33,5 +33,5 @@ public enum EnsembleApiVariable
     [JsonStringEnumMemberName("wet_bulb_temperature_2m_spread")]
     WetBulbTemperatureSpread,
     [JsonStringEnumMemberName("wind_speed_100m_spread")]
-    WindSpeed100mSpread,
+    WindSpeed100MSpread,
 }

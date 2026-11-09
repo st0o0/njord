@@ -8,28 +8,28 @@ internal static class Telemetry
 
     internal static readonly Meter Meter = new(MeterName);
 
-    private static long DailyUsedValue;
-    private static long MonthlyUsedValue;
-    private static long DailyLimitValue;
-    private static long MonthlyLimitValue;
+    private static long _dailyUsedValue;
+    private static long _monthlyUsedValue;
+    private static long _dailyLimitValue;
+    private static long _monthlyLimitValue;
 
-    internal static void SetDailyUsed(long value) => Volatile.Write(ref DailyUsedValue, value);
+    internal static void SetDailyUsed(long value) => Volatile.Write(ref _dailyUsedValue, value);
 
-    internal static void SetMonthlyUsed(long value) => Volatile.Write(ref MonthlyUsedValue, value);
+    internal static void SetMonthlyUsed(long value) => Volatile.Write(ref _monthlyUsedValue, value);
 
-    internal static void SetDailyLimit(long value) => Volatile.Write(ref DailyLimitValue, value);
+    internal static void SetDailyLimit(long value) => Volatile.Write(ref _dailyLimitValue, value);
 
-    internal static void SetMonthlyLimit(long value) => Volatile.Write(ref MonthlyLimitValue, value);
+    internal static void SetMonthlyLimit(long value) => Volatile.Write(ref _monthlyLimitValue, value);
 
     internal static readonly ObservableGauge<long> UsedDaily =
-        Meter.CreateObservableGauge("njord_budget_used_daily", () => Volatile.Read(ref DailyUsedValue), "{request}");
+        Meter.CreateObservableGauge("njord_budget_used_daily", () => Volatile.Read(ref _dailyUsedValue), "{request}");
 
     internal static readonly ObservableGauge<long> UsedMonthly =
-        Meter.CreateObservableGauge("njord_budget_used_monthly", () => Volatile.Read(ref MonthlyUsedValue), "{request}");
+        Meter.CreateObservableGauge("njord_budget_used_monthly", () => Volatile.Read(ref _monthlyUsedValue), "{request}");
 
     internal static readonly ObservableGauge<long> LimitDaily =
-        Meter.CreateObservableGauge("njord_budget_limit_daily", () => Volatile.Read(ref DailyLimitValue), "{request}");
+        Meter.CreateObservableGauge("njord_budget_limit_daily", () => Volatile.Read(ref _dailyLimitValue), "{request}");
 
     internal static readonly ObservableGauge<long> LimitMonthly =
-        Meter.CreateObservableGauge("njord_budget_limit_monthly", () => Volatile.Read(ref MonthlyLimitValue), "{request}");
+        Meter.CreateObservableGauge("njord_budget_limit_monthly", () => Volatile.Read(ref _monthlyLimitValue), "{request}");
 }

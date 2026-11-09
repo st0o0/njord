@@ -15,7 +15,8 @@ public sealed class StormAlert(IOptions<StormConfig> config) : FeatureRule<Forec
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Storm",
-        new DomainRequirements(Forecast: ForecastParams.WindGusts, Ensemble: EnsembleParams.WindSpeedSpread));
+        new DomainRequirements(Forecast: ForecastParams.WindGusts, Ensemble: EnsembleParams.WindSpeedSpread),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

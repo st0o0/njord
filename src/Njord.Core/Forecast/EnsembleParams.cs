@@ -18,5 +18,5 @@ public enum EnsembleParams : long
     SurfacePressureSpread = 1L << 11,
     WindDirectionSpread = 1L << 12,
     WetBulbTemperatureSpread = 1L << 13,
-    WindSpeed100mSpread = 1L << 14,
+    WindSpeed100MSpread = 1L << 14,
 }

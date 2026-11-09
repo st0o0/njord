@@ -17,7 +17,8 @@ public sealed class PressureDropAlert(IOptions<PressureDropConfig> config) : Fea
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "PressureDrop",
-        new DomainRequirements(Forecast: ForecastParams.Pressure));
+        new DomainRequirements(Forecast: ForecastParams.Pressure),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

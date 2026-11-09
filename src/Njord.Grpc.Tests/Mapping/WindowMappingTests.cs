@@ -10,20 +10,20 @@ namespace Njord.Grpc.Tests.Mapping;
 
 public sealed class WindowMappingTests
 {
-    private static readonly DateTimeOffset Start = new(2026, 6, 1, 8, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _start = new(2026, 6, 1, 8, 0, 0, TimeSpan.Zero);
 
     [Fact]
     public void Activity_window_maps_to_time_window()
     {
-        var window = new ActivityWindow(Start, Start.AddHours(3), 72,
-            new LimitingFactor(DomainLimitingKind.Wind, Start.AddHours(3), 12.5));
+        var window = new ActivityWindow(_start, _start.AddHours(3), 72,
+            new LimitingFactor(DomainLimitingKind.Wind, _start.AddHours(3), 12.5));
 
         var proto = window.ToProto();
 
         Assert.NotNull(proto.Limiting);
         Assert.Multiple(
-            () => Assert.Equal(Start.ToTimestamp(), proto.Start),
-            () => Assert.Equal(Start.AddHours(3).ToTimestamp(), proto.End),
+            () => Assert.Equal(_start.ToTimestamp(), proto.Start),
+            () => Assert.Equal(_start.AddHours(3).ToTimestamp(), proto.End),
             () => Assert.Equal(72, proto.Score),
             () => Assert.Equal(ProtoLimitingKind.Wind, proto.Limiting.Kind));
     }
@@ -31,7 +31,7 @@ public sealed class WindowMappingTests
     [Fact]
     public void Window_without_limiting_factor_maps_to_null()
     {
-        var proto = new ActivityWindow(Start, Start.AddHours(2), 60, null).ToProto();
+        var proto = new ActivityWindow(_start, _start.AddHours(2), 60, null).ToProto();
 
         Assert.Null(proto.Limiting);
     }
@@ -39,11 +39,11 @@ public sealed class WindowMappingTests
     [Fact]
     public void Limiting_factor_maps_kind_time_and_value()
     {
-        var proto = new LimitingFactor(DomainLimitingKind.Rain, Start, 4.2).ToProto();
+        var proto = new LimitingFactor(DomainLimitingKind.Rain, _start, 4.2).ToProto();
 
         Assert.Multiple(
             () => Assert.Equal(ProtoLimitingKind.Rain, proto.Kind),
-            () => Assert.Equal(Start.ToTimestamp(), proto.From),
+            () => Assert.Equal(_start.ToTimestamp(), proto.From),
             () => Assert.Equal(4.2, proto.Value));
     }
 
@@ -65,7 +65,7 @@ public sealed class WindowMappingTests
     [Fact]
     public void Score_without_windows_maps_to_empty_repeated()
     {
-        var result = new LaundryScoreResult(new Location("Home", 47.0, 8.0), 70, Start, 3);
+        var result = new LaundryScoreResult(new Location("Home", 47.0, 8.0), 70, _start, 3);
 
         Assert.Empty(result.ToData().Windows);
     }
@@ -73,9 +73,9 @@ public sealed class WindowMappingTests
     [Fact]
     public void Score_windows_map_to_repeated_time_windows()
     {
-        var result = new LaundryScoreResult(new Location("Home", 47.0, 8.0), 70, Start, 3)
+        var result = new LaundryScoreResult(new Location("Home", 47.0, 8.0), 70, _start, 3)
         {
-            Windows = [new ActivityWindow(Start, Start.AddHours(3), 70, null)],
+            Windows = [new ActivityWindow(_start, _start.AddHours(3), 70, null)],
         };
 
         var window = Assert.Single(result.ToData().Windows);

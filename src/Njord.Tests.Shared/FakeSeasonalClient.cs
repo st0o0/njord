@@ -8,9 +8,9 @@ namespace Njord.Tests.Shared;
 
 public sealed class FakeSeasonalClient : IDomainClient
 {
-    private static readonly double[] Temperature = [1.0, 1.5, 0.5, 2.0, 1.0];
-    private static readonly double[] Precipitation = [5.0, -10.0, 0.0, 4.0, 8.0];
-    private static readonly double[] Mean = [80.0, 90.0, 100.0, 100.0, 90.0];
+    private static readonly double[] _temperature = [1.0, 1.5, 0.5, 2.0, 1.0];
+    private static readonly double[] _precipitation = [5.0, -10.0, 0.0, 4.0, 8.0];
+    private static readonly double[] _mean = [80.0, 90.0, 100.0, 100.0, 90.0];
 
     public DomainKind Domain => DomainKind.Seasonal;
 
@@ -31,12 +31,12 @@ public sealed class FakeSeasonalClient : IDomainClient
             return Task.FromResult<FetchResult>(new FetchEmpty());
         }
 
-        var points = Enumerable.Range(0, Temperature.Length)
+        var points = Enumerable.Range(0, _temperature.Length)
             .Select(i => new SeasonalPoint(
                 new DateTimeOffset(2026, 7 + i, 1, 0, 0, 0, TimeSpan.Zero),
-                TemperatureAnomaly: Temperature[i],
-                PrecipitationAnomaly: Precipitation[i],
-                PrecipitationMean: Mean[i]))
+                TemperatureAnomaly: _temperature[i],
+                PrecipitationAnomaly: _precipitation[i],
+                PrecipitationMean: _mean[i]))
             .ToImmutableArray();
 
         return Task.FromResult<FetchResult>(new FetchSuccess(

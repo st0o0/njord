@@ -17,7 +17,8 @@ public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : Fea
         new DomainRequirements(
             Forecast: ForecastParams.Cape | ForecastParams.Precipitation | ForecastParams.WindGusts,
             OptionalForecast: ForecastParams.ConvectiveInhibition,
-            Ensemble: EnsembleParams.WindSpeedSpread));
+            Ensemble: EnsembleParams.WindSpeedSpread),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

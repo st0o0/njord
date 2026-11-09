@@ -11,11 +11,11 @@ public sealed record FloodPoint(
     double? DischargeP75 = null,
     IReadOnlyList<double>? EnsembleMembers = null) : IHasValidTime
 {
-    private static readonly FloodParams[] Flags =
+    private static readonly FloodParams[] _flags =
         [.. Enum.GetValues<FloodParams>().Where(p => p != FloodParams.None)];
 
     public bool HasFields(FloodParams required) =>
-        Flags.All(flag => !required.HasFlag(flag) || Has(flag));
+        _flags.All(flag => !required.HasFlag(flag) || Has(flag));
 
     private bool Has(FloodParams param) => param switch
     {

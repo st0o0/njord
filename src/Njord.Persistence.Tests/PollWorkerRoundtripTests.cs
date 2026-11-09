@@ -4,15 +4,15 @@ namespace Njord.Persistence.Tests;
 
 public sealed class PollWorkerRoundtripTests
 {
-    private static readonly DateTimeOffset Utc = new(2026, 7, 15, 10, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _utc = new(2026, 7, 15, 10, 0, 0, TimeSpan.Zero);
 
     public static TheoryData<object> Events() =>
     [
-        new PollingStarted("lucerne", [(int)0, (int)1], TimeSpan.FromMinutes(20), Utc, 47.05, 8.31),
-        new PollingStopped(Utc),
-        new DomainPolled(0, PersistedDomainPollOutcome.Changed, 42, Utc, null),
-        new DomainPolled(1, PersistedDomainPollOutcome.Unchanged, null, Utc, null),
-        new DomainPolled(2, PersistedDomainPollOutcome.Failed, null, Utc, TimeSpan.FromMinutes(1)),
+        new PollingStarted("lucerne", [(int)0, (int)1], TimeSpan.FromMinutes(20), _utc, 47.05, 8.31),
+        new PollingStopped(_utc),
+        new DomainPolled(0, PersistedDomainPollOutcome.Changed, 42, _utc, null),
+        new DomainPolled(1, PersistedDomainPollOutcome.Unchanged, null, _utc, null),
+        new DomainPolled(2, PersistedDomainPollOutcome.Failed, null, _utc, TimeSpan.FromMinutes(1)),
     ];
 
     [Fact]
@@ -22,7 +22,7 @@ public sealed class PollWorkerRoundtripTests
             "lucerne", true, TimeSpan.FromMinutes(20),
             new List<PersistedDomainState>
             {
-                new(0, 7, PersistedPollPhase.Steady, TimeSpan.FromHours(6), 2, Utc.AddHours(-6), TimeSpan.FromHours(6), Utc.AddHours(6)),
+                new(0, 7, PersistedPollPhase.Steady, TimeSpan.FromHours(6), 2, _utc.AddHours(-6), TimeSpan.FromHours(6), _utc.AddHours(6)),
                 new(1, null),
             },
             47.05, 8.31);

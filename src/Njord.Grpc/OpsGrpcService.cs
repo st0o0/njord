@@ -23,15 +23,15 @@ public sealed class OpsGrpcService(
     IEnumerable<IFeatureRule> features,
     ILogger<OpsGrpcService> logger) : OpsService.OpsServiceBase
 {
-    private static readonly string Version =
+    private static readonly string _version =
         typeof(OpsGrpcService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion ?? "unknown";
 
-    private static readonly DateTimeOffset ProcessStart = Process.GetCurrentProcess().StartTime.ToUniversalTime();
+    private static readonly DateTimeOffset _processStart = Process.GetCurrentProcess().StartTime.ToUniversalTime();
 
     public override async Task<StatusResponse> GetStatus(GetStatusRequest request, ServerCallContext context)
     {
-        var uptime = timeProvider.GetUtcNow() - ProcessStart;
+        var uptime = timeProvider.GetUtcNow() - _processStart;
 
         // Without an answer from the tracker the status reports zero usage against the configured budget.
         var budget = new BudgetStatusResult(0, 0, polling.Value.Budget.RequestsPerMonth,
@@ -58,10 +58,10 @@ public sealed class OpsGrpcService(
 
         var status = new StatusResponse
         {
-            Version = Version,
+            Version = _version,
             BudgetPartial = budgetPartial,
             UptimeSeconds = (long)uptime.TotalSeconds,
-            ProcessStart = ProcessStart.ToTimestamp(),
+            ProcessStart = _processStart.ToTimestamp(),
             Budget = budget.ToProto(),
         };
 

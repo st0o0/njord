@@ -8,11 +8,11 @@ public sealed record SeasonalPoint(
     double? PrecipitationAnomaly = null,
     double? PrecipitationMean = null) : IHasValidTime
 {
-    private static readonly SeasonalParams[] Flags =
+    private static readonly SeasonalParams[] _flags =
         [.. Enum.GetValues<SeasonalParams>().Where(p => p != SeasonalParams.None)];
 
     public bool HasFields(SeasonalParams required) =>
-        Flags.All(flag => !required.HasFlag(flag) || Has(flag));
+        _flags.All(flag => !required.HasFlag(flag) || Has(flag));
 
     private bool Has(SeasonalParams param) => param switch
     {

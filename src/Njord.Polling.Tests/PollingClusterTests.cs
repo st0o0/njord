@@ -21,7 +21,7 @@ namespace Njord.Polling.Tests;
 // persistent workers (in-memory journal). The spec only plays the gateway.
 public sealed class PollingClusterTests : Akka.Hosting.TestKit.TestKit
 {
-    private static readonly string[] Targets = ["lucerne", "zurich"];
+    private static readonly string[] _targets = ["lucerne", "zurich"];
 
     private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private TestProbe _requests = null!;
@@ -84,14 +84,14 @@ public sealed class PollingClusterTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
 
-        var requested = await ReceiveRequestsAsync(Targets.Length, ct);
+        var requested = await ReceiveRequestsAsync(_targets.Length, ct);
 
-        Assert.Equal(Targets.ToHashSet(), requested);
+        Assert.Equal(_targets.ToHashSet(), requested);
         var manager = await ActorRegistry.GetAsync<IPollManager>(ct);
         await AwaitAssertAsync(async () =>
         {
             var states = await manager.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(15), ct);
-            Assert.Equal(Targets, states.Entries.Select(e => e.Location.Name));
+            Assert.Equal(_targets, states.Entries.Select(e => e.Location.Name));
             Assert.All(states.Entries, e => Assert.Equal(_time.GetUtcNow(), e.LastChangeUtc));
         }, TimeSpan.FromSeconds(5), TimeSpan.FromMilliseconds(100), cancellationToken: ct);
     }
@@ -100,7 +100,7 @@ public sealed class PollingClusterTests : Akka.Hosting.TestKit.TestKit
     public async Task A_trigger_reaches_the_gateway_through_the_region()
     {
         var ct = TestContext.Current.CancellationToken;
-        await ReceiveRequestsAsync(Targets.Length, ct);
+        await ReceiveRequestsAsync(_targets.Length, ct);
         var manager = await ActorRegistry.GetAsync<IPollManager>(ct);
         await AwaitAssertAsync(async () =>
         {

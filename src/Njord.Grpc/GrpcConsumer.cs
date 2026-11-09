@@ -13,8 +13,8 @@ namespace Njord.Grpc;
 public sealed class GrpcConsumer : ReceiveActor
 {
     private const int StreamClientBufferSize = 256;
-    private static readonly TimeSpan KeepAliveInterval = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan ClientIdleTimeout = TimeSpan.FromSeconds(90);
+    private static readonly TimeSpan _keepAliveInterval = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan _clientIdleTimeout = TimeSpan.FromSeconds(90);
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private IMaterializer _mat = null!;
@@ -98,9 +98,9 @@ public sealed class GrpcConsumer : ReceiveActor
 
         Source.From(snapshot)
             .Concat(_clientHubSource)
-            .KeepAlive<PipelineEvent, PipelineEvent, NotUsed>(KeepAliveInterval, () => Heartbeat.Instance)
+            .KeepAlive<PipelineEvent, PipelineEvent, NotUsed>(_keepAliveInterval, () => Heartbeat.Instance)
             .Buffer(StreamClientBufferSize, OverflowStrategy.Backpressure)
-            .IdleTimeout(ClientIdleTimeout)
+            .IdleTimeout(_clientIdleTimeout)
             .Where(e => e is not Heartbeat)
             .RunWith(StreamRefs.SourceRef<PipelineEvent>(), _mat)
             .PipeTo(Sender, Self,

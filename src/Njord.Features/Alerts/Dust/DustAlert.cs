@@ -15,7 +15,8 @@ public sealed class DustAlert(IOptions<DustConfig> config) : FeatureRule<AqInput
         OutputKind.Alert,
         FeatureCategory.AirQuality,
         Name: "Dust",
-        new DomainRequirements(AirQuality: AirQualityParams.Dust));
+        new DomainRequirements(AirQuality: AirQualityParams.Dust),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

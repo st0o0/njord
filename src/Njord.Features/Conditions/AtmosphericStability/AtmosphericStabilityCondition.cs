@@ -14,7 +14,8 @@ public sealed class AtmosphericStabilityCondition(IOptions<AtmosphericStabilityC
         OutputKind.Condition,
         FeatureCategory.Insight,
         Name: "AtmosphericStability",
-        new DomainRequirements(Forecast: ForecastParams.Cape | ForecastParams.ConvectiveInhibition | ForecastParams.LiftedIndex));
+        new DomainRequirements(Forecast: ForecastParams.Cape | ForecastParams.ConvectiveInhibition | ForecastParams.LiftedIndex),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 

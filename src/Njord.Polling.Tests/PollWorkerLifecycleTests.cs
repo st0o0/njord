@@ -16,10 +16,10 @@ namespace Njord.Polling.Tests;
 public sealed class PollWorkerLifecycleTests : Akka.Hosting.TestKit.TestKit
 {
     private const string TargetId = "lucerne";
-    private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
-    private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
-    private static readonly PollTarget Target = new(Lucerne);
-    private static readonly IReadOnlyList<DomainKind> EnabledDomains = [DomainKind.Forecast, DomainKind.AirQuality];
+    private static readonly TimeSpan _discovery = TimeSpan.FromMinutes(20);
+    private static readonly Location _lucerne = new("lucerne", 47.05, 8.31);
+    private static readonly PollTarget _target = new(_lucerne);
+    private static readonly IReadOnlyList<DomainKind> _enabledDomains = [DomainKind.Forecast, DomainKind.AirQuality];
 
     private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private TestProbe _gateway = null!;
@@ -40,17 +40,17 @@ public sealed class PollWorkerLifecycleTests : Akka.Hosting.TestKit.TestKit
     private IActorRef CreateWorker(string entityId = TargetId) =>
         Sys.ActorOf(Props.Create(() => new PollWorker(
             entityId, _time, Options.Create(new PollingOptions()),
-            Options.Create(TestRequirements.For(EnabledDomains)))), $"worker-{Guid.NewGuid():N}");
+            Options.Create(TestRequirements.For(_enabledDomains)))), $"worker-{Guid.NewGuid():N}");
 
     private IActorRef CreateShardedWorker(string entityId = TargetId) =>
         ChildActorOf(Props.Create(() => new PollWorker(
             entityId, _time, Options.Create(new PollingOptions()),
-            Options.Create(TestRequirements.For(EnabledDomains)))), $"worker-{Guid.NewGuid():N}");
+            Options.Create(TestRequirements.For(_enabledDomains)))), $"worker-{Guid.NewGuid():N}");
 
     private async Task<IActorRef> StartedWorkerAsync(CancellationToken ct)
     {
         var worker = CreateWorker();
-        worker.Tell(new StartPolling(Target, Discovery));
+        worker.Tell(new StartPolling(_target, _discovery));
         await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         return worker;
     }
@@ -67,24 +67,24 @@ public sealed class PollWorkerLifecycleTests : Akka.Hosting.TestKit.TestKit
 
     private async Task AnswerAllAsync(FetchDomainResponse reply, CancellationToken ct)
     {
-        foreach (var _ in EnabledDomains)
+        foreach (var _ in _enabledDomains)
         {
             var request = await ExpectRequestAsync(ct);
             _gateway.LastSender.Tell(ForDomain(reply, request.Domain));
         }
 
-        await DrainReportsAsync(EnabledDomains.Count, ct);
+        await DrainReportsAsync(_enabledDomains.Count, ct);
     }
 
     private async Task<PollWorkerReport> AnswerAllAndLastReportAsync(FetchDomainResponse reply, CancellationToken ct)
     {
-        foreach (var _ in EnabledDomains)
+        foreach (var _ in _enabledDomains)
         {
             var request = await ExpectRequestAsync(ct);
             _gateway.LastSender.Tell(ForDomain(reply, request.Domain));
         }
 
-        return await DrainReportsAsync(EnabledDomains.Count, ct);
+        return await DrainReportsAsync(_enabledDomains.Count, ct);
     }
 
     private async Task<PollWorkerReport> DrainReportsAsync(int count, CancellationToken ct)
@@ -106,7 +106,7 @@ public sealed class PollWorkerLifecycleTests : Akka.Hosting.TestKit.TestKit
         _ => reply,
     };
 
-    private static FetchDomainCompleted Completed(int hash) => new(Lucerne, DomainKind.Forecast, hash);
+    private static FetchDomainCompleted Completed(int hash) => new(_lucerne, DomainKind.Forecast, hash);
 
     private async Task StopAsync(IActorRef worker, CancellationToken ct)
     {
@@ -123,14 +123,14 @@ public sealed class PollWorkerLifecycleTests : Akka.Hosting.TestKit.TestKit
     public async Task A_started_worker_targets_the_coordinates_of_its_location()
     {
         var ct = TestContext.Current.CancellationToken;
-        CreateWorker().Tell(new StartPolling(Target, Discovery));
+        CreateWorker().Tell(new StartPolling(_target, _discovery));
 
         var report = await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         var request = await ExpectRequestAsync(ct);
 
         Assert.Multiple(
-            () => Assert.Equal(Coordinates(Lucerne), Coordinates(report.Target.Location)),
-            () => Assert.Equal(Coordinates(Lucerne), Coordinates(request.Location)));
+            () => Assert.Equal(Coordinates(_lucerne), Coordinates(report.Target.Location)),
+            () => Assert.Equal(Coordinates(_lucerne), Coordinates(request.Location)));
     }
 
     [Fact(Timeout = 30_000)]
@@ -141,7 +141,7 @@ public sealed class PollWorkerLifecycleTests : Akka.Hosting.TestKit.TestKit
         var worker = await StartedWorkerAsync(ct);
         var before = await AnswerAllAndLastReportAsync(Completed(1), ct);
 
-        worker.Tell(new StartPolling(new PollTarget(moved), Discovery));
+        worker.Tell(new StartPolling(new PollTarget(moved), _discovery));
 
         var after = await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         Assert.Multiple(
@@ -162,10 +162,10 @@ public sealed class PollWorkerLifecycleTests : Akka.Hosting.TestKit.TestKit
         var worker = await StartedWorkerAsync(ct);
         await AnswerAllAsync(Completed(1), ct);
 
-        worker.Tell(new StartPolling(Target, Discovery));
+        worker.Tell(new StartPolling(_target, _discovery));
 
         var report = await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
-        Assert.Equal(Coordinates(Lucerne), Coordinates(report.Target.Location));
+        Assert.Equal(Coordinates(_lucerne), Coordinates(report.Target.Location));
         await _gateway.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
     }
 
@@ -182,7 +182,7 @@ public sealed class PollWorkerLifecycleTests : Akka.Hosting.TestKit.TestKit
         CreateWorker();
 
         var report = await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
-        Assert.Equal(Coordinates(Lucerne), Coordinates(report.Target.Location));
+        Assert.Equal(Coordinates(_lucerne), Coordinates(report.Target.Location));
     }
 
     [Fact(Timeout = 30_000)]
@@ -191,7 +191,7 @@ public sealed class PollWorkerLifecycleTests : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var moved = new Location("lucerne", 47.10, 8.40);
         var worker = await StartedWorkerAsync(ct);
-        worker.Tell(new StartPolling(new PollTarget(moved), Discovery));
+        worker.Tell(new StartPolling(new PollTarget(moved), _discovery));
         await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         await StopAsync(worker, ct);
 
@@ -290,7 +290,7 @@ public sealed class PollWorkerLifecycleTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = CreateShardedWorker();
-        worker.Tell(new StartPolling(Target, Discovery));
+        worker.Tell(new StartPolling(_target, _discovery));
         await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         await AnswerAllAsync(Completed(42), ct);
 
@@ -305,7 +305,7 @@ public sealed class PollWorkerLifecycleTests : Akka.Hosting.TestKit.TestKit
         await _manager.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), ct);
         await _gateway.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(100), ct);
 
-        recovered.Tell(new StartPolling(Target, Discovery));
+        recovered.Tell(new StartPolling(_target, _discovery));
         var report = await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         Assert.Equal(_time.GetUtcNow() - TimeSpan.FromHours(1), report.State.LastChangeUtc);
     }

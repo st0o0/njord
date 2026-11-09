@@ -15,7 +15,8 @@ public sealed class WindChillAlert(IOptions<WindChillConfig> config) : FeatureRu
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "WindChill",
-        new DomainRequirements(Forecast: ForecastParams.ApparentTemperature, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.ApparentTemperature, Ensemble: EnsembleParams.TemperatureSpread),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

@@ -10,10 +10,10 @@ internal static class EnsembleResponseMappingExtensions
 {
     private const string TimeKey = "time";
 
-    private static readonly FrozenDictionary<string, EnsembleApiVariable> SpreadNames =
+    private static readonly FrozenDictionary<string, EnsembleApiVariable> _spreadNames =
         ApiVariableNames.For<EnsembleApiVariable>().ToFrozenDictionary(kv => kv.Value, kv => kv.Key);
 
-    private static readonly string[] BaseNames = [.. SpreadNames.Keys.OrderByDescending(n => n.Length)];
+    private static readonly string[] _baseNames = [.. _spreadNames.Keys.OrderByDescending(n => n.Length)];
 
     public static DomainForecast<EnsemblePoint>? ToEnsembleForecast(
         this ForecastResponse response, DateTimeOffset modelRun, string primaryModel)
@@ -49,7 +49,7 @@ internal static class EnsembleResponseMappingExtensions
         double?[]? surfacePressureSpreadValues = null;
         double?[]? windDirectionSpreadValues = null;
         double?[]? wetBulbTemperatureSpreadValues = null;
-        double?[]? windSpeed100mSpreadValues = null;
+        double?[]? windSpeed100MSpreadValues = null;
 
         foreach (var (key, value) in hourly)
         {
@@ -64,7 +64,7 @@ internal static class EnsembleResponseMappingExtensions
                 continue;
             }
 
-            if (!SpreadNames.TryGetValue(baseName, out var variable))
+            if (!_spreadNames.TryGetValue(baseName, out var variable))
             {
                 continue;
             }
@@ -114,8 +114,8 @@ internal static class EnsembleResponseMappingExtensions
                 case EnsembleApiVariable.WetBulbTemperatureSpread:
                     wetBulbTemperatureSpreadValues = values;
                     break;
-                case EnsembleApiVariable.WindSpeed100mSpread:
-                    windSpeed100mSpreadValues = values;
+                case EnsembleApiVariable.WindSpeed100MSpread:
+                    windSpeed100MSpreadValues = values;
                     break;
             }
         }
@@ -139,7 +139,7 @@ internal static class EnsembleResponseMappingExtensions
                 SurfacePressureSpread: At(surfacePressureSpreadValues, i),
                 WindDirectionSpread: At(windDirectionSpreadValues, i),
                 WetBulbTemperatureSpread: At(wetBulbTemperatureSpreadValues, i),
-                WindSpeed100mSpread: At(windSpeed100mSpreadValues, i));
+                WindSpeed100MSpread: At(windSpeed100MSpreadValues, i));
         }
 
         return new DomainForecast<EnsemblePoint>(
@@ -148,7 +148,7 @@ internal static class EnsembleResponseMappingExtensions
 
     private static string? ResolveBaseName(string key, string modelSuffix)
     {
-        foreach (var name in BaseNames)
+        foreach (var name in _baseNames)
         {
             if (key == name)
             {

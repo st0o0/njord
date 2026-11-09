@@ -7,15 +7,15 @@ namespace Njord.Core.Tests.Domain;
 
 public sealed class FeatureRuleTests
 {
-    private static readonly Location TestLocation = new("Test", 48.0, 11.0);
-    private static readonly DateTimeOffset Now = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
+    private static readonly Location _testLocation = new("Test", 48.0, 11.0);
+    private static readonly DateTimeOffset _now = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
     public void Execute_skips_when_project_returns_null()
     {
         var rule = new SkippingRule();
         var ring = new RingBuffer<LocationForecast>(1);
-        ring.Push(new LocationForecast(TestLocation));
+        ring.Push(new LocationForecast(_testLocation));
 
         var result = rule.Execute(ring, DateTimeOffset.UtcNow);
 
@@ -79,9 +79,9 @@ public sealed class FeatureRuleTests
 
     private static LocationForecast ForecastWithWeather()
     {
-        var point = new ForecastPoint(Now, Temperature: 20.0);
-        var forecast = new DomainForecast<ForecastPoint>(DomainKind.Forecast, Now, TimeResolution.Hourly, [point]);
-        return new LocationForecast(TestLocation, Forecast: forecast);
+        var point = new ForecastPoint(_now, Temperature: 20.0);
+        var forecast = new DomainForecast<ForecastPoint>(DomainKind.Forecast, _now, TimeResolution.Hourly, [point]);
+        return new LocationForecast(_testLocation, Forecast: forecast);
     }
 
     private sealed class SkippingRule : FeatureRule<ForecastInput>
@@ -105,7 +105,7 @@ public sealed class FeatureRuleTests
         public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Forecast, "Test", new DomainRequirements());
         public override bool Enabled => true;
         protected override ForecastInput? Project(LocationForecast f) => f.Forecast is { } w ? new(w) : null;
-        protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) => new TestFeatureResult(TestLocation);
+        protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) => new TestFeatureResult(_testLocation);
     }
 
     private sealed class HistoryCapturingRule(int pollDepth) : FeatureRule<ForecastInput>

@@ -15,7 +15,8 @@ public sealed class VisibilityAlert(IOptions<VisibilityConfig> config) : Feature
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Visibility",
-        new DomainRequirements(Forecast: ForecastParams.Visibility));
+        new DomainRequirements(Forecast: ForecastParams.Visibility),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -43,6 +44,6 @@ public sealed class VisibilityAlert(IOptions<VisibilityConfig> config) : Feature
         return new VisibilityAlertResult(
             ctx.Location, severity, level.ToConfidence(), rounded, effectiveThreshold,
             PeakValue: null, HoursUntil: lowest.HoursFrom(ctx.Now), DurationHours: null, Level: level,
-            MinVisibility: rounded, HoursBelow1000m: hoursBelow);
+            MinVisibility: rounded, HoursBelow1000M: hoursBelow);
     }
 }

@@ -10,16 +10,16 @@ internal static class PollStateFixture
     public static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
     public static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
 
-    private static readonly int[] ForecastOnly = [(int)DomainKind.Forecast];
+    private static readonly int[] _forecastOnly = [(int)DomainKind.Forecast];
 
-    private static readonly int[] AllDomains =
+    private static readonly int[] _allDomains =
         [(int)DomainKind.Forecast, (int)DomainKind.AirQuality, (int)DomainKind.Flood, (int)DomainKind.Marine];
 
     public static PollWorkerState Started(DateTimeOffset? at = null, TimeSpan? interval = null) =>
-        PollWorkerState.Empty.Apply(new PollingStarted("lucerne", ForecastOnly, interval ?? Discovery, at ?? T0));
+        PollWorkerState.Empty.Apply(new PollingStarted("lucerne", _forecastOnly, interval ?? Discovery, at ?? T0));
 
     public static PollWorkerState StartedAll() =>
-        PollWorkerState.Empty.Apply(new PollingStarted("lucerne", AllDomains, Discovery, T0));
+        PollWorkerState.Empty.Apply(new PollingStarted("lucerne", _allDomains, Discovery, T0));
 
     public static DomainPolled Changed(DomainKind domain, int hash, DateTimeOffset at) =>
         new((int)domain, PersistedDomainPollOutcome.Changed, hash, at, null);

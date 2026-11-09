@@ -16,12 +16,12 @@ internal static class ForecastResponseMappingExtensions
     private const string TimeKey = "time";
     private const string MemberPrefix = "member";
 
-    private static readonly FrozenSet<string> KnownNames =
+    private static readonly FrozenSet<string> _knownNames =
         ApiVariableNames.For<ForecastApiVariable>().Values
             .Concat(ApiVariableNames.For<EnsembleApiVariable>().Values)
             .ToFrozenSet();
 
-    private static readonly string[] BaseNames = [.. KnownNames.OrderByDescending(n => n.Length)];
+    private static readonly string[] _baseNames = [.. _knownNames.OrderByDescending(n => n.Length)];
 
     public static ImmutableDictionary<string, DomainForecast<ForecastPoint>> ToModelForecasts(
         this ForecastResponse response, DateTimeOffset modelRun, string singleModelId)
@@ -100,7 +100,7 @@ internal static class ForecastResponseMappingExtensions
 
     private static bool TrySplit(string key, out string baseName, out string? model)
     {
-        foreach (var name in BaseNames)
+        foreach (var name in _baseNames)
         {
             if (key == name)
             {
@@ -168,8 +168,8 @@ internal static class ForecastResponseMappingExtensions
                 SnowfallHeight: At(h.SnowfallHeight, i),
                 UvIndexClearSky: At(h.UvIndexClearSky, i),
                 Showers: At(h.Showers, i),
-                SoilMoisture0To1cm: At(h.SoilMoisture0To1cm, i),
-                SoilMoisture1To3cm: At(h.SoilMoisture1To3cm, i),
+                SoilMoisture0To1Cm: At(h.SoilMoisture0To1Cm, i),
+                SoilMoisture1To3Cm: At(h.SoilMoisture1To3Cm, i),
                 Evapotranspiration: At(h.Evapotranspiration, i),
                 VapourPressureDeficit: At(h.VapourPressureDeficit, i),
                 BoundaryLayerHeight: At(h.BoundaryLayerHeight, i),
@@ -178,14 +178,14 @@ internal static class ForecastResponseMappingExtensions
                 CloudCoverHigh: At(h.CloudCoverHigh, i),
                 ConvectiveInhibition: At(h.ConvectiveInhibition, i),
                 SurfacePressure: At(h.SurfacePressure, i),
-                WindSpeed80m: At(h.WindSpeed80m, i),
-                WindDirection80m: At(h.WindDirection80m, i),
-                WindSpeed120m: At(h.WindSpeed120m, i),
-                WindDirection120m: At(h.WindDirection120m, i),
-                Temperature80m: At(h.Temperature80m, i),
-                Temperature120m: At(h.Temperature120m, i),
-                WindSpeed100m: At(h.WindSpeed100m, i),
-                WindDirection100m: At(h.WindDirection100m, i),
+                WindSpeed80M: At(h.WindSpeed80M, i),
+                WindDirection80M: At(h.WindDirection80M, i),
+                WindSpeed120M: At(h.WindSpeed120M, i),
+                WindDirection120M: At(h.WindDirection120M, i),
+                Temperature80M: At(h.Temperature80M, i),
+                Temperature120M: At(h.Temperature120M, i),
+                WindSpeed100M: At(h.WindSpeed100M, i),
+                WindDirection100M: At(h.WindDirection100M, i),
                 ThunderstormProbability: At(h.ThunderstormProbability, i),
                 PrecipitationType: At(h.PrecipitationType, i),
                 SurfaceTemperature: At(h.SurfaceTemperature, i),

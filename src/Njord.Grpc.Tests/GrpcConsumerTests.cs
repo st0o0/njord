@@ -15,8 +15,8 @@ public sealed class GrpcConsumerTests : Akka.Hosting.TestKit.TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
-    private static readonly DateTimeOffset Anchor = TestTimeConstants.BudgetEpoch;
-    private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
+    private static readonly DateTimeOffset _anchor = TestTimeConstants.BudgetEpoch;
+    private static readonly TimeSpan _askTimeout = TimeSpan.FromSeconds(3);
 
     [Fact(Timeout = 30000)]
     public async Task Queries_before_the_first_event_report_that_no_data_is_available()
@@ -25,9 +25,9 @@ public sealed class GrpcConsumerTests : Akka.Hosting.TestKit.TestKit
         var (consumer, _) = await StartAsync();
 
         var domainData = await consumer.Ask<DomainDataResponse>(
-            new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), AskTimeout, ct);
+            new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), _askTimeout, ct);
         var analysis = await consumer.Ask<LatestAnalysisResponse>(
-            new QueryLatestAnalysis(DomainData.Lucerne), AskTimeout, ct);
+            new QueryLatestAnalysis(DomainData.Lucerne), _askTimeout, ct);
 
         Assert.Multiple(
             () => Assert.Equal(new DomainDataNotAvailable(DomainData.Lucerne, DomainKind.Forecast), domainData),
@@ -39,8 +39,8 @@ public sealed class GrpcConsumerTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
-        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
-        var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor);
+        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(_anchor, 2));
+        var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, _anchor);
 
         await pipeline.OfferAsync(weather, ct);
         await pipeline.OfferAsync(alert, ct);
@@ -48,9 +48,9 @@ public sealed class GrpcConsumerTests : Akka.Hosting.TestKit.TestKit
         await AwaitAssertAsync(async () =>
         {
             var domainData = await consumer.Ask<DomainDataResponse>(
-                new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), AskTimeout, ct);
+                new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), _askTimeout, ct);
             var analysis = await consumer.Ask<LatestAnalysisResponse>(
-                new QueryLatestAnalysis(DomainData.Lucerne), AskTimeout, ct);
+                new QueryLatestAnalysis(DomainData.Lucerne), _askTimeout, ct);
             Assert.Equal(new DomainDataResult(weather), domainData);
             var result = Assert.IsType<LatestAnalysisResult>(analysis);
             Assert.Equal<FeatureResult>([alert], result.Results);
@@ -62,14 +62,14 @@ public sealed class GrpcConsumerTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
-        var laundry = new LaundryScoreResult(DomainData.Lucerne, 80, Anchor, 4);
+        var laundry = new LaundryScoreResult(DomainData.Lucerne, 80, _anchor, 4);
 
         await pipeline.OfferAsync(laundry, ct);
 
         await AwaitAssertAsync(async () =>
         {
             var analysis = await consumer.Ask<LatestAnalysisResponse>(
-                new QueryLatestAnalysis(DomainData.Lucerne), AskTimeout, ct);
+                new QueryLatestAnalysis(DomainData.Lucerne), _askTimeout, ct);
             var result = Assert.IsType<LatestAnalysisResult>(analysis);
             Assert.Equal<FeatureResult>([laundry], result.Results);
         }, TimeSpan.FromSeconds(5), cancellationToken: ct);
@@ -80,13 +80,13 @@ public sealed class GrpcConsumerTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, firstQueue) = await StartAsync();
-        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
+        var weather = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(_anchor, 2));
 
         await firstQueue.OfferAsync(weather, ct);
         await AwaitAssertAsync(async () =>
         {
             var q = await consumer.Ask<DomainDataResponse>(
-                new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), AskTimeout, ct);
+                new QueryDomainData(DomainData.Lucerne, DomainKind.Forecast), _askTimeout, ct);
             Assert.IsType<DomainDataResult>(q);
         }, TimeSpan.FromSeconds(5), cancellationToken: ct);
 
@@ -98,13 +98,13 @@ public sealed class GrpcConsumerTests : Akka.Hosting.TestKit.TestKit
         ActorRegistry.Register<IForecastPipeline>(secondPipelineActor, overwrite: true);
 
         var secondPipeline = await secondReady.Task.WaitAsync(TimeSpan.FromSeconds(15), ct);
-        var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor);
+        var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, _anchor);
 
         await secondPipeline.Queue.OfferAsync(alert, ct);
         await AwaitAssertAsync(async () =>
         {
             var analysis = await consumer.Ask<LatestAnalysisResponse>(
-                new QueryLatestAnalysis(DomainData.Lucerne), AskTimeout, ct);
+                new QueryLatestAnalysis(DomainData.Lucerne), _askTimeout, ct);
             var result = Assert.IsType<LatestAnalysisResult>(analysis);
             Assert.Equal<FeatureResult>([alert], result.Results);
         }, TimeSpan.FromSeconds(10), cancellationToken: ct);
@@ -115,8 +115,8 @@ public sealed class GrpcConsumerTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
-        var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor);
-        var response = await consumer.Ask<RequestGrpcStreamResponse>(new RequestGrpcStream(1), AskTimeout, ct);
+        var alert = EnrichmentEvents.Alerts(DomainData.Lucerne, _anchor);
+        var response = await consumer.Ask<RequestGrpcStreamResponse>(new RequestGrpcStream(1), _askTimeout, ct);
         var completed = Assert.IsType<RequestGrpcStreamCompleted>(response);
 
         var received = completed.SourceRef.Source

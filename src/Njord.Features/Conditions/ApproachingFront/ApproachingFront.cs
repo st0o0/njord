@@ -18,7 +18,8 @@ public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : 
         FeatureCategory.Insight,
         Name: "FrontApproaching",
         new DomainRequirements(Forecast: ForecastParams.Pressure | ForecastParams.Temperature | ForecastParams.WindDirection),
-        PollDepth: 1);
+        PollDepth: 1,
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -44,12 +45,12 @@ public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : 
             return null;
         }
 
-        var (Start, End, Drop) = windows.MaxBy(window => window.Drop);
-        var estimatedIn = Start.ValidFrom - ctx.Now;
+        var (start, end, drop) = windows.MaxBy(window => window.Drop);
+        var estimatedIn = start.ValidFrom - ctx.Now;
         return new ApproachingFrontResult(ctx.Location,
             (estimatedIn < TimeSpan.Zero ? TimeSpan.Zero : estimatedIn).TotalHours,
-            Math.Round(Drop, 1),
-            Math.Round(Start.Temperature - End.Temperature ?? 0.0, 1));
+            Math.Round(drop, 1),
+            Math.Round(start.Temperature - end.Temperature ?? 0.0, 1));
     }
 
     private static bool WindShifted(ForecastPoint start, ForecastPoint end)

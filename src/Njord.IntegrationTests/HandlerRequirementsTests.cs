@@ -9,7 +9,7 @@ namespace Njord.IntegrationTests;
 
 public sealed class HandlerRequirementsTests
 {
-    private static readonly Dictionary<string, IFeatureRule> Features =
+    private static readonly Dictionary<string, IFeatureRule> _features =
         FeatureServices.AllFeatureRules().ToDictionary(f => f.GetType().Name, StringComparer.Ordinal);
 
     [Theory]
@@ -22,7 +22,7 @@ public sealed class HandlerRequirementsTests
     [InlineData("SolarYield")]
     public void Should_require_only_the_weather_domain(string name)
     {
-        var requirements = Features[name].Descriptor.Requirements;
+        var requirements = _features[name].Descriptor.Requirements;
 
         Assert.Multiple(
             () => Assert.NotEqual(ForecastParams.None, requirements.Forecast),
@@ -38,7 +38,7 @@ public sealed class HandlerRequirementsTests
     [InlineData("VentilationWindow")]
     public void Should_require_weather_and_air_quality(string name)
     {
-        var requirements = Features[name].Descriptor.Requirements;
+        var requirements = _features[name].Descriptor.Requirements;
 
         Assert.Multiple(
             () => Assert.True(requirements.Requires(DomainKind.Forecast)),
@@ -51,7 +51,7 @@ public sealed class HandlerRequirementsTests
     {
         Assert.Equal(
             new DomainRequirements(Ensemble: EnsembleParams.TemperatureSpread),
-            Features["ConfidenceTrend"].Descriptor.Requirements);
+            _features["ConfidenceTrend"].Descriptor.Requirements);
     }
 
     [Fact]
@@ -59,13 +59,13 @@ public sealed class HandlerRequirementsTests
     {
         Assert.Equal(
             new DomainRequirements(Forecast: ForecastParams.GlobalTiltedIrradiance),
-            Features["SolarYield"].Descriptor.Requirements);
+            _features["SolarYield"].Descriptor.Requirements);
     }
 
     [Fact]
     public void Should_declare_the_pm25_param_for_the_exercise_advisory()
     {
-        var requirements = Features["ExerciseAdvisory"].Descriptor.Requirements;
+        var requirements = _features["ExerciseAdvisory"].Descriptor.Requirements;
 
         Assert.Equal(AirQualityParams.Pm25 | AirQualityParams.Ozone, requirements.AirQuality);
     }

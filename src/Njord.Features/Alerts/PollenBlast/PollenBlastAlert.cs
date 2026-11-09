@@ -18,7 +18,8 @@ public sealed class PollenBlastAlert(IOptions<PollenBlastConfig> config) : Featu
         new DomainRequirements(
             Forecast: ForecastParams.Temperature | ForecastParams.WindSpeed | ForecastParams.Precipitation,
             AirQuality: AirQualityParams.GrassPollen | AirQualityParams.BirchPollen),
-        PollDepth: 8);
+        PollDepth: 8,
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

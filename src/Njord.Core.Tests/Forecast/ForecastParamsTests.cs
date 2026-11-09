@@ -4,16 +4,16 @@ namespace Njord.Core.Tests.Forecast;
 
 public sealed class ForecastParamsTests
 {
-    private static readonly ForecastParams[] Flags =
+    private static readonly ForecastParams[] _flags =
         [.. Enum.GetValues<ForecastParams>().Where(p => p != ForecastParams.None)];
 
     [Fact]
     public void Should_give_every_flag_exactly_one_distinct_bit()
     {
         Assert.Multiple(
-            () => Assert.NotEmpty(Flags),
-            () => Assert.All(Flags, p => Assert.True(long.IsPow2(Convert.ToInt64(p)))),
-            () => Assert.Equal(Flags.Length, Flags.Distinct().Count()));
+            () => Assert.NotEmpty(_flags),
+            () => Assert.All(_flags, p => Assert.True(long.IsPow2(Convert.ToInt64(p)))),
+            () => Assert.Equal(_flags.Length, _flags.Distinct().Count()));
     }
 
     [Fact]
@@ -24,15 +24,15 @@ public sealed class ForecastParamsTests
         Assert.Multiple(
             () => Assert.True(union.HasFlag(ForecastParams.Temperature)),
             () => Assert.True(union.HasFlag(ForecastParams.ApparentTemperature)),
-            () => Assert.Equal(2, Flags.Count(p => union.HasFlag(p))));
+            () => Assert.Equal(2, _flags.Count(p => union.HasFlag(p))));
     }
 
     [Fact]
     public void Should_combine_all_flags_without_collision()
     {
-        var all = Flags.Aggregate(ForecastParams.None, (acc, p) => acc | p);
+        var all = _flags.Aggregate(ForecastParams.None, (acc, p) => acc | p);
 
-        Assert.Equal(Flags.Length, Flags.Count(p => all.HasFlag(p)));
+        Assert.Equal(_flags.Length, _flags.Count(p => all.HasFlag(p)));
     }
 
     [Fact]

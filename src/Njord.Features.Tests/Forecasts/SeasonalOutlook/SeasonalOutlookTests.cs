@@ -14,7 +14,7 @@ namespace Njord.Features.Tests.Forecasts.SeasonalOutlook;
 
 public sealed class SeasonalOutlookTests
 {
-    private static readonly DateTimeOffset October = new(2026, 10, 20, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _october = new(2026, 10, 20, 12, 0, 0, TimeSpan.Zero);
 
     private static Features.Forecasts.SeasonalOutlook.SeasonalOutlook Feature() => new(Options.Create(new SeasonalOutlookConfig { Enabled = true }));
 
@@ -24,14 +24,14 @@ public sealed class SeasonalOutlookTests
     private static LocationForecast With(params SeasonalPoint[] points) =>
         ForecastOnly(Day()) with
         {
-            Seasonal = new DomainForecast<SeasonalPoint>(DomainKind.Seasonal, October, TimeResolution.Monthly, [.. points]),
+            Seasonal = new DomainForecast<SeasonalPoint>(DomainKind.Seasonal, _october, TimeResolution.Monthly, [.. points]),
         };
 
     [Fact]
     public void The_months_after_the_current_one_are_emitted_with_rounded_anomalies()
     {
         var outlook = Assert.IsType<SeasonalOutlookResult>(Run(
-            Feature(), October, With(Month(2026, 10), Month(2026, 11, 1.74, 2.4, 99.5), Month(2026, 12, -0.5, -20, 80))));
+            Feature(), _october, With(Month(2026, 10), Month(2026, 11, 1.74, 2.4, 99.5), Month(2026, 12, -0.5, -20, 80))));
 
         Assert.Equal(
             [
@@ -50,7 +50,7 @@ public sealed class SeasonalOutlookTests
         var month = new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero).AddMonths(lead);
 
         var outlook = Assert.IsType<SeasonalOutlookResult>(
-            Run(Feature(), October, With(Month(month.Year, month.Month))));
+            Run(Feature(), _october, With(Month(month.Year, month.Month))));
 
         Assert.Equal(expected, Assert.Single(outlook.Months).Confidence);
     }
@@ -58,7 +58,7 @@ public sealed class SeasonalOutlookTests
     [Fact]
     public void A_missing_precipitation_series_reports_a_zero_anomaly()
     {
-        var outlook = Assert.IsType<SeasonalOutlookResult>(Run(Feature(), October, With(Month(2026, 11))));
+        var outlook = Assert.IsType<SeasonalOutlookResult>(Run(Feature(), _october, With(Month(2026, 11))));
 
         Assert.Equal(0.0, Assert.Single(outlook.Months).PrecipitationAnomalyPercent);
     }
@@ -68,17 +68,17 @@ public sealed class SeasonalOutlookTests
     {
         var forecast = new LocationForecast(ForecastOnly(Day()).Location)
         {
-            Seasonal = new DomainForecast<SeasonalPoint>(DomainKind.Seasonal, October, TimeResolution.Monthly, [Month(2026, 11, 1.0)]),
+            Seasonal = new DomainForecast<SeasonalPoint>(DomainKind.Seasonal, _october, TimeResolution.Monthly, [Month(2026, 11, 1.0)]),
         };
 
-        var outlook = Assert.IsType<SeasonalOutlookResult>(Run(Feature(), October, forecast));
+        var outlook = Assert.IsType<SeasonalOutlookResult>(Run(Feature(), _october, forecast));
 
         Assert.Equal(new DateOnly(2026, 11, 1), Assert.Single(outlook.Months).Month);
     }
 
     [Fact]
-    public void Nothing_is_reported_without_seasonal_data() => Assert.Null(Run(Feature(), October, ForecastOnly(Day())));
+    public void Nothing_is_reported_without_seasonal_data() => Assert.Null(Run(Feature(), _october, ForecastOnly(Day())));
 
     [Fact]
-    public void Nothing_is_reported_when_only_the_current_month_is_known() => Assert.Null(Run(Feature(), October, With(Month(2026, 10))));
+    public void Nothing_is_reported_when_only_the_current_month_is_known() => Assert.Null(Run(Feature(), _october, With(Month(2026, 10))));
 }

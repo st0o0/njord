@@ -13,7 +13,7 @@ namespace Njord.OpenMeteo.Tests;
 
 public sealed class OpenMeteoResponseMappingsTests
 {
-    private static readonly DateTimeOffset Run = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _run = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
     private const long Hour0 = 1_783_771_200;
     private const string Model = "ecmwf_ifs025_ensemble_mean";
 
@@ -31,13 +31,13 @@ public sealed class OpenMeteoResponseMappingsTests
             "dew_point_2m":[12.0,13.0],"uv_index":[3.0,2.0],"wind_gusts_10m":[8.0,null]}}
             """);
 
-        var forecasts = response.ToModelForecasts(Run, Model);
+        var forecasts = response.ToModelForecasts(_run, Model);
         var forecast = Assert.Single(forecasts).Value;
 
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Forecast, forecast.Domain),
             () => Assert.Equal(TimeResolution.Hourly, forecast.Resolution),
-            () => Assert.Equal(Run, forecast.ModelRun),
+            () => Assert.Equal(_run, forecast.ModelRun),
             () => Assert.Equal(2, forecast.Points.Length),
             () => Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(Hour0), forecast.Points[0].ValidFrom),
             () => Assert.Equal(20.5, forecast.Points[0].Temperature),
@@ -54,12 +54,12 @@ public sealed class OpenMeteoResponseMappingsTests
             "wind_speed_100m":[7.5],"wind_direction_100m":[270.0]}}
             """);
 
-        var forecast = Assert.Single(response.ToModelForecasts(Run, Model)).Value;
+        var forecast = Assert.Single(response.ToModelForecasts(_run, Model)).Value;
 
         var point = Assert.Single(forecast.Points);
         Assert.Multiple(
-            () => Assert.Equal(7.5, point.WindSpeed100m),
-            () => Assert.Equal(270.0, point.WindDirection100m));
+            () => Assert.Equal(7.5, point.WindSpeed100M),
+            () => Assert.Equal(270.0, point.WindDirection100M));
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class OpenMeteoResponseMappingsTests
             "surface_temperature":[-1.5],"snowfall_water_equivalent":[0.4]}}
             """);
 
-        var forecast = Assert.Single(response.ToModelForecasts(Run, Model)).Value;
+        var forecast = Assert.Single(response.ToModelForecasts(_run, Model)).Value;
 
         var point = Assert.Single(forecast.Points);
         Assert.Multiple(
@@ -89,7 +89,7 @@ public sealed class OpenMeteoResponseMappingsTests
             "temperature_2m":[20.5,21.0,null],"wind_gusts_10m":[8.0,null,null]}}
             """);
 
-        var forecasts = response.ToModelForecasts(Run, Model);
+        var forecasts = response.ToModelForecasts(_run, Model);
         var forecast = Assert.Single(forecasts).Value;
 
         Assert.Equal(
@@ -105,7 +105,7 @@ public sealed class OpenMeteoResponseMappingsTests
             "temperature_2m":[20.5,21.0]}}
             """);
 
-        var forecasts = response.ToModelForecasts(Run, Model);
+        var forecasts = response.ToModelForecasts(_run, Model);
         var forecast = Assert.Single(forecasts).Value;
 
         Assert.Equal([20.5, 21.0], forecast.Points.Select(p => p.Temperature));
@@ -118,7 +118,7 @@ public sealed class OpenMeteoResponseMappingsTests
             {"latitude":47.0,"longitude":8.0,"hourly":{"time":[1783771200,1783774800],"temperature_2m":[20.5,null]}}
             """);
 
-        var forecasts = response.ToModelForecasts(Run, Model);
+        var forecasts = response.ToModelForecasts(_run, Model);
         var forecast = Assert.Single(forecasts).Value;
 
         Assert.Single(forecast.Points);
@@ -131,7 +131,7 @@ public sealed class OpenMeteoResponseMappingsTests
             {"latitude":47.0,"longitude":8.0,"hourly":{"time":[1783771200],"weather_code":[61.0],"is_day":[1.0]}}
             """);
 
-        var forecasts = response.ToModelForecasts(Run, Model);
+        var forecasts = response.ToModelForecasts(_run, Model);
         var point = Assert.Single(Assert.Single(forecasts).Value.Points);
 
         Assert.Multiple(
@@ -140,7 +140,7 @@ public sealed class OpenMeteoResponseMappingsTests
     }
 
     [Fact]
-    public void A_weather_response_without_hourly_data_maps_to_nothing() => Assert.Empty(ParseWeather("""{"latitude":0,"longitude":0}""").ToModelForecasts(Run, Model));
+    public void A_weather_response_without_hourly_data_maps_to_nothing() => Assert.Empty(ParseWeather("""{"latitude":0,"longitude":0}""").ToModelForecasts(_run, Model));
 
     [Fact]
     public void An_air_quality_response_maps_to_hourly_points_with_optional_pollen()
@@ -153,7 +153,7 @@ public sealed class OpenMeteoResponseMappingsTests
                 Ozone: [60.0, null],
                 BirchPollen: [12.0, null]));
 
-        var forecast = response.ToDomainForecast(Run)?.TrimTrailing((AirQualityPoint p, AirQualityParams f) => p.HasFields(f));
+        var forecast = response.ToDomainForecast(_run)?.TrimTrailing((AirQualityPoint p, AirQualityParams f) => p.HasFields(f));
 
         Assert.NotNull(forecast);
         var point = Assert.Single(forecast.Points);
@@ -178,7 +178,7 @@ public sealed class OpenMeteoResponseMappingsTests
         var response = JsonSerializer.Deserialize<AirQualityResponse>(json);
         Assert.NotNull(response);
 
-        var forecast = response.ToDomainForecast(Run)?.TrimTrailing((AirQualityPoint p, AirQualityParams f) => p.HasFields(f));
+        var forecast = response.ToDomainForecast(_run)?.TrimTrailing((AirQualityPoint p, AirQualityParams f) => p.HasFields(f));
 
         Assert.NotNull(forecast);
         var point = Assert.Single(forecast.Points);
@@ -203,7 +203,7 @@ public sealed class OpenMeteoResponseMappingsTests
                 Discharge: [120.0, null],
                 DischargeP75: [140.0, null]));
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecast = response.ToDomainForecast(_run);
 
         Assert.NotNull(forecast);
         var point = Assert.Single(forecast.Points);
@@ -226,7 +226,7 @@ public sealed class OpenMeteoResponseMappingsTests
                 WaveDirection: [270.0, 280.0],
                 SeaSurfaceTemperature: [19.0, null]));
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecast = response.ToDomainForecast(_run);
 
         Assert.NotNull(forecast);
         Assert.Equal(2, forecast.Points.Length);
@@ -259,7 +259,7 @@ public sealed class OpenMeteoResponseMappingsTests
                 SeaLevelHeight: [0.3, 0.4],
                 WavePeakPeriod: [8.0, 9.0]));
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecast = response.ToDomainForecast(_run);
 
         Assert.NotNull(forecast);
         var first = forecast.Points[0];
@@ -285,7 +285,7 @@ public sealed class OpenMeteoResponseMappingsTests
         var response = new MarineResponse(47.0, 8.0,
             new MarineHourlyData(Time: [Hour0], SeaLevelHeight: [0.7]));
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecast = response.ToDomainForecast(_run);
 
         Assert.NotNull(forecast);
         Assert.Equal(0.7, Assert.Single(forecast.Points).SeaLevelHeight);
@@ -301,7 +301,7 @@ public sealed class OpenMeteoResponseMappingsTests
                 WavePeriod: [4.0, 5.0, null],
                 WaveDirection: [270.0, 280.0, null]));
 
-        var forecast = response.ToDomainForecast(Run)?.TrimTrailing((MarinePoint p, MarineParams f) => p.HasFields(f));
+        var forecast = response.ToDomainForecast(_run)?.TrimTrailing((MarinePoint p, MarineParams f) => p.HasFields(f));
 
         Assert.NotNull(forecast);
         Assert.Equal([0.4, 1.2], forecast.Points.Select(p => p.WaveHeight));
@@ -313,7 +313,7 @@ public sealed class OpenMeteoResponseMappingsTests
         var response = new MarineResponse(47.0, 8.0,
             new MarineHourlyData(Time: [Hour0], WaveHeight: [null], WavePeriod: [null], WaveDirection: [null]));
 
-        Assert.Null(response.ToDomainForecast(Run)?.TrimTrailing((MarinePoint p, MarineParams f) => p.HasFields(f)));
+        Assert.Null(response.ToDomainForecast(_run)?.TrimTrailing((MarinePoint p, MarineParams f) => p.HasFields(f)));
     }
 
     [Fact]
@@ -325,7 +325,7 @@ public sealed class OpenMeteoResponseMappingsTests
             """;
         var response = JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.FloodResponse);
 
-        var forecast = response!.ToDomainForecast(Run);
+        var forecast = response!.ToDomainForecast(_run);
 
         Assert.NotNull(forecast);
         Assert.Equal(2, forecast.Points.Length);
@@ -339,7 +339,7 @@ public sealed class OpenMeteoResponseMappingsTests
     {
         var response = new FloodResponse(47.0, 8.0, new FloodDailyData(Time: [Hour0], Discharge: [120.0]));
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecast = response.ToDomainForecast(_run);
 
         Assert.NotNull(forecast);
         Assert.Null(Assert.Single(forecast.Points).EnsembleMembers);

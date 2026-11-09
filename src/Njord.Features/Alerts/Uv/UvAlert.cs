@@ -15,7 +15,8 @@ public sealed class UvAlert(IOptions<UvConfig> config) : FeatureRule<ForecastInp
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Uv",
-        new DomainRequirements(Forecast: ForecastParams.UvIndex));
+        new DomainRequirements(Forecast: ForecastParams.UvIndex),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

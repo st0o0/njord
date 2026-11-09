@@ -15,7 +15,8 @@ public sealed class ShowerAlert(IOptions<ShowerConfig> config) : FeatureRule<For
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "Shower",
-        new DomainRequirements(Forecast: ForecastParams.Showers, Ensemble: EnsembleParams.PrecipitationSpread));
+        new DomainRequirements(Forecast: ForecastParams.Showers, Ensemble: EnsembleParams.PrecipitationSpread),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

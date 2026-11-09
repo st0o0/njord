@@ -15,7 +15,8 @@ public sealed class GranularAqi(IOptions<GranularAqiConfig> config) : FeatureRul
         Name: "GranularAqi",
         new DomainRequirements(AirQuality: AirQualityParams.EuropeanAqiPm25 | AirQualityParams.EuropeanAqiPm10
             | AirQualityParams.EuropeanAqiNitrogenDioxide | AirQualityParams.EuropeanAqiOzone
-            | AirQualityParams.EuropeanAqiSulphurDioxide));
+            | AirQualityParams.EuropeanAqiSulphurDioxide),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 

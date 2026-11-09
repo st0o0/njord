@@ -35,11 +35,11 @@ public sealed record AirQualityPoint(
     double? UsAqiSulphurDioxide = null,
     double? UsAqiCarbonMonoxide = null) : IHasValidTime
 {
-    private static readonly AirQualityParams[] Flags =
+    private static readonly AirQualityParams[] _flags =
         [.. Enum.GetValues<AirQualityParams>().Where(p => p != AirQualityParams.None)];
 
     public bool HasFields(AirQualityParams required) =>
-        Flags.All(flag => !required.HasFlag(flag) || Has(flag));
+        _flags.All(flag => !required.HasFlag(flag) || Has(flag));
 
     private bool Has(AirQualityParams param) => param switch
     {

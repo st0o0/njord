@@ -69,9 +69,9 @@ public enum ForecastApiVariable
     [JsonStringEnumMemberName("showers")]
     Showers,
     [JsonStringEnumMemberName("soil_moisture_0_to_1cm")]
-    SoilMoisture0To1cm,
+    SoilMoisture0To1Cm,
     [JsonStringEnumMemberName("soil_moisture_1_to_3cm")]
-    SoilMoisture1To3cm,
+    SoilMoisture1To3Cm,
     [JsonStringEnumMemberName("et0_fao_evapotranspiration")]
     Evapotranspiration,
     [JsonStringEnumMemberName("vapour_pressure_deficit")]
@@ -91,21 +91,21 @@ public enum ForecastApiVariable
     [JsonStringEnumMemberName("surface_pressure")]
     SurfacePressure,
     [JsonStringEnumMemberName("wind_speed_80m")]
-    WindSpeed80m,
+    WindSpeed80M,
     [JsonStringEnumMemberName("wind_direction_80m")]
-    WindDirection80m,
+    WindDirection80M,
     [JsonStringEnumMemberName("wind_speed_120m")]
-    WindSpeed120m,
+    WindSpeed120M,
     [JsonStringEnumMemberName("wind_direction_120m")]
-    WindDirection120m,
+    WindDirection120M,
     [JsonStringEnumMemberName("temperature_80m")]
-    Temperature80m,
+    Temperature80M,
     [JsonStringEnumMemberName("temperature_120m")]
-    Temperature120m,
+    Temperature120M,
     [JsonStringEnumMemberName("wind_speed_100m")]
-    WindSpeed100m,
+    WindSpeed100M,
     [JsonStringEnumMemberName("wind_direction_100m")]
-    WindDirection100m,
+    WindDirection100M,
     [JsonStringEnumMemberName("thunderstorm_probability")]
     ThunderstormProbability,
     [JsonStringEnumMemberName("precipitation_type")]

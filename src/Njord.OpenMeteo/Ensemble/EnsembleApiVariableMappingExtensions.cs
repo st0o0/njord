@@ -20,7 +20,7 @@ public static class EnsembleApiVariableMappingExtensions
         EnsembleParams.SurfacePressureSpread => EnsembleApiVariable.SurfacePressureSpread,
         EnsembleParams.WindDirectionSpread => EnsembleApiVariable.WindDirectionSpread,
         EnsembleParams.WetBulbTemperatureSpread => EnsembleApiVariable.WetBulbTemperatureSpread,
-        EnsembleParams.WindSpeed100mSpread => EnsembleApiVariable.WindSpeed100mSpread,
+        EnsembleParams.WindSpeed100MSpread => EnsembleApiVariable.WindSpeed100MSpread,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 

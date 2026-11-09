@@ -20,7 +20,8 @@ public sealed class AllergySeverityScore(IOptions<AllergySeverityConfig> config)
         Name: "AllergySeverity",
         new DomainRequirements(
             Forecast: ForecastParams.WindSpeed | ForecastParams.Humidity | ForecastParams.Rain | ForecastParams.BoundaryLayerHeight,
-            AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen | AirQualityParams.Alder | AirQualityParams.Mugwort));
+            AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen | AirQualityParams.Alder | AirQualityParams.Mugwort),
+        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor, Unit: "%"));
 
     public override bool Enabled => config.Value.Enabled;
 

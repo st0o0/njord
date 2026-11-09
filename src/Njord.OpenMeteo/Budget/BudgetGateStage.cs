@@ -11,7 +11,7 @@ internal sealed class BudgetGateStage<T> : GraphStage<FlowShape<T, T>>
     {
         private const string RetryTimer = "retry";
         private const string RefreshTimer = "refresh";
-        private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan _refreshInterval = TimeSpan.FromSeconds(5);
 
         private readonly BudgetGateStage<T> _stage;
         private readonly IActorRef _tracker;
@@ -35,7 +35,7 @@ internal sealed class BudgetGateStage<T> : GraphStage<FlowShape<T, T>>
             SetHandler(stage.Out, this);
         }
 
-        public override void PreStart() => ScheduleRepeatedly(RefreshTimer, RefreshInterval, RefreshInterval);
+        public override void PreStart() => ScheduleRepeatedly(RefreshTimer, _refreshInterval, _refreshInterval);
 
         public void OnPush()
         {

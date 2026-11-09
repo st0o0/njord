@@ -13,7 +13,8 @@ public sealed class OceanCurrents(IOptions<OceanCurrentsConfig> config) : Featur
         OutputKind.Condition,
         FeatureCategory.Marine,
         Name: "OceanCurrents",
-        new DomainRequirements(Marine: MarineParams.OceanCurrentVelocity | MarineParams.OceanCurrentDirection));
+        new DomainRequirements(Marine: MarineParams.OceanCurrentVelocity | MarineParams.OceanCurrentDirection),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 

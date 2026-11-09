@@ -12,7 +12,7 @@ namespace Njord.OpenMeteo.Tests;
 
 public sealed class SeasonalTests
 {
-    private static readonly DateTimeOffset ModelRun = new(2026, 10, 20, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _modelRun = new(2026, 10, 20, 12, 0, 0, TimeSpan.Zero);
 
     // 2026-10-01 .. 2027-03-01 (unix seconds)
     private const string Body =
@@ -33,7 +33,7 @@ public sealed class SeasonalTests
         var http = StubOpenMeteoHandler.ClientFor("seasonal-api", HttpStatusCode.OK, Body, request => requested = StubOpenMeteoHandler.RawPathAndQuery(request));
 
         await ClientFor(http, SeasonalParams.TemperatureAnomaly | SeasonalParams.PrecipitationAnomaly)
-            .FetchAsync(47.05, 8.31, ModelRun, TestContext.Current.CancellationToken);
+            .FetchAsync(47.05, 8.31, _modelRun, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             "/v1/seasonal?latitude=47.05&longitude=8.31&monthly=temperature_2m_anomaly,precipitation_anomaly&timeformat=unixtime&timezone=UTC",
@@ -45,7 +45,7 @@ public sealed class SeasonalTests
     {
         var http = StubOpenMeteoHandler.ClientFor("seasonal-api", HttpStatusCode.BadRequest, OpenMeteoFixtures.NoDataReason);
 
-        var result = await ClientFor(http, SeasonalParams.TemperatureAnomaly).FetchAsync(47, 8, ModelRun, TestContext.Current.CancellationToken);
+        var result = await ClientFor(http, SeasonalParams.TemperatureAnomaly).FetchAsync(47, 8, _modelRun, TestContext.Current.CancellationToken);
 
         Assert.IsType<FetchEmpty>(result);
     }
@@ -55,14 +55,14 @@ public sealed class SeasonalTests
     {
         var http = StubOpenMeteoHandler.ClientFor("seasonal-api", HttpStatusCode.OK, Body);
 
-        var result = await ClientFor(http, All).FetchAsync(47, 8, ModelRun, TestContext.Current.CancellationToken);
+        var result = await ClientFor(http, All).FetchAsync(47, 8, _modelRun, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchSuccess>(result);
         var forecast = Assert.IsType<DomainForecast<SeasonalPoint>>(success.Forecast);
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Seasonal, forecast.Domain),
             () => Assert.Equal(TimeResolution.Monthly, forecast.Resolution),
-            () => Assert.Equal(ModelRun, forecast.ModelRun),
+            () => Assert.Equal(_modelRun, forecast.ModelRun),
             () => Assert.Equal(new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero), forecast.FirstValid),
             () => Assert.Equal(new DateTimeOffset(2027, 1, 1, 0, 0, 0, TimeSpan.Zero), forecast.LastValid),
             () => Assert.Equal(new SeasonalPoint(new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero), 1.0, -20.0, 80.0), forecast.Points[1]));
@@ -73,7 +73,7 @@ public sealed class SeasonalTests
     {
         var response = new SeasonalResponse(47, 8, new SeasonalMonthlyData([1790812800], null, null, [99.5]));
 
-        Assert.Null(response.ToDomainForecast(ModelRun, 3));
+        Assert.Null(response.ToDomainForecast(_modelRun, 3));
     }
 
     [Fact(Timeout = 5000)]
@@ -84,7 +84,7 @@ public sealed class SeasonalTests
         var client = new SeasonalClient(http, Options.Create(new SeasonalOptions { Model = "ecmwf_seas5_ensemble_mean" }),
             Options.Create(new DomainRequirements(Seasonal: SeasonalParams.TemperatureAnomaly)));
 
-        await client.FetchAsync(47, 8, ModelRun, TestContext.Current.CancellationToken);
+        await client.FetchAsync(47, 8, _modelRun, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             "/v1/seasonal?latitude=47&longitude=8&monthly=temperature_2m_anomaly&models=ecmwf_seas5_ensemble_mean&timeformat=unixtime&timezone=UTC",
@@ -94,7 +94,7 @@ public sealed class SeasonalTests
     [Fact]
     public void A_point_reports_which_requested_fields_are_present()
     {
-        var point = new SeasonalPoint(ModelRun, TemperatureAnomaly: 1.0);
+        var point = new SeasonalPoint(_modelRun, TemperatureAnomaly: 1.0);
 
         Assert.Multiple(
             () => Assert.True(point.HasFields(SeasonalParams.TemperatureAnomaly)),
@@ -118,7 +118,7 @@ public sealed class SeasonalTests
         var client = new SeasonalClient(http, Options.Create(new SeasonalOptions()),
             Options.Create(new DomainRequirements(Seasonal: SeasonalParams.TemperatureAnomaly, SeasonalWeekly: SeasonalWeeklyParams.TemperatureEfi | SeasonalWeeklyParams.PrecipitationEfi)));
 
-        await client.FetchWeeklyAsync(47, 8, ModelRun, TestContext.Current.CancellationToken);
+        await client.FetchWeeklyAsync(47, 8, _modelRun, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             "/v1/seasonal?latitude=47&longitude=8&weekly=temperature_2m_efi,precipitation_efi&timeformat=unixtime&timezone=UTC",
@@ -132,7 +132,7 @@ public sealed class SeasonalTests
         var client = new SeasonalClient(http, Options.Create(new SeasonalOptions()),
             Options.Create(new DomainRequirements(SeasonalWeekly: SeasonalWeeklyParams.TemperatureEfi)));
 
-        var result = await client.FetchWeeklyAsync(47, 8, ModelRun, TestContext.Current.CancellationToken);
+        var result = await client.FetchWeeklyAsync(47, 8, _modelRun, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchSuccess>(result);
         var forecast = Assert.IsType<DomainForecast<SeasonalWeeklyPoint>>(success.Forecast);
@@ -153,7 +153,7 @@ public sealed class SeasonalTests
         var client = new SeasonalClient(http, Options.Create(new SeasonalOptions()),
             Options.Create(new DomainRequirements(SeasonalWeekly: SeasonalWeeklyParams.TemperatureEfi)));
 
-        var result = await client.FetchAsync(47, 8, ModelRun, TestContext.Current.CancellationToken);
+        var result = await client.FetchAsync(47, 8, _modelRun, TestContext.Current.CancellationToken);
 
         Assert.Multiple(
             () => Assert.Contains("weekly=temperature_2m_efi", requested),
@@ -166,13 +166,13 @@ public sealed class SeasonalTests
     {
         var response = new SeasonalResponse(47, 8, null, new SeasonalWeeklyData([1790812800]));
 
-        Assert.Null(response.ToWeeklyDomainForecast(ModelRun));
+        Assert.Null(response.ToWeeklyDomainForecast(_modelRun));
     }
 
     [Fact]
     public void A_weekly_point_reports_which_requested_fields_are_present()
     {
-        var point = new SeasonalWeeklyPoint(ModelRun, TemperatureEfi: 0.3);
+        var point = new SeasonalWeeklyPoint(_modelRun, TemperatureEfi: 0.3);
 
         Assert.Multiple(
             () => Assert.True(point.HasFields(SeasonalWeeklyParams.TemperatureEfi)),

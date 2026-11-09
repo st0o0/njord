@@ -10,8 +10,8 @@ public sealed class MigraineRiskConfigValidator : IValidateOptions<MigraineRiskC
     {
         var failures = new ValidationFailures(IConfigSection.SectionOf<MigraineRiskConfig>());
 
-        failures.Require(options.PressureThreshold6h > 0, $"PressureThreshold6h must be positive, got {options.PressureThreshold6h}.");
-        failures.Require(options.PressureThreshold24h > 0, $"PressureThreshold24h must be positive, got {options.PressureThreshold24h}.");
+        failures.Require(options.PressureThreshold6H > 0, $"PressureThreshold6h must be positive, got {options.PressureThreshold6H}.");
+        failures.Require(options.PressureThreshold24H > 0, $"PressureThreshold24h must be positive, got {options.PressureThreshold24H}.");
         failures.Require(options.TempSwingThreshold > 0, $"TempSwingThreshold must be positive, got {options.TempSwingThreshold}.");
         failures.Require(options.HumiditySwingThreshold > 0, $"HumiditySwingThreshold must be positive, got {options.HumiditySwingThreshold}.");
 

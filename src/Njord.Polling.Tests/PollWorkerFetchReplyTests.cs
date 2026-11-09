@@ -13,10 +13,10 @@ namespace Njord.Polling.Tests;
 
 public sealed class PollWorkerFetchReplyTests : Akka.Hosting.TestKit.TestKit
 {
-    private static readonly IOptions<DomainRequirements> Requirements =
+    private static readonly IOptions<DomainRequirements> _requirements =
         Options.Create(TestRequirements.For(DomainKind.Forecast, DomainKind.AirQuality));
 
-    private static readonly PollTarget Target = new(new Location("lucerne", 47.05, 8.31));
+    private static readonly PollTarget _target = new(new Location("lucerne", 47.05, 8.31));
     private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private TestProbe _manager = null!;
 
@@ -35,9 +35,9 @@ public sealed class PollWorkerFetchReplyTests : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         Sys.ActorOf(
-                Props.Create(() => new PollWorker(Target.Id, _time, Options.Create(new PollingOptions()), Requirements)),
+                Props.Create(() => new PollWorker(_target.Id, _time, Options.Create(new PollingOptions()), _requirements)),
                 $"worker-{Guid.NewGuid():N}")
-            .Tell(new StartPolling(Target, TimeSpan.FromHours(1)));
+            .Tell(new StartPolling(_target, TimeSpan.FromHours(1)));
 
         var planned = await _manager.ExpectMsgAsync<PollWorkerReport>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         Assert.Equal(PollWorkerOutcome.Planned, planned.Outcome);

@@ -15,7 +15,8 @@ public sealed class RainProbabilityAlert(IOptions<RainProbabilityConfig> config)
         OutputKind.Alert,
         FeatureCategory.Forecast,
         Name: "RainProbability",
-        new DomainRequirements(Forecast: ForecastParams.PrecipitationProbability, Ensemble: EnsembleParams.PrecipitationSpread));
+        new DomainRequirements(Forecast: ForecastParams.PrecipitationProbability, Ensemble: EnsembleParams.PrecipitationSpread),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

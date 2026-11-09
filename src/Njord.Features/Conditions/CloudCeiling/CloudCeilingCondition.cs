@@ -16,7 +16,8 @@ public sealed class CloudCeilingCondition(IOptions<CloudCeilingConfig> config) :
         FeatureCategory.Insight,
         Name: "CloudCeiling",
         new DomainRequirements(Forecast: ForecastParams.CloudCoverLow | ForecastParams.CloudCoverMid | ForecastParams.CloudCoverHigh
-            | ForecastParams.FreezingLevelHeight | ForecastParams.BoundaryLayerHeight));
+            | ForecastParams.FreezingLevelHeight | ForecastParams.BoundaryLayerHeight),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 

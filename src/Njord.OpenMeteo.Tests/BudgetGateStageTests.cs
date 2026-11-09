@@ -68,7 +68,7 @@ public sealed class BudgetGateStageTests : Akka.Hosting.TestKit.TestKit
         await tracker.ExpectMsgAsync<RecordApiCall>(cancellationToken: ct);
     }
 
-    private static readonly int[] expected = [10, 20, 30];
+    private static readonly int[] _expected = [10, 20, 30];
 
     [Fact(Timeout = 15000)]
     public async Task Consecutive_heavy_elements_are_serialized_not_rejected()
@@ -91,7 +91,7 @@ public sealed class BudgetGateStageTests : Akka.Hosting.TestKit.TestKit
         var result = await sink.WaitAsync(TimeSpan.FromSeconds(10), ct);
 
         Assert.Equal(3, result.Count);
-        Assert.Equal(expected, result.ToArray());
+        Assert.Equal(_expected, result.ToArray());
     }
 
     [Fact(Timeout = 10000)]

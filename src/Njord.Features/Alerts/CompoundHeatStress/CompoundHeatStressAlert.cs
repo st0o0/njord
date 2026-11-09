@@ -23,7 +23,8 @@ public sealed class CompoundHeatStressAlert(IOptions<CompoundHeatStressConfig> c
         new DomainRequirements(
             Forecast: ForecastParams.ApparentTemperature | ForecastParams.WetBulbTemperature | ForecastParams.UvIndex
                 | ForecastParams.BoundaryLayerHeight | ForecastParams.Humidity,
-            AirQuality: AirQualityParams.Pm25));
+            AirQuality: AirQualityParams.Pm25),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 

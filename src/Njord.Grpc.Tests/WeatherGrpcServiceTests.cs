@@ -20,8 +20,8 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
-    private static readonly DateTimeOffset Anchor = TestTimeConstants.BudgetEpoch;
-    private static readonly NjordOptions Options = new()
+    private static readonly DateTimeOffset _anchor = TestTimeConstants.BudgetEpoch;
+    private static readonly NjordOptions _options = new()
     {
         Locations = [new LocationOptions { Name = "Lucerne", Latitude = 47.05, Longitude = 8.31 }],
         ResolvedLocations = [new Location("Lucerne", 47.05, 8.31)],
@@ -44,7 +44,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 30_000)]
     public async Task GetDomainData_returns_the_latest_event_of_the_requested_domain()
     {
-        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 3));
+        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(_anchor, 3));
         var service = CreateService(domainEvent: evt);
 
         var response = await service.GetDomainData(
@@ -53,7 +53,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         Assert.Multiple(
             () => Assert.Equal("Lucerne", response.Location),
             () => Assert.Equal(Domain.Forecast, response.Domain),
-            () => Assert.Equal(Anchor, response.ModelRun.ToDateTimeOffset()),
+            () => Assert.Equal(_anchor, response.ModelRun.ToDateTimeOffset()),
             () => Assert.Equal(3, response.Forecast.Points.Count));
     }
 
@@ -61,7 +61,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     public async Task GetDomainData_returns_the_seasonal_months()
     {
         var forecast = new DomainForecast<SeasonalPoint>(
-            DomainKind.Seasonal, Anchor, TimeResolution.Monthly, [new SeasonalPoint(Anchor, 1.5, -12.0, 80.0)]);
+            DomainKind.Seasonal, _anchor, TimeResolution.Monthly, [new SeasonalPoint(_anchor, 1.5, -12.0, 80.0)]);
         var service = CreateService(domainEvent: new SeasonalDataReceived(DomainData.Lucerne, forecast));
 
         var response = await service.GetDomainData(
@@ -76,13 +76,13 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
             () => Assert.Equal(80.0, sample.PrecipitationMean));
     }
 
-    private static readonly string[] TwoModels = ["ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"];
+    private static readonly string[] _twoModels = ["ecmwf_ifs025_ensemble_mean", "ukmo_global_ensemble_mean_20km"];
 
     [Fact(Timeout = 30_000)]
     public async Task GetDomainData_returns_the_requested_secondary_model_labelled_with_its_id()
     {
-        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2), "ukmo_global_ensemble_mean_20km");
-        var service = CreateService(domainEvent: evt, models: TwoModels);
+        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(_anchor, 2), "ukmo_global_ensemble_mean_20km");
+        var service = CreateService(domainEvent: evt, models: _twoModels);
 
         var response = await service.GetDomainData(
             new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Forecast, Model = "ukmo_global_ensemble_mean_20km" },
@@ -96,8 +96,8 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 30_000)]
     public async Task GetDomainData_labels_primary_weather_with_the_primary_model_id()
     {
-        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
-        var service = CreateService(domainEvent: evt, models: TwoModels);
+        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(_anchor, 2));
+        var service = CreateService(domainEvent: evt, models: _twoModels);
 
         var response = await service.GetDomainData(
             new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Forecast },
@@ -109,7 +109,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 30_000)]
     public async Task GetDomainData_is_not_found_for_a_model_that_is_not_enabled()
     {
-        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(Anchor, 2));
+        var evt = new ForecastDataReceived(DomainData.Lucerne, DomainData.Forecast(_anchor, 2));
         var service = CreateService(domainEvent: evt);
 
         var ex = await Assert.ThrowsAsync<RpcException>(() => service.GetDomainData(
@@ -122,7 +122,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 30_000)]
     public async Task GetCatalog_marks_only_the_effective_models_enabled()
     {
-        var service = CreateService(models: TwoModels);
+        var service = CreateService(models: _twoModels);
 
         var response = await service.GetCatalog(new GetCatalogRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
@@ -142,7 +142,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         };
         ActorRegistry.Register<IGrpcConsumer>(
             Sys.ActorOf(Props.Create(() => new FakeConsumer(null, null))), overwrite: true);
-        var service = new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Opts(Options),
+        var service = new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Opts(_options),
             TestServiceInfo.Opts(activeModels), TestServiceInfo.Opts(new DomainRequirements()), TimeProvider.System);
 
         var response = await service.GetCatalog(new GetCatalogRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
@@ -233,7 +233,7 @@ public sealed class WeatherGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         ActorRegistry.Register<IGrpcConsumer>(
             Sys.ActorOf(Props.Create(() => new FakeConsumer(domainEvent, analysis))), overwrite: true);
         var activeModels = new ActiveModels { EnsembleModels = [.. models ?? ["ecmwf_ifs025_ensemble_mean"]] };
-        return new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Opts(Options),
+        return new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Opts(_options),
             TestServiceInfo.Opts(activeModels), TestServiceInfo.Opts(new DomainRequirements()), TimeProvider.System);
     }
 

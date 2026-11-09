@@ -7,4 +7,6 @@ public enum OutputKind
     Condition,
     Trend,
     Forecast,
+    Weather,
+    Observation,
 }

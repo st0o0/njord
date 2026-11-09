@@ -21,7 +21,8 @@ public sealed class SprayWindowScore(IOptions<SprayWindowConfig> config) : Featu
         FeatureCategory.Lifestyle,
         Name: "SprayWindow",
         new DomainRequirements(Forecast: ForecastParams.WindSpeed | ForecastParams.Rain
-            | ForecastParams.PrecipitationProbability | ForecastParams.Temperature | ForecastParams.Humidity));
+            | ForecastParams.PrecipitationProbability | ForecastParams.Temperature | ForecastParams.Humidity),
+        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor, Unit: "%"));
 
     public override bool Enabled => config.Value.Enabled;
 

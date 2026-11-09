@@ -21,7 +21,8 @@ public sealed class SwimmingConditionsAlert(IOptions<SwimmingConditionsConfig> c
         FeatureCategory.Marine,
         Name: "Swimming",
         new DomainRequirements(Marine: MarineParams.WaveHeight,
-            OptionalMarine: MarineParams.WaterTemperature));
+            OptionalMarine: MarineParams.WaterTemperature),
+        EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
 
