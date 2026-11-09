@@ -59,10 +59,29 @@ using Njord.Features.Forecasts.EnsembleModelComparison;
 using Njord.Features.Forecasts.ForecastModelComparison;
 using Njord.Features.Forecasts.GrowingDegree;
 using Njord.Features.Forecasts.SeasonalOutlook;
+using Njord.Features.Observations.CarbonMonoxide;
+using Njord.Features.Observations.DewPoint;
+using Njord.Features.Observations.DischargeMean;
+using Njord.Features.Observations.EuropeanAqi;
+using Njord.Features.Observations.Evapotranspiration;
 using Njord.Features.Observations.FloodDischarge;
+using Njord.Features.Observations.NitrogenDioxide;
+using Njord.Features.Observations.OceanCurrentVelocity;
+using Njord.Features.Observations.Ozone;
+using Njord.Features.Observations.Pm10;
 using Njord.Features.Observations.Pm25;
+using Njord.Features.Observations.ShortwaveRadiation;
+using Njord.Features.Observations.SnowDepth;
+using Njord.Features.Observations.SoilMoisture;
+using Njord.Features.Observations.SoilTemperature;
+using Njord.Features.Observations.SulphurDioxide;
 using Njord.Features.Observations.UvIndex;
+using Njord.Features.Observations.Visibility;
+using Njord.Features.Observations.WaterTemperature;
+using Njord.Features.Observations.WaveDirection;
 using Njord.Features.Observations.WaveHeight;
+using Njord.Features.Observations.WavePeriod;
+using Njord.Features.Observations.WindGusts;
 using Njord.Features.Scores.AllergySeverity;
 using Njord.Features.Scores.AsthmaRisk;
 using Njord.Features.Scores.Bbq;
@@ -182,9 +201,28 @@ public static class ServiceCollectionExtensions
 
         // Observations
         services.AddFeature<Pm25Observation, Pm25ObservationConfig>();
+        services.AddFeature<Pm10Observation, Pm10ObservationConfig>();
+        services.AddFeature<OzoneObservation, OzoneObservationConfig>();
+        services.AddFeature<NitrogenDioxideObservation, NitrogenDioxideObservationConfig>();
+        services.AddFeature<EuropeanAqiObservation, EuropeanAqiObservationConfig>();
+        services.AddFeature<CarbonMonoxideObservation, CarbonMonoxideObservationConfig>();
+        services.AddFeature<SulphurDioxideObservation, SulphurDioxideObservationConfig>();
         services.AddFeature<WaveHeightObservation, WaveHeightObservationConfig>();
+        services.AddFeature<WaterTemperatureObservation, WaterTemperatureObservationConfig>();
+        services.AddFeature<WavePeriodObservation, WavePeriodObservationConfig>();
+        services.AddFeature<WaveDirectionObservation, WaveDirectionObservationConfig>();
+        services.AddFeature<OceanCurrentVelocityObservation, OceanCurrentVelocityObservationConfig>();
         services.AddFeature<FloodDischargeObservation, FloodDischargeObservationConfig>();
+        services.AddFeature<DischargeMeanObservation, DischargeMeanObservationConfig>();
         services.AddFeature<UvIndexObservation, UvIndexObservationConfig>();
+        services.AddFeature<DewPointObservation, DewPointObservationConfig>();
+        services.AddFeature<WindGustsObservation, WindGustsObservationConfig>();
+        services.AddFeature<SoilTemperatureObservation, SoilTemperatureObservationConfig>();
+        services.AddFeature<SoilMoistureObservation, SoilMoistureObservationConfig>();
+        services.AddFeature<SnowDepthObservation, SnowDepthObservationConfig>();
+        services.AddFeature<EvapotranspirationObservation, EvapotranspirationObservationConfig>();
+        services.AddFeature<ShortwaveRadiationObservation, ShortwaveRadiationObservationConfig>();
+        services.AddFeature<VisibilityObservation, VisibilityObservationConfig>();
 
         return services;
     }
