@@ -7,15 +7,15 @@ Keeps the gRPC services thin: every mapping from domain results and messages to 
 ## Requirements
 
 ### Requirement: gRPC services delegate mapping to pure functions
-Each gRPC service implementation in `Njord.Grpc` SHALL delegate response shaping to pure `ToProto()` extension methods, grouped per OutputKind (weather, alert, score, condition, trend, forecast, observation) rather than per feature. An RPC method SHALL read as: map the request, ask an actor resolved by marker, map the result, return it. Mappers SHALL take only message results and request protos as input; they SHALL NOT read options or domain registries.
+Each gRPC service implementation in `Njord.Grpc` SHALL delegate response shaping to pure `ToProto()` extension methods in `Njord.Grpc/Mapping/`, grouped per OutputKind (weather, alert, score, condition, trend, forecast, observation). The `Mapping/` directory SHALL be flat (no version subfolders). Mapper classes SHALL live in the `Njord.Grpc.Mapping` namespace. An RPC method SHALL read as: map the request, ask an actor resolved by marker, map the result, return it. Mappers SHALL take only message results and request protos as input; they SHALL NOT read options or domain registries.
 
 #### Scenario: Mapping is per-OutputKind, not per-feature
 - **WHEN** a new alert feature is added (e.g. HailAlert)
 - **THEN** no new mapping extension class SHALL be needed; the existing alert `ToProto()` mapper SHALL handle it
 
-#### Scenario: Catalog mapping is independently testable
-- **WHEN** testing how a catalog result entry maps to a proto message
-- **THEN** the test calls the `ToProto()` mapping directly, without a `ServerCallContext`, `ActorRegistry`, or running service instance
+#### Scenario: No versioned mapping subfolders exist
+- **WHEN** the Mapping directory is listed
+- **THEN** there SHALL be no `V2/` or `V3/` subdirectories; all mappers SHALL be at the Mapping root
 
 #### Scenario: Wire output preserves feature identity
 - **WHEN** a feature result is mapped to an `EntityStateUpdate` proto
@@ -27,11 +27,6 @@ Each gRPC service implementation in `Njord.Grpc` SHALL delegate response shaping
   derived from a poll state entry)
 - **THEN** both RPCs call the same shared mapper function for the shared fields, instead of
   each RPC independently re-implementing the field-by-field construction
-
-#### Scenario: Wire output is unchanged by the mapping refactor
-- **WHEN** an RPC is called with the same input before and after its mapping logic is moved
-  into the per-domain mappings
-- **THEN** the returned proto message is byte-for-byte identical
 
 ### Requirement: Generic OutputKind mappers replace per-feature switch
 The mapping layer SHALL provide one mapper per OutputKind that converts any feature result of that kind to the corresponding proto value type. There SHALL be no switch or conditional on individual feature types. The mapper SHALL extract the common fields defined by the OutputKind base result (e.g. severity + trigger for alerts, value + label for scores).

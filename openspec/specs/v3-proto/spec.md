@@ -1,26 +1,27 @@
 # v3-proto Specification
 
 ## Purpose
-The v3 proto package with unified NjordService, generic value messages, and entity-first structure.
+The njord proto package with unified NjordService, generic value messages, and entity-first structure.
 
 ## Requirements
 
-### Requirement: v3 proto package with unified NjordService
-The system SHALL define a `njord.v3` proto package containing a single `NjordService` with four RPCs: `GetManifest`, `Subscribe`, `GetStatus`, and `TriggerPoll`. This replaces the v2 split of `WeatherService` and `OpsService`.
+### Requirement: Proto package with unified NjordService
+The system SHALL define a `njord` proto package (file at `protos/njord/njord.proto`) containing a single `NjordService` with four RPCs: `GetManifest`, `Subscribe`, `GetStatus`, and `TriggerPoll`. The `csharp_namespace` SHALL be `Njord.Grpc.Proto`.
 
-#### Scenario: v3 service exposes all RPCs
-- **WHEN** a client connects to the v3 NjordService
+#### Scenario: NjordService exposes all RPCs
+- **WHEN** a client connects to the NjordService
 - **THEN** it SHALL be able to call GetManifest (unary), Subscribe (server-streaming), GetStatus (unary), and TriggerPoll (unary)
 
-### Requirement: v3 runs alongside v2
-The v3 proto package SHALL coexist with v2. Both services SHALL be registered on the same Kestrel endpoint. v2 SHALL remain fully functional until explicitly removed in a future change.
+#### Scenario: Proto package is unversioned
+- **WHEN** the proto file is compiled
+- **THEN** the generated C# types SHALL live in the `Njord.Grpc.Proto` namespace
 
-#### Scenario: Both versions serve simultaneously
-- **WHEN** njord starts with both v2 and v3 registered
-- **THEN** a v2 client calling `WeatherService.GetCatalog` and a v3 client calling `NjordService.GetManifest` SHALL both succeed
+#### Scenario: Proto file location is unversioned
+- **WHEN** the proto file is referenced
+- **THEN** it SHALL be at `protos/njord/njord.proto`, not under a versioned subdirectory
 
 ### Requirement: Generic value types per OutputKind
-The v3 proto SHALL define one value message per `OutputKind` rather than one per feature. The value types SHALL be: `WeatherValue`, `AlertValue`, `ScoreValue`, `ConditionValue`, `TrendValue`, `ForecastValue`, `ObservationValue`. Adding a new feature with an existing OutputKind SHALL NOT require a proto change.
+The proto SHALL define one value message per `OutputKind` rather than one per feature. The value types SHALL be: `WeatherValue`, `AlertValue`, `ScoreValue`, `ConditionValue`, `TrendValue`, `ForecastValue`, `ObservationValue`. Adding a new feature with an existing OutputKind SHALL NOT require a proto change.
 
 #### Scenario: New alert feature needs no proto change
 - **WHEN** a new HailAlert feature is added with `OutputKind.Alert`
@@ -37,10 +38,3 @@ The v3 proto SHALL define one value message per `OutputKind` rather than one per
 #### Scenario: ObservationValue carries raw numeric
 - **WHEN** an observation result is mapped to proto
 - **THEN** `ObservationValue` SHALL contain `value` (double)
-
-### Requirement: GetStatus and TriggerPoll preserve v2 semantics
-`GetStatus` SHALL return the same information as v2 OpsService.GetStatus (version, uptime, budget, poll models, active enrichments). `TriggerPoll` SHALL accept an optional location and trigger an immediate poll, same as v2.
-
-#### Scenario: v3 GetStatus matches v2 content
-- **WHEN** both v2 `OpsService.GetStatus` and v3 `NjordService.GetStatus` are called
-- **THEN** they SHALL return semantically equivalent information
