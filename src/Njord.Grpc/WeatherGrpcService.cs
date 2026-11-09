@@ -10,6 +10,7 @@ using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Messages.Config;
 using Njord.Messages.Fetch;
+using Njord.Messages.Results;
 using Njord.Messages.Stream;
 using ActorSystem = Akka.Actor.ActorSystem;
 using GrpcStatus = Grpc.Core.Status;
@@ -108,7 +109,9 @@ public sealed class WeatherGrpcService(
         await using var ctr = context.CancellationToken.Register(killSwitch.Shutdown).ConfigureAwait(false);
 
         await sourceRef.Source
-            .Where(e => e.ToEnrichmentLocation() is { } eventLocation && (location is not { } wanted || eventLocation == wanted))
+            .Where(e => e is not (ObservationResult or WeatherResult)
+                && e.ToEnrichmentLocation() is { } eventLocation
+                && (location is not { } wanted || eventLocation == wanted))
             .Via(killSwitch.Flow<PipelineEvent>())
             .SelectAsync(1, async update =>
             {
