@@ -13,18 +13,33 @@ The v3 NjordService SHALL expose a `Subscribe` RPC that returns a server-streami
 - **THEN** the client SHALL receive both as `EntityEvent` messages on the same stream
 
 ### Requirement: Snapshot on connect
-When a client calls `Subscribe`, the server SHALL immediately send the current state of every entity that has data as a batch of `EntityStateUpdate` messages before any live updates. This snapshot SHALL reflect the latest known value for each entity at the time of subscription.
+When a client calls `Subscribe`, the server SHALL immediately send the current state of
+every registered entity as a batch of `EntityStateUpdate` messages before any live updates.
+Entities that have not yet received a result from the pipeline SHALL be included with a
+default value appropriate to their OutputKind (alerts with Severity.None, conditions with
+Active=false, scores with score 0, observations with value 0). The snapshot SHALL reflect
+the full entity set from the manifest, not only entities that have produced results.
 
 #### Scenario: New subscriber receives current state
 - **WHEN** a client subscribes and 10 entities already have values
-- **THEN** the client SHALL receive 10 `EntityStateUpdate` messages before any live events
+- **THEN** the client SHALL receive `EntityStateUpdate` messages for all registered entities,
+  including those with default values
+
+#### Scenario: Non-triggered alerts appear as cleared
+- **WHEN** a client subscribes and 30 alert entities are registered but only 3 have triggered
+- **THEN** the snapshot SHALL contain 30 alert `EntityStateUpdate` messages: 3 with their
+  actual severity and 27 with `AlertSeverity.None`
 
 #### Scenario: Reconnecting client receives fresh snapshot
 - **WHEN** a client disconnects and reconnects
 - **THEN** it SHALL receive a complete fresh snapshot, not a diff from the previous connection
 
 ### Requirement: State updates keyed by entity ID
-Each `EntityStateUpdate` SHALL carry the `entity_id` from the manifest and an `updated_at` timestamp. The value SHALL be a oneof of the OutputKind-specific value types: `WeatherValue`, `AlertValue`, `ScoreValue`, `ConditionValue`, `TrendValue`, `ForecastValue`, `ObservationValue`. The entity lookup SHALL resolve Observation results by their `FeatureName` field rather than by CLR type, since all observation features share `ObservationResult`.
+Each `EntityStateUpdate` SHALL carry the `entity_id` from the manifest and an `updated_at`
+timestamp. The value SHALL be a oneof of the OutputKind-specific value types: `WeatherValue`,
+`AlertValue`, `ScoreValue`, `ConditionValue`, `TrendValue`, `ForecastValue`,
+`ObservationValue`. The entity lookup SHALL resolve results by feature descriptor name and
+location, not by CLR type.
 
 #### Scenario: Alert state update
 - **WHEN** the FrostAlert feature produces a result for location Vienna
