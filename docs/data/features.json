@@ -1185,7 +1185,7 @@
     "description": "Top-level soil moisture content",
     "longDescription": "Passes through the current top-level soil moisture content (0 to 1 cm) from the forecast domain as a sensor entity. Useful for dashboards and automations that need the raw value.",
     "entities": ["sensor.{location}_soil_moisture_observation"],
-    "automationExample": "Skip irrigation when soil moisture is above 0.3 m3/m3",
+    "automationExample": "Skip irrigation when soil moisture is above 30%",
     "enabledByDefault": false,
     "domains": ["Forecast"],
     "weatherParams": ["SoilMoisture0To1Cm"],

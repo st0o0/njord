@@ -24,7 +24,7 @@ public sealed class SoilMoistureObservationTests
         var result = Assert.IsType<ObservationResult>(Run(Rule(), _now, Build(0.35)));
 
         Assert.Equal("SoilMoistureObservation", result.FeatureName);
-        Assert.Equal(0.35, result.Value);
+        Assert.Equal(35.0, result.Value);
     }
 
     [Fact]

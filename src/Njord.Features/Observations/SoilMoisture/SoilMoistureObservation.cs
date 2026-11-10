@@ -13,7 +13,7 @@ public sealed class SoilMoistureObservation(IOptions<SoilMoistureObservationConf
         FeatureCategory.Forecast,
         Name: "SoilMoistureObservation",
         new DomainRequirements(Forecast: ForecastParams.SoilMoisture0To1Cm),
-        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor, DeviceClass: "moisture", Unit: "m³/m³"));
+        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor, DeviceClass: "moisture", Unit: "%"));
 
     public override bool Enabled => config.Value.Enabled;
 
@@ -22,6 +22,6 @@ public sealed class SoilMoistureObservation(IOptions<SoilMoistureObservationConf
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) =>
         ForecastQueries.ValueAt(ctx.Current.Forecast, ctx.Now) is { SoilMoisture0To1Cm: { } value }
-            ? new ObservationResult(ctx.Location, Descriptor.Name, value)
+            ? new ObservationResult(ctx.Location, Descriptor.Name, Math.Round(value * 100, 1))
             : null;
 }

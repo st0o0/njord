@@ -13,7 +13,7 @@ public sealed class UvIndexObservation(IOptions<UvIndexObservationConfig> config
         FeatureCategory.Forecast,
         Name: "UvIndexObservation",
         new DomainRequirements(Forecast: ForecastParams.UvIndex),
-        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor, DeviceClass: "irradiance", Unit: "index"));
+        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor, Unit: "index"));
 
     public override bool Enabled => config.Value.Enabled;
 

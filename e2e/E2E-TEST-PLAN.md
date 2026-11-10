@@ -158,13 +158,14 @@ After S3 completes, spawn three subagents in a single message.
 ## S7c — Condition Sensors (Haiku #2)
 
 Conditions are binary ("on"/"off") in HA with typed values in the `extra` attributes map.
+Convention: `value` = primary numeric, `state` = enum classification (see `ConditionValueMappingExtensions`).
 
-1. `sensor.*_heat_pump_cop` state in {"on", "off", "unavailable"}; attributes include `cop` (numeric > 0)
-2. `sensor.*_irrigation_need` state in {"on", "off", "unavailable"}; attributes include `advice` (water/skip/reduce/soil_wet)
-3. `sensor.*_frost_depth` state in {"on", "off", "unavailable"}; attributes include `depth_cm` (numeric >= 0)
-4. `sensor.*_inversion_detection` state in {"on", "off", "unavailable"}; attributes include `strength` (none/mild/strong/extreme)
-5. `sensor.*_atmospheric_stability` state in {"on", "off", "unavailable"}; attributes include `stability_class` (stable/marginal/capped/unstable/explosive)
-6. `sensor.*_cloud_ceiling` state in {"on", "off", "unavailable"}; attributes include `ceiling_m` (numeric >= 0)
+1. `sensor.*_heat_pump_cop` state in {"on", "off", "unavailable"}; attributes include `value` (COP, numeric > 0), `best_cop`, `best_hour`
+2. `sensor.*_irrigation_need` state in {"on", "off", "unavailable"}; attributes include `state` (advice enum), `soil_moisture_percent`, `rain_expected_mm`, `et_mm`
+3. `sensor.*_frost_depth` state in {"on", "off", "unavailable"}; attributes include `value` (depth cm, numeric >= 0), `snow_insulation_cm`, `soil_temperature_c`
+4. `sensor.*_inversion_detection` state in {"on", "off", "unavailable"}; attributes include `state` (strength enum), `temperature_difference_c`, `boundary_layer_height_m`, `inversion_type`
+5. `sensor.*_atmospheric_stability` state in {"on", "off", "unavailable"}; attributes include `state` (stability class enum), `cape_j_per_kg`, `cin_j_per_kg`, `lifted_index`
+6. `sensor.*_cloud_ceiling` state in {"on", "off", "unavailable"}; attributes include `value` (ceiling m, numeric >= 0), `cloud_cover_low_percent`, `cloud_cover_mid_percent`, `cloud_cover_high_percent`
 
 ---
 
