@@ -1,6 +1,7 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Messages.Budget;
@@ -49,8 +50,11 @@ public sealed class NjordGrpcServiceTests : Akka.Hosting.TestKit.TestKit
 
     private NjordGrpcService CreateService(params EntityTestRule[] rules)
     {
-        var manifest = new ManifestBuilder(rules, new NjordOptions { ResolvedLocations = [_vienna] }, new ActiveModels());
-        return new NjordGrpcService(ActorRegistry, Sys, manifest, TimeProvider.System,
+        var registry = new EntityRegistry(
+            rules,
+            Options.Create(new NjordOptions { ResolvedLocations = [_vienna] }),
+            Options.Create(new ActiveModels()));
+        return new NjordGrpcService(ActorRegistry, Sys, registry, TimeProvider.System,
             TestServiceInfo.Opts(AppSettingsDefaults.Options<PollingOptions>()), rules, NullLogger<NjordGrpcService>.Instance);
     }
 

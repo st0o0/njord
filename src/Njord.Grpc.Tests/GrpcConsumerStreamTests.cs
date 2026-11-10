@@ -2,6 +2,7 @@ using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
@@ -41,10 +42,9 @@ public sealed class GrpcConsumerStreamTests : Akka.Hosting.TestKit.TestKit
         {
             var completed = Assert.IsType<RequestEntityStreamCompleted>(
                 await consumer.Ask<RequestEntityStreamResponse>(new RequestEntityStream(1), _askTimeout, ct));
-            var first = await completed.SourceRef.Source.RunWith(Sink.First<Proto.EntityEvent>(), Sys.Materializer());
-            Assert.Equal(Proto.EntityEvent.EventOneofCase.Snapshot, first.EventCase);
-            var state = Assert.Single(first.Snapshot.States);
-            Assert.Equal("vienna_heat", state.EntityId);
+            var first = await completed.SourceRef.Source.RunWith(Sink.First<ConsumerEvent>(), Sys.Materializer());
+            var snap = Assert.IsType<ConsumerSnapshot>(first);
+            Assert.Contains(snap.States, s => s.EntityId == "vienna_heat");
         }, TimeSpan.FromSeconds(5), cancellationToken: ct);
     }
 
@@ -56,8 +56,8 @@ public sealed class GrpcConsumerStreamTests : Akka.Hosting.TestKit.TestKit
         var completed = Assert.IsType<RequestEntityStreamCompleted>(
             await consumer.Ask<RequestEntityStreamResponse>(new RequestEntityStream(1), _askTimeout, ct));
         var received = completed.SourceRef.Source
-            .Where(e => e.EventCase == Proto.EntityEvent.EventOneofCase.StateUpdate)
-            .RunWith(Sink.First<Proto.EntityEvent>(), Sys.Materializer());
+            .Where(static e => e is EntityStateChanged)
+            .RunWith(Sink.First<ConsumerEvent>(), Sys.Materializer());
 
         await AwaitAssertAsync(async () =>
         {
@@ -65,7 +65,8 @@ public sealed class GrpcConsumerStreamTests : Akka.Hosting.TestKit.TestKit
             await received.WaitAsync(TimeSpan.FromMilliseconds(500), ct);
         }, TimeSpan.FromSeconds(5), cancellationToken: ct);
 
-        Assert.Equal("vienna_heat", (await received).StateUpdate.EntityId);
+        var changed = Assert.IsType<EntityStateChanged>(await received);
+        Assert.Equal("vienna_heat", changed.EntityId);
     }
 
     private async Task<(IActorRef Consumer, ISourceQueueWithComplete<PipelineEvent> Pipeline)> StartAsync()
@@ -75,8 +76,11 @@ public sealed class GrpcConsumerStreamTests : Akka.Hosting.TestKit.TestKit
             $"pipeline-{Guid.NewGuid():N}");
         ActorRegistry.Register<IForecastPipeline>(pipeline, overwrite: true);
 
-        var lookup = new EntityIdLookup([new EntityTestRule("Heat")], new NjordOptions { ResolvedLocations = [_vienna] });
-        var consumer = Sys.ActorOf(Props.Create(() => new GrpcConsumer(lookup, _time)), $"grpc-consumer-{Guid.NewGuid():N}");
+        var registry = new EntityRegistry(
+            [new EntityTestRule("Heat")],
+            Options.Create(new NjordOptions { ResolvedLocations = [_vienna] }),
+            Options.Create(new ActiveModels()));
+        var consumer = Sys.ActorOf(Props.Create(() => new GrpcConsumer(registry, _time)), $"grpc-consumer-{Guid.NewGuid():N}");
         var testPipeline = await ready.Task.WaitAsync(TimeSpan.FromSeconds(15), TestContext.Current.CancellationToken);
         return (consumer, testPipeline.Queue);
     }

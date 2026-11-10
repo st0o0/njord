@@ -3,9 +3,7 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Google.Protobuf.WellKnownTypes;
 using Njord.Core;
-using Njord.Grpc.Mapping;
 using Njord.Messages.Results;
 using Njord.Messages.Stream;
 using Terp.Akka;
@@ -22,12 +20,12 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
     internal static readonly TimeSpan StaleThreshold = TimeSpan.FromMinutes(150);
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
-    private readonly EntityIdLookup _lookup;
+    private readonly EntityRegistry _registry;
     private readonly TimeProvider _timeProvider;
     private IMaterializer _mat = null!;
 
     private IActorRef _entityHubInput = ActorRefs.Nobody;
-    private Source<Proto.EntityEvent, NotUsed> _entityHubSource = Source.Empty<Proto.EntityEvent>();
+    private Source<ConsumerEvent, NotUsed> _entityHubSource = Source.Empty<ConsumerEvent>();
 
     private GrpcConsumerState _state = GrpcConsumerState.Empty;
 
@@ -39,9 +37,9 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
 
     public ITimerScheduler Timers { get; set; } = null!;
 
-    public GrpcConsumer(EntityIdLookup lookup, TimeProvider timeProvider)
+    public GrpcConsumer(EntityRegistry registry, TimeProvider timeProvider)
     {
-        _lookup = lookup;
+        _registry = registry;
         _timeProvider = timeProvider;
 
         Receive<RequestEntityStream>(HandleEntityStreamRequest);
@@ -57,19 +55,33 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
     {
         _mat = Context.Materializer();
 
-        var (entityInput, entitySource) = Source.ActorRef<Proto.EntityEvent>(256, OverflowStrategy.DropHead)
-            .ToMaterialized(BroadcastHub.Sink<Proto.EntityEvent>(bufferSize: 2), Keep.Both)
+        var (entityInput, entitySource) = Source.ActorRef<ConsumerEvent>(256, OverflowStrategy.DropHead)
+            .ToMaterialized(BroadcastHub.Sink<ConsumerEvent>(bufferSize: 2), Keep.Both)
             .Run(_mat);
 
-        entitySource.RunWith(Sink.Ignore<Proto.EntityEvent>(), _mat);
+        entitySource.RunWith(Sink.Ignore<ConsumerEvent>(), _mat);
 
         _entityHubInput = entityInput;
         _entityHubSource = entitySource;
+
+        SeedDefaultState();
 
         Timers.StartPeriodicTimer("availability", new AvailabilityTick(), _availabilityCheckInterval);
 
         var pipeline = Context.GetActor<IForecastPipeline>();
         pipeline.Tell(new RequestPipelineOutput(0));
+    }
+
+    private void SeedDefaultState()
+    {
+        var startTime = _timeProvider.GetUtcNow();
+        foreach (var entry in _registry.All)
+        {
+            if (DefaultResultFactory.Create(entry.Descriptor, entry.Location) is { } defaultResult)
+            {
+                _state = _state.ApplyEntity(entry.EntityId, defaultResult, startTime);
+            }
+        }
     }
 
     private void ReconnectToPipeline()
@@ -90,11 +102,11 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
 
     private void OnPipelineEvent(PipelineEvent evt)
     {
-        if (evt is FeatureResult result && _lookup.Find(result) is { } entityId)
+        if (evt is FeatureResult result && _registry.Find(result) is { } entityId)
         {
             var now = _timeProvider.GetUtcNow();
             _state = _state.ApplyEntity(entityId, result, now);
-            _entityHubInput.Tell(new Proto.EntityEvent { StateUpdate = result.ToEntityStateUpdate(entityId, now) });
+            _entityHubInput.Tell(new EntityStateChanged(entityId, result, now));
         }
     }
 
@@ -107,45 +119,31 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
         foreach (var id in unavailable)
         {
             var since = _state.EntityStates[id].LastUpdated;
-            _entityHubInput.Tell(new Proto.EntityEvent
-            {
-                Unavailable = new Proto.EntityUnavailable { EntityId = id, Since = Timestamp.FromDateTimeOffset(since) },
-            });
+            _entityHubInput.Tell(new EntityBecameUnavailable(id, since));
         }
 
         foreach (var id in available)
         {
-            _entityHubInput.Tell(new Proto.EntityEvent
-            {
-                Available = new Proto.EntityAvailable { EntityId = id, RecoveredAt = Timestamp.FromDateTimeOffset(now) },
-            });
+            _entityHubInput.Tell(new EntityBecameAvailable(id, now));
         }
     }
 
     private void HandleEntityStreamRequest(RequestEntityStream msg)
     {
-        var snapshot = new Proto.EntitySnapshot();
-        snapshot.States.AddRange(_state.EntityStates.Values
-            .OrderBy(e => e.EntityId, StringComparer.Ordinal)
-            .Select(e => e.Result.ToEntityStateUpdate(e.EntityId, e.LastUpdated)));
+        var snapshot = new ConsumerSnapshot([.. _state.EntityStates.Values
+            .OrderBy(e => e.EntityId, StringComparer.Ordinal)]);
 
-        var initial = new List<Proto.EntityEvent> { new() { Snapshot = snapshot } };
-        initial.AddRange(_state.StaleEntities.Order(StringComparer.Ordinal).Select(id => new Proto.EntityEvent
-        {
-            Unavailable = new Proto.EntityUnavailable
-            {
-                EntityId = id,
-                Since = Timestamp.FromDateTimeOffset(_state.EntityStates[id].LastUpdated),
-            },
-        }));
+        var initial = new List<ConsumerEvent> { snapshot };
+        initial.AddRange(_state.StaleEntities.Order(StringComparer.Ordinal)
+            .Select(id => (ConsumerEvent)new EntityBecameUnavailable(id, _state.EntityStates[id].LastUpdated)));
 
         Source.From(initial)
             .Concat(_entityHubSource)
-            .KeepAlive<Proto.EntityEvent, Proto.EntityEvent, NotUsed>(_keepAliveInterval, () => new Proto.EntityEvent())
+            .KeepAlive<ConsumerEvent, ConsumerEvent, NotUsed>(_keepAliveInterval, () => new ConsumerKeepAlive())
             .Buffer(StreamClientBufferSize, OverflowStrategy.Backpressure)
             .IdleTimeout(_clientIdleTimeout)
-            .Where(e => e.EventCase != Proto.EntityEvent.EventOneofCase.None)
-            .RunWith(StreamRefs.SourceRef<Proto.EntityEvent>(), _mat)
+            .Where(static e => e is not ConsumerKeepAlive)
+            .RunWith(StreamRefs.SourceRef<ConsumerEvent>(), _mat)
             .PipeTo(Sender, Self,
                 sr => new RequestEntityStreamCompleted(msg.RequestId, sr),
                 ex => new RequestEntityStreamFailed(msg.RequestId, ex));

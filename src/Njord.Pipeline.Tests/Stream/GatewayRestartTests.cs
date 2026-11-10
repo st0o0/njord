@@ -18,7 +18,7 @@ namespace Njord.Pipeline.Tests.Stream;
 // and every consumer's SourceRef survive.
 public sealed class GatewayRestartTests : Akka.Hosting.TestKit.TestKit
 {
-    private static readonly EntityIdLookup _emptyLookup = new([], new Njord.Core.Configuration.NjordOptions());
+    private static readonly EntityRegistry _emptyRegistry = new([], Microsoft.Extensions.Options.Options.Create(new Njord.Core.Configuration.NjordOptions()), Microsoft.Extensions.Options.Options.Create(new Njord.Core.Configuration.ActiveModels()));
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
@@ -75,7 +75,7 @@ public sealed class GatewayRestartTests : Akka.Hosting.TestKit.TestKit
         var proxy = Sys.ActorOf(Props.Create(() => new CountingProxy(pipeline, () => Interlocked.Increment(ref outputRequests))),
             $"pipeline-proxy-{Guid.NewGuid():N}");
         ActorRegistry.Register<IForecastPipeline>(proxy, overwrite: true);
-        Sys.ActorOf(Props.Create(() => new GrpcConsumer(_emptyLookup, TimeProvider.System)), $"grpc-consumer-{Guid.NewGuid():N}");
+        Sys.ActorOf(Props.Create(() => new GrpcConsumer(_emptyRegistry, TimeProvider.System)), $"grpc-consumer-{Guid.NewGuid():N}");
         var gateway = StartGateway();
         await AwaitAssertAsync(() => Assert.Equal(1, Volatile.Read(ref outputRequests)),
             TimeSpan.FromSeconds(10), cancellationToken: ct);

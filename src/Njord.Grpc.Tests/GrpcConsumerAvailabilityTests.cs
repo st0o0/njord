@@ -2,6 +2,7 @@ using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
@@ -78,28 +79,33 @@ public sealed class GrpcConsumerAvailabilityTests : Akka.Hosting.TestKit.TestKit
         var pipelineActor = Sys.ActorOf(Props.Create(() => new FakePipeline(Sys.Materializer(), ready)),
             $"pipeline-{Guid.NewGuid():N}");
         ActorRegistry.Register<IForecastPipeline>(pipelineActor, overwrite: true);
-        var lookup = new EntityIdLookup([new EntityTestRule("Heat")], new NjordOptions { ResolvedLocations = [_vienna] });
-        var consumer = Sys.ActorOf(Props.Create(() => new GrpcConsumer(lookup, _time)), $"grpc-consumer-{Guid.NewGuid():N}");
+        var registry = new EntityRegistry(
+            [new EntityTestRule("Heat")],
+            Options.Create(new NjordOptions { ResolvedLocations = [_vienna] }),
+            Options.Create(new ActiveModels()));
+        var consumer = Sys.ActorOf(Props.Create(() => new GrpcConsumer(registry, _time)), $"grpc-consumer-{Guid.NewGuid():N}");
         var pipeline = (await ready.Task.WaitAsync(TimeSpan.FromSeconds(15), ct)).Queue;
 
         var completed = Assert.IsType<RequestEntityStreamCompleted>(
             await consumer.Ask<RequestEntityStreamResponse>(new RequestEntityStream(1), _askTimeout, ct));
         var unavailable = completed.SourceRef.Source
-            .Where(e => e.EventCase == Proto.EntityEvent.EventOneofCase.Unavailable)
-            .RunWith(Sink.First<Proto.EntityEvent>(), Sys.Materializer());
+            .Where(static e => e is EntityBecameUnavailable)
+            .RunWith(Sink.First<ConsumerEvent>(), Sys.Materializer());
 
         await pipeline.OfferAsync(EnrichmentEvents.Alerts(_vienna, _time.GetUtcNow()), ct);
         await AwaitAssertAsync(async () =>
         {
             var snapshot = Assert.IsType<RequestEntityStreamCompleted>(
                 await consumer.Ask<RequestEntityStreamResponse>(new RequestEntityStream(2), _askTimeout, ct));
-            var first = await snapshot.SourceRef.Source.RunWith(Sink.First<Proto.EntityEvent>(), Sys.Materializer());
-            Assert.Single(first.Snapshot.States);
+            var first = await snapshot.SourceRef.Source.RunWith(Sink.First<ConsumerEvent>(), Sys.Materializer());
+            var snap = Assert.IsType<ConsumerSnapshot>(first);
+            Assert.Contains(snap.States, s => s.EntityId == "vienna_heat");
         }, TimeSpan.FromSeconds(5), cancellationToken: ct);
 
         _time.Advance(GrpcConsumer.StaleThreshold + TimeSpan.FromMinutes(1));
         consumer.Tell(new GrpcConsumer.CheckAvailability());
 
-        Assert.Equal("vienna_heat", (await unavailable.WaitAsync(TimeSpan.FromSeconds(5), ct)).Unavailable.EntityId);
+        var evt = Assert.IsType<EntityBecameUnavailable>(await unavailable.WaitAsync(TimeSpan.FromSeconds(5), ct));
+        Assert.Equal("vienna_heat", evt.EntityId);
     }
 }

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Tests.Shared;
@@ -12,10 +13,10 @@ public sealed class GrpcConsumerEntityStateTests
     [Fact]
     public void Feature_result_maps_to_the_entity_id_of_its_location_and_feature()
     {
-        var lookup = Lookup([_vienna], new EntityTestRule("Heat"));
+        var registry = Registry([_vienna], new EntityTestRule("Heat"));
         var alert = EnrichmentEvents.Alerts(_vienna, _anchor);
 
-        var state = GrpcConsumerState.Empty.ApplyEntity(lookup.Find(alert)!, alert, _anchor);
+        var state = GrpcConsumerState.Empty.ApplyEntity(registry.Find(alert)!, alert, _anchor);
 
         var entity = Assert.Single(state.EntityStates);
         Assert.Multiple(
@@ -27,33 +28,33 @@ public sealed class GrpcConsumerEntityStateTests
     [Fact]
     public void Result_type_without_an_entity_is_not_in_the_lookup()
     {
-        var lookup = Lookup([_vienna], new EntityTestRule("Frost"));
+        var registry = Registry([_vienna], new EntityTestRule("Frost"));
 
-        Assert.Null(lookup.Find(EnrichmentEvents.Alerts(_vienna, _anchor)));
+        Assert.Null(registry.Find(EnrichmentEvents.Alerts(_vienna, _anchor)));
     }
 
     [Fact]
     public void Disabled_features_have_no_entity()
     {
-        var lookup = Lookup([_vienna], new EntityTestRule("Heat", enabled: false));
+        var registry = Registry([_vienna], new EntityTestRule("Heat", enabled: false));
 
-        Assert.Null(lookup.Find(EnrichmentEvents.Alerts(_vienna, _anchor)));
+        Assert.Null(registry.Find(EnrichmentEvents.Alerts(_vienna, _anchor)));
     }
 
     [Fact]
     public void Locations_keep_separate_entity_states()
     {
-        var lookup = Lookup([_vienna, DomainData.Lucerne], new EntityTestRule("Heat"));
+        var registry = Registry([_vienna, DomainData.Lucerne], new EntityTestRule("Heat"));
         var viennaAlert = EnrichmentEvents.Alerts(_vienna, _anchor);
         var lucerneAlert = EnrichmentEvents.Alerts(DomainData.Lucerne, _anchor);
 
         var state = GrpcConsumerState.Empty
-            .ApplyEntity(lookup.Find(viennaAlert)!, viennaAlert, _anchor)
-            .ApplyEntity(lookup.Find(lucerneAlert)!, lucerneAlert, _anchor);
+            .ApplyEntity(registry.Find(viennaAlert)!, viennaAlert, _anchor)
+            .ApplyEntity(registry.Find(lucerneAlert)!, lucerneAlert, _anchor);
 
         Assert.Equal(["lucerne_heat", "vienna_heat"], state.EntityStates.Keys.Order());
     }
 
-    private static EntityIdLookup Lookup(Location[] locations, params EntityTestRule[] rules) =>
-        new(rules, new NjordOptions { ResolvedLocations = locations });
+    private static EntityRegistry Registry(Location[] locations, params EntityTestRule[] rules) =>
+        new(rules, Options.Create(new NjordOptions { ResolvedLocations = locations }), Options.Create(new ActiveModels()));
 }

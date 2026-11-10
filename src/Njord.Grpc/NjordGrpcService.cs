@@ -22,7 +22,7 @@ namespace Njord.Grpc;
 public sealed class NjordGrpcService(
     ActorRegistry actorRegistry,
     ActorSystem actorSystem,
-    ManifestBuilder manifest,
+    EntityRegistry registry,
     TimeProvider timeProvider,
     IOptions<PollingOptions> polling,
     IEnumerable<IFeatureRule> features,
@@ -39,7 +39,7 @@ public sealed class NjordGrpcService(
     public override Task<Proto.ManifestResponse> GetManifest(Proto.ManifestRequest request, ServerCallContext context)
     {
         var response = new Proto.ManifestResponse();
-        response.Entities.AddRange(manifest.Entities);
+        response.Entities.AddRange(registry.All.Select(e => e.ToEntityDefinition()));
         return Task.FromResult(response);
     }
 
@@ -58,7 +58,7 @@ public sealed class NjordGrpcService(
 
         var wanted = string.IsNullOrEmpty(request.Location)
             ? null
-            : manifest.Entities
+            : registry.All
                 .Where(e => string.Equals(e.Location, request.Location, StringComparison.OrdinalIgnoreCase))
                 .Select(e => e.EntityId)
                 .ToHashSet(StringComparer.Ordinal);
@@ -71,8 +71,9 @@ public sealed class NjordGrpcService(
         await using var ctr = context.CancellationToken.Register(killSwitch.Shutdown).ConfigureAwait(false);
 
         await sourceRef.Source
+            .Select(static e => e.ToProto())
             .Select(e => wanted is null ? e : Filter(e, wanted))
-            .Where(e => e is not null)
+            .Where(static e => e is not null)
             .Via(killSwitch.Flow<Proto.EntityEvent?>())
             .SelectAsync(1, async e =>
             {
