@@ -135,7 +135,7 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
 
         var initial = new List<ConsumerEvent> { snapshot };
         initial.AddRange(_state.StaleEntities.Order(StringComparer.Ordinal)
-            .Select(id => (ConsumerEvent)new EntityBecameUnavailable(id, _state.EntityStates[id].LastUpdated)));
+            .Select(ConsumerEvent (id) => new EntityBecameUnavailable(id, _state.EntityStates[id].LastUpdated)));
 
         Source.From(initial)
             .Concat(_entityHubSource)

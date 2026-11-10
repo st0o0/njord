@@ -9,11 +9,11 @@ namespace Njord.Features.Conditions.CommuteSafety;
 
 public sealed class CommuteSafety(IOptions<CommuteSafetyConfig> config) : FeatureRule<ForecastInput>
 {
-    public const double IceTemperature = 1.0;
-    public const double DewPointSpread = 2.0;
-    public const double FogHumidity = 95.0;
-    public const double HeavyRain = 5.0;
-    public const double StrongWind = 60.0 / 3.6;
+    private const double IceTemperature = 1.0;
+    private const double DewPointSpread = 2.0;
+    private const double FogHumidity = 95.0;
+    private const double HeavyRain = 5.0;
+    private const double StrongWind = 60.0 / 3.6;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
@@ -26,7 +26,7 @@ public sealed class CommuteSafety(IOptions<CommuteSafetyConfig> config) : Featur
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastInput? Project(LocationForecast forecast) =>
-        forecast.Forecast is { } w ? new(w) : null;
+        forecast.Forecast is { } w ? new ForecastInput(w) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {

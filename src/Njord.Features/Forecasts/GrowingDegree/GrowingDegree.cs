@@ -20,7 +20,7 @@ public sealed class GrowingDegree(IOptions<GrowingDegreeConfig> config) : Featur
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastInput? Project(LocationForecast forecast) =>
-        forecast is { Forecast: { } w } ? new(w) : null;
+        forecast is { Forecast: { } w } ? new ForecastInput(w) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {

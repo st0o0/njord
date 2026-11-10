@@ -20,12 +20,11 @@ public sealed class ElevatedWind(IOptions<ElevatedWindConfig> config) : FeatureR
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastInput? Project(LocationForecast forecast) =>
-        forecast.Forecast is { } w ? new(w) : null;
+        forecast.Forecast is { } w ? new ForecastInput(w) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now);
-        var current = window.FirstOrDefault();
+        var current = ctx.Current.Forecast.NextHoursInclusive(ctx.Now).FirstOrDefault();
         if (current is not { WindSpeed80M: { } speed80, WindDirection80M: { } dir80 })
         {
             return null;

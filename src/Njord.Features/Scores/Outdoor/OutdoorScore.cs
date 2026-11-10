@@ -11,7 +11,7 @@ namespace Njord.Features.Scores.Outdoor;
 
 public sealed class OutdoorScore(IOptions<OutdoorConfig> config) : FeatureRule<ForecastAqInput>
 {
-    public const double GoodHourScore = 85.0;
+    private const double GoodHourScore = 85.0;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Score,
@@ -29,7 +29,7 @@ public sealed class OutdoorScore(IOptions<OutdoorConfig> config) : FeatureRule<F
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastAqInput? Project(LocationForecast forecast) =>
-        forecast is { Forecast: { } w, AirQuality: { } aq } ? new(w, aq) : null;
+        forecast is { Forecast: { } w, AirQuality: { } aq } ? new ForecastAqInput(w, aq) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastAqInput> ctx)
     {

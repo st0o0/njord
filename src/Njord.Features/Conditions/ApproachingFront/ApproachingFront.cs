@@ -9,9 +9,9 @@ namespace Njord.Features.Conditions.ApproachingFront;
 
 public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : FeatureRule<ForecastInput>
 {
-    public const double PressureDropThreshold = 3.0;
-    public const double WindShiftThreshold = 45.0;
-    public const int WindowHours = 6;
+    private const double PressureDropThreshold = 3.0;
+    private const double WindShiftThreshold = 45.0;
+    private const int WindowHours = 6;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
@@ -24,7 +24,7 @@ public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : 
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastInput? Project(LocationForecast forecast) =>
-        forecast.Forecast is { } w ? new(w) : null;
+        forecast.Forecast is { } w ? new ForecastInput(w) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {

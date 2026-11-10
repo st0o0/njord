@@ -19,19 +19,16 @@ public static class ForecastQueries
         return null;
     }
 
-    public static IReadOnlyList<T> Window<T>(DomainForecast<T> forecast, DateTimeOffset from, DateTimeOffset to)
+    public static IEnumerable<T> Window<T>(DomainForecast<T> forecast, DateTimeOffset from, DateTimeOffset to)
         where T : IHasValidTime
     {
-        var result = new List<T>();
         foreach (var point in forecast.Points)
         {
             if (point.ValidFrom >= from && point.ValidFrom <= to)
             {
-                result.Add(point);
+                yield return point;
             }
         }
-
-        return result;
     }
 
     public static IReadOnlyList<T> Upcoming<T>(DomainForecast<T> forecast, DateTimeOffset now, int hours)

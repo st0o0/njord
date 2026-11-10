@@ -21,7 +21,7 @@ public sealed class UvAlert(IOptions<UvConfig> config) : FeatureRule<ForecastInp
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastInput? Project(LocationForecast forecast) =>
-        forecast.Forecast is { } w ? new(w) : null;
+        forecast.Forecast is { } w ? new ForecastInput(w) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {

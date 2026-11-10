@@ -18,7 +18,7 @@ public sealed class DischargeMeanObservation(IOptions<DischargeMeanObservationCo
     public override bool Enabled => config.Value.Enabled;
 
     protected override FloodInput? Project(LocationForecast forecast) =>
-        forecast.Flood is { } d ? new(d) : null;
+        forecast.Flood is { } d ? new FloodInput(d) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<FloodInput> ctx) =>
         ForecastQueries.ValueAt(ctx.Current.Flood, ctx.Now) is { DischargeMean: { } value }

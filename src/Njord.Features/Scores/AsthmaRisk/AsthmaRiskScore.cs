@@ -11,14 +11,14 @@ namespace Njord.Features.Scores.AsthmaRisk;
 
 public sealed class AsthmaRiskScore(IOptions<AsthmaRiskConfig> config) : FeatureRule<ForecastAqInput>
 {
-    public const double Pm25Reference = 75.0;
-    public const double OzoneReference = 180.0;
-    public const double PollenReference = 100.0;
-    public const double GoodHourScore = 60.0;
-    public const double ColdAirFactor = 1.3;
-    public const double RapidChangeFactor = 1.2;
-    public const double RapidChangeDegrees = 6.0;
-    public const int RapidChangeHours = 3;
+    private const double Pm25Reference = 75.0;
+    private const double OzoneReference = 180.0;
+    private const double PollenReference = 100.0;
+    private const double GoodHourScore = 60.0;
+    private const double ColdAirFactor = 1.3;
+    private const double RapidChangeFactor = 1.2;
+    private const double RapidChangeDegrees = 6.0;
+    private const int RapidChangeHours = 3;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Score,
@@ -32,7 +32,7 @@ public sealed class AsthmaRiskScore(IOptions<AsthmaRiskConfig> config) : Feature
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastAqInput? Project(LocationForecast forecast) =>
-        forecast is { Forecast: { } w, AirQuality: { } aq } ? new(w, aq) : null;
+        forecast is { Forecast: { } w, AirQuality: { } aq } ? new ForecastAqInput(w, aq) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastAqInput> ctx)
     {
@@ -75,7 +75,7 @@ public sealed class AsthmaRiskScore(IOptions<AsthmaRiskConfig> config) : Feature
         return new AsthmaRiskScoreResult(ctx.Location, peak, risks[start].Time, length) { Windows = windows };
     }
 
-    internal static double? Risk(AsthmaRiskConfig cfg, AirQualityPoint air, ForecastPoint weather, ForecastPoint? earlier)
+    private static double? Risk(AsthmaRiskConfig cfg, AirQualityPoint air, ForecastPoint weather, ForecastPoint? earlier)
     {
         var parts = new List<(double Weight, double Value)>();
         if (air.Pm25 is { } pm25)

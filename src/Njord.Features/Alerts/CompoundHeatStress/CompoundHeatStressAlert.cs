@@ -29,7 +29,7 @@ public sealed class CompoundHeatStressAlert(IOptions<CompoundHeatStressConfig> c
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastAqInput? Project(LocationForecast forecast) =>
-        forecast is { Forecast: { } w, AirQuality: { } aq } ? new(w, aq) : null;
+        forecast is { Forecast: { } w, AirQuality: { } aq } ? new ForecastAqInput(w, aq) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastAqInput> ctx)
     {

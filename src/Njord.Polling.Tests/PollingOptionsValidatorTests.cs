@@ -23,7 +23,7 @@ public sealed class PollingOptionsValidatorTests
             Locations = [.. Enumerable.Range(0, locations).Select(i => new LocationOptions { Name = $"L{i}" })],
             ResolvedLocations = [.. Enumerable.Range(0, locations).Select(i => new Location($"L{i}", 0, 0))],
         };
-        return new(
+        return new PollingOptionsValidator(
             Options.Create(scope),
             Options.Create(new DomainCallConfig { EnsembleModelCount = ensembleModels?.Length ?? 0 }),
             Options.Create(new DomainRequirements(

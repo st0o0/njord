@@ -33,11 +33,11 @@ internal static class ClientRequest
     public static string Uri(string endpoint, double latitude, double longitude, params (string Key, string Value)[] query) =>
         QueryHelpers.AddQueryString(endpoint,
         [
-            new(Latitude, latitude.ToString(CultureInfo.InvariantCulture)),
-            new(Longitude, longitude.ToString(CultureInfo.InvariantCulture)),
+            new KeyValuePair<string, string?>(Latitude, latitude.ToString(CultureInfo.InvariantCulture)),
+            new KeyValuePair<string, string?>(Longitude, longitude.ToString(CultureInfo.InvariantCulture)),
             .. query.Select(q => new KeyValuePair<string, string?>(q.Key, q.Value)),
-            new(TimeFormat, UnixTime),
-            new(TimeZone, Utc),
+            new KeyValuePair<string, string?>(TimeFormat, UnixTime),
+            new KeyValuePair<string, string?>(TimeZone, Utc),
         ]);
 
     public static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);

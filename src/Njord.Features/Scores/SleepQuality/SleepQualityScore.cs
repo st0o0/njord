@@ -11,11 +11,11 @@ namespace Njord.Features.Scores.SleepQuality;
 
 public sealed class SleepQualityScore(IOptions<SleepQualityConfig> config) : FeatureRule<ForecastAqInput>
 {
-    public const double HighPollen = 50.0;
-    public const double Pm25Limit = 25.0;
-    public const double GustLimit = 11.1;
-    public const double CapeLimit = 1000.0;
-    public const int PreSleepHours = 6;
+    private const double HighPollen = 50.0;
+    private const double Pm25Limit = 25.0;
+    private const double GustLimit = 11.1;
+    private const double CapeLimit = 1000.0;
+    private const int PreSleepHours = 6;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Score,
@@ -31,7 +31,7 @@ public sealed class SleepQualityScore(IOptions<SleepQualityConfig> config) : Fea
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastAqInput? Project(LocationForecast forecast) =>
-        forecast is { Forecast: { } w, AirQuality: { } aq } ? new(w, aq) : null;
+        forecast is { Forecast: { } w, AirQuality: { } aq } ? new ForecastAqInput(w, aq) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastAqInput> ctx)
     {
@@ -122,7 +122,7 @@ public sealed class SleepQualityScore(IOptions<SleepQualityConfig> config) : Fea
             score -= 10.0;
         }
 
-        if (weather.Cape > CapeLimit && weather.Precipitation > 0.0)
+        if (weather is { Cape: > CapeLimit, Precipitation: > 0.0 })
         {
             score -= 15.0;
         }

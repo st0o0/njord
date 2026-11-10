@@ -14,15 +14,15 @@ public sealed class WeatherRule(IOptions<WeatherConfig> config) : FeatureRule<Fo
         Name: "Weather",
         new DomainRequirements(
             Forecast: ForecastParams.Temperature | ForecastParams.WeatherCode | ForecastParams.Humidity
-                | ForecastParams.WindSpeed | ForecastParams.WindDirection | ForecastParams.Pressure
-                | ForecastParams.ApparentTemperature | ForecastParams.CloudCover | ForecastParams.DewPoint
-                | ForecastParams.Visibility | ForecastParams.Precipitation | ForecastParams.WindGusts),
+                      | ForecastParams.WindSpeed | ForecastParams.WindDirection | ForecastParams.Pressure
+                      | ForecastParams.ApparentTemperature | ForecastParams.CloudCover | ForecastParams.DewPoint
+                      | ForecastParams.Visibility | ForecastParams.Precipitation | ForecastParams.WindGusts),
         EntityMetadata: new EntityMetadata(EntityPlatform.Weather));
 
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastInput? Project(LocationForecast forecast) =>
-        forecast.Forecast is { } w ? new(w) : null;
+        forecast.Forecast is { } w ? new ForecastInput(w) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
@@ -57,7 +57,7 @@ public sealed class WeatherRule(IOptions<WeatherConfig> config) : FeatureRule<Fo
     private static WeatherForecastPoint ToForecastPoint(ForecastPoint p)
     {
         var temperature = p.Temperature ?? 0;
-        return new(
+        return new WeatherForecastPoint(
             p.ValidFrom,
             temperature,
             p.ApparentTemperature ?? temperature,
@@ -71,21 +71,23 @@ public sealed class WeatherRule(IOptions<WeatherConfig> config) : FeatureRule<Fo
             p.CloudCover);
     }
 
-    internal static string MapCondition(double? weatherCode) => weatherCode is { } value ? (int)value switch
-    {
-        0 => "clear",
-        1 => "mostly-clear",
-        2 => "partly-cloudy",
-        3 => "overcast",
-        45 or 48 => "fog",
-        >= 51 and <= 55 => "drizzle",
-        56 or 57 => "freezing-drizzle",
-        >= 61 and <= 65 => "rain",
-        66 or 67 => "freezing-rain",
-        >= 71 and <= 77 => "snow",
-        >= 80 and <= 82 => "showers",
-        85 or 86 => "snow-showers",
-        >= 95 and <= 99 => "thunderstorm",
-        _ => "unknown",
-    } : "unknown";
+    private static string MapCondition(double? weatherCode) => weatherCode is { } value
+        ? (int)value switch
+        {
+            0 => "clear",
+            1 => "mostly-clear",
+            2 => "partly-cloudy",
+            3 => "overcast",
+            45 or 48 => "fog",
+            >= 51 and <= 55 => "drizzle",
+            56 or 57 => "freezing-drizzle",
+            >= 61 and <= 65 => "rain",
+            66 or 67 => "freezing-rain",
+            >= 71 and <= 77 => "snow",
+            >= 80 and <= 82 => "showers",
+            85 or 86 => "snow-showers",
+            >= 95 and <= 99 => "thunderstorm",
+            _ => "unknown",
+        }
+        : "unknown";
 }

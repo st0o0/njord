@@ -7,20 +7,21 @@ using Njord.Messages.Stream;
 
 namespace Njord.Features.Conditions.AtmosphericStability;
 
-public sealed class AtmosphericStabilityCondition(IOptions<AtmosphericStabilityConfig> config) : FeatureRule<ForecastInput>
+public sealed class AtmosphericStabilityCondition(IOptions<AtmosphericStabilityConfig> config)
+    : FeatureRule<ForecastInput>
 {
-
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Insight,
         Name: "AtmosphericStability",
-        new DomainRequirements(Forecast: ForecastParams.Cape | ForecastParams.ConvectiveInhibition | ForecastParams.LiftedIndex),
+        new DomainRequirements(Forecast: ForecastParams.Cape | ForecastParams.ConvectiveInhibition |
+                                         ForecastParams.LiftedIndex),
         EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor));
 
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastInput? Project(LocationForecast forecast) =>
-        forecast.Forecast is { } w ? new(w) : null;
+        forecast.Forecast is { } w ? new ForecastInput(w) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
@@ -37,34 +38,17 @@ public sealed class AtmosphericStabilityCondition(IOptions<AtmosphericStabilityC
 
     public static StabilityClass Classify(double cape, double cin, double liftedIndex)
     {
-        if (cape < 300)
+        return cape switch
         {
-            return StabilityClass.Stable;
-        }
-
-        if (cape < 1000)
-        {
-            return StabilityClass.Marginal;
-        }
-
-        if (cin > 200)
-        {
-            return StabilityClass.Capped;
-        }
-
-        if (cin < 50)
-        {
-            if (cape >= 2500 && liftedIndex < -6)
+            < 300 => StabilityClass.Stable,
+            < 1000 => StabilityClass.Marginal,
+            > 200 => StabilityClass.Capped,
+            _ => cin switch
             {
-                return StabilityClass.Explosive;
+                < 50 when cape >= 2500 && liftedIndex < -6 => StabilityClass.Explosive,
+                < 50 when liftedIndex < -3 => StabilityClass.Unstable,
+                _ => StabilityClass.Marginal
             }
-
-            if (liftedIndex < -3)
-            {
-                return StabilityClass.Unstable;
-            }
-        }
-
-        return StabilityClass.Marginal;
+        };
     }
 }

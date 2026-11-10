@@ -14,7 +14,7 @@ public sealed class SnowAlertTests
     {
         var c = new SnowConfig { Enabled = true };
         c.ApplyDefaults();
-        return new(Options.Create(c));
+        return new SnowAlert(Options.Create(c));
     }
 
     [Fact]

@@ -20,9 +20,9 @@ public sealed class DomainRequirementsFactoryTests
     {
         var factory = new DomainRequirementsFactory(
         [
-            new StubRule(true, new(Forecast: ForecastParams.Temperature)),
-            new StubRule(true, new(AirQuality: AirQualityParams.Pm25)),
-            new StubRule(false, new(Forecast: ForecastParams.WindSpeed)),
+            new StubRule(true, new DomainRequirements(Forecast: ForecastParams.Temperature)),
+            new StubRule(true, new DomainRequirements(AirQuality: AirQualityParams.Pm25)),
+            new StubRule(false, new DomainRequirements(Forecast: ForecastParams.WindSpeed)),
         ]);
 
         var result = factory.Create(string.Empty);
@@ -40,7 +40,7 @@ public sealed class DomainRequirementsFactoryTests
     {
         var factory = new DomainRequirementsFactory(
         [
-            new StubRule(false, new(Forecast: ForecastParams.Temperature)),
+            new StubRule(false, new DomainRequirements(Forecast: ForecastParams.Temperature)),
         ]);
 
         var result = factory.Create(string.Empty);

@@ -23,17 +23,17 @@ public sealed class PressureDropAlert(IOptions<PressureDropConfig> config) : Fea
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastInput? Project(LocationForecast forecast) =>
-        forecast.Forecast is { } w ? new(w) : null;
+        forecast.Forecast is { } w ? new ForecastInput(w) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
-        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now, config.Value.WindowHours);
+        var window = ctx.Current.Forecast.NextHoursInclusive(ctx.Now, config.Value.WindowHours).ToList();
         if (window.Count < MinimumHours)
         {
             return null;
         }
 
-        var (maxDrop, _) = MaxDrop(window, ctx.Now);
+        var maxDrop = MaxDrop(window, ctx.Now);
         var dropThreshold = config.Value.Threshold;
         var severeThreshold = config.Value.SevereThreshold;
 
@@ -50,17 +50,16 @@ public sealed class PressureDropAlert(IOptions<PressureDropConfig> config) : Fea
         }
 
         var rounded = Math.Round(maxDrop, 1);
-        var level = ConfidenceLevel.Medium;
+        const ConfidenceLevel level = ConfidenceLevel.Medium;
         return new PressureDropAlertResult(
             ctx.Location, severity, level.ToConfidence(), rounded, maxDrop >= severeThreshold ? severeThreshold : dropThreshold,
             PeakValue: null, HoursUntil: null, DurationHours: null, Level: level,
             MaxDrop: rounded);
     }
 
-    private static (double Drop, ForecastPoint? End) MaxDrop(IReadOnlyList<ForecastPoint> window, DateTimeOffset now)
+    private static double MaxDrop(List<ForecastPoint> window, DateTimeOffset now)
     {
         var maxDrop = 0.0;
-        ForecastPoint? end = null;
         for (var i = 0; i < window.Count; i++)
         {
             for (var j = 0; j < i; j++)
@@ -79,11 +78,10 @@ public sealed class PressureDropAlert(IOptions<PressureDropConfig> config) : Fea
                 if (drop > maxDrop)
                 {
                     maxDrop = drop;
-                    end = window[i];
                 }
             }
         }
 
-        return (maxDrop, end);
+        return maxDrop;
     }
 }

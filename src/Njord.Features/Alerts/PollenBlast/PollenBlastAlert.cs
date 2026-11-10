@@ -24,7 +24,7 @@ public sealed class PollenBlastAlert(IOptions<PollenBlastConfig> config) : Featu
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastAqInput? Project(LocationForecast forecast) =>
-        forecast is { Forecast: { } w, AirQuality: { } aq } ? new(w, aq) : null;
+        forecast is { Forecast: { } w, AirQuality: { } aq } ? new ForecastAqInput(w, aq) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastAqInput> ctx)
     {
@@ -92,7 +92,7 @@ public sealed class PollenBlastAlert(IOptions<PollenBlastConfig> config) : Featu
             PeakPollen: Math.Round(currentPollen, 1));
     }
 
-    internal static double MaxPollen(IReadOnlyList<AirQualityPoint> points)
+    private static double MaxPollen(IEnumerable<AirQualityPoint> points)
     {
         double max = 0;
         foreach (var p in points)

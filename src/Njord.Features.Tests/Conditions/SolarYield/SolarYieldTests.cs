@@ -52,7 +52,7 @@ public sealed class SolarYieldTests
     private static LocationForecast BatteryScenario(double todayGti, double tomorrowGti)
     {
         var forecast = Hourly(36, (hour, point) => point with { GlobalTiltedIrradiance = hour < 12 ? todayGti : tomorrowGti });
-        return new(Lucerne, forecast);
+        return new LocationForecast(Lucerne, forecast);
     }
 
     private static SolarBatteryStrategyConditionResult Battery(double todayGti, double tomorrowGti)

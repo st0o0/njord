@@ -19,7 +19,7 @@ public sealed class RagweedPollen(IOptions<RagweedPollenConfig> config) : Featur
     public override bool Enabled => config.Value.Enabled;
 
     protected override AqInput? Project(LocationForecast forecast) =>
-        forecast.AirQuality is { } aq ? new(aq) : null;
+        forecast.AirQuality is { } aq ? new AqInput(aq) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<AqInput> ctx)
     {

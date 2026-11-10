@@ -14,7 +14,7 @@ public sealed class HeatPumpCopConditionTests
     {
         var config = new HeatPumpCopConfig { Enabled = true };
         configure?.Invoke(config);
-        return new(Options.Create(config));
+        return new HeatPumpCopCondition(Options.Create(config));
     }
 
     private static HeatPumpCopConditionResult Evaluate(double temperature)

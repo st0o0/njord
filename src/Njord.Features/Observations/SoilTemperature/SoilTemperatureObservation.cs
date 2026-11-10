@@ -18,7 +18,7 @@ public sealed class SoilTemperatureObservation(IOptions<SoilTemperatureObservati
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastInput? Project(LocationForecast forecast) =>
-        forecast.Forecast is { } d ? new(d) : null;
+        forecast.Forecast is { } d ? new ForecastInput(d) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) =>
         ForecastQueries.ValueAt(ctx.Current.Forecast, ctx.Now) is { SoilTemperature: { } value }

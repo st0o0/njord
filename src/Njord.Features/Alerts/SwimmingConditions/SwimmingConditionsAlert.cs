@@ -27,7 +27,7 @@ public sealed class SwimmingConditionsAlert(IOptions<SwimmingConditionsConfig> c
     public override bool Enabled => config.Value.Enabled;
 
     protected override MarineInput? Project(LocationForecast forecast) =>
-        forecast is { Marine: { } m } ? new(m) : null;
+        forecast is { Marine: { } m } ? new MarineInput(m) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<MarineInput> ctx)
     {

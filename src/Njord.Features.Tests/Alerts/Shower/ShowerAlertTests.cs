@@ -14,7 +14,7 @@ public sealed class ShowerAlertTests
     {
         var c = cfg ?? new ShowerConfig { Enabled = true };
         c.ApplyDefaults();
-        return new(Options.Create(c));
+        return new ShowerAlert(Options.Create(c));
     }
 
     [Fact]

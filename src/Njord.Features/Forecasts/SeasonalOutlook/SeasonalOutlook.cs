@@ -11,8 +11,8 @@ namespace Njord.Features.Forecasts.SeasonalOutlook;
 
 public sealed class SeasonalOutlook(IOptions<SeasonalOutlookConfig> config) : FeatureRule<SeasonalInput>
 {
-    public const int HighConfidenceMaxLead = 1;
-    public const int MediumConfidenceMaxLead = 2;
+    private const int HighConfidenceMaxLead = 1;
+    private const int MediumConfidenceMaxLead = 2;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Forecast,
@@ -24,7 +24,7 @@ public sealed class SeasonalOutlook(IOptions<SeasonalOutlookConfig> config) : Fe
     public override bool Enabled => config.Value.Enabled;
 
     protected override SeasonalInput? Project(LocationForecast forecast) =>
-        forecast.Seasonal is { } s ? new(s) : null;
+        forecast.Seasonal is { } s ? new SeasonalInput(s) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<SeasonalInput> ctx)
     {
@@ -41,7 +41,7 @@ public sealed class SeasonalOutlook(IOptions<SeasonalOutlookConfig> config) : Fe
         return months.IsEmpty ? null : new SeasonalOutlookResult(ctx.Location, months);
     }
 
-    public static ConfidenceLevel ConfidenceForLead(int leadMonths) => leadMonths switch
+    private static ConfidenceLevel ConfidenceForLead(int leadMonths) => leadMonths switch
     {
         <= HighConfidenceMaxLead => ConfidenceLevel.High,
         <= MediumConfidenceMaxLead => ConfidenceLevel.Medium,

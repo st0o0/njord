@@ -9,7 +9,7 @@ namespace Njord.Features.Trends.ConfidenceTrend;
 
 public sealed class ConfidenceTrend(IOptions<ConfidenceTrendConfig> config) : FeatureRule<EnsembleInput>
 {
-    public const double ChangeThreshold = 0.20;
+    private const double ChangeThreshold = 0.20;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Trend,
@@ -21,8 +21,8 @@ public sealed class ConfidenceTrend(IOptions<ConfidenceTrendConfig> config) : Fe
 
     public override bool Enabled => config.Value.Enabled;
 
-    protected override EnsembleInput? Project(LocationForecast forecast) =>
-        forecast.Ensemble is { } e ? new(e) : null;
+    protected override EnsembleInput? Project(LocationForecast forecast)
+        => forecast.Ensemble is { } e ? new EnsembleInput(e) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<EnsembleInput> ctx)
     {
@@ -34,7 +34,8 @@ public sealed class ConfidenceTrend(IOptions<ConfidenceTrendConfig> config) : Fe
 
         if (ctx.History.Count < 2 || AverageSpread(ctx.History[1].Ensemble, ctx.Now) is not { } previousAverage)
         {
-            return new ConfidenceTrendResult(ctx.Location, ConfidenceTrendDirection.Stable, 0.0, Math.Round(currentAverage, 2), Math.Round(currentAverage, 2));
+            return new ConfidenceTrendResult(ctx.Location, ConfidenceTrendDirection.Stable, 0.0,
+                Math.Round(currentAverage, 2), Math.Round(currentAverage, 2));
         }
 
         var change = previousAverage > 0 ? (currentAverage - previousAverage) / previousAverage : 0.0;
@@ -44,7 +45,8 @@ public sealed class ConfidenceTrend(IOptions<ConfidenceTrendConfig> config) : Fe
             >= ChangeThreshold => ConfidenceTrendDirection.Diverging,
             _ => ConfidenceTrendDirection.Stable,
         };
-        return new ConfidenceTrendResult(ctx.Location, direction, Math.Round(currentAverage - previousAverage, 2), Math.Round(currentAverage, 2), Math.Round(previousAverage, 2));
+        return new ConfidenceTrendResult(ctx.Location, direction, Math.Round(currentAverage - previousAverage, 2),
+            Math.Round(currentAverage, 2), Math.Round(previousAverage, 2));
     }
 
     private static double? AverageSpread(DomainForecast<EnsemblePoint> forecast, DateTimeOffset now)

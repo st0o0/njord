@@ -15,7 +15,7 @@ public sealed class ThunderstormAlertTests
     {
         var c = new ThunderstormConfig { Enabled = true };
         c.ApplyDefaults();
-        return new(Options.Create(c));
+        return new ThunderstormAlert(Options.Create(c));
     }
 
     [Fact]

@@ -10,7 +10,7 @@ namespace Njord.Features.Scores.Laundry;
 
 public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<ForecastInput>
 {
-    public const double GoodHourScore = 60.0;
+    private const double GoodHourScore = 60.0;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Score,
@@ -24,7 +24,7 @@ public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<F
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastInput? Project(LocationForecast forecast) =>
-        forecast.Forecast is { } w ? new(w) : null;
+        forecast.Forecast is { } w ? new ForecastInput(w) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {

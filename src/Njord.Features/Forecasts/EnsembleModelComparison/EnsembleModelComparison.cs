@@ -23,7 +23,7 @@ public sealed class EnsembleModelComparison(
     public override bool Enabled => config.Value.Enabled && activeModels.Value.EnsembleModels.Count >= 2;
 
     protected override EnsembleModelsInput? Project(LocationForecast forecast) =>
-        forecast.EnsembleModelMap is { Count: >= 2 } models ? new(models) : null;
+        forecast.EnsembleModelMap is { Count: >= 2 } models ? new EnsembleModelsInput(models) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<EnsembleModelsInput> ctx)
     {

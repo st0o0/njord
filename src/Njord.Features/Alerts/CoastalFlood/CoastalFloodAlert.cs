@@ -26,7 +26,7 @@ public sealed class CoastalFloodAlert(IOptions<CoastalFloodConfig> config) : Fea
     public override bool Enabled => config.Value.Enabled;
 
     protected override MarineForecastEnsembleInput? Project(LocationForecast forecast) =>
-        forecast is { Marine: { } m, Forecast: { } w, Ensemble: { } e } ? new(m, w, e) : null;
+        forecast is { Marine: { } m, Forecast: { } w, Ensemble: { } e } ? new MarineForecastEnsembleInput(m, w, e) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<MarineForecastEnsembleInput> ctx)
     {

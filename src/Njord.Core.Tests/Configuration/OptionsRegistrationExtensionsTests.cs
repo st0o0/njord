@@ -11,7 +11,7 @@ public sealed class OptionsRegistrationExtensionsTests
     public void AddNjordOptions_applies_defaults_for_IHasArrayDefaults()
     {
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection([new("Test:Enabled", "true")])
+            .AddInMemoryCollection([new KeyValuePair<string, string?>("Test:Enabled", "true")])
             .Build();
 
         var services = new ServiceCollection();
@@ -30,8 +30,8 @@ public sealed class OptionsRegistrationExtensionsTests
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection([
-                new("Test:Thresholds:0", "99"),
-                new("Test:Thresholds:1", "88"),
+                new KeyValuePair<string, string?>("Test:Thresholds:0", "99"),
+                new KeyValuePair<string, string?>("Test:Thresholds:1", "88"),
             ])
             .Build();
 
@@ -49,7 +49,7 @@ public sealed class OptionsRegistrationExtensionsTests
     public void AddNjordOptions_does_not_register_PostConfigure_for_non_array_config()
     {
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection([new("Simple:Enabled", "true")])
+            .AddInMemoryCollection([new KeyValuePair<string, string?>("Simple:Enabled", "true")])
             .Build();
 
         var services = new ServiceCollection();

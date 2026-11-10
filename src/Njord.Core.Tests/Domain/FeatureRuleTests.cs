@@ -96,7 +96,7 @@ public sealed class FeatureRuleTests
     {
         public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Forecast, "Test", new DomainRequirements());
         public override bool Enabled => true;
-        protected override ForecastInput? Project(LocationForecast f) => f.Forecast is { } w ? new(w) : null;
+        protected override ForecastInput? Project(LocationForecast f) => f.Forecast is { } w ? new ForecastInput(w) : null;
         protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) => null;
     }
 
@@ -104,7 +104,7 @@ public sealed class FeatureRuleTests
     {
         public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Forecast, "Test", new DomainRequirements());
         public override bool Enabled => true;
-        protected override ForecastInput? Project(LocationForecast f) => f.Forecast is { } w ? new(w) : null;
+        protected override ForecastInput? Project(LocationForecast f) => f.Forecast is { } w ? new ForecastInput(w) : null;
         protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) => new TestFeatureResult(_testLocation);
     }
 
@@ -113,7 +113,7 @@ public sealed class FeatureRuleTests
         public IReadOnlyList<ForecastInput>? CapturedHistory { get; private set; }
         public override FeatureDescriptor Descriptor => new(OutputKind.Trend, FeatureCategory.Insight, "Test", new DomainRequirements(), PollDepth: pollDepth);
         public override bool Enabled => true;
-        protected override ForecastInput? Project(LocationForecast f) => f.Forecast is { } w ? new(w) : null;
+        protected override ForecastInput? Project(LocationForecast f) => f.Forecast is { } w ? new ForecastInput(w) : null;
         protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
         {
             CapturedHistory = ctx.History;

@@ -18,7 +18,7 @@ public sealed class WaterTemperatureObservation(IOptions<WaterTemperatureObserva
     public override bool Enabled => config.Value.Enabled;
 
     protected override MarineInput? Project(LocationForecast forecast) =>
-        forecast.Marine is { } d ? new(d) : null;
+        forecast.Marine is { } d ? new MarineInput(d) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<MarineInput> ctx) =>
         ForecastQueries.ValueAt(ctx.Current.Marine, ctx.Now) is { WaterTemperature: { } value }

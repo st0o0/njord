@@ -22,7 +22,7 @@ public sealed class FloodRainAlert(IOptions<FloodRainConfig> config) : FeatureRu
     public override bool Enabled => config.Value.Enabled;
 
     protected override FloodForecastInput? Project(LocationForecast forecast) =>
-        forecast is { Flood: { } f, Forecast: { } w } ? new(f, w) : null;
+        forecast is { Flood: { } f, Forecast: { } w } ? new FloodForecastInput(f, w) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<FloodForecastInput> ctx)
     {

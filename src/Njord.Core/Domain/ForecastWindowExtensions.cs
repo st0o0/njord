@@ -12,7 +12,7 @@ public static class ForecastWindowExtensions
         => ForecastQueries.Upcoming(forecast, now, hours);
 
     // Closed [hourStart, hourStart + hours]: alert rules keep the end boundary (25 hourly points for 24 h).
-    public static IReadOnlyList<T> NextHoursInclusive<T>(this DomainForecast<T> forecast, DateTimeOffset now, int hours = DefaultHours)
+    public static IEnumerable<T> NextHoursInclusive<T>(this DomainForecast<T> forecast, DateTimeOffset now, int hours = DefaultHours)
         where T : IHasValidTime
     {
         var start = now.HourStart();
@@ -20,7 +20,7 @@ public static class ForecastWindowExtensions
     }
 
     // Closed [UTC midnight, midnight + days] for daily data.
-    public static IReadOnlyList<T> NextDays<T>(this DomainForecast<T> forecast, DateTimeOffset now, int days)
+    public static IEnumerable<T> NextDays<T>(this DomainForecast<T> forecast, DateTimeOffset now, int days)
         where T : IHasValidTime
     {
         var start = new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero);

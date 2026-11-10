@@ -10,7 +10,7 @@ namespace Njord.Features.Scores.Bbq;
 
 public sealed class BbqScore(IOptions<BbqConfig> config) : FeatureRule<ForecastInput>
 {
-    public const double GoodHourScore = 70.0;
+    private const double GoodHourScore = 70.0;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Score,
@@ -24,7 +24,7 @@ public sealed class BbqScore(IOptions<BbqConfig> config) : FeatureRule<ForecastI
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastInput? Project(LocationForecast forecast) =>
-        forecast.Forecast is { } w ? new(w) : null;
+        forecast.Forecast is { } w ? new ForecastInput(w) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {

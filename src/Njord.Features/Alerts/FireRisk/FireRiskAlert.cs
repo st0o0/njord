@@ -28,7 +28,7 @@ public sealed class FireRiskAlert(IOptions<FireRiskConfig> config) : FeatureRule
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastEnsembleInput? Project(LocationForecast forecast) =>
-        forecast is { Forecast: { } w, Ensemble: { } e } ? new(w, e) : null;
+        forecast is { Forecast: { } w, Ensemble: { } e } ? new ForecastEnsembleInput(w, e) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
     {

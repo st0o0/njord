@@ -10,11 +10,11 @@ namespace Njord.Features.Scores.SprayWindow;
 
 public sealed class SprayWindowScore(IOptions<SprayWindowConfig> config) : FeatureRule<ForecastInput>
 {
-    public const double RainProbabilityLimit = 20.0;
-    public const double TemperatureFalloff = 10.0;
-    public const double HumidityMin = 40.0;
-    public const double HumidityMax = 80.0;
-    public const double HumidityFalloff = 20.0;
+    private const double RainProbabilityLimit = 20.0;
+    private const double TemperatureFalloff = 10.0;
+    private const double HumidityMin = 40.0;
+    private const double HumidityMax = 80.0;
+    private const double HumidityFalloff = 20.0;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Score,
@@ -27,7 +27,7 @@ public sealed class SprayWindowScore(IOptions<SprayWindowConfig> config) : Featu
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastInput? Project(LocationForecast forecast) =>
-        forecast.Forecast is { } w ? new(w) : null;
+        forecast.Forecast is { } w ? new ForecastInput(w) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
@@ -50,7 +50,7 @@ public sealed class SprayWindowScore(IOptions<SprayWindowConfig> config) : Featu
         return new SprayWindowScoreResult(ctx.Location, (int)Math.Round(top.Score), top.Time, 0) { Windows = windows };
     }
 
-    internal static HourlyScore ScoreHour(IReadOnlyList<ForecastPoint> hours, int index, SprayWindowConfig options)
+    private static HourlyScore ScoreHour(IReadOnlyList<ForecastPoint> hours, int index, SprayWindowConfig options)
     {
         var point = hours[index];
         if (point is not { WindSpeed: { } wind, Temperature: { } temperature, Humidity: { } humidity })
@@ -90,7 +90,7 @@ public sealed class SprayWindowScore(IOptions<SprayWindowConfig> config) : Featu
         return new HourlyScore(point.ValidFrom, total, worst, worstValue);
     }
 
-    internal static double Falloff(double value, double min, double max, double width)
+    private static double Falloff(double value, double min, double max, double width)
     {
         var distance = value < min ? min - value : value > max ? value - max : 0.0;
         return Math.Max(0.0, 1.0 - distance / width);

@@ -19,7 +19,7 @@ public sealed class OceanCurrents(IOptions<OceanCurrentsConfig> config) : Featur
     public override bool Enabled => config.Value.Enabled;
 
     protected override MarineInput? Project(LocationForecast forecast) =>
-        forecast.Marine is { } m ? new(m) : null;
+        forecast.Marine is { } m ? new MarineInput(m) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<MarineInput> ctx)
     {

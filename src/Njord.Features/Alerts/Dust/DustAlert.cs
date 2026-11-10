@@ -21,7 +21,7 @@ public sealed class DustAlert(IOptions<DustConfig> config) : FeatureRule<AqInput
     public override bool Enabled => config.Value.Enabled;
 
     protected override AqInput? Project(LocationForecast forecast) =>
-        forecast.AirQuality is { } aq ? new(aq) : null;
+        forecast.AirQuality is { } aq ? new AqInput(aq) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<AqInput> ctx)
     {

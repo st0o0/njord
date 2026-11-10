@@ -11,8 +11,8 @@ namespace Njord.Features.Scores.AllergySeverity;
 
 public sealed class AllergySeverityScore(IOptions<AllergySeverityConfig> config) : FeatureRule<ForecastAqInput>
 {
-    public const double PollenReference = 100.0;
-    public const double GoodHourScore = 60.0;
+    private const double PollenReference = 100.0;
+    private const double GoodHourScore = 60.0;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Score,
@@ -26,7 +26,7 @@ public sealed class AllergySeverityScore(IOptions<AllergySeverityConfig> config)
     public override bool Enabled => config.Value.Enabled;
 
     protected override ForecastAqInput? Project(LocationForecast forecast) =>
-        forecast is { Forecast: { } w, AirQuality: { } aq } ? new(w, aq) : null;
+        forecast is { Forecast: { } w, AirQuality: { } aq } ? new ForecastAqInput(w, aq) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastAqInput> ctx)
     {
@@ -68,7 +68,7 @@ public sealed class AllergySeverityScore(IOptions<AllergySeverityConfig> config)
         return new AllergySeverityScoreResult(ctx.Location, peak, severities[start].Time, length) { Windows = windows };
     }
 
-    internal static double? Severity(AirQualityPoint air, ForecastPoint weather, ForecastPoint? previous)
+    private static double? Severity(AirQualityPoint air, ForecastPoint weather, ForecastPoint? previous)
     {
         double?[] species = [air.BirchPollen, air.GrassPollen, air.Alder, air.Mugwort];
         var present = species.OfType<double>().ToList();
@@ -83,7 +83,7 @@ public sealed class AllergySeverityScore(IOptions<AllergySeverityConfig> config)
             return 0.0;
         }
 
-        if (weather.WindSpeed > 4.0 && weather.Humidity < 60.0)
+        if (weather is { WindSpeed: > 4.0, Humidity: < 60.0 })
         {
             score += 15.0;
         }

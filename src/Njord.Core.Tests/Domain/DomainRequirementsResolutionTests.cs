@@ -16,13 +16,13 @@ public sealed class DomainRequirementsResolutionTests
     }
 
     private static readonly StubRule _frost = new("Frost", true,
-        new(Forecast: ForecastParams.Temperature | ForecastParams.WindGusts, Ensemble: EnsembleParams.TemperatureSpread));
+        new DomainRequirements(Forecast: ForecastParams.Temperature | ForecastParams.WindGusts, Ensemble: EnsembleParams.TemperatureSpread));
 
     private static readonly StubRule _pollen = new("Pollen", true,
-        new(AirQuality: AirQualityParams.BirchPollen));
+        new DomainRequirements(AirQuality: AirQualityParams.BirchPollen));
 
     private static readonly StubRule _disabledPollen = new("Pollen", false,
-        new(AirQuality: AirQualityParams.BirchPollen));
+        new DomainRequirements(AirQuality: AirQualityParams.BirchPollen));
 
     private static DomainRequirements Resolve(params IFeatureRule[] rules) =>
         rules.Where(r => r.Enabled)

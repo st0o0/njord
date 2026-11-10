@@ -18,7 +18,7 @@ public sealed class SulphurDioxideObservation(IOptions<SulphurDioxideObservation
     public override bool Enabled => config.Value.Enabled;
 
     protected override AqInput? Project(LocationForecast forecast) =>
-        forecast.AirQuality is { } d ? new(d) : null;
+        forecast.AirQuality is { } d ? new AqInput(d) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<AqInput> ctx) =>
         ForecastQueries.ValueAt(ctx.Current.AirQuality, ctx.Now) is { SulphurDioxide: { } value }

@@ -34,7 +34,7 @@ public sealed class FeatureEngineTests
         public override bool Enabled => enabled;
 
         protected override ForecastInput? Project(LocationForecast forecast) =>
-            forecast.Forecast is { } w ? new(w) : null;
+            forecast.Forecast is { } w ? new ForecastInput(w) : null;
 
         protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
         {
@@ -74,7 +74,7 @@ public sealed class FeatureEngineTests
         public override bool Enabled => true;
 
         protected override ForecastInput? Project(LocationForecast forecast) =>
-            forecast.Forecast is { } w ? new(w) : null;
+            forecast.Forecast is { } w ? new ForecastInput(w) : null;
 
         protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx) => null;
     }
@@ -277,7 +277,7 @@ public sealed class FeatureEngineTests
         public override bool Enabled => true;
 
         protected override ForecastEnsembleInput? Project(LocationForecast forecast) =>
-            forecast is { Forecast: { } w, Ensemble: { } e } ? new(w, e) : null;
+            forecast is { Forecast: { } w, Ensemble: { } e } ? new ForecastEnsembleInput(w, e) : null;
 
         protected override PipelineEvent? Evaluate(FeatureContext<ForecastEnsembleInput> ctx)
         {

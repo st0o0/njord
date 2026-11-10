@@ -23,7 +23,7 @@ public sealed class ForecastModelComparison(
     public override bool Enabled => config.Value.Enabled && activeModels.Value.ForecastModels.Count >= 2;
 
     protected override ForecastModelsInput? Project(LocationForecast forecast) =>
-        forecast.ForecastModelMap is { Count: >= 2 } models ? new(models) : null;
+        forecast.ForecastModelMap is { Count: >= 2 } models ? new ForecastModelsInput(models) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastModelsInput> ctx)
     {

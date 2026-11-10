@@ -24,7 +24,7 @@ public sealed class SurfConditions(IOptions<SurfConditionsConfig> config) : Feat
     public override bool Enabled => config.Value.Enabled;
 
     protected override MarineForecastInput? Project(LocationForecast forecast) =>
-        forecast.Marine is { } m ? new(m, forecast.Forecast!) : null;
+        forecast.Marine is { } m ? new MarineForecastInput(m, forecast.Forecast!) : null;
 
     protected override PipelineEvent? Evaluate(FeatureContext<MarineForecastInput> ctx)
     {
