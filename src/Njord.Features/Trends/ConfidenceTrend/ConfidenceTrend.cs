@@ -26,17 +26,15 @@ public sealed class ConfidenceTrend(IOptions<ConfidenceTrendConfig> config) : Fe
 
     protected override PipelineEvent? Evaluate(FeatureContext<EnsembleInput> ctx)
     {
-        if (ctx.History.Count < 2)
+        var latest = ctx.Current.Ensemble;
+        if (AverageSpread(latest, ctx.Now) is not { } currentAverage)
         {
             return null;
         }
 
-        var latest = ctx.Current.Ensemble;
-        var before = ctx.History[1].Ensemble;
-
-        if (AverageSpread(latest, ctx.Now) is not { } currentAverage || AverageSpread(before, ctx.Now) is not { } previousAverage)
+        if (ctx.History.Count < 2 || AverageSpread(ctx.History[1].Ensemble, ctx.Now) is not { } previousAverage)
         {
-            return null;
+            return new ConfidenceTrendResult(ctx.Location, ConfidenceTrendDirection.Stable, 0.0, Math.Round(currentAverage, 2), Math.Round(currentAverage, 2));
         }
 
         var change = previousAverage > 0 ? (currentAverage - previousAverage) / previousAverage : 0.0;

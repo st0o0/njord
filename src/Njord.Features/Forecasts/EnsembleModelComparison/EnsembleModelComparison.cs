@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Features.Forecasts.Shared;
@@ -9,7 +10,8 @@ using Njord.Messages.Stream;
 namespace Njord.Features.Forecasts.EnsembleModelComparison;
 
 public sealed class EnsembleModelComparison(
-    IOptions<EnsembleModelComparisonConfig> config) : FeatureRule<EnsembleModelsInput>
+    IOptions<EnsembleModelComparisonConfig> config,
+    IOptions<ActiveModels> activeModels) : FeatureRule<EnsembleModelsInput>
 {
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Forecast,
@@ -18,7 +20,7 @@ public sealed class EnsembleModelComparison(
         new DomainRequirements(Ensemble: EnsembleParams.TemperatureSpread),
         EntityMetadata: new EntityMetadata(EntityPlatform.Sensor));
 
-    public override bool Enabled => config.Value.Enabled;
+    public override bool Enabled => config.Value.Enabled && activeModels.Value.EnsembleModels.Count >= 2;
 
     protected override EnsembleModelsInput? Project(LocationForecast forecast) =>
         forecast.EnsembleModelMap is { Count: >= 2 } models ? new(models) : null;

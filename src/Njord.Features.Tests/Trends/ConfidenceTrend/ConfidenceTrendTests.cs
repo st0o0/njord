@@ -32,8 +32,21 @@ public sealed class ConfidenceTrendTests
     }
 
     [Fact]
-    public void Nothing_is_reported_without_a_previous_cycle() => Assert.Null(Run(Feature(), Now, WithSpread(1.0)));
+    public void First_cycle_reports_stable_with_zero_magnitude()
+    {
+        var trend = Assert.IsType<ConfidenceTrendResult>(
+            Run(Feature(), Now, WithSpread(2.0)));
+
+        Assert.Multiple(
+            () => Assert.Equal(ConfidenceTrendDirection.Stable, trend.Direction),
+            () => Assert.Equal(0.0, trend.Magnitude),
+            () => Assert.Equal(2.0, trend.CurrentAvgStdDev),
+            () => Assert.Equal(2.0, trend.PreviousAvgStdDev));
+    }
 
     [Fact]
     public void Nothing_is_reported_without_ensemble_data() => Assert.Null(Run(Feature(), Now, new LocationForecast(Lucerne), new LocationForecast(Lucerne)));
+
+    [Fact]
+    public void Nothing_is_reported_without_spread_data_on_first_cycle() => Assert.Null(Run(Feature(), Now, new LocationForecast(Lucerne)));
 }

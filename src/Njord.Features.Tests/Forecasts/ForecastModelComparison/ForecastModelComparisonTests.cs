@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core;
+using Njord.Core.Configuration;
 using Njord.Core.Forecast;
 using Njord.Features.Forecasts.ForecastModelComparison;
 using Njord.Messages.Results.Forecasts;
@@ -14,7 +15,8 @@ public sealed class ForecastModelComparisonTests
     private static IOptions<T> Opts<T>(T value) where T : class => Options.Create(value);
 
     private static Features.Forecasts.ForecastModelComparison.ForecastModelComparison Rule() =>
-        new(Opts(new ForecastModelComparisonConfig { Enabled = true }));
+        new(Opts(new ForecastModelComparisonConfig { Enabled = true }),
+            Opts(new ActiveModels { ForecastModels = ["model_a", "model_b"] }));
 
     private static DomainForecast<ForecastPoint> ModelForecast(int hours = 48, double temp = 20.0) =>
         new(DomainKind.Forecast, Now, TimeResolution.Hourly,
@@ -73,5 +75,25 @@ public sealed class ForecastModelComparisonTests
         {
             Assert.Equal(2, day.Models.Length);
         }
+    }
+
+    [Fact]
+    public void Enabled_is_false_when_fewer_than_two_forecast_models()
+    {
+        var rule = new Features.Forecasts.ForecastModelComparison.ForecastModelComparison(
+            Opts(new ForecastModelComparisonConfig { Enabled = true }),
+            Opts(new ActiveModels { ForecastModels = ["only_one"] }));
+
+        Assert.False(rule.Enabled);
+    }
+
+    [Fact]
+    public void Enabled_is_false_when_config_disabled()
+    {
+        var rule = new Features.Forecasts.ForecastModelComparison.ForecastModelComparison(
+            Opts(new ForecastModelComparisonConfig { Enabled = false }),
+            Opts(new ActiveModels { ForecastModels = ["a", "b"] }));
+
+        Assert.False(rule.Enabled);
     }
 }

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Core;
+using Njord.Core.Configuration;
 using Njord.Core.Forecast;
 using Njord.Features.Forecasts.EnsembleModelComparison;
 using Njord.Messages.Results.Forecasts;
@@ -14,7 +15,8 @@ public sealed class EnsembleModelComparisonTests
     private static IOptions<T> Opts<T>(T value) where T : class => Options.Create(value);
 
     private static Features.Forecasts.EnsembleModelComparison.EnsembleModelComparison Rule() =>
-        new(Opts(new EnsembleModelComparisonConfig { Enabled = true }));
+        new(Opts(new EnsembleModelComparisonConfig { Enabled = true }),
+            Opts(new ActiveModels { EnsembleModels = ["ensemble_a", "ensemble_b"] }));
 
     private static DomainForecast<ForecastPoint> ModelForecast(int hours = 48, double temp = 20.0) =>
         new(DomainKind.Forecast, Now, TimeResolution.Hourly,
@@ -73,5 +75,25 @@ public sealed class EnsembleModelComparisonTests
         {
             Assert.Equal(2, day.Models.Length);
         }
+    }
+
+    [Fact]
+    public void Enabled_is_false_when_fewer_than_two_ensemble_models()
+    {
+        var rule = new Features.Forecasts.EnsembleModelComparison.EnsembleModelComparison(
+            Opts(new EnsembleModelComparisonConfig { Enabled = true }),
+            Opts(new ActiveModels { EnsembleModels = ["only_one"] }));
+
+        Assert.False(rule.Enabled);
+    }
+
+    [Fact]
+    public void Enabled_is_false_when_config_disabled()
+    {
+        var rule = new Features.Forecasts.EnsembleModelComparison.EnsembleModelComparison(
+            Opts(new EnsembleModelComparisonConfig { Enabled = false }),
+            Opts(new ActiveModels { EnsembleModels = ["a", "b"] }));
+
+        Assert.False(rule.Enabled);
     }
 }
