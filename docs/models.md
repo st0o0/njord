@@ -22,7 +22,7 @@ The default model `ecmwf_ifs025_ensemble_mean` delivers neither `visibility` nor
 
 | | Ensemble Mean (used) | Individual models |
 |---|---|---|
-| API calls per location and cycle | 1 (Forecast) | 1 per model |
+| API cost per location and cycle | `ceil(vars / 10) * (days / 14) * modelCount` effective calls | 1 per model |
 | Uncertainty information | `ensemble_std_dev` per point | none |
 | Resolution | Ensemble grid | Up to ~1 km for regional models |
 

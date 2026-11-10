@@ -1,12 +1,12 @@
-import { FEATURES, requiredDomains, weatherVariableCount, type NjordConfig } from './types'
+import { FEATURES, requiredDomains, weatherVariableCount, airQualityVariableCount, marineVariableCount, floodVariableCount, seasonalVariableCount, type NjordConfig } from './types'
 
 const MINUTES_PER_DAY = 24 * 60
 const DAYS_PER_MONTH = 30
 const GUARD_FACTOR = 0.8
 const FREE_TIER_MONTHLY = 300_000
 const FLOOD_ENSEMBLE_WEIGHT = 5
-// The seasonal domain learns a roughly daily update cycle, so it costs about one call per location and day.
-const SEASONAL_CALLS_PER_DAY = 1
+const SEASONAL_CALLS_PER_MONTH = 30
+const SEASONAL_MINIMUM_REQUEST_WEIGHT = 1.3
 
 export interface BudgetResult {
   domainCallsPerCycle: number
@@ -21,25 +21,24 @@ export interface BudgetResult {
   overBudget: boolean
 }
 
-// Mirrors BudgetGuard (Njord.Polling): per location and poll cycle the Forecast domain costs
-// ceil(variables / 10) * (Forecast.ForecastDays / 14) * max(1, Forecast.Models) calls (variables = union of the enabled features' weather
-// requirements; the Ensemble domain uses Ensemble.ForecastDays), every other required domain costs one call.
+// Mirrors BudgetGuard (Njord.Polling): every domain uses CallWeight.Of(varCount, days)
+// = ceil(vars / 10) * (days / 14). Seasonal is 30 calls/month * max(weight, 1.3).
 export function computeBudget(config: NjordConfig): BudgetResult {
   const pollMinutes = parseTimeSpan(config.pollInterval)
   const cyclesPerDay = pollMinutes > 0 ? MINUTES_PER_DAY / pollMinutes : 0
   const cyclesPerMonth = cyclesPerDay * DAYS_PER_MONTH
 
   const domains = requiredDomains(config.features)
-  const apiCallWeight = weatherWeight(config, config.features) + ensembleWeight(config, config.features)
   const locationCount = Math.max(config.locations.length, 1)
   const domainCallsPerCycle = domains.filter(d => d !== 'Seasonal').length * locationCount
-  const callsPerCycle = locationCount * callsPerLocationCycle(config, config.features)
+  const weightPerCycle = callsPerLocationCycle(config, config.features)
+  const apiCallWeight = weightPerCycle
 
   const limit = config.budgetOverride?.requestsPerMonth ?? FREE_TIER_MONTHLY
   const guard = Math.round(limit * GUARD_FACTOR)
-  const extraPerDay = domains.includes('Seasonal') ? locationCount * SEASONAL_CALLS_PER_DAY : 0
-  const callsPerDay = Math.round(callsPerCycle * cyclesPerDay + extraPerDay)
-  const projected = Math.round(callsPerCycle * cyclesPerMonth + extraPerDay * DAYS_PER_MONTH)
+  const seasonalPerMonth = seasonalWeightPerMonth(config, config.features)
+  const callsPerDay = Math.round(locationCount * weightPerCycle * cyclesPerDay + locationCount * seasonalPerMonth / DAYS_PER_MONTH)
+  const projected = Math.round(locationCount * weightPerCycle * cyclesPerMonth + locationCount * seasonalPerMonth)
   const percentUsed = limit > 0 ? (projected / limit) * 100 : 0
 
   return {
@@ -80,11 +79,41 @@ function ensembleWeight(config: NjordConfig, features: Record<string, boolean>):
   return Math.ceil(variables / 10) * (config.ensemble.forecastDays / 14) * modelCount
 }
 
-function callsPerLocationCycle(config: NjordConfig, features: Record<string, boolean>): number {
+function callWeight(variableCount: number, forecastDays: number): number {
+  return Math.ceil(variableCount / 10) * (forecastDays / 14)
+}
+
+function airQualityWeight(config: NjordConfig, features: Record<string, boolean>): number {
   const domains = requiredDomains(features)
-  const otherDomains = domains.filter(d => d !== 'Forecast' && d !== 'Ensemble' && d !== 'Seasonal').length
-  const floodExtraWeight = domains.includes('Flood') && config.flood.includeEnsemble ? FLOOD_ENSEMBLE_WEIGHT - 1 : 0
-  return weatherWeight(config, features) + ensembleWeight(config, features) + otherDomains + floodExtraWeight
+  if (!domains.includes('AirQuality')) return 0
+  return callWeight(airQualityVariableCount(features), config.airQuality.forecastDays)
+}
+
+function floodWeight(config: NjordConfig, features: Record<string, boolean>): number {
+  const domains = requiredDomains(features)
+  if (!domains.includes('Flood')) return 0
+  return callWeight(floodVariableCount(features), config.flood.forecastDays)
+    + (config.flood.includeEnsemble ? FLOOD_ENSEMBLE_WEIGHT - 1 : 0)
+}
+
+function marineWeight(config: NjordConfig, features: Record<string, boolean>): number {
+  const domains = requiredDomains(features)
+  if (!domains.includes('Marine')) return 0
+  return callWeight(marineVariableCount(features), config.marine.forecastDays)
+}
+
+function seasonalWeightPerMonth(config: NjordConfig, features: Record<string, boolean>): number {
+  const domains = requiredDomains(features)
+  if (!domains.includes('Seasonal')) return 0
+  const perRequest = Math.max(
+    callWeight(seasonalVariableCount(features), config.seasonal.forecastMonths * 30),
+    SEASONAL_MINIMUM_REQUEST_WEIGHT)
+  return SEASONAL_CALLS_PER_MONTH * perRequest
+}
+
+function callsPerLocationCycle(config: NjordConfig, features: Record<string, boolean>): number {
+  return weatherWeight(config, features) + ensembleWeight(config, features)
+    + airQualityWeight(config, features) + floodWeight(config, features) + marineWeight(config, features)
 }
 
 // Marginal calls per day and location of enabling a feature (or saved by disabling it) given the other enabled
@@ -93,8 +122,8 @@ export function featureCostPerDay(config: NjordConfig, key: string): number {
   const cycles = MINUTES_PER_DAY / (parseTimeSpan(config.pollInterval) || 60)
   const on = { ...config.features, [key]: true }
   const off = { ...config.features, [key]: false }
-  const seasonal = (requiredDomains(on).includes('Seasonal') ? SEASONAL_CALLS_PER_DAY : 0) - (requiredDomains(off).includes('Seasonal') ? SEASONAL_CALLS_PER_DAY : 0)
-  return Math.round((callsPerLocationCycle(config, on) - callsPerLocationCycle(config, off)) * cycles) + seasonal
+  const seasonalDelta = (seasonalWeightPerMonth(config, on) - seasonalWeightPerMonth(config, off)) / DAYS_PER_MONTH
+  return Math.round((callsPerLocationCycle(config, on) - callsPerLocationCycle(config, off)) * cycles + seasonalDelta)
 }
 
 export function budgetLevel(percentUsed: number): 'ok' | 'warn' | 'over' {

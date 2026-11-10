@@ -28,7 +28,7 @@ Forecast and Ensemble are separate domains that poll independently. The Forecast
 <likec4-view view-id="internals"></likec4-view>
 
 - **Ingest**: `OpenMeteoGateway` routes each domain request to its client (`ForecastClient`, `EnsembleClient`, `AirQualityClient`, `FloodClient`, `MarineClient`, `SeasonalClient`) and rate-limits against the budget. Clients build requests and parse responses. They know nothing about gRPC or Home Assistant.
-- **Domain**: `PollManager`, one `PollWorker` per location (cluster sharding), `ForecastPipeline` with the `FeatureEngine`, `BudgetTracker` and the 65 feature rules (`Njord.Features`).
+- **Domain**: `PollManager`, one `PollWorker` per location (cluster sharding), `ForecastPipeline` with the `FeatureEngine`, `BudgetTracker` and the 89 feature rules (`Njord.Features`).
 - **Consumers**: `GrpcConsumer` behind the gRPC API. They attach to the pipeline via SourceRef and know nothing about Open-Meteo.
 
 Ingest and consumers never reference each other; all data flows through the domain model.
@@ -50,24 +50,28 @@ Actors own lifecycle (polling, stream materialization, SourceRef handshakes); st
 
 A feature rule declares its required domains and fields in a `FeatureDescriptor` and runs reactively when one of them is updated. It is switched with `Njord:Features:<Name>:Enabled`.
 
-| Group | Domains | Rules |
-|-------|---------|-------|
-| Weather alerts | Forecast (+ Ensemble for confidence) | 20 alerts: frost, heat, storm, heavy rain, UV, fog, snow, pressure drop, thunderstorm, ice, wind chill, visibility, tropical night, humidity, rain probability, wet-bulb danger, shower, coastal flood, compound heat stress, migraine risk |
-| Air quality alerts | Air Quality (+ Forecast for SmogRisk) | Pollen, PM2.5, Dust, SmogRisk, PollenBlast |
-| Flood alerts | Flood (+ Forecast for FloodRain) | FloodRisk, FloodRain |
-| Marine alerts | Marine (+ Forecast for CoastalFlood) | Swimming, CoastalFlood |
-| Lifestyle scores | Forecast (+ Air Quality for some) | BBQ, Laundry, Outdoor, Commute, Exercise |
-| Conditions | Various | SoilMoisture, Evapotranspiration, Gardening, Ventilation, NightVentilation, SurfConditions, OceanCurrents, SnowDepthWatch, PollenTrend, ElevatedWind |
-| Trends and forecasts | Various | ConfidenceTrend, FrontApproaching, ForecastModelComparison, EnsembleModelComparison, SeasonalOutlook, GrowingDegree, SolarYield |
+| OutputKind | Count | Domains | Features |
+|------------|-------|---------|----------|
+| **Alert** | 30 | Forecast (+ Ensemble for confidence); AirQuality for Pollen, Pm25, Dust, PollenBlast, SmogRisk; Flood for FloodRisk, FloodRain; Marine for SwimmingConditions, CoastalFlood | Frost, Heat, Storm, HeavyRain, Uv, ClearSkyUv, Fog, Snow, PressureDrop, Thunderstorm, Ice, WindChill, Visibility, TropicalNight, Humidity, RainProbability, WetBulbDanger, Shower, CoastalFlood, CompoundHeatStress, MigraineRisk, FireRisk, Pollen, Pm25, Dust, SmogRisk, PollenBlast, FloodRisk, FloodRain, SwimmingConditions |
+| **Score** | 7 | Forecast (+ AirQuality for AllergySeverity, AsthmaRisk) | Bbq, Laundry, Outdoor, SleepQuality, SprayWindow, AllergySeverity, AsthmaRisk |
+| **Condition** | 23 | Forecast, AirQuality, Flood, Marine (varies per feature) | CommuteSafety, ExerciseAdvisory, SoilMoisture, Evapotranspiration, Gardening, VentilationWindow, NightVentilation, SurfConditions, OceanCurrents, SnowDepthWatch, PollenTrend, ElevatedWind, SolarYield, HeatPumpCop, FrostDepth, IrrigationNeed, FloodTimeline, InversionDetection, AtmosphericStability, CloudCeiling, GranularAqi, RagweedPollen, ApproachingFront |
+| **Trend** | 1 | Ensemble | ConfidenceTrend |
+| **Forecast** | 4 | Forecast, Ensemble, Seasonal (varies) | ForecastModelComparison, EnsembleModelComparison, GrowingDegree, SeasonalOutlook |
+| **Weather** | 1 | Forecast | Weather (always-on weather entity with hourly forecast) |
+| **Observation** | 23 | Forecast, AirQuality, Flood, Marine (varies) | DewPoint, Visibility, UvIndex, WindGusts, ShortwaveRadiation, SnowDepth, SoilMoisture, SoilTemperature, Evapotranspiration, Pm25, Pm10, Ozone, NitrogenDioxide, SulphurDioxide, CarbonMonoxide, EuropeanAqi, FloodDischarge, DischargeMean, WaveHeight, WavePeriod, WaveDirection, WaterTemperature, OceanCurrentVelocity |
 
-65 feature rules across 7 categories. Every feature result reaches gRPC consumers as an `EnrichmentEvent` whose `feature` oneof case identifies the result type.
+89 feature rules across 7 output kinds. Every feature result reaches gRPC consumers as an `EntityStateUpdate` with a per-OutputKind value type (`AlertValue`, `ScoreValue`, `ConditionValue`, `TrendValue`, `ForecastValue`, `WeatherValue`, `ObservationValue`).
 
-## gRPC services
+## gRPC service
 
-| Service | Methods | Purpose |
-|---------|---------|---------|
-| **WeatherService** | `GetCatalog`, `GetDomainData`, `StreamDomainData`, `GetEnrichments`, `StreamEnrichments` | Domain forecast data and alerts; `Stream*` push updates in real time |
-| **OpsService** | `GetStatus`, `GetTargets`, `TriggerPoll` | Version, uptime, budget, per-location poll state, manual poll |
+A single `NjordService` (package `njord`, `Njord.Grpc.Proto`) exposes four RPCs:
+
+| RPC | Request / Response | Purpose |
+|-----|-------------------|---------|
+| `GetManifest` | `ManifestRequest` / `ManifestResponse` | Entity definitions from `FeatureDescriptor.EntityMetadata` x locations (platform, device_class, icon, unit, output_kind) |
+| `Subscribe` | `SubscribeRequest` / `stream EntityEvent` | Unified entity stream: snapshot on connect, then `EntityStateUpdate` (per-OutputKind value oneof), `EntityUnavailable`, `EntityAvailable` |
+| `GetStatus` | `StatusRequest` / `StatusResponse` | Version, uptime, budget usage, per-location poll state |
+| `TriggerPoll` | `TriggerPollRequest` / `TriggerPollResponse` | Manual poll trigger for a location |
 
 ## Integration paths
 

@@ -29,9 +29,12 @@ services:
       #- Njord__Marine__ForecastDays=8       # 1-16
       #- Njord__Flood__ForecastDays=92       # 1-210
       #- Njord__Flood__IncludeEnsemble=false # 50 GloFAS members, adds confidence to FloodRisk, costs 5 calls per flood request
+      #- Njord__Seasonal__ForecastMonths=3   # 1-7
+      #- Njord__Seasonal__Model=             # empty = API default
       # Features decide which domains are polled (the union of what the enabled ones read).
       # 6 domains: Forecast, Ensemble (spread + comparison), AirQuality, Flood, Marine, Seasonal.
-      # On by default: the 15 weather alerts (Frost, Heat, ..., RainProbability), Commute, Pollen, Pm25.
+      # On by default (21): the 15 weather alerts (Frost, Heat, ..., RainProbability),
+      # Commute, Pollen, Pm25, ForecastModelComparison, EnsembleModelComparison, Weather.
       # Switch single features on (adds their domain) or off:
       #- Njord__Features__Frost__Enabled=false
       #- Njord__Features__FloodRisk__Enabled=true
@@ -70,6 +73,7 @@ services:
       # Energy
       #- Njord__Features__HeatPumpCop__Enabled=true
       #- Njord__Features__HeatPumpCop__TargetTemperature=35
+      #- Njord__Features__SolarYield__Enabled=true
       #- Njord__Features__SolarYield__BatteryCapacityKwh=10
       # Health & Wellness
       #- Njord__Features__MigraineRisk__Enabled=true

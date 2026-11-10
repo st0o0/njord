@@ -63,6 +63,7 @@ export function mergeWithDefaults(partial: Partial<NjordConfig>): NjordConfig {
     airQuality: { ...d.airQuality, ...partial.airQuality },
     marine: { ...d.marine, ...partial.marine },
     flood: { ...d.flood, ...partial.flood },
+    seasonal: { ...d.seasonal, ...partial.seasonal },
     solar: { ...d.solar, ...partial.solar },
     persistence: { ...d.persistence, ...partial.persistence },
     deploy: { limits: { ...d.deploy.limits, ...partial.deploy?.limits } },
@@ -100,6 +101,10 @@ export function exportAsJson(config: NjordConfig): string {
   if (config.flood.forecastDays !== defaults.flood.forecastDays) flood.ForecastDays = config.flood.forecastDays
   if (config.flood.includeEnsemble) flood.IncludeEnsemble = true
   if (Object.keys(flood).length) n.Flood = flood
+  const seasonal: Record<string, unknown> = {}
+  if (config.seasonal.forecastMonths !== defaults.seasonal.forecastMonths) seasonal.ForecastMonths = config.seasonal.forecastMonths
+  if (config.seasonal.model !== defaults.seasonal.model) seasonal.Model = config.seasonal.model
+  if (Object.keys(seasonal).length) n.Seasonal = seasonal
   const solar: Record<string, unknown> = {}
   if (config.solar.tilt !== defaults.solar.tilt) solar.Tilt = config.solar.tilt
   if (config.solar.azimuth !== defaults.solar.azimuth) solar.Azimuth = config.solar.azimuth
@@ -145,6 +150,8 @@ export function exportAsEnvVars(config: NjordConfig): string {
   if (config.marine.forecastDays !== defaults.marine.forecastDays) add('Njord__Marine__ForecastDays', String(config.marine.forecastDays))
   if (config.flood.forecastDays !== defaults.flood.forecastDays) add('Njord__Flood__ForecastDays', String(config.flood.forecastDays))
   if (config.flood.includeEnsemble) add('Njord__Flood__IncludeEnsemble', 'true')
+  if (config.seasonal.forecastMonths !== defaults.seasonal.forecastMonths) add('Njord__Seasonal__ForecastMonths', String(config.seasonal.forecastMonths))
+  if (config.seasonal.model !== defaults.seasonal.model) add('Njord__Seasonal__Model', config.seasonal.model)
   for (const [key, enabled] of changedFeatures(config.features)) {
     add(`Njord__Features__${key}__Enabled`, String(enabled))
   }
@@ -251,6 +258,13 @@ export function importFromJson(json: string): Partial<NjordConfig> {
       includeEnsemble: n.Flood.IncludeEnsemble === true,
     }
   }
+  if (n.Seasonal) {
+    const d = defaultConfig().seasonal
+    config.seasonal = {
+      forecastMonths: n.Seasonal.ForecastMonths !== undefined ? Number(n.Seasonal.ForecastMonths) : d.forecastMonths,
+      model: n.Seasonal.Model ?? d.model,
+    }
+  }
   if (discoveryInterval) config.discoveryInterval = discoveryInterval
   if (n.Features && typeof n.Features === 'object') {
     for (const [name, settings] of Object.entries(n.Features as Record<string, unknown>)) {
@@ -335,6 +349,8 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     else if (parts[0] === 'AirQuality' && parts[1] === 'Region') config.airQuality.region = value
     else if (parts[0] === 'Marine' && parts[1] === 'ForecastDays') config.marine.forecastDays = parseInt(value) || 8
     else if (parts[0] === 'Flood' && parts[1] === 'ForecastDays') config.flood.forecastDays = parseInt(value) || 92
+    else if (parts[0] === 'Seasonal' && parts[1] === 'ForecastMonths') config.seasonal.forecastMonths = parseInt(value) || 3
+    else if (parts[0] === 'Seasonal' && parts[1] === 'Model') config.seasonal.model = value
     else if (parts[0] === 'Features' && parts.length >= 3) {
       const key = parseFeatureKey(parts[1])
       if (!key) continue

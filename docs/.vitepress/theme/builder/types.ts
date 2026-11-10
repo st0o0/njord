@@ -18,7 +18,7 @@ export interface FeatureEntry {
   key: string
   name: string
   category: string
-  output: 'Alert' | 'Score' | 'Condition' | 'Trend' | 'Forecast'
+  output: 'Alert' | 'Score' | 'Condition' | 'Trend' | 'Forecast' | 'Weather' | 'Observation'
   description: string
   longDescription?: string
   entities?: string[]
@@ -29,6 +29,8 @@ export interface FeatureEntry {
   airQualityParams?: string[]
   ensembleParams?: string[]
   marineParams?: string[]
+  floodParams?: string[]
+  seasonalParams?: string[]
   optionalAirQualityParams?: string[]
   optionalMarineParams?: string[]
   options?: FeatureOption[]
@@ -93,6 +95,7 @@ export function recommendedFeatures(): Record<string, boolean> {
     'TropicalNight', 'Humidity', 'RainProbability',
     'Pollen', 'Pm25',
     'Commute',
+    'ForecastModelComparison', 'EnsembleModelComparison',
   ])
   return Object.fromEntries(FEATURES.map(f => [f.key, recommended.has(f.key)]))
 }
@@ -126,6 +129,44 @@ export function weatherVariableCount(features: Record<string, boolean>): number 
   return params.size
 }
 
+export function airQualityVariableCount(features: Record<string, boolean>): number {
+  const params = new Set<string>()
+  for (const f of FEATURES) {
+    if (!features[f.key]) continue
+    f.airQualityParams?.forEach(p => params.add(p))
+    f.optionalAirQualityParams?.forEach(p => params.add(p))
+  }
+  return params.size
+}
+
+export function marineVariableCount(features: Record<string, boolean>): number {
+  const params = new Set<string>()
+  for (const f of FEATURES) {
+    if (!features[f.key]) continue
+    f.marineParams?.forEach(p => params.add(p))
+    f.optionalMarineParams?.forEach(p => params.add(p))
+  }
+  return params.size
+}
+
+export function floodVariableCount(features: Record<string, boolean>): number {
+  const params = new Set<string>()
+  for (const f of FEATURES) {
+    if (!features[f.key]) continue
+    f.floodParams?.forEach(p => params.add(p))
+  }
+  return params.size
+}
+
+export function seasonalVariableCount(features: Record<string, boolean>): number {
+  const params = new Set<string>()
+  for (const f of FEATURES) {
+    if (!features[f.key]) continue
+    f.seasonalParams?.forEach(p => params.add(p))
+  }
+  return params.size
+}
+
 export interface LocationConfig {
   name: string
   latitude: number
@@ -144,6 +185,7 @@ export interface NjordConfig {
   airQuality: { forecastDays: number; region: string }
   marine: { forecastDays: number }
   flood: { forecastDays: number; includeEnsemble: boolean }
+  seasonal: { forecastMonths: number; model: string }
   discoveryInterval: string
   features: Record<string, boolean>
   locations: LocationConfig[]
@@ -166,6 +208,7 @@ export function defaultConfig(): NjordConfig {
     airQuality: { forecastDays: 5, region: 'Global' },
     marine: { forecastDays: 8 },
     flood: { forecastDays: 92, includeEnsemble: false },
+    seasonal: { forecastMonths: 3, model: '' },
     discoveryInterval: '00:20:00',
     features: defaultFeatures(),
     locations: [],

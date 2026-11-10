@@ -1,6 +1,6 @@
 # Features
 
-njord evaluates 65 features across seven categories. Each feature polls one or more weather domains, evaluates a rule against the forecast data, and delivers the result to Home Assistant as an entity.
+njord evaluates 89 features across nine categories. Each feature polls one or more weather domains, evaluates a rule against the forecast data, and delivers the result to Home Assistant as an entity.
 
 Features are toggled with a single environment variable:
 
@@ -21,6 +21,8 @@ Use the [Config Builder](/builder) to pick features and preview the API budget.
 | [Flood](./flood) | River discharge and flood risk | 3 features |
 | [Marine](./marine) | Waves, currents, coastal hazards | 3 features |
 | [Insights](./insights) | Trends, forecasts, model comparison | 9 features |
+| [Weather](#weather) | Current conditions and hourly forecast | 1 feature |
+| [Observations](#observations) | Pass-through sensor values | 23 features |
 
 ## Feature Reference
 
@@ -125,6 +127,44 @@ Every feature creates one or more Home Assistant entities. The table below shows
 | InversionDetection | Off | Temperature inversion detection using multi-level data | Forecast |
 | AtmosphericStability | Off | Convective potential from CAPE, CIN and Lifted Index | Forecast |
 | CloudCeiling | Off | Cloud base height estimate from layer cloud cover | Forecast |
+
+### Weather
+
+| Feature | Default | Description | Domains |
+|---------|---------|-------------|---------|
+| Weather | On | Current conditions and hourly forecast as a weather entity | Forecast |
+
+The Weather feature creates a Home Assistant `weather` entity with current temperature, humidity, wind, pressure, cloud cover, and an hourly forecast. It is always on by default and requires no configuration.
+
+### Observations
+
+Observations are pass-through sensor entities that expose raw values from the weather APIs without any alerting or scoring logic. Each creates a single `sensor` entity per location.
+
+| Feature | Default | Description | Domains |
+|---------|---------|-------------|---------|
+| UvIndexObservation | Off | Current UV index | Forecast |
+| DewPointObservation | Off | Current dew point | Forecast |
+| WindGustsObservation | Off | Current wind gusts | Forecast |
+| SoilTemperatureObservation | Off | Soil temperature (0-6 cm) | Forecast |
+| SoilMoistureObservation | Off | Soil moisture (0-1 cm) | Forecast |
+| SnowDepthObservation | Off | Snow depth on ground | Forecast |
+| EvapotranspirationObservation | Off | Reference evapotranspiration (ET0) | Forecast |
+| ShortwaveRadiationObservation | Off | Shortwave solar radiation | Forecast |
+| VisibilityObservation | Off | Horizontal visibility | Forecast |
+| Pm25Observation | Off | PM2.5 concentration | AirQuality |
+| Pm10Observation | Off | PM10 concentration | AirQuality |
+| OzoneObservation | Off | Ozone (O3) concentration | AirQuality |
+| NitrogenDioxideObservation | Off | NO2 concentration | AirQuality |
+| EuropeanAqiObservation | Off | European Air Quality Index | AirQuality |
+| CarbonMonoxideObservation | Off | Carbon monoxide (CO) concentration | AirQuality |
+| SulphurDioxideObservation | Off | SO2 concentration | AirQuality |
+| WaveHeightObservation | Off | Significant wave height | Marine |
+| WaterTemperatureObservation | Off | Sea surface temperature | Marine |
+| WavePeriodObservation | Off | Wave period | Marine |
+| WaveDirectionObservation | Off | Wave direction | Marine |
+| OceanCurrentVelocityObservation | Off | Ocean current speed | Marine |
+| FloodDischargeObservation | Off | River discharge | Flood |
+| DischargeMeanObservation | Off | Long-term mean discharge | Flood |
 
 ## How Features Work
 
