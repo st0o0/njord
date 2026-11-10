@@ -14,6 +14,11 @@ public static class DomainPollStateExtensions
     public static DomainPollState RecordHashChange(
         this DomainPollState domain, int hash, DateTimeOffset now, TimeSpan discoveryInterval)
     {
+        if (domain.Phase == PollPhase.Suspended)
+        {
+            return domain.FallBackToDiscovery(now, discoveryInterval) with { LastHash = hash, LastChanged = now };
+        }
+
         var changed = domain with { LastHash = hash, LastChanged = now, MissCount = 0 };
         if (domain.LastChanged is not { } previous)
         {

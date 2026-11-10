@@ -13,6 +13,7 @@ public sealed class PollWorkerRoundtripTests
         new DomainPolled(0, PersistedDomainPollOutcome.Changed, 42, _utc, null),
         new DomainPolled(1, PersistedDomainPollOutcome.Unchanged, null, _utc, null),
         new DomainPolled(2, PersistedDomainPollOutcome.Failed, null, _utc, TimeSpan.FromMinutes(1)),
+        new DomainPolled(3, PersistedDomainPollOutcome.NoData, null, _utc, TimeSpan.FromHours(24)),
     ];
 
     [Fact]
@@ -26,6 +27,24 @@ public sealed class PollWorkerRoundtripTests
                 new(1, null),
             },
             47.05, 8.31);
+
+        var recovered = PersistenceRoundtripHelper.Roundtrip(state);
+
+        Assert.Multiple(
+            () => Assert.Equal(state with { DomainStates = null }, recovered with { DomainStates = null }),
+            () => Assert.Equal(state.DomainStates, recovered.DomainStates));
+    }
+
+    [Fact]
+    public void Suspended_domain_state_roundtrip()
+    {
+        var state = new PersistedPollWorkerState(
+            "barcelona", true, TimeSpan.FromMinutes(20),
+            new List<PersistedDomainState>
+            {
+                new(4, null, PersistedPollPhase.Suspended, null, 0, null, null, _utc.AddHours(24)),
+            },
+            41.39, 2.17);
 
         var recovered = PersistenceRoundtripHelper.Roundtrip(state);
 

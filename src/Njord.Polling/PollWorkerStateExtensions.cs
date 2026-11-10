@@ -63,6 +63,7 @@ public static class PollWorkerStateExtensions
             PersistedDomainPollOutcome.Changed => ds.RecordHashChange(evt.Hash!.Value, evt.Utc, state.DiscoveryInterval),
             PersistedDomainPollOutcome.Unchanged => ds.RecordHashUnchanged(evt.Utc, state.DiscoveryInterval),
             PersistedDomainPollOutcome.Failed => ds with { NextPollAt = evt.Utc + (evt.Delay ?? TimeSpan.FromMinutes(1)) },
+            PersistedDomainPollOutcome.NoData => ds with { Phase = PollPhase.Suspended, NextPollAt = evt.Utc + (evt.Delay ?? PollWorkerState.SuspendedRecheckInterval) },
             _ => throw new ArgumentOutOfRangeException(nameof(evt), $"Unknown outcome: {evt.Outcome}"),
         };
 

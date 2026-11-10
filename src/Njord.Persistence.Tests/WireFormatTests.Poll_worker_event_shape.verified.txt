@@ -36,3 +36,11 @@
   "Delay": "00:01:00",
   "ConsecutiveFailures": 0
 }
+{
+  "Domain": 3,
+  "Outcome": 3,
+  "Hash": null,
+  "Utc": "2026-07-15T10:00:00+00:00",
+  "Delay": "1.00:00:00",
+  "ConsecutiveFailures": 0
+}

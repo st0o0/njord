@@ -6,4 +6,5 @@ public enum PollFailureReason
     ModelUnavailable,
     MalformedPayload,
     Transport,
+    NoData,
 }

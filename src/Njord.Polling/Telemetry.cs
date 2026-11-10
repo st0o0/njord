@@ -24,6 +24,7 @@ internal static class Telemetry
         {
             PersistedDomainPollOutcome.Changed => "changed",
             PersistedDomainPollOutcome.Unchanged => "unchanged",
+            PersistedDomainPollOutcome.NoData => "no_data",
             _ => "failed",
         }));
 

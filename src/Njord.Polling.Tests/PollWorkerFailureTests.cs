@@ -250,6 +250,21 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
         Assert.Equal(_time.GetUtcNow() + TimeSpan.FromSeconds(60), failed.State.NextPollUtc);
     }
 
+    // --- NoData / Suspended ---
+
+    [Fact(Timeout = 30_000)]
+    public async Task A_no_data_failure_schedules_a_24h_recheck_without_incrementing_failures()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var worker = await StartedWorkerAsync(ct);
+
+        worker.Tell(new TriggerLocationPoll(TargetId));
+        var report = await AnswerAllAndLastReportAsync(
+            new FetchDomainFailed(_lucerne, DomainKind.Forecast, PollFailureReason.NoData, "no data"), ct);
+
+        Assert.Equal(_time.GetUtcNow() + PollWorkerState.SuspendedRecheckInterval, report.State.NextPollUtc);
+    }
+
     // --- Cross-domain isolation ---
 
     [Fact(Timeout = 30_000)]

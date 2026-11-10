@@ -30,6 +30,9 @@ internal static class PollStateFixture
     public static DomainPolled Failed(DomainKind domain, DateTimeOffset at, TimeSpan? delay = null) =>
         new((int)domain, PersistedDomainPollOutcome.Failed, null, at, delay ?? TimeSpan.FromMinutes(1));
 
+    public static DomainPolled NoData(DomainKind domain, DateTimeOffset at) =>
+        new((int)domain, PersistedDomainPollOutcome.NoData, null, at, PollWorkerState.SuspendedRecheckInterval);
+
     public static PollWorkerState Steady(DomainKind domain = DomainKind.Forecast) =>
         Started()
             .Apply(Changed(domain, 1, T0))

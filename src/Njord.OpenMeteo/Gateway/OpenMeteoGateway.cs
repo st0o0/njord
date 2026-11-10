@@ -39,8 +39,10 @@ public sealed class OpenMeteoGateway : ReceiveActor
                         $"Fetch threw {ex.GetType().Name}: {ex.Message}"),
                     { Result: FetchSuccess ok } => new FetchDomainCompleted(location, domain, ok.Forecast.GetHashCode()),
                     { Result: FetchError error } => new FetchDomainFailed(location, domain, error.Reason, error.Message),
+                    { Result: FetchEmpty } => new FetchDomainFailed(location, domain, PollFailureReason.NoData,
+                        $"The {domain.ToTelemetryTag()} endpoint returned no data for this location"),
                     _ => new FetchDomainFailed(location, domain, PollFailureReason.MalformedPayload,
-                        $"The {domain.ToTelemetryTag()} endpoint returned no usable data"),
+                        $"The {domain.ToTelemetryTag()} endpoint returned an unrecognized result"),
                 };
                 return reply;
             })

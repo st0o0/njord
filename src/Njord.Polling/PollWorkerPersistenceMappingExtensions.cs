@@ -66,6 +66,7 @@ internal static class PollWorkerPersistenceMappingExtensions
     {
         PollPhase.Discovery => PersistedPollPhase.Discovery,
         PollPhase.Steady => PersistedPollPhase.Steady,
+        PollPhase.Suspended => PersistedPollPhase.Suspended,
         _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, "Unknown poll phase"),
     };
 
@@ -73,6 +74,7 @@ internal static class PollWorkerPersistenceMappingExtensions
     {
         PersistedPollPhase.Discovery => PollPhase.Discovery,
         PersistedPollPhase.Steady => PollPhase.Steady,
+        PersistedPollPhase.Suspended => PollPhase.Suspended,
         _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, "Unknown persisted poll phase"),
     };
 

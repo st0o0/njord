@@ -4,4 +4,5 @@ public enum PersistedPollPhase
 {
     Discovery = 0,
     Steady = 1,
+    Suspended = 2,
 }

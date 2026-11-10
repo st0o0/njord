@@ -30,6 +30,7 @@ public sealed record PollWorkerState(
 
     public static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
     public static readonly TimeSpan PipelineUnavailableRetry = TimeSpan.FromSeconds(5);
+    public static readonly TimeSpan SuspendedRecheckInterval = TimeSpan.FromHours(24);
 
     // The location polls again when its earliest domain is due.
     public DateTimeOffset NextPollUtc

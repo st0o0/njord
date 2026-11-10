@@ -5,4 +5,5 @@ public enum PersistedDomainPollOutcome
     Changed = 0,
     Unchanged = 1,
     Failed = 2,
+    NoData = 3,
 }

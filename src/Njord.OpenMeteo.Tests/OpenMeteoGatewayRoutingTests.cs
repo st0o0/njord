@@ -133,7 +133,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 30000)]
-    public async Task A_client_without_data_is_answered_with_malformed_payload_and_nothing_reaches_the_pipeline()
+    public async Task A_client_without_data_is_answered_with_no_data_and_nothing_reaches_the_pipeline()
     {
         var ct = TestContext.Current.CancellationToken;
         await _attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
@@ -144,7 +144,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
         var failed = await _region.ExpectMsgAsync<FetchDomainFailed>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Flood, failed.Domain),
-            () => Assert.Equal(PollFailureReason.MalformedPayload, failed.Reason));
+            () => Assert.Equal(PollFailureReason.NoData, failed.Reason));
         await _forecasts.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), ct);
     }
 

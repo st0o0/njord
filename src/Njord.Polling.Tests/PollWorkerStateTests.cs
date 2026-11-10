@@ -340,6 +340,34 @@ public sealed class PollWorkerStateTests
             () => Assert.Equal(Steady().GetDomain(DomainKind.Forecast).NextPollAt, resumed.GetDomain(DomainKind.Forecast).NextPollAt));
     }
 
+    // --- NoData / Suspended ---
+
+    [Fact]
+    public void A_no_data_event_transitions_to_suspended_with_24h_recheck()
+    {
+        var state = Started().Apply(NoData(DomainKind.Forecast, T0));
+        var weather = state.GetDomain(DomainKind.Forecast);
+
+        Assert.Multiple(
+            () => Assert.Equal(PollPhase.Suspended, weather.Phase),
+            () => Assert.Equal(T0 + PollWorkerState.SuspendedRecheckInterval, weather.NextPollAt),
+            () => Assert.Equal(0, weather.ConsecutiveFailures));
+    }
+
+    [Fact]
+    public void A_changed_event_on_a_suspended_domain_resets_to_discovery()
+    {
+        var state = Started()
+            .Apply(NoData(DomainKind.Forecast, T0))
+            .Apply(Changed(DomainKind.Forecast, 42, T0.AddHours(24)));
+        var weather = state.GetDomain(DomainKind.Forecast);
+
+        Assert.Multiple(
+            () => Assert.Equal(PollPhase.Discovery, weather.Phase),
+            () => Assert.Equal(42, weather.LastHash),
+            () => Assert.Equal(0, weather.ConsecutiveFailures));
+    }
+
     // --- Snapshot roundtrip for failure count ---
 
     [Fact]

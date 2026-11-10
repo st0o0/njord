@@ -234,6 +234,9 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             FetchDomainRejected { Reason: FetchRejectionReason.PipelineUnavailable } =>
                 new DomainPolled((int)domain, PersistedDomainPollOutcome.Failed, null, now,
                     PollWorkerState.PipelineUnavailableRetry, failures),
+            FetchDomainFailed { Reason: PollFailureReason.NoData } =>
+                new DomainPolled((int)domain, PersistedDomainPollOutcome.NoData, null, now,
+                    PollWorkerState.SuspendedRecheckInterval),
             FetchDomainFailed { Reason: PollFailureReason.RateLimited } =>
                 new DomainPolled((int)domain, PersistedDomainPollOutcome.Failed, null, now,
                     FailureBackoff.RateLimited(failures + 1, _pollInterval), failures + 1),
@@ -247,6 +250,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
     {
         PersistedDomainPollOutcome.Changed => PollWorkerOutcome.Changed,
         PersistedDomainPollOutcome.Unchanged => PollWorkerOutcome.Unchanged,
+        PersistedDomainPollOutcome.NoData => PollWorkerOutcome.Failed,
         _ => PollWorkerOutcome.Failed,
     };
 
@@ -327,6 +331,10 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             case FetchDomainFailed { Reason: PollFailureReason.Transport } failed:
                 _log.Warning("Fetch failed for {Location}/{Domain} (transport) - details={Details}",
                     target.Location, domain, failed.Detail);
+                break;
+            case FetchDomainFailed { Reason: PollFailureReason.NoData }:
+                _log.Info("No data available for {Location}/{Domain} - suspended, recheck in 24h",
+                    target.Location, domain);
                 break;
             case FetchDomainFailed { Reason: PollFailureReason.RateLimited }:
                 _log.Warning("Fetch rate-limited for {Location}/{Domain}",

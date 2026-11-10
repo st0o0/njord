@@ -59,7 +59,8 @@ public sealed class WireFormatTests
         Assert.Multiple(
             () => Assert.Equal(0, (int)PersistedPollPhase.Discovery),
             () => Assert.Equal(1, (int)PersistedPollPhase.Steady),
-            () => Assert.Equal(2, Enum.GetValues<PersistedPollPhase>().Length));
+            () => Assert.Equal(2, (int)PersistedPollPhase.Suspended),
+            () => Assert.Equal(3, Enum.GetValues<PersistedPollPhase>().Length));
     }
 
     [Fact]
@@ -69,6 +70,7 @@ public sealed class WireFormatTests
             () => Assert.Equal(0, (int)PersistedDomainPollOutcome.Changed),
             () => Assert.Equal(1, (int)PersistedDomainPollOutcome.Unchanged),
             () => Assert.Equal(2, (int)PersistedDomainPollOutcome.Failed),
-            () => Assert.Equal(3, Enum.GetValues<PersistedDomainPollOutcome>().Length));
+            () => Assert.Equal(3, (int)PersistedDomainPollOutcome.NoData),
+            () => Assert.Equal(4, Enum.GetValues<PersistedDomainPollOutcome>().Length));
     }
 }
