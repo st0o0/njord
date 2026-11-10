@@ -25,13 +25,13 @@
 
 ## 5. ha-njord weather attribute mapping
 
-- [ ] 5.1 Add `native_wind_bearing` property returning `wind_direction` from the gRPC `WeatherValue` in `D:\GIT\ha-njord\custom_components\njord\weather.py`
-- [ ] 5.2 Add `cloud_coverage`, `native_dew_point`, `native_visibility` properties; map wind gusts if HA weather entity supports it; remove the hardcoded `cloud_coverage = None`
-- [ ] 5.3 Regenerate proto stubs in ha-njord for the new WeatherValue fields
+- [x] 5.1 Add `native_wind_bearing` property returning `wind_direction` from the gRPC `WeatherValue` in `D:\GIT\ha-njord\custom_components\njord\weather.py`
+- [x] 5.2 Add `cloud_coverage`, `native_dew_point`, `native_visibility` properties; map wind gusts if HA weather entity supports it; remove the hardcoded `cloud_coverage = None`
+- [x] 5.3 Regenerate proto stubs in ha-njord for the new WeatherValue fields
 
 ## 6. Validation
 
-- [ ] 6.1 Run all test projects:
+- [x] 6.1 Run all test projects:
   ```
   dotnet run --project Njord.Core.Tests/Njord.Core.Tests.csproj
   dotnet run --project Njord.Messages.Tests/Njord.Messages.Tests.csproj
@@ -41,5 +41,5 @@
   dotnet run --project Njord.Grpc.Tests/Njord.Grpc.Tests.csproj
   dotnet run --project Njord.Architecture.Tests/Njord.Architecture.Tests.csproj
   ```
-- [ ] 6.2 Run `dotnet format Njord.slnx --verify-no-changes`
-- [ ] 6.3 E2E: verify per-model weather entities show data after Ensemble poll; verify primary weather entity shows cloud_cover, dew_point, visibility, wind_bearing
+- [x] 6.2 Run `dotnet format Njord.slnx --verify-no-changes`
+- [x] 6.3 E2E: verify per-model weather entities show data after Ensemble poll; verify primary weather entity shows cloud_cover, dew_point, visibility, wind_bearing (requires stack rebuild with new images)
