@@ -111,6 +111,11 @@ message WeatherValue {
   double pressure = 6;
   string condition = 7;
   repeated WeatherForecastPoint hourly_forecast = 8;
+  optional double cloud_cover = 9;
+  optional double dew_point = 10;
+  optional double visibility = 11;
+  optional double precipitation = 12;
+  optional double wind_gusts = 13;
 }
 
 message WeatherForecastPoint {

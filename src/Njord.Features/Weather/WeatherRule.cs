@@ -15,7 +15,8 @@ public sealed class WeatherRule(IOptions<WeatherConfig> config) : FeatureRule<Fo
         new DomainRequirements(
             Forecast: ForecastParams.Temperature | ForecastParams.WeatherCode | ForecastParams.Humidity
                 | ForecastParams.WindSpeed | ForecastParams.WindDirection | ForecastParams.Pressure
-                | ForecastParams.ApparentTemperature),
+                | ForecastParams.ApparentTemperature | ForecastParams.CloudCover | ForecastParams.DewPoint
+                | ForecastParams.Visibility | ForecastParams.Precipitation | ForecastParams.WindGusts),
         EntityMetadata: new EntityMetadata(EntityPlatform.Weather));
 
     public override bool Enabled => config.Value.Enabled;
@@ -45,7 +46,12 @@ public sealed class WeatherRule(IOptions<WeatherConfig> config) : FeatureRule<Fo
             current.WindDirection ?? 0,
             current.Pressure ?? 0,
             MapCondition(current.WeatherCode),
-            hourly);
+            hourly,
+            current.CloudCover,
+            current.DewPoint,
+            current.Visibility,
+            current.Precipitation,
+            current.WindGusts);
     }
 
     private static WeatherForecastPoint ToForecastPoint(ForecastPoint p)

@@ -17,6 +17,31 @@ internal static class WeatherValueMappingExtensions
             Pressure = r.Pressure,
             Condition = r.Condition,
         };
+        if (r.CloudCover is { } cloudCover)
+        {
+            proto.CloudCover = cloudCover;
+        }
+
+        if (r.DewPoint is { } dewPoint)
+        {
+            proto.DewPoint = dewPoint;
+        }
+
+        if (r.Visibility is { } visibility)
+        {
+            proto.Visibility = visibility;
+        }
+
+        if (r.Precipitation is { } precipitation)
+        {
+            proto.Precipitation = precipitation;
+        }
+
+        if (r.WindGusts is { } windGusts)
+        {
+            proto.WindGusts = windGusts;
+        }
+
         foreach (var point in r.HourlyForecast)
         {
             proto.HourlyForecast.Add(point.ToProto());

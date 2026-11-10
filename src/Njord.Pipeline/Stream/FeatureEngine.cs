@@ -9,6 +9,7 @@ namespace Njord.Pipeline.Stream;
 internal sealed class FeatureEngine
 {
     private readonly IReadOnlyList<IFeatureRule> _enabled;
+    private readonly IFeatureRule? _weatherRule;
     private readonly int _ringDepth;
     private readonly TimeProvider _time;
     private readonly Dictionary<string, RingBuffer<LocationForecast>> _rings = new(StringComparer.OrdinalIgnoreCase);
@@ -16,6 +17,7 @@ internal sealed class FeatureEngine
     public FeatureEngine(IEnumerable<IFeatureRule> allFeatures, TimeProvider time)
     {
         _enabled = [.. allFeatures.Where(f => f.Enabled)];
+        _weatherRule = _enabled.FirstOrDefault(f => f.Descriptor.Output == OutputKind.Weather);
         _ringDepth = _enabled.Count == 0 ? 1 : _enabled.Max(f => f.Descriptor.PollDepth) + 1;
         _time = time;
     }
@@ -45,6 +47,20 @@ internal sealed class FeatureEngine
                 else
                 {
                     ring.Push(latest);
+                }
+            }
+
+            if (_weatherRule is not null && received.Data is DomainForecast<ForecastPoint> modelForecast)
+            {
+                var modelLf = new LocationForecast(received.Location, modelForecast);
+                var modelRing = new RingBuffer<LocationForecast>(1);
+                modelRing.Push(modelLf);
+                foreach (var result in _weatherRule.ExecuteAll(modelRing, _time.GetUtcNow()))
+                {
+                    if (result is WeatherResult wr)
+                    {
+                        events.Add(wr with { ModelId = modelId });
+                    }
                 }
             }
 

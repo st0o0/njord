@@ -118,6 +118,47 @@ public sealed class EntityRegistryTests
     }
 
     [Fact]
+    public void Primary_weather_result_resolves_without_model_id()
+    {
+        var models = new ActiveModels
+        {
+            ForecastModels = ["best_match", "ecmwf_ifs025"],
+            EnsembleModels = ["ncep_gefs025_ensemble_mean"],
+        };
+        var registry = Registry([_vienna], models, new EntityTestRule("Weather", OutputKind.Weather));
+
+        var result = new WeatherResult(_vienna, 20, 19, 55, 3, 270, 1015, "clear", []);
+        Assert.Equal("vienna_weather", registry.Find(result));
+    }
+
+    [Fact]
+    public void Per_model_weather_result_resolves_with_model_id()
+    {
+        var models = new ActiveModels
+        {
+            ForecastModels = ["best_match", "ecmwf_ifs025"],
+            EnsembleModels = ["ncep_gefs025_ensemble_mean"],
+        };
+        var registry = Registry([_vienna], models, new EntityTestRule("Weather", OutputKind.Weather));
+
+        var forecastModel = new WeatherResult(_vienna, 20, 19, 55, 3, 270, 1015, "clear", [], ModelId: "ecmwf_ifs025");
+        var ensembleModel = new WeatherResult(_vienna, 20, 19, 55, 3, 270, 1015, "clear", [], ModelId: "ncep_gefs025_ensemble_mean");
+
+        Assert.Multiple(
+            () => Assert.Equal("vienna_ecmwf_ifs025_weather", registry.Find(forecastModel)),
+            () => Assert.Equal("vienna_ncep_gefs025_ensemble_mean_weather", registry.Find(ensembleModel)));
+    }
+
+    [Fact]
+    public void Unknown_model_id_returns_null()
+    {
+        var registry = Registry([_vienna], new EntityTestRule("Weather", OutputKind.Weather));
+
+        var result = new WeatherResult(_vienna, 20, 19, 55, 3, 270, 1015, "clear", [], ModelId: "nonexistent_model");
+        Assert.Null(registry.Find(result));
+    }
+
+    [Fact]
     public void Slugify_handles_spaces_and_special_chars()
     {
         Assert.Equal("new_york", EntityRegistry.Slugify("New York"));

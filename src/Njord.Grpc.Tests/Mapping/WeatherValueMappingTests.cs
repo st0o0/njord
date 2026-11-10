@@ -16,7 +16,9 @@ public sealed class WeatherValueMappingTests
             new(_time, 20, 19, 55, 3, 180, 1012, "cloudy", 0.4, 1.2, 80),
             new(_time.AddHours(1), 21, 20, 50, 4, 190, 1011, "sunny"),
         };
-        var result = new WeatherResult(new Location("Vienna", 48.2, 16.37), 18.5, 17.0, 60, 2.5, 270, 1015, "clear", points);
+        var result = new WeatherResult(
+            new Location("Vienna", 48.2, 16.37), 18.5, 17.0, 60, 2.5, 270, 1015, "clear", points,
+            CloudCover: 75, DewPoint: 14.2, Visibility: 39520, Precipitation: 0.5, WindGusts: 8.1);
 
         var value = result.ToWeatherValue();
 
@@ -28,7 +30,12 @@ public sealed class WeatherValueMappingTests
             () => Assert.Equal(270, value.WindDirection),
             () => Assert.Equal(1015, value.Pressure),
             () => Assert.Equal("clear", value.Condition),
-            () => Assert.Equal(2, value.HourlyForecast.Count));
+            () => Assert.Equal(2, value.HourlyForecast.Count),
+            () => Assert.Equal(75, value.CloudCover),
+            () => Assert.Equal(14.2, value.DewPoint),
+            () => Assert.Equal(39520, value.Visibility),
+            () => Assert.Equal(0.5, value.Precipitation),
+            () => Assert.Equal(8.1, value.WindGusts));
         var first = value.HourlyForecast[0];
         var second = value.HourlyForecast[1];
         Assert.Multiple(
@@ -46,5 +53,21 @@ public sealed class WeatherValueMappingTests
             () => Assert.False(second.HasPrecipitationProbability),
             () => Assert.False(second.HasPrecipitation),
             () => Assert.False(second.HasCloudCover));
+    }
+
+    [Fact]
+    public void Null_extended_fields_not_set_on_proto()
+    {
+        var result = new WeatherResult(
+            new Location("Vienna", 48.2, 16.37), 18.5, 17.0, 60, 2.5, 270, 1015, "clear", []);
+
+        var value = result.ToWeatherValue();
+
+        Assert.Multiple(
+            () => Assert.False(value.HasCloudCover),
+            () => Assert.False(value.HasDewPoint),
+            () => Assert.False(value.HasVisibility),
+            () => Assert.False(value.HasPrecipitation),
+            () => Assert.False(value.HasWindGusts));
     }
 }

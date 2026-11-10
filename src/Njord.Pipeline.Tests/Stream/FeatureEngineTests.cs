@@ -5,6 +5,7 @@ using Njord.Core.Domain;
 using Njord.Core.Flood;
 using Njord.Core.Forecast;
 using Njord.Features.Alerts.Frost;
+using Njord.Features.Weather;
 using Njord.Messages.Alerts;
 using Njord.Messages.Results;
 using Njord.Messages.Results.Alerts;
@@ -345,17 +346,43 @@ public sealed class FeatureEngineTests
         DomainData.Received(location, DomainData.Forecast(_start, 4, (_, p) => p with { Temperature = temperature })) with { ModelId = modelId };
 
     [Fact]
-    public void A_secondary_model_emits_its_data_event_but_runs_no_rule()
+    public void A_secondary_model_emits_its_data_event_but_runs_no_non_weather_rule()
     {
         var rule = new ModelProbeRule();
         var engine = Engine(rule);
 
         var events = engine.Process(ModelData(DomainData.Lucerne, "ukmo", 8.0));
 
-        var received = Assert.IsType<ForecastDataReceived>(Assert.Single(events));
         Assert.Multiple(
-            () => Assert.Equal("ukmo", received.ModelId),
+            () => Assert.IsType<ForecastDataReceived>(events[0]),
             () => Assert.Empty(rule.Calls));
+    }
+
+    [Fact]
+    public void Model_data_triggers_weather_rule_with_model_id()
+    {
+        var weatherRule = new WeatherRule(Options.Create(new WeatherConfig()));
+        var engine = Engine(weatherRule);
+
+        var events = engine.Process(ModelData(DomainData.Lucerne, "ukmo", 8.0));
+
+        var weatherResult = events.OfType<WeatherResult>().SingleOrDefault();
+        Assert.NotNull(weatherResult);
+        Assert.Multiple(
+            () => Assert.Equal("ukmo", weatherResult.ModelId),
+            () => Assert.Equal(8.0, weatherResult.Temperature));
+    }
+
+    [Fact]
+    public void Non_weather_rules_do_not_run_on_model_data()
+    {
+        var weatherRule = new WeatherRule(Options.Create(new WeatherConfig()));
+        var alertRule = new RecordingRule(Temperature);
+        var engine = Engine(weatherRule, alertRule);
+
+        engine.Process(ModelData(DomainData.Lucerne, "ukmo", 8.0));
+
+        Assert.Empty(alertRule.Calls);
     }
 
     [Fact]

@@ -15,7 +15,15 @@ public sealed class WeatherRuleTests
 
     private static WeatherRule Rule() => new(Options.Create(new WeatherConfig()));
 
-    private static ForecastPoint Point(int hour, double? temperature = 20.0, double? weatherCode = 0) => new(
+    private static ForecastPoint Point(
+        int hour,
+        double? temperature = 20.0,
+        double? weatherCode = 0,
+        double? cloudCover = null,
+        double? dewPoint = null,
+        double? visibility = null,
+        double? precipitation = null,
+        double? windGusts = null) => new(
         _now.AddHours(hour),
         Temperature: temperature,
         ApparentTemperature: 19.0,
@@ -23,7 +31,12 @@ public sealed class WeatherRuleTests
         WindSpeed: 3.0,
         WindDirection: 270.0,
         Pressure: 1015.0,
-        WeatherCode: weatherCode);
+        WeatherCode: weatherCode,
+        CloudCover: cloudCover,
+        DewPoint: dewPoint,
+        Visibility: visibility,
+        Precipitation: precipitation,
+        WindGusts: windGusts);
 
     private static LocationForecast Build(params ForecastPoint[] points) => new(
         _vienna,
@@ -66,6 +79,35 @@ public sealed class WeatherRuleTests
         var result = Assert.IsType<WeatherResult>(Run(Rule(), _now, Build(Point(-1), Point(0), Point(1), Point(2))));
 
         Assert.Equal([_now.AddHours(1), _now.AddHours(2)], result.HourlyForecast.Select(p => p.Time));
+    }
+
+    [Fact]
+    public void Extended_fields_populated_when_present()
+    {
+        var forecast = Build(
+            Point(0, cloudCover: 75, dewPoint: 14.2, visibility: 39520, precipitation: 0.5, windGusts: 8.1),
+            Point(1));
+        var result = Assert.IsType<WeatherResult>(Run(Rule(), _now, forecast));
+
+        Assert.Multiple(
+            () => Assert.Equal(75.0, result.CloudCover),
+            () => Assert.Equal(14.2, result.DewPoint),
+            () => Assert.Equal(39520.0, result.Visibility),
+            () => Assert.Equal(0.5, result.Precipitation),
+            () => Assert.Equal(8.1, result.WindGusts));
+    }
+
+    [Fact]
+    public void Extended_fields_null_when_absent()
+    {
+        var result = Assert.IsType<WeatherResult>(Run(Rule(), _now, Build(Point(0), Point(1))));
+
+        Assert.Multiple(
+            () => Assert.Null(result.CloudCover),
+            () => Assert.Null(result.DewPoint),
+            () => Assert.Null(result.Visibility),
+            () => Assert.Null(result.Precipitation),
+            () => Assert.Null(result.WindGusts));
     }
 
     [Theory]

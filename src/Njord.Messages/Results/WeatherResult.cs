@@ -24,4 +24,10 @@ public sealed record WeatherResult(
     double WindDirection,
     double Pressure,
     string Condition,
-    IReadOnlyList<WeatherForecastPoint> HourlyForecast) : FeatureResult(Location);
+    IReadOnlyList<WeatherForecastPoint> HourlyForecast,
+    double? CloudCover = null,
+    double? DewPoint = null,
+    double? Visibility = null,
+    double? Precipitation = null,
+    double? WindGusts = null,
+    string? ModelId = null) : FeatureResult(Location);

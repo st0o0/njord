@@ -47,14 +47,16 @@ public sealed class EntityRegistry
 
                     foreach (var model in models.ForecastModels.Skip(1))
                     {
-                        var modelId = $"{slug}_{Slugify(model)}_weather";
-                        list.Add(new EntityRegistration(modelId, location.Name, desc));
+                        var modelEntityId = $"{slug}_{Slugify(model)}_weather";
+                        list.Add(new EntityRegistration(modelEntityId, location.Name, desc));
+                        _ids[(typeof(WeatherResult), $"{location.Name}:{model}")] = modelEntityId;
                     }
 
                     foreach (var model in models.EnsembleModels)
                     {
-                        var modelId = $"{slug}_{Slugify(model)}_weather";
-                        list.Add(new EntityRegistration(modelId, location.Name, desc));
+                        var modelEntityId = $"{slug}_{Slugify(model)}_weather";
+                        list.Add(new EntityRegistration(modelEntityId, location.Name, desc));
+                        _ids[(typeof(WeatherResult), $"{location.Name}:{model}")] = modelEntityId;
                     }
                 }
                 else if (desc.Output == OutputKind.Observation)
@@ -87,6 +89,7 @@ public sealed class EntityRegistry
     public string? Find(FeatureResult result) => result switch
     {
         ObservationResult obs => _observationIds.GetValueOrDefault((obs.FeatureName, obs.Location.Name)),
+        WeatherResult { ModelId: { } modelId } w => _ids.GetValueOrDefault((typeof(WeatherResult), $"{w.Location.Name}:{modelId}")),
         _ => _ids.GetValueOrDefault((result.GetType(), result.Location.Name)),
     };
 
