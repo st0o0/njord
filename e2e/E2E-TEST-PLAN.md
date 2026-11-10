@@ -1,8 +1,8 @@
 # E2E Test Plan — njord + ha-njord
 
 Agent-orchestrated end-to-end test against a real Docker stack.
-gRPC + REST. Real Open-Meteo API. 6 domains (Weather, AirQuality, Flood, Marine, Seasonal, Ensemble),
-30 alert types, lifestyle features, multi-model weather comparison.
+gRPC + REST. Real Open-Meteo API. 6 domains (Forecast, Ensemble, AirQuality, Flood, Marine, Seasonal),
+30 alert types, 23 observation sensors, lifestyle features, multi-model weather comparison.
 
 ## Section Index
 
@@ -11,24 +11,22 @@ gRPC + REST. Real Open-Meteo API. 6 domains (Weather, AirQuality, Flood, Marine,
 | S0 | Stack Setup | 4 | Opus |
 | S1 | HA Onboarding + Token | 6 | Opus |
 | S2 | Integration Setup | 3 | Opus |
-| S3 | Entity Registration | 8 | Opus |
+| S3 | Entity Registration | 6 | Opus |
 | S4 | Domain Data: Weather | 5 | Haiku #1 |
 | S5 | Domain Data: Air Quality | 4 | Haiku #1 |
 | S6 | Domain Data: Flood | 3 | Haiku #1 |
-| S7 | Alert Binary Sensors | 5 | Haiku #2 |
+| S7 | Alert Binary Sensors | 4 | Haiku #2 |
 | S7b | Score Sensors | 4 | Haiku #2 |
 | S7c | Condition Sensors | 6 | Haiku #2 |
-| S7d | Calendar Entity | 2 | Haiku #2 |
-| S7e | Event Entities | 2 | Haiku #2 |
-| S8 | gRPC: GetDomainData + StreamDomainData | 5 | Haiku #2 |
-| S9 | gRPC: GetEnrichments + StreamEnrichments | 4 | Haiku #2 |
-| S10 | gRPC: GetCatalog + GetStatus + TriggerPoll | 5 | Haiku #3 |
+| S8 | gRPC: GetManifest + GetStatus | 2 | Haiku #2 |
+| S9 | gRPC: Subscribe | 2 | Haiku #2 |
+| S10 | gRPC: GetStatus + TriggerPoll | 5 | Haiku #3 |
 | S11 | Server + Diagnostics Entities | 4 | Haiku #3 |
-| S12 | Error Handling | 3 | Haiku #3 |
+| S12 | Health Endpoints | 2 | Haiku #3 |
 | S13 | Multi-Cycle: TriggerPoll × 2 | 4 | Opus |
 | S14 | Budget Tracking | 3 | Opus |
 | S15 | Teardown | 3 | Opus |
-| | **Total** | **~80** | |
+| | **Total** | **~70** | |
 
 ---
 
@@ -42,31 +40,26 @@ gRPC + REST. Real Open-Meteo API. 6 domains (Weather, AirQuality, Flood, Marine,
 ### Configuration
 
 - **Location:** Barcelona (explicit coordinates 41.3874 / 2.1686 in the compose file, coastal for full Marine coverage)
-- **Weather:** ForecastDays=4, models `ecmwf_ifs025_ensemble_mean` (primary) + `ecmwf_aifs025_ensemble_mean`
-  (`EnsembleModelComparison` default-on with 2+ models)
-- **Features:** ALL enabled (67 feature toggles: 64 explicit + 3 default-on; `HeatPumpCop` with `TargetTemperature=35`)
-- **Resolved domains:** Weather, AirQuality, Marine, Seasonal (Flood does not resolve for coastal Barcelona)
+- **Weather:** ForecastDays=4, 3 ensemble models (`ecmwf_ifs025_ensemble_mean`, `ecmwf_aifs025_ensemble_mean`, `ukmo_global_ensemble_mean_20km`)
+- **Features:** ALL enabled (87 feature toggles: 64 regular + 23 observations; `HeatPumpCop` with `TargetTemperature=35`)
+- **Resolved domains:** Forecast, AirQuality, Marine, Seasonal (Flood does not resolve for coastal Barcelona)
 
 ### Expected Entities
 
-Derived from config: 1 location (Barcelona), all 67 features enabled, 3 ensemble models.
+Derived from config: 1 location (Barcelona), all 87 features enabled, 3 ensemble models.
+Actual count is data-dependent: features that return null produce no entity.
 
 | Platform | Count | Pattern | Notes |
 |----------|-------|---------|-------|
 | weather | 4 | `weather.barcelona` + 3 model entities | 1 primary (best_match) + 1 per ensemble model |
-| sensor (AQ) | 6 | `barcelona_pm2_5`, `barcelona_ozone`, `barcelona_birch_pollen`, `barcelona_grass_pollen`, `barcelona_alder_pollen`, `barcelona_mugwort_pollen` | Catalog-driven; `pm10` absent (no feature requires it) |
-| sensor (marine) | 3 | `barcelona_wave_height`, `barcelona_wave_direction`, `barcelona_water_temperature` | Catalog-driven; `wave_period` absent (no feature requires it) |
-| sensor (lifestyle) | 26 | `barcelona_commute_safety`, `barcelona_exercise`, `barcelona_ensemble_model_spread`, `barcelona_seasonal_temperature_anomaly`, `barcelona_solar_yield`, `barcelona_bbq_score`, `barcelona_laundry_score`, `barcelona_outdoor_score`, `barcelona_surf_conditions`, `barcelona_wind_speed_80_m`, `barcelona_ragweed_pollen_peak`, `barcelona_cumulative_growing_degree_days`, `barcelona_evapotranspiration`, `barcelona_soil_moisture`, `barcelona_granular_aqi`, `barcelona_ocean_current_velocity`, ... | Data-dependent; some features produce null and no entity appears |
+| sensor (observations) | ~23 | `barcelona_*_observation` | One per observation feature; AQ, marine, flood, forecast observations |
+| sensor (lifestyle) | ~30 | `barcelona_commute`, `barcelona_exercise`, `barcelona_bbq`, `barcelona_laundry`, `barcelona_outdoor`, `barcelona_solar_yield`, `barcelona_surf`, `barcelona_ventilation`, `barcelona_night_ventilation`, `barcelona_gardening`, `barcelona_confidence_trend`, `barcelona_front_approaching`, `barcelona_pollen_trend`, `barcelona_ragweed_pollen`, `barcelona_granular_aqi`, `barcelona_elevated_wind`, `barcelona_ocean_currents`, `barcelona_snow_depth_watch`, `barcelona_soil_moisture`, `barcelona_evapotranspiration`, `barcelona_growing_degree`, `barcelona_flood_timeline`, `barcelona_ensemble_model_comparison`, `barcelona_forecast_model_comparison`, `barcelona_seasonal_outlook`, ... | Data-dependent; some produce null and no entity appears |
 | sensor (scores) | 4 | `barcelona_allergy_severity`, `barcelona_sleep_quality`, `barcelona_asthma_risk`, `barcelona_spray_window` | Score sensors 0-100 |
-| sensor (conditions) | 6 | `barcelona_heat_pump_cop`, `barcelona_irrigation_need`, `barcelona_frost_depth`, `barcelona_inversion_detection`, `barcelona_atmospheric_stability`, `barcelona_cloud_ceiling` | Numeric and enum condition sensors |
+| sensor (conditions) | 6 | `barcelona_heat_pump_cop`, `barcelona_irrigation_need`, `barcelona_frost_depth`, `barcelona_inversion_detection`, `barcelona_atmospheric_stability`, `barcelona_cloud_ceiling` | Condition sensors with typed values in `extra` map |
 | sensor (server) | 4 | `server_monthly_usage`, `server_daily_usage`, `server_version`, `server_uptime` | Global diagnostics |
-| binary_sensor (alerts) | 30 | `barcelona_{frost,heat,storm,...}_alert` | All alert features incl. `compound_heat_stress`, `migraine_risk`, `fire_risk`, `coastal_flood`, `pollen_blast`, `smog_risk`, `shower` |
-| binary_sensor (lifestyle) | 2 | `barcelona_planting_safe`, `barcelona_ventilation_window` | Condition binary sensors |
-| binary_sensor (streams) | 2 | `server_domain_stream`, `server_enrichment_stream` | Global connectivity |
-| calendar | 1 | `calendar.barcelona_activity_windows` | Activity windows |
-| event | 3 | `event.barcelona_weather_alert`, `event.barcelona_data`, `event.barcelona_features` | Alert, data lifecycle, feature transitions |
+| binary_sensor (alerts) | 30 | `barcelona_{frost,heat,storm,...}` | No `_alert` suffix. Incl. `compound_heat_stress`, `migraine_risk`, `fire_risk`, `coastal_flood`, `pollen_blast`, `smog_risk`, `shower` |
 | button | 1 | `button.server_trigger_poll` | Global manual poll trigger |
-| **Total** | **82** | | Updated 2026-11-02. Catalog-driven: sensors only for fields in resolved domain schema. Flood does not resolve for coastal Barcelona. |
+| **Total** | **~97** | | Updated 2026-11-10. Entity count is data-dependent. Flood does not resolve for coastal Barcelona. |
 
 ---
 
@@ -103,13 +96,11 @@ Try claude-in-chrome first, API fallback if extension unavailable.
 ## S3 — Entity Registration
 
 1. Poll `/api/states` until weather entity appears (5s interval, 120s timeout)
-2. Count entities matching `njord` platform: expect ~82
-3. Verify `weather.barcelona` exists with state ∈ HA condition list
-4. Verify at least 1 AQ sensor exists (pattern: `sensor.barcelona_pm*`)
-5. Verify at least 1 alert binary_sensor exists (pattern: `binary_sensor.barcelona_*_alert`)
-6. Verify `calendar.*_activity_windows` exists
-7. Verify `event.*_data` exists (event_types: domain_updated, features_updated)
-8. Verify `event.*_features` exists (event_types: score_threshold, condition_changed, window_opened, window_closing_soon, window_closed)
+2. Count entities matching njord platform: expect ~97 (data-dependent)
+3. Verify `weather.barcelona` exists with state in HA condition list
+4. Verify at least 1 observation sensor exists (pattern: `sensor.barcelona_*_observation`)
+5. Verify at least 1 alert binary_sensor exists (pattern: `binary_sensor.barcelona_*`)
+6. Verify `button.server_trigger_poll` exists
 
 ---
 
@@ -131,29 +122,27 @@ After S3 completes, spawn three subagents in a single message.
 
 ## S5 — Domain Data: Air Quality (Haiku #1)
 
-1. `sensor.barcelona_pm2_5` has numeric state ≥ 0
-2. `sensor.barcelona_ozone` has numeric state ≥ 0
-3. At least one pollen sensor has numeric state (birch, grass, alder or mugwort)
-4. AQ sensors have `unit_of_measurement` attribute
-5. `sensor.barcelona_pm10` — only exists if a feature requires `AirQualityParams.Pm10`; currently no default-on feature does, so SKIP if not found. If present: numeric state ≥ 0.
+1. `sensor.barcelona_pm25_observation` has numeric state >= 0
+2. `sensor.barcelona_ozone_observation` has numeric state >= 0
+3. `sensor.barcelona_pm10_observation` has numeric state >= 0 (enabled in compose)
+4. AQ observation sensors have `unit_of_measurement` attribute
 
 ---
 
 ## S6 — Domain Data: Flood (Haiku #1)
 
-1. `sensor.barcelona_river_discharge` — Barcelona is coastal, Flood domain may not resolve; SKIP if entity not found
-2. If present: numeric state ≥ 0 with `unit_of_measurement` attribute
-3. If present: discharge value is plausible (0-10000 m³/s)
+1. `sensor.barcelona_flood_discharge_observation` — Barcelona is coastal, Flood domain may not resolve; SKIP if entity not found or unavailable
+2. If present and available: numeric state >= 0 with `unit_of_measurement` attribute
+3. If present and available: discharge value is plausible (0-10000 m3/s)
 
 ---
 
 ## S7 — Alert Binary Sensors (Haiku #2)
 
-1. 30 alert binary_sensors exist matching `*_alert`
-2. Each has `state` ∈ {"on", "off"}
-3. At least one alert from each category exists: frost, heat, storm, uv, pollen; the newer `compound_heat_stress`, `migraine_risk`, `fire_risk`, `coastal_flood`, `smog_risk`, `pollen_blast`, `shower` binary_sensors exist
-4. `event.barcelona_weather_alert` exists with `event_types`: `alert_started`, `alert_escalated`, `alert_deescalated`, `alert_cleared`
-5. Alert severity is delivered via the event entity data (not as a binary_sensor attribute)
+1. 30 alert binary_sensors exist (named `binary_sensor.barcelona_<feature>`, no `_alert` suffix)
+2. Each has `state` in {"on", "off", "unavailable"} (unavailable = not yet evaluated or domain not resolved)
+3. At least these specific alerts exist: `frost`, `heat`, `storm`, `uv`, `pollen`, `compound_heat_stress`, `migraine_risk`, `fire_risk`, `coastal_flood`, `smog_risk`, `pollen_blast`, `shower`
+4. At least 1 alert is "on" (triggered) when weather data is available
 
 ---
 
@@ -168,58 +157,41 @@ After S3 completes, spawn three subagents in a single message.
 
 ## S7c — Condition Sensors (Haiku #2)
 
-1. `sensor.*_heat_pump_cop` has numeric state (COP value, > 0)
-2. `sensor.*_irrigation_need` state ∈ {water, skip, reduce, soil_wet}
-3. `sensor.*_frost_depth` has numeric state (cm, >= 0)
-4. `sensor.*_inversion_detection` state ∈ {none, mild, strong, extreme}
-5. `sensor.*_atmospheric_stability` state ∈ {stable, marginal, capped, unstable, explosive}
-6. `sensor.*_cloud_ceiling` has numeric state (meters, >= 0)
+Conditions are binary ("on"/"off") in HA with typed values in the `extra` attributes map.
+
+1. `sensor.*_heat_pump_cop` state in {"on", "off", "unavailable"}; attributes include `cop` (numeric > 0)
+2. `sensor.*_irrigation_need` state in {"on", "off", "unavailable"}; attributes include `advice` (water/skip/reduce/soil_wet)
+3. `sensor.*_frost_depth` state in {"on", "off", "unavailable"}; attributes include `depth_cm` (numeric >= 0)
+4. `sensor.*_inversion_detection` state in {"on", "off", "unavailable"}; attributes include `strength` (none/mild/strong/extreme)
+5. `sensor.*_atmospheric_stability` state in {"on", "off", "unavailable"}; attributes include `stability_class` (stable/marginal/capped/unstable/explosive)
+6. `sensor.*_cloud_ceiling` state in {"on", "off", "unavailable"}; attributes include `ceiling_m` (numeric >= 0)
 
 ---
 
-## S7d — Calendar Entity (Haiku #2)
+## S8 — gRPC: GetManifest + GetStatus (Haiku #2)
 
-1. `calendar.*_activity_windows` exists
-2. It has events (the list may be empty if no windows are computed yet)
+Using `grpcurl` with `-plaintext -import-path protos -proto njord/njord.proto localhost:8081 njord.NjordService/<RPC>`:
 
----
-
-## S7e — Event Entities (Haiku #2)
-
-1. `event.*_data` exists with `event_types` domain_updated, features_updated
-2. `event.*_features` exists with `event_types` score_threshold, condition_changed, window_opened, window_closing_soon, window_closed
+1. `GetManifest` returns entity definitions; verify Barcelona location present with alert, score, condition, observation entities
+2. `GetStatus` returns budget info: `monthlyUsed` >= 0, `monthlyLimit` > 0, `activeEnrichments` list non-empty
 
 ---
 
-## S8 — gRPC: GetDomainData + StreamDomainData (Haiku #2)
+## S9 — gRPC: Subscribe (Haiku #2)
 
-Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
-
-1. `GetDomainData` with location "Barcelona" and domain `DOMAIN_FORECAST` (domain is required) → response has the oneof `forecast` non-empty
-2. `GetDomainData` with domain filter `DOMAIN_AIR_QUALITY` → response has the oneof `airQuality`
-3. Open `StreamDomainData` (no TriggerPoll needed) — the stream replays cached domain data immediately via `Source.From(snapshot).Concat(liveHub)`. Expect data within seconds.
-4. Domain data update contains `location` field matching "Barcelona"
-5. Weather data has `temperature`, `wind_speed`, `precipitation` fields (`precipitation` may be omitted when 0)
-6. Note: Marine returns NotFound for inland locations by design
+1. `Subscribe` with `-max-time 3` returns entity state snapshot (scores, conditions, alerts, observations)
+2. Snapshot contains at least 10 entity states (grpcurl exits with code 68 DeadlineExceeded, which is expected)
 
 ---
 
-## S9 — gRPC: GetEnrichments + StreamEnrichments (Haiku #2)
+## S10 — gRPC: GetStatus + TriggerPoll (Haiku #3)
 
-1. `GetEnrichments` with location "Barcelona" → has an `events[]` list
-2. `events[]` has at least 1 entry; the feature is the oneof case (e.g. `fog`) and the alert severity is at `<case>.alert.severity`
-3. Open `StreamEnrichments` (no TriggerPoll needed) — the stream replays cached enrichment events immediately. Expect data within seconds.
-4. Event has a feature oneof case set (`type_name` no longer exists)
-5. Enrichment events of the new features (e.g. `compound_heat_stress`, `allergy_severity`, `heat_pump_cop`, `cloud_ceiling`) appear in the stream
+Using `grpcurl` with `-plaintext -import-path protos -proto njord/njord.proto localhost:8081 njord.NjordService/<RPC>`:
 
----
-
-## S10 — gRPC: GetCatalog + GetStatus + TriggerPoll (Haiku #3)
-
-1. `GetCatalog` on `njord.v2.WeatherService` → has at least 1 location named "Barcelona", lists weather models, and includes `resolvedDomains` with at least Forecast and AirQuality domain schemas each carrying non-empty `fields` lists
-2. `GetStatus` → `budget` has `monthly_used` ≥ 0 and `monthly_limit` > 0
-3. `GetStatus` → `activeEnrichments` count = 65 (all features enabled); poll state is reported per location
-4. `TriggerPoll` → `triggeredCount` ≥ 1
+1. `GetManifest` returns at least 1 location named "Barcelona" with entity definitions
+2. `GetStatus` -> `budget` has `monthlyUsed` >= 0 and `monthlyLimit` > 0
+3. `GetStatus` -> `activeEnrichments` count >= 80 (all features enabled); poll state is reported per location
+4. `TriggerPoll` with `{}` -> `triggeredCount` >= 1
 5. After trigger: `GetStatus` shows incremented `monthlyUsed`
 
 ---
@@ -233,11 +205,10 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 ---
 
-## S12 — Error Handling (Haiku #3)
+## S12 — Health Endpoints (Haiku #3)
 
-1. `GET /healthz` → 200 with plain text `Healthy` or `Degraded`
-2. `GET /alive` → 200
-3. Stream binary sensors (`server_domain_data_stream`, `server_enrichment_stream`) are "on"
+1. `GET /healthz` -> 200 with plain text `Healthy` or `Degraded`
+2. `GET /alive` -> 200
 
 ---
 
@@ -246,7 +217,7 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 1. Record initial `monthly_used` from `GetStatus`
 2. `TriggerPoll` location "Barcelona" → `triggeredCount` ≥ 1
 3. Wait 30s for poll round to complete
-4. Verify `monthly_used` increased (expect increment = sum of call weights of the resolved domains, 11 for the e2e config)
+4. Verify `monthly_used` increased (expect increment ~12, sum of call weights of resolved domains)
 
 ---
 

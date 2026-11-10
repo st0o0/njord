@@ -1,5 +1,5 @@
-# Expected entities: 82 (1 location, all features, 3 ensemble models, coastal, catalog-driven)
-# Updated 2026-11-02
+# Expected entities: ~97 (1 location, 87 features, 3 ensemble models, coastal, data-dependent)
+# Updated 2026-11-10
 services:
   njord:
     build:
