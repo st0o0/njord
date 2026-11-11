@@ -161,11 +161,11 @@ SHARD REGIONS (Sharded Entity)
   Seasonal is 30 requests/month at `max(formula, 1.3)`.
 - **Per-domain forecast days.** `Njord:Forecast` (4, max 16), `Njord:Ensemble` (4, max 35), `Njord:AirQuality` (5,
   max 7), `Njord:Marine` (8, max 16), `Njord:Flood` (92, max 210).
-- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Name>` (65 features; categories in
-  `docs/data/features.json` are UI metadata; env `Njord__Features__<Name>__Enabled`). 20 are on by default: the 15
+- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Name>` (89 features; categories in
+  `docs/data/features.json` are UI metadata; env `Njord__Features__<Name>__Enabled`). 21 are on by default: the 15
   weather alerts (`Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`, `PressureDrop`, `Thunderstorm`,
   `Ice`, `WindChill`, `Visibility`, `TropicalNight`, `Humidity`, `RainProbability`), `Commute`, `Pollen`,
-  `Pm25`, `ForecastModelComparison`, `EnsembleModelComparison`; everything else is off. The entity set follows locations x enabled features.
+  `Pm25`, `ForecastModelComparison`, `EnsembleModelComparison`, `Weather`; everything else is off. The entity set follows locations x enabled features.
 - **Per-domain discovery.** Every domain of a location learns its own cycle and polls independently.
 - **Domains:** `Forecast`, `Ensemble`, `AirQuality`, `Flood`, `Marine`, `Seasonal` (`DomainKind`); the gateway fetches all of them.
 - **Explicit coordinates.** A location is `Name`, `Latitude` and `Longitude`, all required (`NjordOptionsValidator`).

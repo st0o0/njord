@@ -49,7 +49,7 @@ docker compose -f e2e/docker-compose.e2e.yml -f e2e/docker-compose.soak.yml up -
 | `--ha-url` | `http://localhost:8123` | Home Assistant endpoint |
 | `--container` | `njord-e2e` | Docker container name |
 
-### Expected Numbers (4h, PollInterval=15m, 1 location, all 65 features)
+### Expected Numbers (4h, PollInterval=15m, 1 location, all 89 features)
 
 - Poll cycles: ~16
 - Collector ticks: ~48 (at 5-min intervals)

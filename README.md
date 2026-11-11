@@ -4,16 +4,16 @@
 [![GHCR](https://img.shields.io/badge/ghcr.io-st0o0%2Fnjord-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/st0o0/njord/pkgs/container/njord)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 
-Multi-model weather intelligence for Home Assistant. A .NET container built on [Akka.NET](https://getakka.net/) + Akka.Streams that polls the [Open-Meteo API](https://open-meteo.com/en/docs) for multiple weather models per location and enriches forecasts through a configurable pipeline. Serves consumers via gRPC. The **[Home Assistant custom integration](https://github.com/st0o0/ha-njord)** connects via gRPC streaming for real-time updates, creating native weather entities, alert sensors, activity indices, and more.
+Multi-domain weather intelligence for Home Assistant. A .NET container built on [Akka.NET](https://getakka.net/) + Akka.Streams that polls the [Open-Meteo APIs](https://open-meteo.com/en/docs) across six data domains, evaluates 89 feature rules on the data, and serves results to Home Assistant over gRPC. The **[Home Assistant custom integration](https://github.com/st0o0/ha-njord)** connects via gRPC streaming for real-time entity updates.
 
 ## Features
 
-- **50+ weather models** - ICON, ECMWF, GFS, UKMO, MeteoSwiss, and regional models from Open-Meteo
-- **Multiple locations** - configure as many locations as you need, each with its own model selection
-- **Enrichment pipeline** - consensus forecasts, weather alerts, derived values (Beaufort, wind chill, comfort), trend analysis, and activity indices
-- **Hourly and daily forecasts** - configurable horizons for hourly data, plus daily min/max, precipitation sums, sunrise/sunset
-- **External sensor input** - feed indoor temperature/humidity from Home Assistant sensors via gRPC to improve index calculations
-- **Single container** - runs on any Docker host with SQLite persistence by default, no external database needed
+- **6 data domains** - Forecast (deterministic best_match), Ensemble (spread and model comparison), Air Quality, Flood, Marine, and Seasonal outlooks from Open-Meteo
+- **89 features** - 30 alerts, 23 observations, 23 conditions, 7 scores, 4 forecasts, 1 trend, 1 weather entity across forecast, air quality, lifestyle, flood, marine, energy, and atmospheric insight categories
+- **Feature-driven config** - enable features individually; njord derives which API domains and variables to fetch
+- **Multiple locations** - configure as many locations as needed, each polled independently per domain
+- **21 features on by default** - 15 weather alerts (frost, heat, storm, UV, fog, and more), pollen, PM2.5, commute safety, model comparison, and a weather entity
+- **Single container** - runs on any Docker host with SQLite persistence by default, optional PostgreSQL
 
 ## Architecture
 
@@ -27,7 +27,8 @@ services:
     image: ghcr.io/st0o0/njord:latest
     restart: unless-stopped
     ports:
-      - "8081:8081"
+      - "8080:8080"   # HTTP: health and metrics
+      - "8081:8081"   # gRPC: Home Assistant (ha-njord)
     volumes:
       - njord-data:/app/data
     environment:
@@ -59,7 +60,7 @@ Full reference at **[njord.st0o0.net](https://njord.st0o0.net/)**:
 ## Image
 
 - **Registry:** `ghcr.io/st0o0/njord`
-- **Tags:** semantic version (`1.0.0`), `latest`
+- **Tags:** semantic version (`0.4.1`), `latest`
 - **Architectures:** `linux/amd64`, `linux/arm64`, `linux/arm/v7`
 
 ## Development
