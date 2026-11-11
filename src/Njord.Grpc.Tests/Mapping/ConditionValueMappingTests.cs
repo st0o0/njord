@@ -235,4 +235,123 @@ public sealed class ConditionValueMappingTests
             () => Assert.Equal(6.5, value.Extra["value"]),
             () => Assert.Equal((double)EvapotranspirationLevel.High, value.Extra["state"]));
     }
+
+    [Fact]
+    public void Default_condition_result_is_inactive_with_no_extras()
+    {
+        var result = new DefaultConditionResult(_vienna);
+
+        var value = result.ToConditionValue();
+
+        Assert.Multiple(
+            () => Assert.False(value.Active),
+            () => Assert.Empty(value.Extra));
+    }
+
+    [Fact]
+    public void Ventilation_window_maps_start_and_end()
+    {
+        var start = new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero);
+        var end = start.AddHours(2);
+        var result = new VentilationWindowResult(_vienna, start, end);
+
+        var value = result.ToConditionValue();
+
+        Assert.Multiple(
+            () => Assert.Equal(start.ToUnixTimeSeconds(), value.Extra["best_start"]),
+            () => Assert.Equal(end.ToUnixTimeSeconds(), value.Extra["best_end"]));
+    }
+
+    [Fact]
+    public void Night_ventilation_maps_temperatures()
+    {
+        var open = new DateTimeOffset(2026, 7, 15, 22, 0, 0, TimeSpan.Zero);
+        var close = open.AddHours(8);
+        var result = new NightVentilationResult(_vienna, open, close, 16.5, 34.0);
+
+        var value = result.ToConditionValue();
+
+        Assert.Multiple(
+            () => Assert.True(value.Active),
+            () => Assert.Equal(16.5, value.Extra["low_temperature"]),
+            () => Assert.Equal(34.0, value.Extra["tomorrow_peak"]));
+    }
+
+    [Fact]
+    public void Exercise_advisory_maps_level_and_best_window()
+    {
+        var window = new DateTimeOffset(2026, 6, 1, 6, 0, 0, TimeSpan.Zero);
+        var result = new ExerciseAdvisoryResult(_vienna, ExerciseLevel.Safe, [], window);
+
+        var value = result.ToConditionValue();
+
+        Assert.Multiple(
+            () => Assert.Equal((double)ExerciseLevel.Safe, value.Extra["state"]),
+            () => Assert.Equal(window.ToUnixTimeSeconds(), value.Extra["best_window"]));
+    }
+
+    [Fact]
+    public void Gardening_maps_advice_and_boolean_flags()
+    {
+        var result = new GardeningResult(_vienna, GardeningAdvice.Plant, PlantingSafe: true, WateringNeeded: false, FrostRisk: true);
+
+        var value = result.ToConditionValue();
+
+        Assert.Multiple(
+            () => Assert.Equal((double)GardeningAdvice.Plant, value.Extra["state"]),
+            () => Assert.Equal(1, value.Extra["planting_safe"]),
+            () => Assert.Equal(0, value.Extra["watering_needed"]),
+            () => Assert.Equal(1, value.Extra["frost_risk"]));
+    }
+
+    [Fact]
+    public void Flood_timeline_maps_status_and_peak()
+    {
+        var peakTime = new DateTimeOffset(2026, 3, 20, 14, 0, 0, TimeSpan.Zero);
+        var result = new FloodTimelineResult(_vienna, FloodStatus.AboveWarning, peakTime, 850.5, 3);
+
+        var value = result.ToConditionValue();
+
+        Assert.Multiple(
+            () => Assert.Equal((double)FloodStatus.AboveWarning, value.Extra["state"]),
+            () => Assert.Equal(850.5, value.Extra["peak_discharge"]),
+            () => Assert.Equal(peakTime.ToUnixTimeSeconds(), value.Extra["peak_time"]),
+            () => Assert.Equal(3, value.Extra["days_above_warning"]));
+    }
+
+    [Fact]
+    public void Solar_battery_strategy_maps_strategy_and_kwh()
+    {
+        var result = new SolarBatteryStrategyConditionResult(_vienna, BatteryStrategy.ChargeBattery, 12.5, 8.0);
+
+        var value = result.ToConditionValue();
+
+        Assert.Multiple(
+            () => Assert.Equal((double)BatteryStrategy.ChargeBattery, value.Extra["state"]),
+            () => Assert.Equal(12.5, value.Extra["today_kwh"]),
+            () => Assert.Equal(8.0, value.Extra["tomorrow_kwh_estimate"]));
+    }
+
+    [Fact]
+    public void Approaching_front_maps_hours_and_drops()
+    {
+        var result = new ApproachingFrontResult(_vienna, 6.5, 8.0, 5.0);
+
+        var value = result.ToConditionValue();
+
+        Assert.Multiple(
+            () => Assert.Equal(6.5, value.Extra["value"]),
+            () => Assert.Equal(8.0, value.Extra["pressure_drop"]),
+            () => Assert.Equal(5.0, value.Extra["temperature_drop"]));
+    }
+
+    [Fact]
+    public void Ragweed_pollen_maps_peak_value()
+    {
+        var result = new RagweedPollenResult(_vienna, 42.0);
+
+        var value = result.ToConditionValue();
+
+        Assert.Equal(42.0, value.Extra["value"]);
+    }
 }

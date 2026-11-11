@@ -18,7 +18,9 @@ public sealed class EntityRegistryTests
     {
         var registry = Registry([_vienna], new EntityTestRule("Pm25Observation", OutputKind.Observation));
 
-        Assert.Equal("vienna_pm25_observation", registry.Find(new ObservationResult(_vienna, "Pm25Observation", 42.5)));
+        Assert.Multiple(
+            () => Assert.Equal("vienna_pm25_observation", registry.Find(new ObservationResult(_vienna, "Pm25Observation", 42.5))),
+            () => Assert.Equal("vienna_pm25_observation", Assert.Single(registry.All).EntityId));
     }
 
     [Fact]

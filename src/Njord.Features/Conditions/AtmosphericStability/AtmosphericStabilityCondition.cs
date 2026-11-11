@@ -38,17 +38,26 @@ public sealed class AtmosphericStabilityCondition(IOptions<AtmosphericStabilityC
 
     public static StabilityClass Classify(double cape, double cin, double liftedIndex)
     {
-        return cape switch
+        if (cape < 300)
         {
-            < 300 => StabilityClass.Stable,
-            < 1000 => StabilityClass.Marginal,
-            > 200 => StabilityClass.Capped,
-            _ => cin switch
-            {
-                < 50 when cape >= 2500 && liftedIndex < -6 => StabilityClass.Explosive,
-                < 50 when liftedIndex < -3 => StabilityClass.Unstable,
-                _ => StabilityClass.Marginal
-            }
+            return StabilityClass.Stable;
+        }
+
+        if (cape < 1000)
+        {
+            return StabilityClass.Marginal;
+        }
+
+        if (cin > 200)
+        {
+            return StabilityClass.Capped;
+        }
+
+        return (cape, cin, liftedIndex) switch
+        {
+            ( >= 2500, < 50, < -6) => StabilityClass.Explosive,
+            (_, < 50, < -3) => StabilityClass.Unstable,
+            _ => StabilityClass.Marginal
         };
     }
 }
