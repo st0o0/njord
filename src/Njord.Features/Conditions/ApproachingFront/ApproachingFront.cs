@@ -9,9 +9,6 @@ namespace Njord.Features.Conditions.ApproachingFront;
 
 public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : FeatureRule<ForecastInput>
 {
-    private const double PressureDropThreshold = 3.0;
-    private const double WindShiftThreshold = 45.0;
-    private const int WindowHours = 6;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
@@ -33,12 +30,13 @@ public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : 
             return null;
         }
 
-        var hours = ctx.Current.Forecast.NextHours(ctx.Now, 24 + WindowHours);
+        var cfg = config.Value;
+        var hours = ctx.Current.Forecast.NextHours(ctx.Now, 24 + cfg.WindowHours);
         var windows = hours
-            .Select(start => (Start: start, End: hours.FirstOrDefault(p => p.ValidFrom == start.ValidFrom.AddHours(WindowHours))))
+            .Select(start => (Start: start, End: hours.FirstOrDefault(p => p.ValidFrom == start.ValidFrom.AddHours(cfg.WindowHours))))
             .Where(pair => pair.End is not null)
             .Select(pair => (pair.Start, End: pair.End!, Drop: pair.Start.Pressure - pair.End!.Pressure ?? 0.0))
-            .Where(window => window.Drop > PressureDropThreshold && WindShifted(window.Start, window.End))
+            .Where(window => window.Drop > cfg.PressureDropThresholdHpa && WindShifted(window.Start, window.End, cfg.WindShiftThresholdDegrees))
             .ToList();
         if (windows.Count == 0)
         {
@@ -53,7 +51,7 @@ public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : 
             Math.Round(start.Temperature - end.Temperature ?? 0.0, 1));
     }
 
-    private static bool WindShifted(ForecastPoint start, ForecastPoint end)
+    private static bool WindShifted(ForecastPoint start, ForecastPoint end, double windShiftThreshold)
     {
         if (start.WindDirection is not { } from || end.WindDirection is not { } to)
         {
@@ -61,6 +59,6 @@ public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : 
         }
 
         var difference = Math.Abs(to - from) % 360.0;
-        return Math.Min(difference, 360.0 - difference) >= WindShiftThreshold;
+        return Math.Min(difference, 360.0 - difference) >= windShiftThreshold;
     }
 }

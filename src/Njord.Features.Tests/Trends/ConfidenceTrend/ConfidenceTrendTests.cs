@@ -10,7 +10,8 @@ namespace Njord.Features.Tests.Trends.ConfidenceTrend;
 
 public sealed class ConfidenceTrendTests
 {
-    private static Features.Trends.ConfidenceTrend.ConfidenceTrend Feature() => new(Options.Create(new ConfidenceTrendConfig { Enabled = true }));
+    private static Features.Trends.ConfidenceTrend.ConfidenceTrend Feature(ConfidenceTrendConfig? cfg = null) =>
+        new(Options.Create(cfg ?? new ConfidenceTrendConfig { Enabled = true }));
 
     private static LocationForecast WithSpread(double value) =>
         new(Lucerne, Ensemble: EnsembleDay(value));
@@ -49,4 +50,15 @@ public sealed class ConfidenceTrendTests
 
     [Fact]
     public void Nothing_is_reported_without_spread_data_on_first_cycle() => Assert.Null(Run(Feature(), Now, new LocationForecast(Lucerne)));
+
+    [Fact]
+    public void Lower_threshold_detects_smaller_shifts()
+    {
+        var trend = Assert.IsType<ConfidenceTrendResult>(Run(Feature(), Now, WithSpread(2.0), WithSpread(2.3)));
+        Assert.Equal(ConfidenceTrendDirection.Stable, trend.Direction);
+
+        var sensitive = Feature(new ConfidenceTrendConfig { Enabled = true, ChangeThreshold = 0.10 });
+        var customTrend = Assert.IsType<ConfidenceTrendResult>(Run(sensitive, Now, WithSpread(2.0), WithSpread(2.3)));
+        Assert.Equal(ConfidenceTrendDirection.Diverging, customTrend.Direction);
+    }
 }

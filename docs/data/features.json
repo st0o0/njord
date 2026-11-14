@@ -347,7 +347,11 @@
     "automationExample": "Adjust daily antihistamine reminder based on pollen trend direction",
     "enabledByDefault": false,
     "domains": ["AirQuality"],
-    "airQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
+    "airQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"],
+    "options": [
+      { "name": "ChangeThreshold", "type": "number", "default": 0.10, "description": "Relative change fraction to classify as rising or falling" },
+      { "name": "MinimumChange", "type": "number", "default": 1.0, "description": "Absolute minimum change to avoid noise on low counts" }
+    ]
   },
   {
     "key": "SmogRisk",
@@ -463,7 +467,14 @@
     "automationExample": "Display commute safety on a dashboard screen by the front door",
     "enabledByDefault": true,
     "domains": ["Forecast"],
-    "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "Humidity", "DewPoint"]
+    "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "Humidity", "DewPoint"],
+    "options": [
+      { "name": "IceTemperatureCelsius", "type": "number", "default": 1.0, "description": "Temperature threshold for icy road detection" },
+      { "name": "DewPointSpreadCelsius", "type": "number", "default": 2.0, "description": "Max dew point spread for ice/fog detection" },
+      { "name": "FogHumidityPercent", "type": "number", "default": 95.0, "description": "Minimum humidity for fog detection" },
+      { "name": "HeavyRainMmH", "type": "number", "default": 5.0, "description": "Precipitation threshold for heavy rain hazard" },
+      { "name": "StrongWindKmh", "type": "number", "default": 60.0, "description": "Wind speed threshold for strong wind hazard (km/h)" }
+    ]
   },
   {
     "key": "Exercise",
@@ -578,7 +589,11 @@
     "automationExample": "Remind to open windows at bedtime when night ventilation is effective",
     "enabledByDefault": false,
     "domains": ["Forecast"],
-    "weatherParams": ["Temperature"]
+    "weatherParams": ["Temperature"],
+    "options": [
+      { "name": "HotDayPeakCelsius", "type": "number", "default": 28.0, "description": "Tomorrow peak temperature that triggers the feature" },
+      { "name": "CoolNightLimitCelsius", "type": "number", "default": 20.0, "description": "Night temperature ceiling for effective cooling" }
+    ]
   },
   {
     "key": "Ventilation",
@@ -593,7 +608,14 @@
     "domains": ["Forecast", "AirQuality"],
     "weatherParams": ["Temperature", "Precipitation"],
     "airQualityParams": ["Pm25"],
-    "optionalAirQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
+    "optionalAirQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"],
+    "options": [
+      { "name": "MaxPm25", "type": "number", "default": 15.0, "description": "PM2.5 threshold above which windows stay closed" },
+      { "name": "MaxPollen", "type": "number", "default": 20.0, "description": "Pollen index threshold above which windows stay closed" },
+      { "name": "MinTemperatureCelsius", "type": "number", "default": 15.0, "description": "Minimum outdoor temperature for comfortable ventilation" },
+      { "name": "MaxTemperatureCelsius", "type": "number", "default": 28.0, "description": "Maximum outdoor temperature for comfortable ventilation" },
+      { "name": "MaxPrecipitationMmH", "type": "number", "default": 0.1, "description": "Precipitation limit above which windows stay closed" }
+    ]
   },
   {
     "key": "Gardening",
@@ -606,7 +628,12 @@
     "automationExample": "Add gardening to your to-do list when conditions are ideal",
     "enabledByDefault": false,
     "domains": ["Forecast"],
-    "weatherParams": ["Temperature", "WindSpeed", "Precipitation"]
+    "weatherParams": ["Temperature", "WindSpeed", "Precipitation"],
+    "options": [
+      { "name": "FrostTemperatureCelsius", "type": "number", "default": 2.0, "description": "Temperature below which frost risk is flagged" },
+      { "name": "RainThresholdMmH", "type": "number", "default": 2.0, "description": "Daily rain total below which watering is needed" },
+      { "name": "WindLimitMs", "type": "number", "default": 10.0, "description": "Wind speed above which gardening is discouraged" }
+    ]
   },
   {
     "key": "SoilMoisture",
@@ -691,7 +718,10 @@
     "automationExample": "Only commit to outdoor event plans when forecast confidence is high and stable",
     "enabledByDefault": false,
     "domains": ["Ensemble"],
-    "ensembleParams": ["TemperatureSpread"]
+    "ensembleParams": ["TemperatureSpread"],
+    "options": [
+      { "name": "ChangeThreshold", "type": "number", "default": 0.20, "description": "Relative spread change fraction to classify as converging or diverging" }
+    ]
   },
   {
     "key": "FrontApproaching",
@@ -704,7 +734,12 @@
     "automationExample": "Send an early heads-up when a weather front is heading your way",
     "enabledByDefault": false,
     "domains": ["Forecast"],
-    "weatherParams": ["Temperature", "Pressure", "WindDirection"]
+    "weatherParams": ["Temperature", "Pressure", "WindDirection"],
+    "options": [
+      { "name": "PressureDropThresholdHpa", "type": "number", "default": 3.0, "description": "Pressure drop in hPa over the window to detect a front" },
+      { "name": "WindShiftThresholdDegrees", "type": "number", "default": 45.0, "description": "Wind direction change in degrees to confirm a front" },
+      { "name": "WindowHours", "type": "number", "default": 6, "description": "Time window in hours over which pressure drop is measured" }
+    ]
   },
   {
     "key": "InversionDetection",
@@ -878,7 +913,14 @@
     "enabledByDefault": false,
     "domains": ["Marine"],
     "marineParams": ["WaveHeight"],
-    "optionalMarineParams": ["WaterTemperature"]
+    "optionalMarineParams": ["WaterTemperature"],
+    "options": [
+      { "name": "WindowHours", "type": "number", "default": 24, "description": "Lookahead hours for swimming condition assessment" },
+      { "name": "ModerateWaveHeightM", "type": "number", "default": 1.0, "description": "Wave height threshold for yellow (moderate) alert" },
+      { "name": "DangerousWaveHeightM", "type": "number", "default": 2.0, "description": "Wave height threshold for red (dangerous) alert" },
+      { "name": "ModerateWaterTempCelsius", "type": "number", "default": 16.0, "description": "Water temperature below which yellow alert fires" },
+      { "name": "DangerousWaterTempCelsius", "type": "number", "default": 10.0, "description": "Water temperature below which red alert fires" }
+    ]
   },
   {
     "key": "Surf",

@@ -10,7 +10,8 @@ namespace Njord.Features.Tests.Conditions.PollenTrend;
 
 public sealed class PollenTrendTests
 {
-    private static Features.Conditions.PollenTrend.PollenTrend Feature() => new(Options.Create(new PollenTrendConfig { Enabled = true }));
+    private static Features.Conditions.PollenTrend.PollenTrend Feature(PollenTrendConfig? cfg = null) =>
+        new(Options.Create(cfg ?? new PollenTrendConfig { Enabled = true }));
 
     private static LocationForecast With(Func<int, AirQualityPoint, AirQualityPoint> shape) =>
         new(Lucerne, AirQuality: Day(shape));
@@ -55,5 +56,19 @@ public sealed class PollenTrendTests
             new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
                 | AirQualityParams.Alder | AirQualityParams.Mugwort),
             Feature().Descriptor.Requirements);
+    }
+
+    [Fact]
+    public void Lower_threshold_detects_smaller_changes()
+    {
+        var current = With((_, p) => p with { BirchPollen = 10.5 });
+        var previous = With((_, p) => p with { BirchPollen = 10.0 });
+
+        var defaultResult = Assert.IsType<PollenTrendResult>(Run(Feature(), Now, previous, current));
+        Assert.Equal(PollenTrendDirection.Stable, defaultResult.Birch);
+
+        var sensitive = Feature(new PollenTrendConfig { Enabled = true, ChangeThreshold = 0.03, MinimumChange = 0.3 });
+        var customResult = Assert.IsType<PollenTrendResult>(Run(sensitive, Now, previous, current));
+        Assert.Equal(PollenTrendDirection.Rising, customResult.Birch);
     }
 }

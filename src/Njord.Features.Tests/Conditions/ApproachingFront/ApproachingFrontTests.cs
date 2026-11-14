@@ -10,7 +10,8 @@ namespace Njord.Features.Tests.Conditions.ApproachingFront;
 
 public sealed class ApproachingFrontTests
 {
-    private static Features.Conditions.ApproachingFront.ApproachingFront Feature() => new(Options.Create(new ApproachingFrontConfig { Enabled = true }));
+    private static Features.Conditions.ApproachingFront.ApproachingFront Feature(ApproachingFrontConfig? cfg = null) =>
+        new(Options.Create(cfg ?? new ApproachingFrontConfig { Enabled = true }));
 
     private static LocationForecast Falling(double directionAfter) =>
         ForecastOnly(Hourly(30, (hour, point) => point with
@@ -37,4 +38,20 @@ public sealed class ApproachingFrontTests
 
     [Fact]
     public void Nothing_is_reported_without_a_previous_cycle() => Assert.Null(Run(Feature(), Now, Falling(315.0)));
+
+    [Fact]
+    public void Lowered_pressure_threshold_catches_smaller_drops()
+    {
+        var weather = ForecastOnly(Hourly(30, (hour, point) => point with
+        {
+            Pressure = 1015.0 - Math.Clamp(hour - 2, 0, 6) * 0.5,
+            Temperature = 18.0 - Math.Clamp(hour - 2, 0, 6) * 0.5,
+            WindDirection = hour >= 8 ? 315.0 : 180.0,
+        }));
+
+        Assert.Null(Run(Feature(), Now, ForecastOnly(Day()), weather));
+
+        var custom = Feature(new ApproachingFrontConfig { Enabled = true, PressureDropThresholdHpa = 2.0 });
+        Assert.IsType<ApproachingFrontResult>(Run(custom, Now, ForecastOnly(Day()), weather));
+    }
 }

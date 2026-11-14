@@ -9,9 +9,6 @@ namespace Njord.Features.Conditions.Gardening;
 
 public sealed class Gardening(IOptions<GardeningConfig> config) : FeatureRule<ForecastInput>
 {
-    public const double FrostTemperature = 2.0;
-    public const double RainThreshold = 2.0;
-    public const double WindLimit = 10.0;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
@@ -34,11 +31,12 @@ public sealed class Gardening(IOptions<GardeningConfig> config) : FeatureRule<Fo
             return null;
         }
 
-        var frostRisk = day.Min(p => p.Temperature) < FrostTemperature;
-        var frostWithinTwoDays = twoDays.Min(p => p.Temperature) < FrostTemperature;
-        var windy = day.Max(p => p.WindSpeed) >= WindLimit;
+        var cfg = config.Value;
+        var frostRisk = day.Min(p => p.Temperature) < cfg.FrostTemperatureCelsius;
+        var frostWithinTwoDays = twoDays.Min(p => p.Temperature) < cfg.FrostTemperatureCelsius;
+        var windy = day.Max(p => p.WindSpeed) >= cfg.WindLimitMs;
         var plantingSafe = !frostWithinTwoDays && !windy;
-        var wateringNeeded = day.Sum(p => p.Precipitation) < RainThreshold;
+        var wateringNeeded = day.Sum(p => p.Precipitation) < cfg.RainThresholdMmH;
         return new GardeningResult(ctx.Location, plantingSafe ? GardeningAdvice.Plant : GardeningAdvice.Hold, plantingSafe, wateringNeeded, frostRisk);
     }
 }

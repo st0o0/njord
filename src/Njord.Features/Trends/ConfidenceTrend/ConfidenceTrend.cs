@@ -9,7 +9,6 @@ namespace Njord.Features.Trends.ConfidenceTrend;
 
 public sealed class ConfidenceTrend(IOptions<ConfidenceTrendConfig> config) : FeatureRule<EnsembleInput>
 {
-    private const double ChangeThreshold = 0.20;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Trend,
@@ -38,11 +37,12 @@ public sealed class ConfidenceTrend(IOptions<ConfidenceTrendConfig> config) : Fe
                 Math.Round(currentAverage, 2), Math.Round(currentAverage, 2));
         }
 
+        var threshold = config.Value.ChangeThreshold;
         var change = previousAverage > 0 ? (currentAverage - previousAverage) / previousAverage : 0.0;
         var direction = change switch
         {
-            <= -ChangeThreshold => ConfidenceTrendDirection.Converging,
-            >= ChangeThreshold => ConfidenceTrendDirection.Diverging,
+            _ when change <= -threshold => ConfidenceTrendDirection.Converging,
+            _ when change >= threshold => ConfidenceTrendDirection.Diverging,
             _ => ConfidenceTrendDirection.Stable,
         };
         return new ConfidenceTrendResult(ctx.Location, direction, Math.Round(currentAverage - previousAverage, 2),

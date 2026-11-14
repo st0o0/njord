@@ -9,11 +9,6 @@ namespace Njord.Features.Conditions.CommuteSafety;
 
 public sealed class CommuteSafety(IOptions<CommuteSafetyConfig> config) : FeatureRule<ForecastInput>
 {
-    private const double IceTemperature = 1.0;
-    private const double DewPointSpread = 2.0;
-    private const double FogHumidity = 95.0;
-    private const double HeavyRain = 5.0;
-    private const double StrongWind = 60.0 / 3.6;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
@@ -36,10 +31,12 @@ public sealed class CommuteSafety(IOptions<CommuteSafetyConfig> config) : Featur
             return null;
         }
 
-        var ice = hours.Any(p => p.Temperature < IceTemperature && p.Temperature - p.DewPoint < DewPointSpread);
-        var fog = hours.Any(p => p.Humidity > FogHumidity && p.Temperature - p.DewPoint < DewPointSpread);
-        var rain = hours.Any(p => p.Precipitation > HeavyRain);
-        var wind = hours.Any(p => p.WindSpeed > StrongWind);
+        var cfg = config.Value;
+        var strongWindMs = cfg.StrongWindKmh / 3.6;
+        var ice = hours.Any(p => p.Temperature < cfg.IceTemperatureCelsius && p.Temperature - p.DewPoint < cfg.DewPointSpreadCelsius);
+        var fog = hours.Any(p => p.Humidity > cfg.FogHumidityPercent && p.Temperature - p.DewPoint < cfg.DewPointSpreadCelsius);
+        var rain = hours.Any(p => p.Precipitation > cfg.HeavyRainMmH);
+        var wind = hours.Any(p => p.WindSpeed > strongWindMs);
 
         var risks = new List<CommuteHazard>();
         if (ice)

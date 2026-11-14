@@ -216,7 +216,7 @@ onMounted(() => {
             <div v-if="expandedFeature === f.key" class="feature-detail">
               <p v-if="f.longDescription">{{ f.longDescription }}</p>
               <div v-if="f.options?.length && isFeatureOn(f.key)" class="inline-options">
-                <label v-for="opt in f.options" :key="opt.name" class="inline-option">
+                <label v-for="opt in f.options" :key="opt.name" class="inline-option" :title="opt.description">
                   <span class="option-name">{{ opt.name }}</span>
                   <input
                     v-if="opt.type === 'boolean'"

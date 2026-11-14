@@ -145,7 +145,7 @@ public static class ServiceCollectionExtensions
         services.AddFeature<SmogRiskAlert, SmogRiskConfig, SmogRiskConfigValidator>();
         services.AddFeature<SnowAlert, SnowConfig, SnowConfigValidator>();
         services.AddFeature<StormAlert, StormConfig, StormConfigValidator>();
-        services.AddFeature<SwimmingConditionsAlert, SwimmingConditionsConfig>();
+        services.AddFeature<SwimmingConditionsAlert, SwimmingConditionsConfig, SwimmingConditionsConfigValidator>();
         services.AddFeature<ThunderstormAlert, ThunderstormConfig, ThunderstormConfigValidator>();
         services.AddFeature<TropicalNightAlert, TropicalNightConfig, TropicalNightConfigValidator>();
         services.AddFeature<UvAlert, UvConfig, UvConfigValidator>();
@@ -162,7 +162,7 @@ public static class ServiceCollectionExtensions
         services.AddFeature<SleepQualityScore, SleepQualityConfig, SleepQualityConfigValidator>();
 
         // Conditions
-        services.AddFeature<ApproachingFront, ApproachingFrontConfig>();
+        services.AddFeature<ApproachingFront, ApproachingFrontConfig, ApproachingFrontConfigValidator>();
         services.AddFeature<AtmosphericStabilityCondition, AtmosphericStabilityConfig>();
         services.AddFeature<CloudCeilingCondition, CloudCeilingConfig>();
         services.AddFeature<CommuteSafety, CommuteSafetyConfig>();

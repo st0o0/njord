@@ -9,7 +9,9 @@ namespace Njord.Features.Tests.Conditions.CommuteSafety;
 
 public sealed class CommuteSafetyTests
 {
-    private static Features.Conditions.CommuteSafety.CommuteSafety Feature(bool enabled = true) => new(Options.Create(new CommuteSafetyConfig { Enabled = enabled }));
+    private static Features.Conditions.CommuteSafety.CommuteSafety Feature(CommuteSafetyConfig? cfg = null) => new(Options.Create(cfg ?? new CommuteSafetyConfig()));
+
+    private static Features.Conditions.CommuteSafety.CommuteSafety Feature(bool enabled) => Feature(new CommuteSafetyConfig { Enabled = enabled });
 
     [Fact]
     public void Benign_weather_is_reported_as_safe()
@@ -111,5 +113,32 @@ public sealed class CommuteSafetyTests
         var safety = Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, ForecastOnly(weather)));
 
         Assert.Equal(CommuteLevel.Dangerous, safety.Level);
+    }
+
+    [Fact]
+    public void Raised_ice_threshold_widens_ice_detection()
+    {
+        var weather = Uniform(p => p with { Temperature = 2.5, DewPoint = 1.5 });
+
+        Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, ForecastOnly(weather)), exactMatch: false);
+        var defaultResult = Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, ForecastOnly(weather)));
+        Assert.DoesNotContain(CommuteHazard.Ice, defaultResult.Hazards);
+
+        var custom = Feature(new CommuteSafetyConfig { IceTemperatureCelsius = 3.0 });
+        var customResult = Assert.IsType<CommuteSafetyResult>(Run(custom, Now, ForecastOnly(weather)));
+        Assert.Contains(CommuteHazard.Ice, customResult.Hazards);
+    }
+
+    [Fact]
+    public void Lowered_wind_threshold_catches_moderate_wind()
+    {
+        var weather = Uniform(p => p with { WindSpeed = 10.0 });
+
+        var defaultResult = Assert.IsType<CommuteSafetyResult>(Run(Feature(), Now, ForecastOnly(weather)));
+        Assert.DoesNotContain(CommuteHazard.StrongWind, defaultResult.Hazards);
+
+        var custom = Feature(new CommuteSafetyConfig { StrongWindKmh = 30.0 });
+        var customResult = Assert.IsType<CommuteSafetyResult>(Run(custom, Now, ForecastOnly(weather)));
+        Assert.Contains(CommuteHazard.StrongWind, customResult.Hazards);
     }
 }

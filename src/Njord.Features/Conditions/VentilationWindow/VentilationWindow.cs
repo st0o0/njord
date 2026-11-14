@@ -12,11 +12,6 @@ namespace Njord.Features.Conditions.VentilationWindow;
 
 public sealed class VentilationWindow(IOptions<VentilationWindowConfig> config) : FeatureRule<ForecastAqInput>
 {
-    public const double MaxPm25 = 15.0;
-    public const double MaxPollen = 20.0;
-    public const double MinTemperature = 15.0;
-    public const double MaxTemperature = 28.0;
-    public const double MaxPrecipitation = 0.1;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
@@ -45,7 +40,8 @@ public sealed class VentilationWindow(IOptions<VentilationWindowConfig> config) 
             return null;
         }
 
-        var open = hours.Select(pair => IsOpenWindowHour(pair.Point, pair.Air!)).ToList();
+        var cfg = config.Value;
+        var open = hours.Select(pair => IsOpenWindowHour(pair.Point, pair.Air!, cfg)).ToList();
         var (start, length) = Scoring.LongestRun(open);
         if (length == 0)
         {
@@ -57,14 +53,15 @@ public sealed class VentilationWindow(IOptions<VentilationWindowConfig> config) 
         return new VentilationWindowResult(ctx.Location, first, end);
     }
 
-    internal static bool IsOpenWindowHour(ForecastPoint weather, AirQualityPoint air)
+    internal static bool IsOpenWindowHour(ForecastPoint weather, AirQualityPoint air, VentilationWindowConfig cfg)
     {
         var pollen = Math.Max(
             Math.Max(air.BirchPollen ?? 0, air.GrassPollen ?? 0),
             Math.Max(air.Alder ?? 0, air.Mugwort ?? 0));
-        return air.Pm25 < MaxPm25
-            && pollen < MaxPollen
-            && weather.Temperature is >= MinTemperature and <= MaxTemperature
-            && weather.Precipitation <= MaxPrecipitation;
+        return air.Pm25 < cfg.MaxPm25
+            && pollen < cfg.MaxPollen
+            && weather.Temperature >= cfg.MinTemperatureCelsius
+            && weather.Temperature <= cfg.MaxTemperatureCelsius
+            && weather.Precipitation <= cfg.MaxPrecipitationMmH;
     }
 }

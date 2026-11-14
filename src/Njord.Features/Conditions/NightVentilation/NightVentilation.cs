@@ -11,8 +11,6 @@ namespace Njord.Features.Conditions.NightVentilation;
 
 public sealed class NightVentilation(IOptions<NightVentilationConfig> config) : FeatureRule<ForecastInput>
 {
-    public const double HotDayPeak = 28.0;
-    public const double CoolNightLimit = 20.0;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
@@ -38,7 +36,8 @@ public sealed class NightVentilation(IOptions<NightVentilationConfig> config) : 
             return null;
         }
 
-        if (tomorrowPoints.Max(p => p.Temperature) is not { } peak || peak <= HotDayPeak)
+        var cfg = config.Value;
+        if (tomorrowPoints.Max(p => p.Temperature) is not { } peak || peak <= cfg.HotDayPeakCelsius)
         {
             return null;
         }
@@ -46,7 +45,7 @@ public sealed class NightVentilation(IOptions<NightVentilationConfig> config) : 
         var night = ForecastQueries.Window(weather, ctx.Now.HourStart(), tomorrowStart.AddHours(9))
             .Where(p => p.ValidFrom.UtcDateTime.Hour is >= 18 or < 9)
             .ToList();
-        var (start, length) = Scoring.LongestRun([.. night.Select(p => p.Temperature < CoolNightLimit)]);
+        var (start, length) = Scoring.LongestRun([.. night.Select(p => p.Temperature < cfg.CoolNightLimitCelsius)]);
         if (length == 0)
         {
             return null;

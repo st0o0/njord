@@ -9,7 +9,8 @@ namespace Njord.Features.Tests.Conditions.NightVentilation;
 
 public sealed class NightVentilationTests
 {
-    private static Features.Conditions.NightVentilation.NightVentilation Feature() => new(Options.Create(new NightVentilationConfig { Enabled = true }));
+    private static Features.Conditions.NightVentilation.NightVentilation Feature(NightVentilationConfig? cfg = null) =>
+        new(Options.Create(cfg ?? new NightVentilationConfig { Enabled = true }));
 
     [Fact]
     public void Opening_windows_overnight_is_advised_before_a_hot_day()
@@ -34,5 +35,15 @@ public sealed class NightVentilationTests
         var weather = Hourly(48, (hour, p) => p with { Temperature = hour == 26 ? 31.0 : 22.0 });
 
         Assert.Null(Run(Feature(), Now, ForecastOnly(weather)));
+    }
+
+    [Fact]
+    public void Lowered_peak_threshold_triggers_on_milder_days()
+    {
+        var weather = Hourly(48, (hour, p) => hour == 26 ? p with { Temperature = 26.0 } : p);
+        Assert.Null(Run(Feature(), Now, ForecastOnly(weather)));
+
+        var custom = Feature(new NightVentilationConfig { Enabled = true, HotDayPeakCelsius = 25.0 });
+        Assert.IsType<NightVentilationResult>(Run(custom, Now, ForecastOnly(weather)));
     }
 }

@@ -9,7 +9,8 @@ namespace Njord.Features.Tests.Conditions.Gardening;
 
 public sealed class GardeningTests
 {
-    private static Features.Conditions.Gardening.Gardening Feature() => new(Options.Create(new GardeningConfig { Enabled = true }));
+    private static Features.Conditions.Gardening.Gardening Feature(GardeningConfig? cfg = null) =>
+        new(Options.Create(cfg ?? new GardeningConfig { Enabled = true }));
 
     [Fact]
     public void Frost_is_flagged_and_blocks_planting()
@@ -44,5 +45,18 @@ public sealed class GardeningTests
         var advice = Assert.IsType<GardeningResult>(Run(Feature(), Now, forecast));
 
         Assert.False(advice.WateringNeeded);
+    }
+
+    [Fact]
+    public void Lowered_frost_threshold_allows_planting_near_zero()
+    {
+        var forecast = ForecastOnly(Day((hour, point) => hour == 5 ? point with { Temperature = 1.0 } : point));
+
+        var defaultResult = Assert.IsType<GardeningResult>(Run(Feature(), Now, forecast));
+        Assert.True(defaultResult.FrostRisk);
+
+        var custom = Feature(new GardeningConfig { Enabled = true, FrostTemperatureCelsius = 0.0 });
+        var customResult = Assert.IsType<GardeningResult>(Run(custom, Now, forecast));
+        Assert.False(customResult.FrostRisk);
     }
 }

@@ -9,8 +9,6 @@ namespace Njord.Features.Conditions.PollenTrend;
 
 public sealed class PollenTrend(IOptions<PollenTrendConfig> config) : FeatureRule<AqInput>
 {
-    public const double ChangeThreshold = 0.10;
-    public const double MinimumChange = 1.0;
 
     private static readonly (PollenType Type, Func<AirQualityPoint, double?> Read)[] _pollenTypes =
     [
@@ -63,7 +61,7 @@ public sealed class PollenTrend(IOptions<PollenTrendConfig> config) : FeatureRul
             var previousValues = previousPoints.Select(read).Where(v => v.HasValue).Select(v => v!.Value).ToList();
             if (previousValues.Count > 0)
             {
-                trends[type] = Classify(currentValues.Average(v => v.Value), previousValues.Average());
+                trends[type] = Classify(currentValues.Average(v => v.Value), previousValues.Average(), config.Value);
             }
 
             var (validFrom, value) = currentValues.MaxBy(v => v.Value);
@@ -90,10 +88,10 @@ public sealed class PollenTrend(IOptions<PollenTrendConfig> config) : FeatureRul
             trends.GetValueOrDefault(PollenType.Mugwort));
     }
 
-    private static PollenTrendDirection Classify(double currentAverage, double previousAverage)
+    private static PollenTrendDirection Classify(double currentAverage, double previousAverage, PollenTrendConfig cfg)
     {
         var delta = currentAverage - previousAverage;
-        if (Math.Abs(delta) < MinimumChange || Math.Abs(delta) < ChangeThreshold * previousAverage)
+        if (Math.Abs(delta) < cfg.MinimumChange || Math.Abs(delta) < cfg.ChangeThreshold * previousAverage)
         {
             return PollenTrendDirection.Stable;
         }

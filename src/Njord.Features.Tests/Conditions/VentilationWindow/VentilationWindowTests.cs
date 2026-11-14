@@ -9,7 +9,8 @@ namespace Njord.Features.Tests.Conditions.VentilationWindow;
 
 public sealed class VentilationWindowTests
 {
-    private static Features.Conditions.VentilationWindow.VentilationWindow Feature() => new(Options.Create(new VentilationWindowConfig { Enabled = true }));
+    private static Features.Conditions.VentilationWindow.VentilationWindow Feature(VentilationWindowConfig? cfg = null) =>
+        new(Options.Create(cfg ?? new VentilationWindowConfig { Enabled = true }));
 
     [Fact]
     public void The_whole_day_is_advised_when_air_and_weather_stay_good()
@@ -77,5 +78,15 @@ public sealed class VentilationWindowTests
     {
         var air = CleanAir(shape: (_, point) => point with { Mugwort = 25.0 });
         Assert.Null(Run(Feature(), Now, Combined(Day(), air)));
+    }
+
+    [Fact]
+    public void Wider_temperature_range_opens_the_window()
+    {
+        var weather = Uniform(p => p with { Temperature = 30.0 });
+        Assert.Null(Run(Feature(), Now, Combined(weather, CleanAir())));
+
+        var custom = Feature(new VentilationWindowConfig { Enabled = true, MaxTemperatureCelsius = 35.0 });
+        Assert.IsType<VentilationWindowResult>(Run(custom, Now, Combined(weather, CleanAir())));
     }
 }

@@ -10,11 +10,6 @@ namespace Njord.Features.Alerts.SwimmingConditions;
 
 public sealed class SwimmingConditionsAlert(IOptions<SwimmingConditionsConfig> config) : FeatureRule<MarineInput>
 {
-    public const int WindowHours = 24;
-    public const double ModerateWaveHeightMeters = 1.0;
-    public const double DangerousWaveHeightMeters = 2.0;
-    public const double ModerateWaterTemperatureCelsius = 16.0;
-    public const double DangerousWaterTemperatureCelsius = 10.0;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
@@ -31,16 +26,17 @@ public sealed class SwimmingConditionsAlert(IOptions<SwimmingConditionsConfig> c
 
     protected override PipelineEvent? Evaluate(FeatureContext<MarineInput> ctx)
     {
+        var cfg = config.Value;
         var best = (Severity: AlertSeverity.None, Trigger: 0.0, Threshold: 0.0, HoursUntil: 0);
 
-        foreach (var point in ctx.Current.Marine.NextHoursInclusive(ctx.Now, WindowHours))
+        foreach (var point in ctx.Current.Marine.NextHoursInclusive(ctx.Now, cfg.WindowHours))
         {
             if (point.WaveHeight is not { } height)
             {
                 continue;
             }
 
-            var (severity, threshold) = Classify(point);
+            var (severity, threshold) = Classify(point, cfg);
             if (severity > best.Severity
                 || (severity == best.Severity && severity != AlertSeverity.None && height > best.Trigger))
             {
@@ -58,26 +54,26 @@ public sealed class SwimmingConditionsAlert(IOptions<SwimmingConditionsConfig> c
             PeakValue: null, HoursUntil: best.HoursUntil, DurationHours: null, Level: ConfidenceLevel.High);
     }
 
-    public static (AlertSeverity Severity, double Threshold) Classify(MarinePoint point)
+    public static (AlertSeverity Severity, double Threshold) Classify(MarinePoint point, SwimmingConditionsConfig cfg)
     {
-        if (point.WaveHeight >= DangerousWaveHeightMeters)
+        if (point.WaveHeight >= cfg.DangerousWaveHeightM)
         {
-            return (AlertSeverity.Red, DangerousWaveHeightMeters);
+            return (AlertSeverity.Red, cfg.DangerousWaveHeightM);
         }
 
-        if (point.WaterTemperature is < DangerousWaterTemperatureCelsius)
+        if (point.WaterTemperature < cfg.DangerousWaterTempCelsius)
         {
-            return (AlertSeverity.Red, DangerousWaterTemperatureCelsius);
+            return (AlertSeverity.Red, cfg.DangerousWaterTempCelsius);
         }
 
-        if (point.WaveHeight >= ModerateWaveHeightMeters)
+        if (point.WaveHeight >= cfg.ModerateWaveHeightM)
         {
-            return (AlertSeverity.Yellow, ModerateWaveHeightMeters);
+            return (AlertSeverity.Yellow, cfg.ModerateWaveHeightM);
         }
 
-        if (point.WaterTemperature is < ModerateWaterTemperatureCelsius)
+        if (point.WaterTemperature < cfg.ModerateWaterTempCelsius)
         {
-            return (AlertSeverity.Yellow, ModerateWaterTemperatureCelsius);
+            return (AlertSeverity.Yellow, cfg.ModerateWaterTempCelsius);
         }
 
         return (AlertSeverity.None, 0.0);

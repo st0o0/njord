@@ -13,7 +13,8 @@ namespace Njord.Features.Tests.Alerts.SwimmingConditions;
 
 public sealed class SwimmingConditionsAlertTests
 {
-    private static SwimmingConditionsAlert Feature() => new(Options.Create(new SwimmingConditionsConfig { Enabled = true }));
+    private static SwimmingConditionsAlert Feature(SwimmingConditionsConfig? cfg = null) =>
+        new(Options.Create(cfg ?? new SwimmingConditionsConfig { Enabled = true }));
 
     private static PipelineEvent? RunWith(params MarinePoint[] points) =>
         Run(Feature(), Now, new LocationForecast(Lucerne, Rain(0.0), Marine: M.MarineForecast(points)));
@@ -74,5 +75,13 @@ public sealed class SwimmingConditionsAlertTests
         Assert.Equal(
             new DomainRequirements(Marine: MarineParams.WaveHeight, OptionalMarine: MarineParams.WaterTemperature),
             Feature().Descriptor.Requirements);
+    }
+
+    [Fact]
+    public void Raised_wave_threshold_suppresses_moderate_alerts()
+    {
+        var custom = Feature(new SwimmingConditionsConfig { Enabled = true, ModerateWaveHeightM = 2.0, DangerousWaveHeightM = 3.0 });
+        var result = Run(custom, Now, new LocationForecast(Lucerne, Rain(0.0), Marine: M.MarineForecast(M.Point(0, 1.5))));
+        Assert.Null(result);
     }
 }
