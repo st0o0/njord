@@ -14,6 +14,9 @@ public sealed class PollenBlastConfigValidator : IValidateOptions<PollenBlastCon
         failures.Require(options.WindSpeedThreshold > 0, $"WindSpeedThreshold must be positive, got {options.WindSpeedThreshold}.");
         failures.Require(options.PollenDelta > 0, $"PollenDelta must be positive, got {options.PollenDelta}.");
         failures.Require(options.PrecipitationThreshold > 0, $"PrecipitationThreshold must be positive, got {options.PrecipitationThreshold}.");
+        failures.Require(options.RedPollenThreshold > options.OrangePollenThreshold,
+            $"RedPollenThreshold must be > OrangePollenThreshold, got {options.RedPollenThreshold}, {options.OrangePollenThreshold}.");
+        failures.Require(options.OrangePollenThreshold > 0, $"OrangePollenThreshold must be positive, got {options.OrangePollenThreshold}.");
 
         return failures.ToResult();
     }

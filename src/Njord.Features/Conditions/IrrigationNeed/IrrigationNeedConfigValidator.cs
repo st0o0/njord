@@ -17,6 +17,9 @@ public sealed class IrrigationNeedConfigValidator : IValidateOptions<IrrigationN
             failures.Add($"DryThresholdPercent must be less than WetThresholdPercent, got {options.DryThresholdPercent} >= {options.WetThresholdPercent}.");
         }
 
+        failures.Require(options.HeavyRainMm > 0, $"HeavyRainMm must be positive, got {options.HeavyRainMm}.");
+        failures.Require(options.HighProbabilityPercent > 0, $"HighProbabilityPercent must be positive, got {options.HighProbabilityPercent}.");
+
         return failures.ToResult();
     }
 }

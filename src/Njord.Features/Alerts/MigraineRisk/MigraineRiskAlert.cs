@@ -10,11 +10,7 @@ namespace Njord.Features.Alerts.MigraineRisk;
 
 public sealed class MigraineRiskAlert(IOptions<MigraineRiskConfig> config) : FeatureRule<ForecastInput>
 {
-    private const int ShortLookbackHours = 6;
-    private const int LongLookbackHours = 24;
-    private const int FoehnLookbackHours = 3;
-    private const double FoehnDirectionMin = 150.0;
-    private const double FoehnDirectionMax = 210.0;
+    private const int DefaultShortLookbackHours = 6;
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
@@ -23,7 +19,7 @@ public sealed class MigraineRiskAlert(IOptions<MigraineRiskConfig> config) : Fea
         new DomainRequirements(
             Forecast: ForecastParams.Pressure | ForecastParams.Temperature | ForecastParams.Humidity
                 | ForecastParams.DewPoint | ForecastParams.WindDirection),
-        PollDepth: ShortLookbackHours,
+        PollDepth: DefaultShortLookbackHours,
         EntityMetadata: new EntityMetadata(EntityPlatform.BinarySensor, DeviceClass: "safety"));
 
     public override bool Enabled => config.Value.Enabled;
@@ -40,8 +36,8 @@ public sealed class MigraineRiskAlert(IOptions<MigraineRiskConfig> config) : Fea
             return null;
         }
 
-        var drop6H = Drop(ctx, nowHour, pressureNow, ShortLookbackHours);
-        var drop24H = Drop(ctx, nowHour, pressureNow, LongLookbackHours);
+        var drop6H = Drop(ctx, nowHour, pressureNow, cfg.ShortLookbackHours);
+        var drop24H = Drop(ctx, nowHour, pressureNow, cfg.LongLookbackHours);
 
         var level = 0;
         var trigger = 0.0;
@@ -61,18 +57,18 @@ public sealed class MigraineRiskAlert(IOptions<MigraineRiskConfig> config) : Fea
 
         if (level > 0)
         {
-            if (Swing(ctx, nowHour, static p => p.Temperature) > cfg.TempSwingThreshold)
+            if (Swing(ctx, nowHour, cfg.LongLookbackHours, static p => p.Temperature) > cfg.TempSwingThreshold)
             {
                 level++;
             }
 
-            if (Swing(ctx, nowHour, static p => p.Humidity) > cfg.HumiditySwingThreshold)
+            if (Swing(ctx, nowHour, cfg.LongLookbackHours, static p => p.Humidity) > cfg.HumiditySwingThreshold)
             {
                 level++;
             }
         }
 
-        if (IsFoehn(ctx, nowHour, current))
+        if (IsFoehn(ctx, nowHour, current, cfg))
         {
             level += 2;
         }
@@ -115,11 +111,11 @@ public sealed class MigraineRiskAlert(IOptions<MigraineRiskConfig> config) : Fea
     private static double Drop(FeatureContext<ForecastInput> ctx, DateTimeOffset nowHour, double pressureNow, int hours) =>
         At(ctx, nowHour.AddHours(-hours))?.Pressure is { } earlier ? earlier - pressureNow : 0.0;
 
-    private static double Swing(FeatureContext<ForecastInput> ctx, DateTimeOffset nowHour, Func<ForecastPoint, double?> selector)
+    private static double Swing(FeatureContext<ForecastInput> ctx, DateTimeOffset nowHour, int lookbackHours, Func<ForecastPoint, double?> selector)
     {
         double? min = null;
         double? max = null;
-        for (var h = 0; h <= LongLookbackHours; h++)
+        for (var h = 0; h <= lookbackHours; h++)
         {
             if (At(ctx, nowHour.AddHours(-h)) is { } point && selector(point) is { } value)
             {
@@ -131,15 +127,15 @@ public sealed class MigraineRiskAlert(IOptions<MigraineRiskConfig> config) : Fea
         return max - min ?? 0.0;
     }
 
-    private static bool IsFoehn(FeatureContext<ForecastInput> ctx, DateTimeOffset nowHour, ForecastPoint current)
+    private static bool IsFoehn(FeatureContext<ForecastInput> ctx, DateTimeOffset nowHour, ForecastPoint current, MigraineRiskConfig cfg)
     {
         if (current is not { WindDirection: { } direction, Temperature: { } temperature, Humidity: { } humidity, Pressure: { } pressure }
-            || direction is < FoehnDirectionMin or > FoehnDirectionMax)
+            || direction < cfg.FoehnDirectionMin || direction > cfg.FoehnDirectionMax)
         {
             return false;
         }
 
-        return At(ctx, nowHour.AddHours(-FoehnLookbackHours)) is { Temperature: { } t0, Humidity: { } h0, Pressure: { } p0 }
+        return At(ctx, nowHour.AddHours(-cfg.FoehnLookbackHours)) is { Temperature: { } t0, Humidity: { } h0, Pressure: { } p0 }
             && temperature > t0 && humidity < h0 && pressure > p0;
     }
 }

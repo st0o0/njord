@@ -99,4 +99,24 @@ public sealed class CoastalFloodAlertTests
         var result = Run(Rule(), Now, forecast);
         Assert.Null(result);
     }
+
+    [Fact]
+    public void Severity_tiers_respect_configured_thresholds()
+    {
+        var cfg = new CoastalFloodConfig
+        {
+            Enabled = true,
+            RedSeaLevelM = 1.5,
+            RedMinFactors = 2,
+            OrangeSeaLevelM = 1.0,
+            OrangeMinFactors = 0,
+        };
+        var rule = new CoastalFloodAlert(Opts(cfg));
+        var weather = Day((_, p) => p with { WindSpeed = 10.0, WindDirection = 180 });
+        var marine = MarineDay(seaLevel: 1.2, waveHeight: 3.0);
+        var forecast = new LocationForecast(Lucerne, weather, Marine: marine, Ensemble: EnsembleDay());
+
+        var alert = Assert.IsType<CoastalFloodAlertResult>(Run(rule, Now, forecast), exactMatch: false);
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+    }
 }

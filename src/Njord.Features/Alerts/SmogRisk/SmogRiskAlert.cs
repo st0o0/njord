@@ -60,8 +60,8 @@ public sealed class SmogRiskAlert(IOptions<SmogRiskConfig> config) : FeatureRule
 
         var severity = (lowestBoundary, highestPm25) switch
         {
-            ( < 200, >= 50) => AlertSeverity.Red,
-            ( < 300, >= 35) => AlertSeverity.Orange,
+            _ when lowestBoundary < cfg.RedBoundaryLayerM && highestPm25 >= cfg.RedPm25Ugm3 => AlertSeverity.Red,
+            _ when lowestBoundary < cfg.OrangeBoundaryLayerM && highestPm25 >= cfg.OrangePm25Ugm3 => AlertSeverity.Orange,
             _ => AlertSeverity.Yellow,
         };
 

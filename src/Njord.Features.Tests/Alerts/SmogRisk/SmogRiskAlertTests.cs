@@ -59,4 +59,23 @@ public sealed class SmogRiskAlertTests
 
         Assert.Null(Run(Rule(), Now, forecast));
     }
+
+    [Fact]
+    public void Severity_tiers_respect_configured_thresholds()
+    {
+        var cfg = new SmogRiskConfig
+        {
+            Enabled = true,
+            RedBoundaryLayerM = 100,
+            RedPm25Ugm3 = 60.0,
+            OrangeBoundaryLayerM = 200,
+            OrangePm25Ugm3 = 40.0,
+        };
+        var rule = new SmogRiskAlert(Options.Create(cfg));
+        var weather = Uniform(p => p with { BoundaryLayerHeight = 150.0 });
+        var air = CleanAir(shape: (_, p) => p with { Pm25 = 55.0 });
+
+        var result = Assert.IsType<SmogRiskAlertResult>(Run(rule, Now, Combined(weather, air)));
+        Assert.Equal(AlertSeverity.Orange, result.Severity);
+    }
 }

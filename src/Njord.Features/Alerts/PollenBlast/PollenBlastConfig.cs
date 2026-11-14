@@ -11,4 +11,6 @@ public sealed class PollenBlastConfig : IConfigSection
     public double WindSpeedThreshold { get; set; } = 1.4;
     public double PollenDelta { get; set; } = 10.0;
     public double PrecipitationThreshold { get; set; } = 1.0;
+    public double RedPollenThreshold { get; set; } = 100.0;
+    public double OrangePollenThreshold { get; set; } = 50.0;
 }

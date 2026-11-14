@@ -10,4 +10,6 @@ public sealed class SolarYieldConfig : IConfigSection
     public double PeakKw { get; set; } = 5.0;
     public double SystemEfficiency { get; set; } = 0.8;
     public double BatteryCapacityKwh { get; set; }
+    public double SunnierFactor { get; set; } = 1.2;
+    public double CloudierFactor { get; set; } = 0.8;
 }

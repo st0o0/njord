@@ -13,4 +13,8 @@ public sealed class CompoundHeatStressConfig : IConfigSection
     public double ApparentTempThreshold { get; set; } = 40;
     public double Pm25Threshold { get; set; } = 25;
     public int BoundaryLayerLow { get; set; } = 500;
+    public double UvThreshold { get; set; } = 8.0;
+    public double UvPm25Threshold { get; set; } = 15.0;
+    public double VeryHighApparentMargin { get; set; } = 5.0;
+    public double VeryHighPm25Factor { get; set; } = 2.0;
 }

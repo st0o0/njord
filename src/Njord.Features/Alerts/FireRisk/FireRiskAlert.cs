@@ -11,9 +11,6 @@ namespace Njord.Features.Alerts.FireRisk;
 
 public sealed class FireRiskAlert(IOptions<FireRiskConfig> config) : FeatureRule<ForecastEnsembleInput>
 {
-    private const double ColdCutoff = 15.0;
-    private const double HumidCutoff = 70.0;
-
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Lifestyle,
@@ -99,7 +96,7 @@ public sealed class FireRiskAlert(IOptions<FireRiskConfig> config) : FeatureRule
 
     internal static double WeatherScore(double temperature, double humidity, double windSpeed, FireRiskConfig cfg)
     {
-        if (temperature < ColdCutoff || humidity > HumidCutoff)
+        if (temperature < cfg.ColdCutoff || humidity > cfg.HumidCutoff)
         {
             return 0.0;
         }

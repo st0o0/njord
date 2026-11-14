@@ -9,4 +9,6 @@ public sealed class IrrigationNeedConfig : IConfigSection
     public bool Enabled { get; set; }
     public double WetThresholdPercent { get; set; } = 60.0;
     public double DryThresholdPercent { get; set; } = 25.0;
+    public double HeavyRainMm { get; set; } = 5.0;
+    public double HighProbabilityPercent { get; set; } = 60.0;
 }

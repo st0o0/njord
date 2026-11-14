@@ -99,4 +99,27 @@ public sealed class CompoundHeatStressAlertTests
 
     [Fact]
     public void Safe_conditions_raise_nothing() => Assert.Null(Run(Feature(), Now, Combined(Day(), CleanAir())));
+
+    [Fact]
+    public void Uv_pathway_respects_configured_thresholds()
+    {
+        var cfg = new CompoundHeatStressConfig { Enabled = true, UvThreshold = 10.0, UvPm25Threshold = 20.0 };
+        var feature = new CompoundHeatStressAlert(Options.Create(cfg));
+        var weather = Uniform(p => p with { UvIndex = 9.0, BoundaryLayerHeight = 300.0 });
+        var air = CleanAir(shape: (_, p) => p with { Pm25 = 25.0 });
+
+        Assert.Null(Run(feature, Now, Combined(weather, air)));
+    }
+
+    [Fact]
+    public void Very_high_escalation_respects_configured_margin_and_factor()
+    {
+        var cfg = new CompoundHeatStressConfig { Enabled = true, VeryHighApparentMargin = 10.0, VeryHighPm25Factor = 3.0 };
+        var feature = new CompoundHeatStressAlert(Options.Create(cfg));
+        var weather = Uniform(p => p with { ApparentTemperature = 46.0 });
+        var air = CleanAir(shape: (_, p) => p with { Pm25 = 60.0 });
+
+        var alert = Assert.IsType<CompoundHeatStressAlertResult>(Run(feature, Now, Combined(weather, air)));
+        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
+    }
 }

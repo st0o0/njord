@@ -25,6 +25,16 @@ public sealed class SolarYieldConfigValidator : IValidateOptions<SolarYieldConfi
             failures.Add($"{section}: BatteryCapacityKwh must not be negative, got {options.BatteryCapacityKwh}.");
         }
 
+        if (options.SunnierFactor <= 1.0)
+        {
+            failures.Add($"{section}: SunnierFactor must be > 1.0, got {options.SunnierFactor}.");
+        }
+
+        if (options.CloudierFactor is <= 0 or >= 1.0)
+        {
+            failures.Add($"{section}: CloudierFactor must be in (0, 1), got {options.CloudierFactor}.");
+        }
+
         return failures.Count > 0 ? ValidateOptionsResult.Fail(failures) : ValidateOptionsResult.Success;
     }
 }

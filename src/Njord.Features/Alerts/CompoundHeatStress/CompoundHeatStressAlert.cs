@@ -11,11 +11,6 @@ namespace Njord.Features.Alerts.CompoundHeatStress;
 
 public sealed class CompoundHeatStressAlert(IOptions<CompoundHeatStressConfig> config) : FeatureRule<ForecastAqInput>
 {
-    private const double UvThreshold = 8.0;
-    private const double UvPm25Threshold = 15.0;
-    private const double VeryHighApparentMargin = 5.0;
-    private const double VeryHighPm25Factor = 2.0;
-
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Forecast,
@@ -91,15 +86,15 @@ public sealed class CompoundHeatStressAlert(IOptions<CompoundHeatStressConfig> c
         if (point.ApparentTemperature is { } apparent && pm25 is { } fineParticles
             && apparent >= cfg.ApparentTempThreshold && fineParticles >= cfg.Pm25Threshold)
         {
-            var veryHigh = apparent >= cfg.ApparentTempThreshold + VeryHighApparentMargin
-                && fineParticles >= cfg.Pm25Threshold * VeryHighPm25Factor;
+            var veryHigh = apparent >= cfg.ApparentTempThreshold + cfg.VeryHighApparentMargin
+                && fineParticles >= cfg.Pm25Threshold * cfg.VeryHighPm25Factor;
             best = Higher(best, veryHigh ? AlertSeverity.Orange : AlertSeverity.Yellow, apparent, cfg.ApparentTempThreshold);
         }
 
         if (point is { UvIndex: { } uv, BoundaryLayerHeight: { } boundary } && pm25 is { } particles
-            && uv >= UvThreshold && boundary < cfg.BoundaryLayerLow && particles >= UvPm25Threshold)
+            && uv >= cfg.UvThreshold && boundary < cfg.BoundaryLayerLow && particles >= cfg.UvPm25Threshold)
         {
-            best = Higher(best, AlertSeverity.Yellow, uv, UvThreshold);
+            best = Higher(best, AlertSeverity.Yellow, uv, cfg.UvThreshold);
         }
 
         return best;

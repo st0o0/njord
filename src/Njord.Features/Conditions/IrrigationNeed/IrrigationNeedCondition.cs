@@ -10,9 +10,6 @@ namespace Njord.Features.Conditions.IrrigationNeed;
 public sealed class IrrigationNeedCondition(IOptions<IrrigationNeedConfig> config) : FeatureRule<ForecastInput>
 {
 
-    public const double HeavyRainMm = 5.0;
-    public const double HighProbabilityPercent = 60.0;
-
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
@@ -56,7 +53,7 @@ public sealed class IrrigationNeedCondition(IOptions<IrrigationNeedConfig> confi
 
     private static IrrigationAdvice Advise(double moisturePercent, double etMm, double rainMm, double expectedRainMm, double averageProbability, IrrigationNeedConfig options)
     {
-        if (rainMm > HeavyRainMm && averageProbability > HighProbabilityPercent)
+        if (rainMm > options.HeavyRainMm && averageProbability > options.HighProbabilityPercent)
         {
             return IrrigationAdvice.Skip;
         }

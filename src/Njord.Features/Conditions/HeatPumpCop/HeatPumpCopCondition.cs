@@ -33,25 +33,27 @@ public sealed class HeatPumpCopCondition(IOptions<HeatPumpCopConfig> config) : F
             return null;
         }
 
-        var cops = hours.Select(point => (point.ValidFrom, Cop: CopAt(options.TargetTemperature, point.Temperature!.Value))).ToList();
+        var cops = hours.Select(point => (point.ValidFrom, Cop: CopAt(options.TargetTemperature, point.Temperature!.Value, options.CopIntercept, options.CopSlope))).ToList();
         var current = cops[0].Cop;
         var (validFrom, cop) = cops.MaxBy(entry => entry.Cop);
         return new HeatPumpCopConditionResult(
             ctx.Location,
             Math.Round(current, 2),
-            Recommend(current),
+            Recommend(current, options.IdealThreshold, options.NormalThreshold, options.InefficientThreshold),
             Math.Round(cop, 2),
             validFrom.Hour);
     }
 
-    public static double CopAt(double targetTemperature, double outsideTemperature) =>
-        Math.Max(1.0, 6.81 - 0.121 * (targetTemperature - outsideTemperature));
+    public static double CopAt(double targetTemperature, double outsideTemperature,
+        double intercept = 6.81, double slope = 0.121) =>
+        Math.Max(1.0, intercept - slope * (targetTemperature - outsideTemperature));
 
-    public static HeatPumpRecommendation Recommend(double cop) => cop switch
-    {
-        > 4.0 => HeatPumpRecommendation.Ideal,
-        >= 2.5 => HeatPumpRecommendation.Normal,
-        >= 1.5 => HeatPumpRecommendation.Inefficient,
-        _ => HeatPumpRecommendation.Avoid,
-    };
+    public static HeatPumpRecommendation Recommend(double cop,
+        double idealThreshold = 4.0, double normalThreshold = 2.5, double inefficientThreshold = 1.5) => cop switch
+        {
+            _ when cop > idealThreshold => HeatPumpRecommendation.Ideal,
+            _ when cop >= normalThreshold => HeatPumpRecommendation.Normal,
+            _ when cop >= inefficientThreshold => HeatPumpRecommendation.Inefficient,
+            _ => HeatPumpRecommendation.Avoid,
+        };
 }

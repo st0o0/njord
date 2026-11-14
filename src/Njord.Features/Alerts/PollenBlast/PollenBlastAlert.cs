@@ -80,8 +80,8 @@ public sealed class PollenBlastAlert(IOptions<PollenBlastConfig> config) : Featu
 
         var severity = currentPollen switch
         {
-            >= 100 => AlertSeverity.Red,
-            >= 50 => AlertSeverity.Orange,
+            _ when currentPollen >= cfg.RedPollenThreshold => AlertSeverity.Red,
+            _ when currentPollen >= cfg.OrangePollenThreshold => AlertSeverity.Orange,
             _ => AlertSeverity.Yellow,
         };
 

@@ -9,9 +9,6 @@ namespace Njord.Features.Conditions.SolarYield;
 
 public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<ForecastInput>
 {
-    private const double SunnierFactor = 1.2;
-    private const double CloudierFactor = 0.8;
-
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Energy,
@@ -82,20 +79,21 @@ public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<
         var tomorrowKwh = ToKwh(tomorrowWatts, options);
         return new SolarBatteryStrategyConditionResult(
             ctx.Location,
-            Decide(todayKwh, tomorrowKwh, options.BatteryCapacityKwh),
+            Decide(todayKwh, tomorrowKwh, options.BatteryCapacityKwh, options.SunnierFactor, options.CloudierFactor),
             Math.Round(todayKwh, 2),
             Math.Round(tomorrowKwh, 2));
     }
 
-    public static BatteryStrategy Decide(double todayKwh, double tomorrowKwh, double batteryCapacityKwh)
+    public static BatteryStrategy Decide(double todayKwh, double tomorrowKwh, double batteryCapacityKwh,
+        double sunnierFactor = 1.2, double cloudierFactor = 0.8)
     {
         var surplus = todayKwh >= batteryCapacityKwh;
-        if (tomorrowKwh > todayKwh * SunnierFactor)
+        if (tomorrowKwh > todayKwh * sunnierFactor)
         {
             return surplus ? BatteryStrategy.FeedIn : BatteryStrategy.Conserve;
         }
 
-        return surplus && tomorrowKwh < todayKwh * CloudierFactor ? BatteryStrategy.ChargeBattery : BatteryStrategy.Normal;
+        return surplus && tomorrowKwh < todayKwh * cloudierFactor ? BatteryStrategy.ChargeBattery : BatteryStrategy.Normal;
     }
 
     private static double ToKwh(List<double> watts, SolarYieldConfig options) =>

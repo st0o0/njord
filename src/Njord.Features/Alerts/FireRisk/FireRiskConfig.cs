@@ -14,4 +14,6 @@ public sealed class FireRiskConfig : IConfigSection
     public double RedThreshold { get; set; } = 0.7;
     public double OrangeThreshold { get; set; } = 0.4;
     public double YellowThreshold { get; set; } = 0.2;
+    public double ColdCutoff { get; set; } = 15.0;
+    public double HumidCutoff { get; set; } = 70.0;
 }

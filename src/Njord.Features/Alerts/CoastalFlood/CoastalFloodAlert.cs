@@ -63,9 +63,9 @@ public sealed class CoastalFloodAlert(IOptions<CoastalFloodConfig> config) : Fea
         var factors = (hasHighWaves ? 1 : 0) + (hasStrongWind ? 1 : 0);
         var severity = (maxSeaLevel.Value, factors) switch
         {
-            ( >= 0.8, >= 1) => AlertSeverity.Red,
-            ( >= 0.5, _) => AlertSeverity.Orange,
-            (_, >= 2) => AlertSeverity.Orange,
+            _ when maxSeaLevel.Value >= cfg.RedSeaLevelM && factors >= cfg.RedMinFactors => AlertSeverity.Red,
+            _ when maxSeaLevel.Value >= cfg.OrangeSeaLevelM => AlertSeverity.Orange,
+            _ when factors >= 2 => AlertSeverity.Orange,
             _ => AlertSeverity.Yellow,
         };
 

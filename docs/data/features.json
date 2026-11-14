@@ -249,7 +249,7 @@
     "domains": ["Forecast", "AirQuality"],
     "weatherParams": ["ApparentTemperature", "WetBulbTemperature", "UvIndex", "BoundaryLayerHeight", "Humidity"],
     "airQualityParams": ["Pm25"],
-    "options": [{ "name": "WetBulbWarning", "type": "number", "default": 28 }, { "name": "WetBulbSevere", "type": "number", "default": 32 }, { "name": "WetBulbExtreme", "type": "number", "default": 35 }, { "name": "ApparentTempThreshold", "type": "number", "default": 40 }, { "name": "Pm25Threshold", "type": "number", "default": 25 }, { "name": "BoundaryLayerLow", "type": "number", "default": 500 }]
+    "options": [{ "name": "WetBulbWarning", "type": "number", "default": 28 }, { "name": "WetBulbSevere", "type": "number", "default": 32 }, { "name": "WetBulbExtreme", "type": "number", "default": 35 }, { "name": "ApparentTempThreshold", "type": "number", "default": 40 }, { "name": "Pm25Threshold", "type": "number", "default": 25 }, { "name": "BoundaryLayerLow", "type": "number", "default": 500 }, { "name": "UvThreshold", "type": "number", "default": 8.0, "group": "UV Pathway" }, { "name": "UvPm25Threshold", "type": "number", "default": 15.0, "group": "UV Pathway" }, { "name": "VeryHighApparentMargin", "type": "number", "default": 5.0, "group": "Escalation" }, { "name": "VeryHighPm25Factor", "type": "number", "default": 2.0, "group": "Escalation" }]
   },
   {
     "key": "MigraineRisk",
@@ -263,7 +263,7 @@
     "enabledByDefault": false,
     "domains": ["Forecast"],
     "weatherParams": ["Pressure", "Temperature", "Humidity", "DewPoint", "WindDirection"],
-    "options": [{ "name": "PressureThreshold6h", "type": "number", "default": 5 }, { "name": "PressureThreshold24h", "type": "number", "default": 10 }, { "name": "TempSwingThreshold", "type": "number", "default": 8 }, { "name": "HumiditySwingThreshold", "type": "number", "default": 30 }]
+    "options": [{ "name": "PressureThreshold6h", "type": "number", "default": 5 }, { "name": "PressureThreshold24h", "type": "number", "default": 10 }, { "name": "TempSwingThreshold", "type": "number", "default": 8 }, { "name": "HumiditySwingThreshold", "type": "number", "default": 30 }, { "name": "FoehnDirectionMin", "type": "number", "default": 150.0, "group": "Foehn" }, { "name": "FoehnDirectionMax", "type": "number", "default": 210.0, "group": "Foehn" }, { "name": "ShortLookbackHours", "type": "number", "default": 6, "group": "Lookback" }, { "name": "LongLookbackHours", "type": "number", "default": 24, "group": "Lookback" }, { "name": "FoehnLookbackHours", "type": "number", "default": 3, "group": "Lookback" }]
   },
   {
     "key": "Shower",
@@ -366,7 +366,7 @@
     "domains": ["Forecast", "AirQuality"],
     "weatherParams": ["BoundaryLayerHeight"],
     "airQualityParams": ["Pm25"],
-    "options": [{ "name": "BoundaryLayerThresholdM", "type": "number", "default": 500 }, { "name": "Pm25ThresholdUgm3", "type": "number", "default": 25.0 }]
+    "options": [{ "name": "BoundaryLayerThresholdM", "type": "number", "default": 500 }, { "name": "Pm25ThresholdUgm3", "type": "number", "default": 25.0 }, { "name": "RedBoundaryLayerM", "type": "number", "default": 200, "group": "Severity" }, { "name": "RedPm25Ugm3", "type": "number", "default": 50.0, "group": "Severity" }, { "name": "OrangeBoundaryLayerM", "type": "number", "default": 300, "group": "Severity" }, { "name": "OrangePm25Ugm3", "type": "number", "default": 35.0, "group": "Severity" }]
   },
   {
     "key": "AllergySeverity",
@@ -520,7 +520,7 @@
     "domains": ["Forecast", "AirQuality"],
     "weatherParams": ["Temperature", "WindSpeed", "Precipitation"],
     "airQualityParams": ["GrassPollen", "BirchPollen"],
-    "options": [{ "name": "TemperatureThreshold", "type": "number", "default": 15.0 }, { "name": "WindSpeedThreshold", "type": "number", "default": 1.4 }, { "name": "PollenDelta", "type": "number", "default": 10.0 }]
+    "options": [{ "name": "TemperatureThreshold", "type": "number", "default": 15.0 }, { "name": "WindSpeedThreshold", "type": "number", "default": 1.4 }, { "name": "PollenDelta", "type": "number", "default": 10.0 }, { "name": "RedPollenThreshold", "type": "number", "default": 100.0, "group": "Severity" }, { "name": "OrangePollenThreshold", "type": "number", "default": 50.0, "group": "Severity" }]
   },
   {
     "key": "Commute",
@@ -626,7 +626,7 @@
     "enabledByDefault": false,
     "domains": ["Forecast"],
     "weatherParams": ["Evapotranspiration", "SoilMoisture0To1Cm", "VapourPressureDeficit", "Rain", "PrecipitationProbability", "Temperature"],
-    "options": [{ "name": "WetThresholdPercent", "type": "number", "default": 60 }, { "name": "DryThresholdPercent", "type": "number", "default": 25 }]
+    "options": [{ "name": "WetThresholdPercent", "type": "number", "default": 60 }, { "name": "DryThresholdPercent", "type": "number", "default": 25 }, { "name": "HeavyRainMm", "type": "number", "default": 5.0 }, { "name": "HighProbabilityPercent", "type": "number", "default": 60.0 }]
   },
   {
     "key": "FrostDepth",
@@ -640,7 +640,7 @@
     "enabledByDefault": false,
     "domains": ["Forecast"],
     "weatherParams": ["Temperature", "SoilTemperature", "SnowDepth", "WindSpeed"],
-    "options": [{ "name": "PipeDepthCm", "type": "number", "default": 60 }]
+    "options": [{ "name": "PipeDepthCm", "type": "number", "default": 60 }, { "name": "StefanAlpha", "type": "number", "default": 2.4, "group": "Model" }, { "name": "PipeApproachFraction", "type": "number", "default": 0.8, "group": "Model" }, { "name": "SurfaceThresholdCm", "type": "number", "default": 5.0, "group": "Risk Thresholds" }, { "name": "ShallowThresholdCm", "type": "number", "default": 15.0, "group": "Risk Thresholds" }, { "name": "ModerateThresholdCm", "type": "number", "default": 30.0, "group": "Risk Thresholds" }]
   },
   {
     "key": "SprayWindow",
@@ -854,7 +854,7 @@
     "weatherParams": ["Temperature", "Humidity", "WindSpeed", "SoilMoisture0To1Cm", "Precipitation"],
     "optionalWeatherParams": ["IsDay"],
     "ensembleParams": ["TemperatureSpread"],
-    "options": [{ "name": "TemperatureThreshold", "type": "number", "default": 30.0 }, { "name": "HumidityThreshold", "type": "number", "default": 30.0 }, { "name": "WindSpeedThreshold", "type": "number", "default": 5.6 }, { "name": "SoilMoistureThreshold", "type": "number", "default": 0.10 }, { "name": "RedThreshold", "type": "number", "default": 0.7 }, { "name": "OrangeThreshold", "type": "number", "default": 0.4 }, { "name": "YellowThreshold", "type": "number", "default": 0.2 }]
+    "options": [{ "name": "TemperatureThreshold", "type": "number", "default": 30.0 }, { "name": "HumidityThreshold", "type": "number", "default": 30.0 }, { "name": "WindSpeedThreshold", "type": "number", "default": 5.6 }, { "name": "SoilMoistureThreshold", "type": "number", "default": 0.10 }, { "name": "RedThreshold", "type": "number", "default": 0.7 }, { "name": "OrangeThreshold", "type": "number", "default": 0.4 }, { "name": "YellowThreshold", "type": "number", "default": 0.2 }, { "name": "ColdCutoff", "type": "number", "default": 15.0, "group": "Gate" }, { "name": "HumidCutoff", "type": "number", "default": 70.0, "group": "Gate" }]
   },
   {
     "key": "GrowingDegree",
@@ -994,7 +994,7 @@
     "enabledByDefault": false,
     "domains": ["Forecast"],
     "weatherParams": ["GlobalTiltedIrradiance"],
-    "options": [{ "name": "PeakKw", "type": "number", "default": 5 }, { "name": "SystemEfficiency", "type": "number", "default": 0.8 }, { "name": "BatteryCapacityKwh", "type": "number", "default": 0 }]
+    "options": [{ "name": "PeakKw", "type": "number", "default": 5 }, { "name": "SystemEfficiency", "type": "number", "default": 0.8 }, { "name": "BatteryCapacityKwh", "type": "number", "default": 0 }, { "name": "SunnierFactor", "type": "number", "default": 1.2, "group": "Battery Strategy" }, { "name": "CloudierFactor", "type": "number", "default": 0.8, "group": "Battery Strategy" }]
   },
   {
     "key": "HeatPumpCop",
@@ -1008,7 +1008,7 @@
     "enabledByDefault": false,
     "domains": ["Forecast"],
     "weatherParams": ["Temperature"],
-    "options": [{ "name": "TargetTemperature", "type": "number", "default": 35 }, { "name": "ForecastHours", "type": "number", "default": 24 }]
+    "options": [{ "name": "TargetTemperature", "type": "number", "default": 35 }, { "name": "ForecastHours", "type": "number", "default": 24 }, { "name": "CopIntercept", "type": "number", "default": 6.81, "group": "COP Model" }, { "name": "CopSlope", "type": "number", "default": 0.121, "group": "COP Model" }, { "name": "IdealThreshold", "type": "number", "default": 4.0, "group": "Recommendation" }, { "name": "NormalThreshold", "type": "number", "default": 2.5, "group": "Recommendation" }, { "name": "InefficientThreshold", "type": "number", "default": 1.5, "group": "Recommendation" }]
   },
   {
     "key": "ElevatedWind",
@@ -1143,7 +1143,7 @@
     "ensembleParams": ["TemperatureSpread"],
     "marineParams": ["SeaLevelHeight", "WaveHeight"],
     "optionalMarineParams": ["WaveDirection"],
-    "options": [{ "name": "SeaLevelThresholdM", "type": "number", "default": 0.3 }, { "name": "WaveHeightThresholdM", "type": "number", "default": 1.5 }, { "name": "WindSpeedThreshold", "type": "number", "default": 4.2 }]
+    "options": [{ "name": "SeaLevelThresholdM", "type": "number", "default": 0.3 }, { "name": "WaveHeightThresholdM", "type": "number", "default": 1.5 }, { "name": "WindSpeedThreshold", "type": "number", "default": 4.2 }, { "name": "RedSeaLevelM", "type": "number", "default": 0.8, "group": "Severity" }, { "name": "RedMinFactors", "type": "number", "default": 1, "group": "Severity" }, { "name": "OrangeSeaLevelM", "type": "number", "default": 0.5, "group": "Severity" }, { "name": "OrangeMinFactors", "type": "number", "default": 0, "group": "Severity" }]
   },
   {
     "key": "Weather",
