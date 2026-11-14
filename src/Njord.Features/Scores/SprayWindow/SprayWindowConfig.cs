@@ -14,4 +14,9 @@ public sealed class SprayWindowConfig : IConfigSection
     public int MinWindowScore { get; set; } = 80;
     public int MinWindowHours { get; set; } = 2;
     public int MaxWindows { get; set; } = 3;
+    public double RainProbabilityLimit { get; set; } = 20.0;
+    public double TemperatureFalloff { get; set; } = 10.0;
+    public double HumidityMin { get; set; } = 40.0;
+    public double HumidityMax { get; set; } = 80.0;
+    public double HumidityFalloff { get; set; } = 20.0;
 }

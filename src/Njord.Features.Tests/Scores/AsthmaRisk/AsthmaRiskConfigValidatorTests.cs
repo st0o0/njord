@@ -47,4 +47,31 @@ public sealed class AsthmaRiskConfigValidatorTests
         Assert.NotNull(result.Failures);
         Assert.Contains(result.Failures, f => f.Contains($"{property} must be at least 1"));
     }
+
+    [Fact]
+    public void Zero_pm25_reference_is_rejected()
+    {
+        var result = _validator.Validate(null, new AsthmaRiskConfig { Pm25Reference = 0 });
+        Assert.True(result.Failed);
+        Assert.NotNull(result.Failures);
+        Assert.Contains(result.Failures, f => f.Contains("Pm25Reference must be positive"));
+    }
+
+    [Fact]
+    public void Cold_air_factor_below_one_is_rejected()
+    {
+        var result = _validator.Validate(null, new AsthmaRiskConfig { ColdAirFactor = 0.5 });
+        Assert.True(result.Failed);
+        Assert.NotNull(result.Failures);
+        Assert.Contains(result.Failures, f => f.Contains("ColdAirFactor must be at least 1.0"));
+    }
+
+    [Fact]
+    public void Zero_rapid_change_degrees_is_rejected()
+    {
+        var result = _validator.Validate(null, new AsthmaRiskConfig { RapidChangeDegrees = 0 });
+        Assert.True(result.Failed);
+        Assert.NotNull(result.Failures);
+        Assert.Contains(result.Failures, f => f.Contains("RapidChangeDegrees must be positive"));
+    }
 }

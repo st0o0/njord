@@ -11,7 +11,11 @@ namespace Njord.Features.Tests.Scores.Bbq;
 
 public sealed class BbqScoreTests
 {
+    private static readonly BbqConfig _defaultConfig = new();
+
     private static BbqScore Feature(bool enabled = true) => new(Options.Create(new BbqConfig { Enabled = enabled }));
+
+    private static BbqScore Feature(BbqConfig cfg) => new(Options.Create(cfg));
 
     [Fact]
     public void An_ideal_evening_scores_at_least_ninety()
@@ -110,14 +114,14 @@ public sealed class BbqScoreTests
     public void ScoreHour_returns_zero_at_night()
     {
         var point = new ForecastPoint(Now, IsDay: 0.0, Temperature: 22.0, WindSpeed: 2.0, PrecipitationProbability: 0.0, CloudCover: 0.0);
-        Assert.Equal(0.0, BbqScore.ScoreHour(point));
+        Assert.Equal(0.0, BbqScore.ScoreHour(point, _defaultConfig));
     }
 
     [Fact]
     public void ScoreHour_perfect_conditions_yield_100()
     {
         var point = new ForecastPoint(Now, IsDay: 1.0, Temperature: 22.0, WindSpeed: 2.0, PrecipitationProbability: 0.0, CloudCover: 0.0);
-        Assert.Equal(100.0, BbqScore.ScoreHour(point));
+        Assert.Equal(100.0, BbqScore.ScoreHour(point, _defaultConfig));
     }
 
     [Fact]
@@ -125,7 +129,7 @@ public sealed class BbqScoreTests
     {
         var calm = new ForecastPoint(Now, IsDay: 1.0, Temperature: 22.0, WindSpeed: 2.0, PrecipitationProbability: 0.0, CloudCover: 0.0);
         var windy = calm with { WindSpeed = 8.0 };
-        Assert.True(BbqScore.ScoreHour(windy) < BbqScore.ScoreHour(calm));
+        Assert.True(BbqScore.ScoreHour(windy, _defaultConfig) < BbqScore.ScoreHour(calm, _defaultConfig));
     }
 
     [Fact]
@@ -133,7 +137,7 @@ public sealed class BbqScoreTests
     {
         var dry = new ForecastPoint(Now, IsDay: 1.0, Temperature: 22.0, WindSpeed: 2.0, PrecipitationProbability: 0.0, CloudCover: 0.0);
         var likely = dry with { PrecipitationProbability = 40.0 };
-        Assert.True(BbqScore.ScoreHour(likely) < BbqScore.ScoreHour(dry));
+        Assert.True(BbqScore.ScoreHour(likely, _defaultConfig) < BbqScore.ScoreHour(dry, _defaultConfig));
     }
 
     [Fact]
@@ -141,6 +145,34 @@ public sealed class BbqScoreTests
     {
         var warm = new ForecastPoint(Now, IsDay: 1.0, Temperature: 22.0, WindSpeed: 2.0, PrecipitationProbability: 0.0, CloudCover: 0.0);
         var cold = warm with { Temperature = 12.0 };
-        Assert.True(BbqScore.ScoreHour(cold) < BbqScore.ScoreHour(warm));
+        Assert.True(BbqScore.ScoreHour(cold, _defaultConfig) < BbqScore.ScoreHour(warm, _defaultConfig));
+    }
+
+    [Fact]
+    public void Custom_temperature_band_shifts_scoring()
+    {
+        var cfg = new BbqConfig { TemperatureLow = 15.0, TemperatureIdeal = 22.0 };
+        var at15 = new ForecastPoint(Now, IsDay: 1.0, Temperature: 15.0, WindSpeed: 0.0, PrecipitationProbability: 0.0, CloudCover: 0.0);
+        var at22 = at15 with { Temperature = 22.0 };
+        Assert.True(BbqScore.ScoreHour(at22, cfg) > BbqScore.ScoreHour(at15, cfg));
+    }
+
+    [Fact]
+    public void Custom_weights_change_score()
+    {
+        var cfg = new BbqConfig { TemperatureWeight = 0.5, WindWeight = 0.2, RainWeight = 0.15, CloudWeight = 0.15 };
+        var point = new ForecastPoint(Now, IsDay: 1.0, Temperature: 12.0, WindSpeed: 0.0, PrecipitationProbability: 0.0, CloudCover: 0.0);
+        var defaultScore = BbqScore.ScoreHour(point, _defaultConfig);
+        var customScore = BbqScore.ScoreHour(point, cfg);
+        Assert.NotEqual(defaultScore, customScore);
+    }
+
+    [Fact]
+    public void Custom_good_hour_score_changes_window()
+    {
+        var forecast = ForecastOnly(Uniform(p => p with { Temperature = 20.0, WindSpeed = 4.0, CloudCover = 50.0 }));
+        var cfg = new BbqConfig { Enabled = true, GoodHourScore = 40.0 };
+        var score = Assert.IsType<BbqScoreResult>(Run(Feature(cfg), Now, forecast));
+        Assert.True(score.BestHours > 0, "With a lower GoodHourScore, more hours should qualify");
     }
 }

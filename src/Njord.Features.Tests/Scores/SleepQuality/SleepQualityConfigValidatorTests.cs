@@ -41,4 +41,40 @@ public sealed class SleepQualityConfigValidatorTests
         Assert.NotNull(result.Failures);
         Assert.Contains(result.Failures, f => f.Contains($"{property} must be at least 1"));
     }
+
+    [Fact]
+    public void PreSleepHours_below_one_is_rejected()
+    {
+        var result = _validator.Validate(null, new SleepQualityConfig { PreSleepHours = 0 });
+        Assert.True(result.Failed);
+        Assert.NotNull(result.Failures);
+        Assert.Contains(result.Failures, f => f.Contains("PreSleepHours must be at least 1"));
+    }
+
+    [Fact]
+    public void Inverted_temperature_ordering_is_rejected()
+    {
+        var result = _validator.Validate(null, new SleepQualityConfig { ColdThreshold = 25.0, WarmThreshold = 22.0 });
+        Assert.True(result.Failed);
+        Assert.NotNull(result.Failures);
+        Assert.Contains(result.Failures, f => f.Contains("ColdThreshold"));
+    }
+
+    [Fact]
+    public void Negative_penalty_is_rejected()
+    {
+        var result = _validator.Validate(null, new SleepQualityConfig { HotPenalty = -1 });
+        Assert.True(result.Failed);
+        Assert.NotNull(result.Failures);
+        Assert.Contains(result.Failures, f => f.Contains("HotPenalty"));
+    }
+
+    [Fact]
+    public void Zero_pollen_threshold_is_rejected()
+    {
+        var result = _validator.Validate(null, new SleepQualityConfig { HighPollen = 0 });
+        Assert.True(result.Failed);
+        Assert.NotNull(result.Failures);
+        Assert.Contains(result.Failures, f => f.Contains("HighPollen"));
+    }
 }

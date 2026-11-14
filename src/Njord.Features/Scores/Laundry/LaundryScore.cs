@@ -10,8 +10,6 @@ namespace Njord.Features.Scores.Laundry;
 
 public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<ForecastInput>
 {
-    private const double GoodHourScore = 60.0;
-
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Score,
         FeatureCategory.Lifestyle,
@@ -28,19 +26,20 @@ public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<F
 
     protected override PipelineEvent? Evaluate(FeatureContext<ForecastInput> ctx)
     {
+        var cfg = config.Value;
         var hours = ctx.Current.Forecast.NextHours(ctx.Now);
         if (hours.Count == 0)
         {
             return null;
         }
 
-        var scores = hours.Select(ScoreHour).ToList();
+        var scores = hours.Select(h => ScoreHour(h, cfg)).ToList();
         var windows = WindowScanner.Scan(
             [.. hours.Select((hour, i) => new HourlyScore(hour.ValidFrom, scores[i]))],
-            config.Value.MinWindowScore,
-            config.Value.MinWindowHours,
-            config.Value.MaxWindows);
-        var (start, length) = Scoring.LongestRun([.. scores.Select(score => score >= GoodHourScore)]);
+            cfg.MinWindowScore,
+            cfg.MinWindowHours,
+            cfg.MaxWindows);
+        var (start, length) = Scoring.LongestRun([.. scores.Select(score => score >= cfg.GoodHourScore)]);
         if (length == 0)
         {
             var bestIndex = scores.IndexOf(scores.Max());
@@ -51,9 +50,9 @@ public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<F
         return new LaundryScoreResult(ctx.Location, (int)Math.Round(windowScore), hours[start].ValidFrom, length) { Windows = windows };
     }
 
-    internal static double ScoreHour(ForecastPoint point)
+    internal static double ScoreHour(ForecastPoint point, LaundryConfig cfg)
     {
-        if (point.IsDay is not > 0 || point.Precipitation > 0.1)
+        if (point.IsDay is not > 0 || point.Precipitation > cfg.RainThreshold)
         {
             return 0.0;
         }
@@ -63,13 +62,14 @@ public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<F
             return 0.0;
         }
 
-        var temperature = Scoring.Ramp(air, 5.0, 25.0);
-        var humidity = 1.0 - Scoring.Ramp(relativeHumidity, 40.0, 90.0);
-        var wind = Scoring.Band(windSpeed, 0.0, 2.0, 8.0, 15.0);
+        var temperature = Scoring.Ramp(air, cfg.TemperatureLow, cfg.TemperatureHigh);
+        var humidity = 1.0 - Scoring.Ramp(relativeHumidity, cfg.HumidityLow, cfg.HumidityHigh);
+        var wind = Scoring.Band(windSpeed, cfg.WindLow, cfg.WindIdeal, cfg.WindModerate, cfg.WindStrong);
         var rain = 1.0 - Scoring.Ramp(probability, 0.0, 100.0);
         var sun = point.SunshineDuration is { } sunshine
-            ? Scoring.Ramp(sunshine, 0.0, 3600.0)
+            ? Scoring.Ramp(sunshine, 0.0, cfg.SunshineFull)
             : point.CloudCover is { } cloudCover ? 1.0 - Scoring.Ramp(cloudCover, 0.0, 100.0) : 0.0;
-        return 100.0 * (0.25 * temperature + 0.25 * humidity + 0.15 * wind + 0.2 * rain + 0.15 * sun);
+        return 100.0 * (cfg.TemperatureWeight * temperature + cfg.HumidityWeight * humidity
+            + cfg.WindWeight * wind + cfg.RainWeight * rain + cfg.SunWeight * sun);
     }
 }

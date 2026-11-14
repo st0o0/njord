@@ -74,6 +74,32 @@ function setNumberOption(key: string, option: FeatureOption, raw: string) {
   storeOption(key, option, raw.trim() === '' || Number.isNaN(parsed) ? undefined : parsed)
 }
 
+function optionGroups(f: FeatureEntry): { group: string | null; options: FeatureOption[] }[] {
+  if (!f.options?.length) return []
+  const groups: { group: string | null; options: FeatureOption[] }[] = []
+  const seen = new Set<string | null>()
+  for (const opt of f.options) {
+    const g = opt.group ?? null
+    if (!seen.has(g)) {
+      seen.add(g)
+      groups.push({ group: g, options: f.options.filter(o => (o.group ?? null) === g) })
+    }
+  }
+  return groups
+}
+
+function weightSum(key: string, options: FeatureOption[]): number | null {
+  const weights = options.filter(o => o.group === 'Weights' && o.type === 'number')
+  if (weights.length === 0) return null
+  return weights.reduce((sum, w) => sum + (getOption(key, w) as number), 0)
+}
+
+function weightSumError(key: string, options: FeatureOption[]): string | null {
+  const sum = weightSum(key, options)
+  if (sum === null) return null
+  return Math.abs(sum - 1.0) < 0.001 ? null : `Weights sum to ${sum.toFixed(3)}, must be 1.0`
+}
+
 const exportMode = reactive({ format: 'json' as 'json' | 'env' | 'compose' })
 const importText = reactive({ value: '', error: '' })
 const copied = reactive({ show: false })
@@ -216,36 +242,28 @@ onMounted(() => {
             <div v-if="expandedFeature === f.key" class="feature-detail">
               <p v-if="f.longDescription">{{ f.longDescription }}</p>
               <div v-if="f.options?.length && isFeatureOn(f.key)" class="inline-options">
-                <label v-for="opt in f.options" :key="opt.name" class="inline-option" :title="opt.description">
-                  <span class="option-name">{{ opt.name }}</span>
-                  <input
-                    v-if="opt.type === 'boolean'"
-                    type="checkbox"
-                    :checked="getOption(f.key, opt) as boolean"
-                    @change="storeOption(f.key, opt, ($event.target as HTMLInputElement).checked)"
-                    class="option-checkbox"
-                  />
-                  <span v-else-if="opt.type === 'numberArray'" class="array-inputs">
-                    <input
-                      v-for="(v, idx) in getArrayOption(f.key, opt)"
-                      :key="idx"
-                      type="number"
-                      step="any"
-                      :value="v"
-                      @input="setArrayOption(f.key, opt, idx, ($event.target as HTMLInputElement).value)"
-                      class="option-input option-input-small"
-                    />
-                  </span>
-                  <input
-                    v-else
-                    type="number"
-                    step="any"
-                    :placeholder="String(opt.default)"
-                    :value="getOption(f.key, opt)"
-                    @input="setNumberOption(f.key, opt, ($event.target as HTMLInputElement).value)"
-                    class="option-input"
-                  />
-                </label>
+                <template v-for="grp in optionGroups(f)" :key="grp.group ?? '__ungrouped'">
+                  <details v-if="grp.group" class="option-group" open>
+                    <summary class="option-group-label">
+                      {{ grp.group }}
+                      <span v-if="grp.group === 'Weights' && weightSumError(f.key, f.options!)" class="weight-error">{{ weightSumError(f.key, f.options!) }}</span>
+                    </summary>
+                    <label v-for="opt in grp.options" :key="opt.name" class="inline-option" :title="opt.description">
+                      <span class="option-name">{{ opt.name }}</span>
+                      <input type="number" step="any" :placeholder="String(opt.default)" :value="getOption(f.key, opt)" @input="setNumberOption(f.key, opt, ($event.target as HTMLInputElement).value)" class="option-input" />
+                    </label>
+                  </details>
+                  <template v-else>
+                    <label v-for="opt in grp.options" :key="opt.name" class="inline-option" :title="opt.description">
+                      <span class="option-name">{{ opt.name }}</span>
+                      <input v-if="opt.type === 'boolean'" type="checkbox" :checked="getOption(f.key, opt) as boolean" @change="storeOption(f.key, opt, ($event.target as HTMLInputElement).checked)" class="option-checkbox" />
+                      <span v-else-if="opt.type === 'numberArray'" class="array-inputs">
+                        <input v-for="(v, idx) in getArrayOption(f.key, opt)" :key="idx" type="number" step="any" :value="v" @input="setArrayOption(f.key, opt, idx, ($event.target as HTMLInputElement).value)" class="option-input option-input-small" />
+                      </span>
+                      <input v-else type="number" step="any" :placeholder="String(opt.default)" :value="getOption(f.key, opt)" @input="setNumberOption(f.key, opt, ($event.target as HTMLInputElement).value)" class="option-input" />
+                    </label>
+                  </template>
+                </template>
               </div>
               <div v-if="f.entities?.length" class="entity-list">
                 <span class="entity-label">HA entities:</span>
@@ -448,6 +466,9 @@ button.active { background: var(--vp-c-brand-1); color: white; border-color: var
 .option-input-small { width: 64px; }
 .option-checkbox { width: 16px; height: 16px; margin: 0; vertical-align: middle; }
 .array-inputs { display: flex; gap: 4px; }
+.option-group { margin: 4px 0; }
+.option-group-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--vp-c-text-3); cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px; }
+.weight-error { color: var(--vp-c-danger-1, #e53935); font-weight: normal; font-size: 11px; text-transform: none; letter-spacing: normal; }
 .advanced { margin-top: 8px; }
 
 .general-row { display: flex; gap: 12px; flex-wrap: wrap; }

@@ -28,7 +28,7 @@ public sealed class SurfConditions(IOptions<SurfConditionsConfig> config) : Feat
 
     protected override PipelineEvent? Evaluate(FeatureContext<MarineForecastInput> ctx)
     {
-        if (SurfConditionsRule.Evaluate(ctx.Current.Marine, ctx.Current.Forecast, ctx.Now) is not { } surf)
+        if (SurfConditionsRule.Evaluate(ctx.Current.Marine, ctx.Current.Forecast, ctx.Now, config.Value) is not { } surf)
         {
             return null;
         }

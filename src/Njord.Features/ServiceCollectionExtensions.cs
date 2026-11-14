@@ -156,9 +156,9 @@ public static class ServiceCollectionExtensions
         // Scores
         services.AddFeature<AllergySeverityScore, AllergySeverityConfig, AllergySeverityConfigValidator>();
         services.AddFeature<AsthmaRiskScore, AsthmaRiskConfig, AsthmaRiskConfigValidator>();
-        services.AddFeature<BbqScore, BbqConfig>();
+        services.AddFeature<BbqScore, BbqConfig, BbqConfigValidator>();
         services.AddFeature<LaundryScore, LaundryConfig, LaundryConfigValidator>();
-        services.AddFeature<OutdoorScore, OutdoorConfig>();
+        services.AddFeature<OutdoorScore, OutdoorConfig, OutdoorConfigValidator>();
         services.AddFeature<SleepQualityScore, SleepQualityConfig, SleepQualityConfigValidator>();
 
         // Conditions
@@ -168,7 +168,7 @@ public static class ServiceCollectionExtensions
         services.AddFeature<CommuteSafety, CommuteSafetyConfig>();
         services.AddFeature<ElevatedWind, ElevatedWindConfig>();
         services.AddFeature<Evapotranspiration, EvapotranspirationConfig, EvapotranspirationConfigValidator>();
-        services.AddFeature<ExerciseAdvisory, ExerciseAdvisoryConfig>();
+        services.AddFeature<ExerciseAdvisory, ExerciseAdvisoryConfig, ExerciseAdvisoryConfigValidator>();
         services.AddFeature<FloodTimeline, FloodTimelineConfig>();
         services.AddFeature<FrostDepthCondition, FrostDepthConfig, FrostDepthConfigValidator>();
         services.AddFeature<Gardening, GardeningConfig>();
@@ -184,7 +184,7 @@ public static class ServiceCollectionExtensions
         services.AddFeature<SoilMoisture, SoilMoistureConfig, SoilMoistureConfigValidator>();
         services.AddFeature<SolarYield, SolarYieldConfig, SolarYieldConfigValidator>();
         services.AddFeature<SprayWindowScore, SprayWindowConfig, SprayWindowConfigValidator>();
-        services.AddFeature<SurfConditions, SurfConditionsConfig>();
+        services.AddFeature<SurfConditions, SurfConditionsConfig, SurfConditionsConfigValidator>();
         services.AddFeature<VentilationWindow, VentilationWindowConfig>();
 
         // Trends

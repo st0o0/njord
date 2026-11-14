@@ -11,7 +11,11 @@ namespace Njord.Features.Tests.Scores.Outdoor;
 
 public sealed class OutdoorScoreTests
 {
+    private static readonly OutdoorConfig _defaultConfig = new();
+
     private static OutdoorScore Feature() => new(Options.Create(new OutdoorConfig { Enabled = true }));
+
+    private static OutdoorScore Feature(OutdoorConfig cfg) => new(Options.Create(cfg));
 
     [Fact]
     public void A_perfect_day_scores_highly_over_the_whole_day()
@@ -77,7 +81,7 @@ public sealed class OutdoorScoreTests
     {
         var weather = new ForecastPoint(Now, IsDay: 0.0, Temperature: 22.0, PrecipitationProbability: 0.0, WindSpeed: 2.0, CloudCover: 10.0);
         var air = new AirQualityPoint(Now, Pm25: 5.0);
-        Assert.Equal(0.0, OutdoorScore.ScoreHour(weather, air));
+        Assert.Equal(0.0, OutdoorScore.ScoreHour(weather, air, _defaultConfig));
     }
 
     [Fact]
@@ -85,7 +89,7 @@ public sealed class OutdoorScoreTests
     {
         var weather = new ForecastPoint(Now, IsDay: 1.0, Temperature: 20.0, Precipitation: 0.0, PrecipitationProbability: 0.0, WindSpeed: 4.0, CloudCover: 10.0);
         var air = new AirQualityPoint(Now, Pm25: 5.0);
-        Assert.True(OutdoorScore.ScoreHour(weather, air) > 90.0);
+        Assert.True(OutdoorScore.ScoreHour(weather, air, _defaultConfig) > 90.0);
     }
 
     [Fact]
@@ -93,8 +97,8 @@ public sealed class OutdoorScoreTests
     {
         var weather = new ForecastPoint(Now, IsDay: 1.0, Temperature: 20.0, Precipitation: 1.0, PrecipitationProbability: 0.0, WindSpeed: 4.0, CloudCover: 10.0);
         var air = new AirQualityPoint(Now, Pm25: 5.0);
-        var withRain = OutdoorScore.ScoreHour(weather, air);
-        var noRain = OutdoorScore.ScoreHour(weather with { Precipitation = 0.0 }, air);
+        var withRain = OutdoorScore.ScoreHour(weather, air, _defaultConfig);
+        var noRain = OutdoorScore.ScoreHour(weather with { Precipitation = 0.0 }, air, _defaultConfig);
         Assert.True(withRain < noRain, $"Rain ({withRain}) should reduce score vs dry ({noRain})");
     }
 
@@ -102,8 +106,8 @@ public sealed class OutdoorScoreTests
     public void ScoreHour_high_pm25_reduces_air_factor()
     {
         var weather = new ForecastPoint(Now, IsDay: 1.0, Temperature: 20.0, Precipitation: 0.0, PrecipitationProbability: 0.0, WindSpeed: 4.0, CloudCover: 10.0);
-        var clean = OutdoorScore.ScoreHour(weather, new AirQualityPoint(Now, Pm25: 5.0));
-        var dirty = OutdoorScore.ScoreHour(weather, new AirQualityPoint(Now, Pm25: 50.0));
+        var clean = OutdoorScore.ScoreHour(weather, new AirQualityPoint(Now, Pm25: 5.0), _defaultConfig);
+        var dirty = OutdoorScore.ScoreHour(weather, new AirQualityPoint(Now, Pm25: 50.0), _defaultConfig);
         Assert.True(dirty < clean, $"PM2.5 50 ({dirty}) should score lower than PM2.5 5 ({clean})");
     }
 
@@ -112,8 +116,19 @@ public sealed class OutdoorScoreTests
     {
         var weather = new ForecastPoint(Now, IsDay: 1.0, Temperature: 20.0, Precipitation: 0.0, PrecipitationProbability: 0.0, WindSpeed: 4.0, CloudCover: 10.0, UvIndex: 10.0);
         var air = new AirQualityPoint(Now, Pm25: 5.0);
-        var highUv = OutdoorScore.ScoreHour(weather, air);
-        var lowUv = OutdoorScore.ScoreHour(weather with { UvIndex = 1.0 }, air);
+        var highUv = OutdoorScore.ScoreHour(weather, air, _defaultConfig);
+        var lowUv = OutdoorScore.ScoreHour(weather with { UvIndex = 1.0 }, air, _defaultConfig);
         Assert.True(highUv < lowUv, $"UV 10 ({highUv}) should score lower than UV 1 ({lowUv})");
+    }
+
+    [Fact]
+    public void Custom_air_quality_weight_changes_score()
+    {
+        var cfg = new OutdoorConfig { AirQualityWeight = 0.4, TemperatureWeight = 0.2, RainWeight = 0.1, WindWeight = 0.1, CloudWeight = 0.1, UvWeight = 0.0 };
+        var weather = new ForecastPoint(Now, IsDay: 1.0, Temperature: 20.0, Precipitation: 0.0, PrecipitationProbability: 0.0, WindSpeed: 4.0, CloudCover: 10.0);
+        var air = new AirQualityPoint(Now, Pm25: 40.0);
+        var defaultScore = OutdoorScore.ScoreHour(weather, air, _defaultConfig);
+        var customScore = OutdoorScore.ScoreHour(weather, air, cfg);
+        Assert.True(customScore < defaultScore, "Higher AQ weight with bad AQ should lower score");
     }
 }

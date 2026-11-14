@@ -1,6 +1,7 @@
 using Njord.Core.Domain;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;
+using Njord.Features.Conditions.SurfConditions;
 
 namespace Njord.Features.Conditions.Shared;
 
@@ -14,30 +15,19 @@ public sealed record SurfAssessment(
 
 public static class SurfConditionsRule
 {
-    public const int WindowHours = 24;
-    public const double MediumPeriodSeconds = 8.0;
-    public const double LongPeriodSeconds = 12.0;
-    public const double UsableHeightMinMeters = 0.5;
-    public const double IdealHeightMinMeters = 1.0;
-    public const double IdealHeightMaxMeters = 2.5;
-    public const double UsableHeightMaxMeters = 3.5;
-    public const double OffshoreToleranceDegrees = 45.0;
-    public const double ChoppyShare = 0.5;
-    public const double VeryChoppyShare = 0.75;
-    public const int PoorScoreCap = 39;
-
     public const string Offshore = "offshore";
     public const string Cross = "cross";
     public const string Onshore = "onshore";
 
     public static SurfAssessment? Evaluate(
-        DomainForecast<MarinePoint> marine, DomainForecast<ForecastPoint>? weather, DateTimeOffset now)
+        DomainForecast<MarinePoint> marine, DomainForecast<ForecastPoint>? weather, DateTimeOffset now,
+        SurfConditionsConfig cfg)
     {
         SurfAssessment? best = null;
 
-        foreach (var point in marine.NextHours(now, WindowHours))
+        foreach (var point in marine.NextHours(now, cfg.WindowHours))
         {
-            var assessment = Assess(point, WindDirectionAt(weather, point.ValidFrom));
+            var assessment = Assess(point, WindDirectionAt(weather, point.ValidFrom), cfg);
             if (assessment is not null && (best is null || assessment.Score > best.Score))
             {
                 best = assessment;
@@ -47,23 +37,20 @@ public static class SurfConditionsRule
         return best;
     }
 
-    public static SurfAssessment? Assess(MarinePoint point, double? windDirection)
+    public static SurfAssessment? Assess(MarinePoint point, double? windDirection, SurfConditionsConfig cfg)
     {
         if (point is not { SwellWaveHeight: { } height, SwellWavePeriod: { } period })
         {
             return null;
         }
 
-        var periodPoints = period switch
-        {
-            < MediumPeriodSeconds => 10.0,
-            <= LongPeriodSeconds => 30.0,
-            _ => 50.0,
-        };
-        var heightPoints = HeightPoints(height);
+        var periodPoints = period < cfg.MediumPeriodSeconds ? 10.0
+            : period <= cfg.LongPeriodSeconds ? 30.0
+            : 50.0;
+        var heightPoints = HeightPoints(height, cfg);
 
         var relation = point.SwellWaveDirection is { } swellDirection && windDirection is { } wind
-            ? Relation(wind, swellDirection)
+            ? Relation(wind, swellDirection, cfg.OffshoreToleranceDegrees)
             : null;
 
         double score;
@@ -81,17 +68,17 @@ public static class SurfConditionsRule
             };
         }
 
-        score -= ChoppyPenalty(point.WindWaveHeight, height);
-        if (period < MediumPeriodSeconds)
+        score -= ChoppyPenalty(point.WindWaveHeight, height, cfg);
+        if (period < cfg.MediumPeriodSeconds)
         {
-            score = Math.Min(score, PoorScoreCap);
+            score = Math.Min(score, cfg.PoorScoreCap);
         }
 
         var rounded = (int)Math.Round(Math.Clamp(score, 0.0, 100.0));
         return new SurfAssessment(rounded, RatingFor(rounded), height, period, relation, point.ValidFrom);
     }
 
-    public static string Relation(double windFrom, double swellFrom)
+    public static string Relation(double windFrom, double swellFrom, double offshoreTolerance)
     {
         var difference = Math.Abs(windFrom - swellFrom) % 360.0;
         if (difference > 180.0)
@@ -99,12 +86,12 @@ public static class SurfConditionsRule
             difference = 360.0 - difference;
         }
 
-        if (difference >= 180.0 - OffshoreToleranceDegrees)
+        if (difference >= 180.0 - offshoreTolerance)
         {
             return Offshore;
         }
 
-        return difference <= OffshoreToleranceDegrees ? Onshore : Cross;
+        return difference <= offshoreTolerance ? Onshore : Cross;
     }
 
     public static string RatingFor(int score) => score switch
@@ -115,15 +102,15 @@ public static class SurfConditionsRule
         _ => "excellent",
     };
 
-    private static double HeightPoints(double height)
+    private static double HeightPoints(double height, SurfConditionsConfig cfg)
     {
-        if (height is >= IdealHeightMinMeters and <= IdealHeightMaxMeters)
+        if (height >= cfg.IdealHeightMinMeters && height <= cfg.IdealHeightMaxMeters)
         {
             return 30.0;
         }
 
-        if (height is >= UsableHeightMinMeters and < IdealHeightMinMeters
-            or > IdealHeightMaxMeters and <= UsableHeightMaxMeters)
+        if ((height >= cfg.UsableHeightMinMeters && height < cfg.IdealHeightMinMeters)
+            || (height > cfg.IdealHeightMaxMeters && height <= cfg.UsableHeightMaxMeters))
         {
             return 20.0;
         }
@@ -131,7 +118,7 @@ public static class SurfConditionsRule
         return 5.0;
     }
 
-    private static double ChoppyPenalty(double? windWaveHeight, double swellHeight)
+    private static double ChoppyPenalty(double? windWaveHeight, double swellHeight, SurfConditionsConfig cfg)
     {
         if (windWaveHeight is not { } windWave || swellHeight <= 0.0)
         {
@@ -139,12 +126,12 @@ public static class SurfConditionsRule
         }
 
         var share = windWave / swellHeight;
-        if (share > VeryChoppyShare)
+        if (share > cfg.VeryChoppyShare)
         {
             return 20.0;
         }
 
-        return share > ChoppyShare ? 10.0 : 0.0;
+        return share > cfg.ChoppyShare ? 10.0 : 0.0;
     }
 
     private static double? WindDirectionAt(DomainForecast<ForecastPoint>? weather, DateTimeOffset validFrom)

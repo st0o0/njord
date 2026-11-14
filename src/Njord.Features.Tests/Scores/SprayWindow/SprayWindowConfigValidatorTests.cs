@@ -49,4 +49,31 @@ public sealed class SprayWindowConfigValidatorTests
         Assert.NotNull(result.Failures);
         Assert.Contains(result.Failures, f => f.Contains($"{property} must be at least 1"));
     }
+
+    [Fact]
+    public void Rain_probability_limit_above_100_is_rejected()
+    {
+        var result = _validator.Validate(null, new SprayWindowConfig { RainProbabilityLimit = 101 });
+        Assert.True(result.Failed);
+        Assert.NotNull(result.Failures);
+        Assert.Contains(result.Failures, f => f.Contains("RainProbabilityLimit must be 0..100"));
+    }
+
+    [Fact]
+    public void Inverted_humidity_range_is_rejected()
+    {
+        var result = _validator.Validate(null, new SprayWindowConfig { HumidityMin = 80.0, HumidityMax = 40.0 });
+        Assert.True(result.Failed);
+        Assert.NotNull(result.Failures);
+        Assert.Contains(result.Failures, f => f.Contains("HumidityMin must be less than HumidityMax"));
+    }
+
+    [Fact]
+    public void Zero_falloff_is_rejected()
+    {
+        var result = _validator.Validate(null, new SprayWindowConfig { TemperatureFalloff = 0 });
+        Assert.True(result.Failed);
+        Assert.NotNull(result.Failures);
+        Assert.Contains(result.Failures, f => f.Contains("TemperatureFalloff must be positive"));
+    }
 }

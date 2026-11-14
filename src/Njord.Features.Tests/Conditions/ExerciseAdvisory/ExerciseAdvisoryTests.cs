@@ -11,6 +11,8 @@ namespace Njord.Features.Tests.Conditions.ExerciseAdvisory;
 
 public sealed class ExerciseAdvisoryTests
 {
+    private static readonly ExerciseAdvisoryConfig _defaultConfig = new();
+
     private static Features.Conditions.ExerciseAdvisory.ExerciseAdvisory Feature() => new(Options.Create(new ExerciseAdvisoryConfig { Enabled = true }));
 
     [Fact]
@@ -89,7 +91,7 @@ public sealed class ExerciseAdvisoryTests
     {
         var weather = new ForecastPoint(DateTimeOffset.UtcNow, Temperature: 20.0, Humidity: 50.0);
         var air = new AirQualityPoint(DateTimeOffset.UtcNow, Ozone: 50.0);
-        Assert.Null(Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air));
+        Assert.Null(Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air, _defaultConfig));
     }
 
     [Fact]
@@ -97,7 +99,7 @@ public sealed class ExerciseAdvisoryTests
     {
         var weather = new ForecastPoint(DateTimeOffset.UtcNow, Humidity: 50.0);
         var air = new AirQualityPoint(DateTimeOffset.UtcNow, Pm25: 5.0, Ozone: 50.0);
-        Assert.Null(Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air));
+        Assert.Null(Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air, _defaultConfig));
     }
 
     [Fact]
@@ -105,7 +107,7 @@ public sealed class ExerciseAdvisoryTests
     {
         var weather = new ForecastPoint(DateTimeOffset.UtcNow, Temperature: 15.0, Humidity: 50.0);
         var air = new AirQualityPoint(DateTimeOffset.UtcNow, Pm25: 15.0, Ozone: 100.0);
-        var hour = Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air);
+        var hour = Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air, _defaultConfig);
         Assert.NotNull(hour);
         Assert.Equal(100.0, hour.Total, 1);
     }
@@ -115,7 +117,7 @@ public sealed class ExerciseAdvisoryTests
     {
         var weather = new ForecastPoint(DateTimeOffset.UtcNow, Temperature: 15.0, Humidity: 50.0);
         var air = new AirQualityPoint(DateTimeOffset.UtcNow, Pm25: 35.0, Ozone: 100.0);
-        var hour = Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air);
+        var hour = Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air, _defaultConfig);
         Assert.NotNull(hour);
         Assert.Equal(0.5, hour.Pm25, 2);
     }
@@ -125,8 +127,22 @@ public sealed class ExerciseAdvisoryTests
     {
         var weather = new ForecastPoint(DateTimeOffset.UtcNow, Temperature: 15.0, Humidity: 50.0, UvIndex: 8.0);
         var air = new AirQualityPoint(DateTimeOffset.UtcNow, Pm25: 15.0, Ozone: 100.0);
-        var hour = Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air);
+        var hour = Features.Conditions.ExerciseAdvisory.ExerciseAdvisory.Components(weather, air, _defaultConfig);
         Assert.NotNull(hour);
         Assert.Equal(0.5, hour.Uv, 2);
+    }
+
+    [Fact]
+    public void Custom_safe_score_changes_classification()
+    {
+        var air = CleanAir(shape: (_, p) => p with { Pm25 = 40.0, Ozone = 130.0 });
+        var defaultFeature = new Features.Conditions.ExerciseAdvisory.ExerciseAdvisory(Options.Create(new ExerciseAdvisoryConfig { Enabled = true }));
+        var defaultAdvice = Assert.IsType<ExerciseAdvisoryResult>(Run(defaultFeature, Now, Combined(Day(), air)));
+        Assert.Equal(ExerciseLevel.Caution, defaultAdvice.Level);
+
+        var cfg = new ExerciseAdvisoryConfig { Enabled = true, SafeScore = 50.0 };
+        var lenientFeature = new Features.Conditions.ExerciseAdvisory.ExerciseAdvisory(Options.Create(cfg));
+        var lenientAdvice = Assert.IsType<ExerciseAdvisoryResult>(Run(lenientFeature, Now, Combined(Day(), air)));
+        Assert.Equal(ExerciseLevel.Safe, lenientAdvice.Level);
     }
 }

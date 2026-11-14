@@ -16,6 +16,12 @@ public sealed class SprayWindowConfigValidator : IValidateOptions<SprayWindowCon
         failures.Require(options.MinWindowScore >= 1, $"MinWindowScore must be at least 1, got {options.MinWindowScore}.");
         failures.Require(options.MinWindowHours >= 1, $"MinWindowHours must be at least 1, got {options.MinWindowHours}.");
         failures.Require(options.MaxWindows >= 1, $"MaxWindows must be at least 1, got {options.MaxWindows}.");
+        failures.Require(options.RainProbabilityLimit is >= 0 and <= 100,
+            $"RainProbabilityLimit must be 0..100, got {options.RainProbabilityLimit}.");
+        failures.Require(options.TemperatureFalloff > 0, $"TemperatureFalloff must be positive, got {options.TemperatureFalloff}.");
+        failures.Require(options.HumidityMin < options.HumidityMax,
+            $"HumidityMin must be less than HumidityMax, got {options.HumidityMin} >= {options.HumidityMax}.");
+        failures.Require(options.HumidityFalloff > 0, $"HumidityFalloff must be positive, got {options.HumidityFalloff}.");
 
         return failures.ToResult();
     }

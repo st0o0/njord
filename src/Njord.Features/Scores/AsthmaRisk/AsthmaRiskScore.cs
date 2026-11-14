@@ -11,15 +11,6 @@ namespace Njord.Features.Scores.AsthmaRisk;
 
 public sealed class AsthmaRiskScore(IOptions<AsthmaRiskConfig> config) : FeatureRule<ForecastAqInput>
 {
-    private const double Pm25Reference = 75.0;
-    private const double OzoneReference = 180.0;
-    private const double PollenReference = 100.0;
-    private const double GoodHourScore = 60.0;
-    private const double ColdAirFactor = 1.3;
-    private const double RapidChangeFactor = 1.2;
-    private const double RapidChangeDegrees = 6.0;
-    private const int RapidChangeHours = 3;
-
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Score,
         FeatureCategory.AirQuality,
@@ -46,7 +37,7 @@ public sealed class AsthmaRiskScore(IOptions<AsthmaRiskConfig> config) : Feature
                 continue;
             }
 
-            weatherByTime.TryGetValue(air.ValidFrom.AddHours(-RapidChangeHours), out var earlier);
+            weatherByTime.TryGetValue(air.ValidFrom.AddHours(-cfg.RapidChangeHours), out var earlier);
             if (Risk(cfg, air, weather, earlier) is { } risk)
             {
                 risks.Add((air.ValidFrom, risk));
@@ -65,7 +56,7 @@ public sealed class AsthmaRiskScore(IOptions<AsthmaRiskConfig> config) : Feature
             cfg.MinWindowHours,
             cfg.MaxWindows);
         var peak = (int)Math.Round(risks.Max(r => r.Risk));
-        var (start, length) = Scoring.LongestRun([.. goodness.Select(g => g >= GoodHourScore)]);
+        var (start, length) = Scoring.LongestRun([.. goodness.Select(g => g >= cfg.GoodHourScore)]);
         if (length == 0)
         {
             var bestIndex = goodness.IndexOf(goodness.Max());
@@ -80,16 +71,16 @@ public sealed class AsthmaRiskScore(IOptions<AsthmaRiskConfig> config) : Feature
         var parts = new List<(double Weight, double Value)>();
         if (air.Pm25 is { } pm25)
         {
-            parts.Add((cfg.Pm25Weight, Scoring.Ramp(pm25, 0.0, Pm25Reference) * 100.0));
+            parts.Add((cfg.Pm25Weight, Scoring.Ramp(pm25, 0.0, cfg.Pm25Reference) * 100.0));
         }
 
         if (air.Ozone is { } ozone)
         {
-            parts.Add((cfg.OzoneWeight, Scoring.Ramp(ozone, 0.0, OzoneReference) * 100.0));
+            parts.Add((cfg.OzoneWeight, Scoring.Ramp(ozone, 0.0, cfg.OzoneReference) * 100.0));
         }
 
         var pollen = Math.Max(air.BirchPollen ?? 0.0, air.GrassPollen ?? 0.0);
-        parts.Add((cfg.PollenWeight, Scoring.Ramp(pollen, 0.0, PollenReference) * 100.0));
+        parts.Add((cfg.PollenWeight, Scoring.Ramp(pollen, 0.0, cfg.PollenReference) * 100.0));
 
         if (weather.Humidity is { } humidity)
         {
@@ -112,13 +103,13 @@ public sealed class AsthmaRiskScore(IOptions<AsthmaRiskConfig> config) : Feature
         var risk = parts.Sum(p => p.Weight * p.Value) / totalWeight;
         if (weather is { Temperature: < 5.0, Humidity: > 80.0 })
         {
-            risk *= ColdAirFactor;
+            risk *= cfg.ColdAirFactor;
         }
 
         if (weather.Temperature is { } now && earlier?.Temperature is { } before
-            && Math.Abs(now - before) >= RapidChangeDegrees)
+            && Math.Abs(now - before) >= cfg.RapidChangeDegrees)
         {
-            risk *= RapidChangeFactor;
+            risk *= cfg.RapidChangeFactor;
         }
 
         return Math.Clamp(risk, 0.0, 100.0);

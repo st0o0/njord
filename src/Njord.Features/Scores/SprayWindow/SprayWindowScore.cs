@@ -10,12 +10,6 @@ namespace Njord.Features.Scores.SprayWindow;
 
 public sealed class SprayWindowScore(IOptions<SprayWindowConfig> config) : FeatureRule<ForecastInput>
 {
-    private const double RainProbabilityLimit = 20.0;
-    private const double TemperatureFalloff = 10.0;
-    private const double HumidityMin = 40.0;
-    private const double HumidityMax = 80.0;
-    private const double HumidityFalloff = 20.0;
-
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Score,
         FeatureCategory.Lifestyle,
@@ -64,14 +58,14 @@ public sealed class SprayWindowScore(IOptions<SprayWindowConfig> config) : Featu
         }
 
         var upcoming = hours.Skip(index).Take(Math.Max(1, options.RainFreeHours));
-        var wet = upcoming.FirstOrDefault(p => p.Rain is > 0.0 || p.PrecipitationProbability is >= RainProbabilityLimit);
+        var wet = upcoming.FirstOrDefault(p => p.Rain is > 0.0 || p.PrecipitationProbability is { } prob && prob >= options.RainProbabilityLimit);
         if (wet is not null)
         {
             return new HourlyScore(point.ValidFrom, 0.0, LimitingKind.Rain, wet.Rain ?? wet.PrecipitationProbability ?? 0.0);
         }
 
-        var temperatureScore = 20.0 * Falloff(temperature, options.MinTemp, options.MaxTemp, TemperatureFalloff);
-        var humidityScore = 10.0 * Falloff(humidity, HumidityMin, HumidityMax, HumidityFalloff);
+        var temperatureScore = 20.0 * Falloff(temperature, options.MinTemp, options.MaxTemp, options.TemperatureFalloff);
+        var humidityScore = 10.0 * Falloff(humidity, options.HumidityMin, options.HumidityMax, options.HumidityFalloff);
         var total = 70.0 + temperatureScore + humidityScore;
 
         LimitingKind? worst = null;

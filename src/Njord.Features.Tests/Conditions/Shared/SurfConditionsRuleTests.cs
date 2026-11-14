@@ -2,12 +2,15 @@ using Njord.Core;
 using Njord.Core.Forecast;
 using Njord.Core.Marine;
 using Njord.Features.Conditions.Shared;
+using Njord.Features.Conditions.SurfConditions;
 using static Njord.Tests.Shared.MarineFixtures;
 
 namespace Njord.Features.Tests.Conditions.Shared;
 
 public sealed class SurfConditionsRuleTests
 {
+    private static readonly SurfConditionsConfig _defaultConfig = new();
+
     private static MarinePoint Swell(
         double height, double period, double? direction = 270.0, double? windWaveHeight = null, int hour = 0) =>
         new(Now.AddHours(hour), SwellWaveHeight: height, SwellWavePeriod: period, SwellWaveDirection: direction,
@@ -16,7 +19,7 @@ public sealed class SurfConditionsRuleTests
     [Fact]
     public void Long_period_moderate_swell_with_offshore_wind_is_excellent()
     {
-        var result = SurfConditionsRule.Assess(Swell(1.8, 14.0), windDirection: 90.0);
+        var result = SurfConditionsRule.Assess(Swell(1.8, 14.0), windDirection: 90.0, _defaultConfig);
 
         Assert.NotNull(result);
         Assert.Multiple(
@@ -33,11 +36,11 @@ public sealed class SurfConditionsRuleTests
     [InlineData(12.1, 50)]
     public void Swell_period_bands_decide_the_period_share_without_wind(double period, int periodPoints)
     {
-        var result = SurfConditionsRule.Assess(Swell(1.5, period), windDirection: null);
+        var result = SurfConditionsRule.Assess(Swell(1.5, period), windDirection: null, _defaultConfig);
 
         Assert.NotNull(result);
         var expected = (int)Math.Round((periodPoints + 30.0) / 80.0 * 100.0);
-        Assert.Equal(period < 8.0 ? Math.Min(expected, SurfConditionsRule.PoorScoreCap) : expected, result.Score);
+        Assert.Equal(period < 8.0 ? Math.Min(expected, _defaultConfig.PoorScoreCap) : expected, result.Score);
     }
 
     [Theory]
@@ -51,7 +54,7 @@ public sealed class SurfConditionsRuleTests
     [InlineData(3.6, 5.0)]
     public void Swell_height_band_decides_the_height_share(double height, double heightPoints)
     {
-        var result = SurfConditionsRule.Assess(Swell(height, 14.0), windDirection: null);
+        var result = SurfConditionsRule.Assess(Swell(height, 14.0), windDirection: null, _defaultConfig);
 
         Assert.NotNull(result);
         Assert.Equal((int)Math.Round((50.0 + heightPoints) / 80.0 * 100.0), result.Score);
@@ -68,14 +71,14 @@ public sealed class SurfConditionsRuleTests
     [InlineData(350.0, 170.0, "offshore")]
     [InlineData(10.0, 350.0, "onshore")]
     public void Relation_handles_the_angular_wrap_around(double windFrom, double swellFrom, string expected) =>
-        Assert.Equal(expected, SurfConditionsRule.Relation(windFrom, swellFrom));
+        Assert.Equal(expected, SurfConditionsRule.Relation(windFrom, swellFrom, _defaultConfig.OffshoreToleranceDegrees));
 
     [Fact]
     public void Onshore_wind_scores_lower_than_cross_wind_than_offshore_wind()
     {
-        var offshore = SurfConditionsRule.Assess(Swell(1.8, 10.0), 90.0);
-        var cross = SurfConditionsRule.Assess(Swell(1.8, 10.0), 180.0);
-        var onshore = SurfConditionsRule.Assess(Swell(1.8, 10.0), 270.0);
+        var offshore = SurfConditionsRule.Assess(Swell(1.8, 10.0), 90.0, _defaultConfig);
+        var cross = SurfConditionsRule.Assess(Swell(1.8, 10.0), 180.0, _defaultConfig);
+        var onshore = SurfConditionsRule.Assess(Swell(1.8, 10.0), 270.0, _defaultConfig);
 
         Assert.NotNull(offshore);
         Assert.NotNull(cross);
@@ -89,12 +92,12 @@ public sealed class SurfConditionsRuleTests
     [Fact]
     public void Short_period_wind_chop_is_poor_even_with_offshore_wind()
     {
-        var result = SurfConditionsRule.Assess(Swell(1.5, 5.0, windWaveHeight: 1.4), windDirection: 90.0);
+        var result = SurfConditionsRule.Assess(Swell(1.5, 5.0, windWaveHeight: 1.4), windDirection: 90.0, _defaultConfig);
 
         Assert.NotNull(result);
         Assert.Multiple(
             () => Assert.Equal("poor", result.Rating),
-            () => Assert.True(result.Score <= SurfConditionsRule.PoorScoreCap));
+            () => Assert.True(result.Score <= _defaultConfig.PoorScoreCap));
     }
 
     [Theory]
@@ -103,8 +106,8 @@ public sealed class SurfConditionsRuleTests
     [InlineData(1.3, 20)]
     public void A_high_wind_wave_share_lowers_the_score(double windWaveHeight, int penalty)
     {
-        var calm = SurfConditionsRule.Assess(Swell(1.6, 10.0), 90.0);
-        var choppy = SurfConditionsRule.Assess(Swell(1.6, 10.0, windWaveHeight: windWaveHeight), 90.0);
+        var calm = SurfConditionsRule.Assess(Swell(1.6, 10.0), 90.0, _defaultConfig);
+        var choppy = SurfConditionsRule.Assess(Swell(1.6, 10.0, windWaveHeight: windWaveHeight), 90.0, _defaultConfig);
 
         Assert.NotNull(calm);
         Assert.NotNull(choppy);
@@ -114,7 +117,7 @@ public sealed class SurfConditionsRuleTests
     [Fact]
     public void Missing_wind_is_reported_as_swell_only()
     {
-        var result = SurfConditionsRule.Assess(Swell(1.8, 14.0), windDirection: null);
+        var result = SurfConditionsRule.Assess(Swell(1.8, 14.0), windDirection: null, _defaultConfig);
 
         Assert.NotNull(result);
         Assert.Multiple(
@@ -125,7 +128,7 @@ public sealed class SurfConditionsRuleTests
     [Fact]
     public void Missing_swell_direction_leaves_wind_out()
     {
-        var result = SurfConditionsRule.Assess(Swell(1.8, 14.0, direction: null), windDirection: 90.0);
+        var result = SurfConditionsRule.Assess(Swell(1.8, 14.0, direction: null), windDirection: 90.0, _defaultConfig);
 
         Assert.NotNull(result);
         Assert.Null(result.WindRelation);
@@ -135,9 +138,9 @@ public sealed class SurfConditionsRuleTests
     public void Missing_swell_height_or_period_gives_no_assessment()
     {
         Assert.Multiple(
-            () => Assert.Null(SurfConditionsRule.Assess(new MarinePoint(Now, SwellWavePeriod: 12.0), null)),
-            () => Assert.Null(SurfConditionsRule.Assess(new MarinePoint(Now, SwellWaveHeight: 1.5), null)),
-            () => Assert.Null(SurfConditionsRule.Assess(new MarinePoint(Now, WaveHeight: 1.5), null)));
+            () => Assert.Null(SurfConditionsRule.Assess(new MarinePoint(Now, SwellWavePeriod: 12.0), null, _defaultConfig)),
+            () => Assert.Null(SurfConditionsRule.Assess(new MarinePoint(Now, SwellWaveHeight: 1.5), null, _defaultConfig)),
+            () => Assert.Null(SurfConditionsRule.Assess(new MarinePoint(Now, WaveHeight: 1.5), null, _defaultConfig)));
     }
 
     [Theory]
@@ -159,7 +162,7 @@ public sealed class SurfConditionsRuleTests
         var weather = new DomainForecast<ForecastPoint>(DomainKind.Forecast, Now, TimeResolution.Hourly,
             [new ForecastPoint(Now.AddHours(1), WindDirection: 90.0)]);
 
-        var result = SurfConditionsRule.Evaluate(marine, weather, Now);
+        var result = SurfConditionsRule.Evaluate(marine, weather, Now, _defaultConfig);
 
         Assert.NotNull(result);
         Assert.Multiple(
@@ -173,12 +176,31 @@ public sealed class SurfConditionsRuleTests
     {
         var marine = MarineForecast(Swell(1.8, 14.0, hour: -3), Swell(1.8, 6.0, hour: 0), Swell(1.8, 14.0, hour: 30));
 
-        var result = SurfConditionsRule.Evaluate(marine, null, Now);
+        var result = SurfConditionsRule.Evaluate(marine, null, Now, _defaultConfig);
 
         Assert.NotNull(result);
         Assert.Equal(Now, result.ValidFrom);
     }
 
     [Fact]
-    public void Evaluate_returns_nothing_without_swell_data() => Assert.Null(SurfConditionsRule.Evaluate(MarineForecast(Point(0)), null, Now));
+    public void Evaluate_returns_nothing_without_swell_data() =>
+        Assert.Null(SurfConditionsRule.Evaluate(MarineForecast(Point(0)), null, Now, _defaultConfig));
+
+    [Fact]
+    public void Custom_height_range_changes_scoring()
+    {
+        var cfg = new SurfConditionsConfig { IdealHeightMinMeters = 0.8, IdealHeightMaxMeters = 2.0 };
+        var result = SurfConditionsRule.Assess(Swell(0.9, 14.0), windDirection: null, cfg);
+        Assert.NotNull(result);
+        Assert.Equal((int)Math.Round((50.0 + 30.0) / 80.0 * 100.0), result.Score);
+    }
+
+    [Fact]
+    public void Custom_period_threshold_changes_classification()
+    {
+        var cfg = new SurfConditionsConfig { MediumPeriodSeconds = 10.0 };
+        var result = SurfConditionsRule.Assess(Swell(1.5, 9.0), windDirection: null, cfg);
+        Assert.NotNull(result);
+        Assert.True(result.Score <= cfg.PoorScoreCap, $"9s period with 10s threshold should be capped at {cfg.PoorScoreCap}");
+    }
 }

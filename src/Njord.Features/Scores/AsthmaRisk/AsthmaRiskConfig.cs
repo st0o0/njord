@@ -15,4 +15,12 @@ public sealed class AsthmaRiskConfig : IConfigSection
     public int MinWindowScore { get; set; } = 50;
     public int MinWindowHours { get; set; } = 2;
     public int MaxWindows { get; set; } = 3;
+    public double Pm25Reference { get; set; } = 75.0;
+    public double OzoneReference { get; set; } = 180.0;
+    public double PollenReference { get; set; } = 100.0;
+    public double GoodHourScore { get; set; } = 60.0;
+    public double ColdAirFactor { get; set; } = 1.3;
+    public double RapidChangeFactor { get; set; } = 1.2;
+    public double RapidChangeDegrees { get; set; } = 6.0;
+    public int RapidChangeHours { get; set; } = 3;
 }

@@ -23,4 +23,22 @@ public sealed class AllergySeverityConfigValidatorTests
 
         Assert.Contains($"{property} must be at least 1", ValidationAssert.SingleFailure(result));
     }
+
+    [Fact]
+    public void Zero_pollen_reference_is_rejected()
+    {
+        var result = _validator.Validate(null, new AllergySeverityConfig { PollenReference = 0 });
+        Assert.True(result.Failed);
+        Assert.NotNull(result.Failures);
+        Assert.Contains(result.Failures, f => f.Contains("PollenReference must be positive"));
+    }
+
+    [Fact]
+    public void Zero_good_hour_score_is_rejected()
+    {
+        var result = _validator.Validate(null, new AllergySeverityConfig { GoodHourScore = 0 });
+        Assert.True(result.Failed);
+        Assert.NotNull(result.Failures);
+        Assert.Contains(result.Failures, f => f.Contains("GoodHourScore must be positive"));
+    }
 }

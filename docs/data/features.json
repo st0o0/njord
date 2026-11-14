@@ -380,7 +380,24 @@
     "enabledByDefault": false,
     "domains": ["Forecast", "AirQuality"],
     "weatherParams": ["WindSpeed", "Humidity", "Rain", "BoundaryLayerHeight"],
-    "airQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
+    "airQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"],
+    "options": [
+      { "name": "MinWindowScore", "type": "number", "default": 50 },
+      { "name": "MinWindowHours", "type": "number", "default": 2 },
+      { "name": "MaxWindows", "type": "number", "default": 3 },
+      { "name": "PollenReference", "type": "number", "default": 100, "group": "Scoring", "description": "Pollen count that maps to 100% severity" },
+      { "name": "GoodHourScore", "type": "number", "default": 60, "group": "Scoring", "description": "Inverted severity threshold for a good hour" },
+      { "name": "WindPollenModifier", "type": "number", "default": 15, "group": "Modifiers", "description": "Severity added when wind is high and air is dry" },
+      { "name": "LowBoundaryLayerModifier", "type": "number", "default": 15, "group": "Modifiers", "description": "Severity added when boundary layer is low" },
+      { "name": "DryAirModifier", "type": "number", "default": 10, "group": "Modifiers", "description": "Severity added when humidity is very low" },
+      { "name": "RainModifier", "type": "number", "default": -30, "group": "Modifiers", "description": "Severity removed by recent rain (negative)" },
+      { "name": "HighHumidityModifier", "type": "number", "default": -15, "group": "Modifiers", "description": "Severity removed by high humidity (negative)" },
+      { "name": "WindThreshold", "type": "number", "default": 4, "group": "Thresholds", "description": "Wind speed above which wind-pollen modifier applies (m/s)" },
+      { "name": "DryHumidityThreshold", "type": "number", "default": 60, "group": "Thresholds", "description": "Humidity below which wind-pollen modifier applies (%)" },
+      { "name": "BoundaryLayerThreshold", "type": "number", "default": 800, "group": "Thresholds", "description": "Boundary layer height below which modifier applies (m)" },
+      { "name": "DryAirHumidityThreshold", "type": "number", "default": 40, "group": "Thresholds", "description": "Humidity below which dry-air modifier applies (%)" },
+      { "name": "HighHumidityThreshold", "type": "number", "default": 80, "group": "Thresholds", "description": "Humidity above which high-humidity modifier applies (%)" }
+    ]
   },
   {
     "key": "AsthmaRisk",
@@ -395,7 +412,24 @@
     "domains": ["Forecast", "AirQuality"],
     "weatherParams": ["Temperature", "Humidity", "BoundaryLayerHeight"],
     "airQualityParams": ["Pm25", "Ozone", "BirchPollen", "GrassPollen"],
-    "options": [{ "name": "Pm25Weight", "type": "number", "default": 35 }, { "name": "OzoneWeight", "type": "number", "default": 25 }, { "name": "PollenWeight", "type": "number", "default": 20 }, { "name": "HumidityWeight", "type": "number", "default": 10 }, { "name": "BoundaryLayerWeight", "type": "number", "default": 10 }, { "name": "MinWindowScore", "type": "number", "default": 50 }, { "name": "MinWindowHours", "type": "number", "default": 2 }, { "name": "MaxWindows", "type": "number", "default": 3 }]
+    "options": [
+      { "name": "Pm25Weight", "type": "number", "default": 35, "group": "Weights" },
+      { "name": "OzoneWeight", "type": "number", "default": 25, "group": "Weights" },
+      { "name": "PollenWeight", "type": "number", "default": 20, "group": "Weights" },
+      { "name": "HumidityWeight", "type": "number", "default": 10, "group": "Weights" },
+      { "name": "BoundaryLayerWeight", "type": "number", "default": 10, "group": "Weights" },
+      { "name": "MinWindowScore", "type": "number", "default": 50 },
+      { "name": "MinWindowHours", "type": "number", "default": 2 },
+      { "name": "MaxWindows", "type": "number", "default": 3 },
+      { "name": "Pm25Reference", "type": "number", "default": 75, "group": "Scoring", "description": "PM2.5 value that maps to 100% risk" },
+      { "name": "OzoneReference", "type": "number", "default": 180, "group": "Scoring", "description": "Ozone value that maps to 100% risk" },
+      { "name": "PollenReference", "type": "number", "default": 100, "group": "Scoring", "description": "Pollen count that maps to 100% risk" },
+      { "name": "GoodHourScore", "type": "number", "default": 60, "group": "Scoring", "description": "Inverted risk threshold for a good hour" },
+      { "name": "ColdAirFactor", "type": "number", "default": 1.3, "group": "Amplifiers", "description": "Risk multiplier for cold damp conditions" },
+      { "name": "RapidChangeFactor", "type": "number", "default": 1.2, "group": "Amplifiers", "description": "Risk multiplier for rapid temperature change" },
+      { "name": "RapidChangeDegrees", "type": "number", "default": 6, "group": "Amplifiers", "description": "Temperature delta that triggers rapid change amplifier" },
+      { "name": "RapidChangeHours", "type": "number", "default": 3, "group": "Amplifiers", "description": "Lookback hours for rapid change detection" }
+    ]
   },
   {
     "key": "SleepQuality",
@@ -411,7 +445,39 @@
     "weatherParams": ["Temperature", "Humidity", "WindGusts", "Cape", "Precipitation"],
     "optionalWeatherParams": ["ApparentTemperature"],
     "airQualityParams": ["BirchPollen", "GrassPollen", "Pm25"],
-    "options": [{ "name": "PollenSensitive", "type": "boolean", "default": false }, { "name": "NightStartHour", "type": "number", "default": 22 }, { "name": "NightEndHour", "type": "number", "default": 6 }, { "name": "MinWindowScore", "type": "number", "default": 50 }, { "name": "MinWindowHours", "type": "number", "default": 2 }, { "name": "MaxWindows", "type": "number", "default": 3 }]
+    "options": [
+      { "name": "PollenSensitive", "type": "boolean", "default": false },
+      { "name": "NightStartHour", "type": "number", "default": 22 },
+      { "name": "NightEndHour", "type": "number", "default": 6 },
+      { "name": "MinWindowScore", "type": "number", "default": 50 },
+      { "name": "MinWindowHours", "type": "number", "default": 2 },
+      { "name": "MaxWindows", "type": "number", "default": 3 },
+      { "name": "PreSleepHours", "type": "number", "default": 6, "group": "Night", "description": "Hours before night start considered as pre-sleep ventilation window" },
+      { "name": "HighPollen", "type": "number", "default": 50, "group": "Thresholds", "description": "Pollen level above which the pollen penalty applies" },
+      { "name": "Pm25Limit", "type": "number", "default": 25, "group": "Thresholds", "description": "PM2.5 above which penalty applies" },
+      { "name": "GustLimit", "type": "number", "default": 11.1, "group": "Thresholds", "description": "Wind gust speed above which penalty applies (m/s)" },
+      { "name": "CapeLimit", "type": "number", "default": 1000, "group": "Thresholds", "description": "CAPE above which thunderstorm penalty applies (with rain)" },
+      { "name": "HotThreshold", "type": "number", "default": 25, "group": "Thresholds", "description": "Temperature above which hot penalty applies" },
+      { "name": "WarmThreshold", "type": "number", "default": 22, "group": "Thresholds", "description": "Temperature above which warm penalty applies" },
+      { "name": "ColdThreshold", "type": "number", "default": 5, "group": "Thresholds", "description": "Temperature below which cold penalty applies" },
+      { "name": "HumidityThreshold", "type": "number", "default": 80, "group": "Thresholds", "description": "Humidity above which penalty applies (%)" },
+      { "name": "HotPenalty", "type": "number", "default": 30, "group": "Penalties", "description": "Points deducted for hot night" },
+      { "name": "WarmPenalty", "type": "number", "default": 15, "group": "Penalties", "description": "Points deducted for warm night" },
+      { "name": "ColdPenalty", "type": "number", "default": 10, "group": "Penalties", "description": "Points deducted for cold night" },
+      { "name": "HumidityPenalty", "type": "number", "default": 10, "group": "Penalties", "description": "Points deducted for high humidity" },
+      { "name": "Pm25Penalty", "type": "number", "default": 15, "group": "Penalties", "description": "Points deducted for high PM2.5" },
+      { "name": "PollenPenalty", "type": "number", "default": 5, "group": "Penalties", "description": "Points deducted for high pollen (non-sensitive)" },
+      { "name": "PollenSensitivePenalty", "type": "number", "default": 20, "group": "Penalties", "description": "Points deducted for high pollen (sensitive)" },
+      { "name": "GustPenalty", "type": "number", "default": 10, "group": "Penalties", "description": "Points deducted for strong gusts" },
+      { "name": "ThunderstormPenalty", "type": "number", "default": 15, "group": "Penalties", "description": "Points deducted for thunderstorm potential with rain" },
+      { "name": "VentilationHotPenalty", "type": "number", "default": 30, "group": "VentilationPenalties", "description": "Ventilation points deducted for hot air" },
+      { "name": "VentilationHumidityPenalty", "type": "number", "default": 20, "group": "VentilationPenalties", "description": "Ventilation points deducted for humid air" },
+      { "name": "VentilationGustPenalty", "type": "number", "default": 15, "group": "VentilationPenalties", "description": "Ventilation points deducted for strong gusts" },
+      { "name": "VentilationRainPenalty", "type": "number", "default": 30, "group": "VentilationPenalties", "description": "Ventilation points deducted for rain" },
+      { "name": "VentilationPm25Penalty", "type": "number", "default": 40, "group": "VentilationPenalties", "description": "Ventilation points deducted for high PM2.5" },
+      { "name": "VentilationPollenPenalty", "type": "number", "default": 15, "group": "VentilationPenalties", "description": "Ventilation points deducted for high pollen (non-sensitive)" },
+      { "name": "VentilationPollenSensitivePenalty", "type": "number", "default": 40, "group": "VentilationPenalties", "description": "Ventilation points deducted for high pollen (sensitive)" }
+    ]
   },
   {
     "key": "RagweedPollen",
@@ -489,7 +555,29 @@
     "domains": ["Forecast", "AirQuality"],
     "weatherParams": ["Temperature", "Humidity"],
     "optionalWeatherParams": ["UvIndex"],
-    "airQualityParams": ["Pm25", "Ozone"]
+    "airQualityParams": ["Pm25", "Ozone"],
+    "options": [
+      { "name": "SafeScore", "type": "number", "default": 70, "group": "Scoring", "description": "Average score above which exercise is safe" },
+      { "name": "CautionScore", "type": "number", "default": 45, "group": "Scoring", "description": "Average score above which exercise is cautioned (below = avoid)" },
+      { "name": "ReasonThreshold", "type": "number", "default": 0.5, "group": "Scoring", "description": "Component score below which the factor is listed as a reason" },
+      { "name": "Pm25Weight", "type": "number", "default": 0.4, "group": "Weights", "description": "Weight of PM2.5 component" },
+      { "name": "OzoneWeight", "type": "number", "default": 0.2, "group": "Weights", "description": "Weight of ozone component" },
+      { "name": "TemperatureWeight", "type": "number", "default": 0.2, "group": "Weights", "description": "Weight of temperature component" },
+      { "name": "HumidityWeight", "type": "number", "default": 0.1, "group": "Weights", "description": "Weight of humidity component" },
+      { "name": "UvWeight", "type": "number", "default": 0.1, "group": "Weights", "description": "Weight of UV component" },
+      { "name": "Pm25Low", "type": "number", "default": 15, "group": "Thresholds", "description": "PM2.5 below which there is no penalty" },
+      { "name": "Pm25High", "type": "number", "default": 55, "group": "Thresholds", "description": "PM2.5 at which penalty is maximum" },
+      { "name": "OzoneLow", "type": "number", "default": 100, "group": "Thresholds", "description": "Ozone below which there is no penalty" },
+      { "name": "OzoneHigh", "type": "number", "default": 180, "group": "Thresholds", "description": "Ozone at which penalty is maximum" },
+      { "name": "TemperatureCold", "type": "number", "default": -5, "group": "Thresholds", "description": "Temperature band lower zero" },
+      { "name": "TemperatureCool", "type": "number", "default": 8, "group": "Thresholds", "description": "Temperature band ideal start" },
+      { "name": "TemperatureWarm", "type": "number", "default": 22, "group": "Thresholds", "description": "Temperature band ideal end" },
+      { "name": "TemperatureHot", "type": "number", "default": 35, "group": "Thresholds", "description": "Temperature band upper zero" },
+      { "name": "HumidityLow", "type": "number", "default": 70, "group": "Thresholds", "description": "Humidity above which penalty starts" },
+      { "name": "HumidityHigh", "type": "number", "default": 100, "group": "Thresholds", "description": "Humidity at which penalty is maximum" },
+      { "name": "UvModerate", "type": "number", "default": 5, "group": "Thresholds", "description": "UV index at which penalty starts" },
+      { "name": "UvHigh", "type": "number", "default": 11, "group": "Thresholds", "description": "UV index at which penalty is maximum" }
+    ]
   },
   {
     "key": "Laundry",
@@ -504,7 +592,27 @@
     "domains": ["Forecast"],
     "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "PrecipitationProbability", "CloudCover", "Humidity"],
     "optionalWeatherParams": ["SunshineDuration", "IsDay"],
-    "options": [{ "name": "MinWindowScore", "type": "number", "default": 50 }, { "name": "MinWindowHours", "type": "number", "default": 2 }, { "name": "MaxWindows", "type": "number", "default": 3 }]
+    "options": [
+      { "name": "MinWindowScore", "type": "number", "default": 50 },
+      { "name": "MinWindowHours", "type": "number", "default": 2 },
+      { "name": "MaxWindows", "type": "number", "default": 3 },
+      { "name": "GoodHourScore", "type": "number", "default": 60, "group": "Scoring", "description": "Minimum hourly score to qualify as a good drying hour" },
+      { "name": "RainThreshold", "type": "number", "default": 0.1, "group": "Scoring", "description": "Precipitation above this (mm) scores zero" },
+      { "name": "TemperatureWeight", "type": "number", "default": 0.25, "group": "Weights", "description": "Weight of temperature component" },
+      { "name": "HumidityWeight", "type": "number", "default": 0.25, "group": "Weights", "description": "Weight of humidity component" },
+      { "name": "WindWeight", "type": "number", "default": 0.15, "group": "Weights", "description": "Weight of wind component" },
+      { "name": "RainWeight", "type": "number", "default": 0.20, "group": "Weights", "description": "Weight of rain probability component" },
+      { "name": "SunWeight", "type": "number", "default": 0.15, "group": "Weights", "description": "Weight of sunshine component" },
+      { "name": "TemperatureLow", "type": "number", "default": 5, "group": "Thresholds", "description": "Temperature below which drying is poor" },
+      { "name": "TemperatureHigh", "type": "number", "default": 25, "group": "Thresholds", "description": "Temperature at which drying is optimal" },
+      { "name": "HumidityLow", "type": "number", "default": 40, "group": "Thresholds", "description": "Humidity below which drying is optimal" },
+      { "name": "HumidityHigh", "type": "number", "default": 90, "group": "Thresholds", "description": "Humidity at which drying is poor" },
+      { "name": "WindLow", "type": "number", "default": 0, "group": "Thresholds", "description": "Wind band lower zero (m/s)" },
+      { "name": "WindIdeal", "type": "number", "default": 2, "group": "Thresholds", "description": "Wind band ideal start (m/s)" },
+      { "name": "WindModerate", "type": "number", "default": 8, "group": "Thresholds", "description": "Wind band ideal end (m/s)" },
+      { "name": "WindStrong", "type": "number", "default": 15, "group": "Thresholds", "description": "Wind band upper zero (m/s)" },
+      { "name": "SunshineFull", "type": "number", "default": 3600, "group": "Thresholds", "description": "Sunshine duration (s) at which sun component is 1.0" }
+    ]
   },
   {
     "key": "IrrigationNeed",
@@ -546,7 +654,20 @@
     "enabledByDefault": false,
     "domains": ["Forecast"],
     "weatherParams": ["WindSpeed", "Rain", "PrecipitationProbability", "Temperature", "Humidity"],
-    "options": [{ "name": "MaxWindSpeed", "type": "number", "default": 3 }, { "name": "RainFreeHours", "type": "number", "default": 4 }, { "name": "MinTemp", "type": "number", "default": 10 }, { "name": "MaxTemp", "type": "number", "default": 25 }, { "name": "MinWindowScore", "type": "number", "default": 80 }, { "name": "MinWindowHours", "type": "number", "default": 2 }, { "name": "MaxWindows", "type": "number", "default": 3 }]
+    "options": [
+      { "name": "MaxWindSpeed", "type": "number", "default": 3 },
+      { "name": "RainFreeHours", "type": "number", "default": 4 },
+      { "name": "MinTemp", "type": "number", "default": 10 },
+      { "name": "MaxTemp", "type": "number", "default": 25 },
+      { "name": "MinWindowScore", "type": "number", "default": 80 },
+      { "name": "MinWindowHours", "type": "number", "default": 2 },
+      { "name": "MaxWindows", "type": "number", "default": 3 },
+      { "name": "RainProbabilityLimit", "type": "number", "default": 20, "group": "Thresholds", "description": "Rain probability above which hour is wet (%)" },
+      { "name": "TemperatureFalloff", "type": "number", "default": 10, "group": "Thresholds", "description": "Degrees outside the temp range at which score drops to zero" },
+      { "name": "HumidityMin", "type": "number", "default": 40, "group": "Thresholds", "description": "Optimal humidity band lower bound (%)" },
+      { "name": "HumidityMax", "type": "number", "default": 80, "group": "Thresholds", "description": "Optimal humidity band upper bound (%)" },
+      { "name": "HumidityFalloff", "type": "number", "default": 20, "group": "Thresholds", "description": "Percentage points outside the humidity band at which score drops to zero" }
+    ]
   },
   {
     "key": "Outdoor",
@@ -562,7 +683,31 @@
     "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "PrecipitationProbability", "CloudCover"],
     "optionalWeatherParams": ["UvIndex", "IsDay"],
     "airQualityParams": ["Pm25"],
-    "optionalAirQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"]
+    "optionalAirQualityParams": ["BirchPollen", "GrassPollen", "Alder", "Mugwort"],
+    "options": [
+      { "name": "GoodHourScore", "type": "number", "default": 85, "group": "Scoring", "description": "Minimum hourly score to qualify as a good outdoor hour" },
+      { "name": "RainThreshold", "type": "number", "default": 0.1, "group": "Scoring", "description": "Precipitation above this (mm) scores zero for rain" },
+      { "name": "TemperatureWeight", "type": "number", "default": 0.3, "group": "Weights", "description": "Weight of temperature component" },
+      { "name": "RainWeight", "type": "number", "default": 0.2, "group": "Weights", "description": "Weight of rain probability component" },
+      { "name": "WindWeight", "type": "number", "default": 0.1, "group": "Weights", "description": "Weight of wind component" },
+      { "name": "CloudWeight", "type": "number", "default": 0.1, "group": "Weights", "description": "Weight of cloud cover component" },
+      { "name": "UvWeight", "type": "number", "default": 0.1, "group": "Weights", "description": "Weight of UV component" },
+      { "name": "AirQualityWeight", "type": "number", "default": 0.2, "group": "Weights", "description": "Weight of air quality (PM2.5 + pollen) component" },
+      { "name": "TemperatureLow", "type": "number", "default": 0, "group": "Thresholds", "description": "Temperature below which score drops to zero" },
+      { "name": "TemperatureIdeal", "type": "number", "default": 15, "group": "Thresholds", "description": "Temperature at which score reaches maximum" },
+      { "name": "TemperatureWarm", "type": "number", "default": 26, "group": "Thresholds", "description": "Temperature above which score starts dropping" },
+      { "name": "TemperatureHot", "type": "number", "default": 36, "group": "Thresholds", "description": "Temperature above which score drops to zero" },
+      { "name": "WindLow", "type": "number", "default": -1, "group": "Thresholds", "description": "Wind band lower zero (m/s)" },
+      { "name": "WindIdeal", "type": "number", "default": 0, "group": "Thresholds", "description": "Wind band ideal start (m/s)" },
+      { "name": "WindModerate", "type": "number", "default": 8, "group": "Thresholds", "description": "Wind band ideal end (m/s)" },
+      { "name": "WindStrong", "type": "number", "default": 16, "group": "Thresholds", "description": "Wind band upper zero (m/s)" },
+      { "name": "UvModerate", "type": "number", "default": 5, "group": "Thresholds", "description": "UV index at which penalty starts" },
+      { "name": "UvHigh", "type": "number", "default": 11, "group": "Thresholds", "description": "UV index at which penalty is maximum" },
+      { "name": "Pm25Low", "type": "number", "default": 15, "group": "Thresholds", "description": "PM2.5 below which there is no penalty" },
+      { "name": "Pm25High", "type": "number", "default": 55, "group": "Thresholds", "description": "PM2.5 at which penalty is maximum" },
+      { "name": "PollenLow", "type": "number", "default": 20, "group": "Thresholds", "description": "Pollen index below which there is no penalty" },
+      { "name": "PollenHigh", "type": "number", "default": 100, "group": "Thresholds", "description": "Pollen index at which penalty is maximum" }
+    ]
   },
   {
     "key": "Bbq",
@@ -576,7 +721,25 @@
     "enabledByDefault": false,
     "domains": ["Forecast"],
     "weatherParams": ["Temperature", "WindSpeed", "Precipitation", "PrecipitationProbability", "CloudCover"],
-    "optionalWeatherParams": ["IsDay"]
+    "optionalWeatherParams": ["IsDay"],
+    "options": [
+      { "name": "GoodHourScore", "type": "number", "default": 70, "group": "Scoring", "description": "Minimum hourly score to qualify as a good BBQ hour" },
+      { "name": "RainThreshold", "type": "number", "default": 0.1, "group": "Scoring", "description": "Precipitation above this (mm) scores zero" },
+      { "name": "TemperatureWeight", "type": "number", "default": 0.35, "group": "Weights", "description": "Weight of temperature component" },
+      { "name": "WindWeight", "type": "number", "default": 0.20, "group": "Weights", "description": "Weight of wind component" },
+      { "name": "RainWeight", "type": "number", "default": 0.30, "group": "Weights", "description": "Weight of rain probability component" },
+      { "name": "CloudWeight", "type": "number", "default": 0.15, "group": "Weights", "description": "Weight of cloud cover component" },
+      { "name": "TemperatureLow", "type": "number", "default": 10, "group": "Thresholds", "description": "Temperature below which score drops to zero" },
+      { "name": "TemperatureIdeal", "type": "number", "default": 18, "group": "Thresholds", "description": "Temperature at which score reaches maximum" },
+      { "name": "TemperatureWarm", "type": "number", "default": 28, "group": "Thresholds", "description": "Temperature above which score starts dropping" },
+      { "name": "TemperatureHot", "type": "number", "default": 36, "group": "Thresholds", "description": "Temperature above which score drops to zero" },
+      { "name": "WindModerate", "type": "number", "default": 5, "group": "Thresholds", "description": "Wind speed at which penalty starts (m/s)" },
+      { "name": "WindStrong", "type": "number", "default": 10, "group": "Thresholds", "description": "Wind speed at which penalty is maximum (m/s)" },
+      { "name": "RainProbabilityLow", "type": "number", "default": 0, "group": "Thresholds", "description": "Rain probability below which there is no penalty" },
+      { "name": "RainProbabilityHigh", "type": "number", "default": 60, "group": "Thresholds", "description": "Rain probability at which penalty is maximum" },
+      { "name": "CloudLow", "type": "number", "default": 40, "group": "Thresholds", "description": "Cloud cover below which there is no penalty (%)" },
+      { "name": "CloudHigh", "type": "number", "default": 100, "group": "Thresholds", "description": "Cloud cover at which penalty is maximum (%)" }
+    ]
   },
   {
     "key": "NightVentilation",
@@ -935,7 +1098,20 @@
     "domains": ["Marine"],
     "optionalWeatherParams": ["WindDirection"],
     "marineParams": ["SwellWaveHeight", "SwellWavePeriod"],
-    "optionalMarineParams": ["SwellWaveDirection", "WindWaveHeight"]
+    "optionalMarineParams": ["SwellWaveDirection", "WindWaveHeight"],
+    "options": [
+      { "name": "WindowHours", "type": "number", "default": 24, "description": "Hours ahead to scan for the best surf" },
+      { "name": "MediumPeriodSeconds", "type": "number", "default": 8, "group": "Thresholds", "description": "Swell period below which is rated short" },
+      { "name": "LongPeriodSeconds", "type": "number", "default": 12, "group": "Thresholds", "description": "Swell period above which is rated long (best)" },
+      { "name": "UsableHeightMinMeters", "type": "number", "default": 0.5, "group": "Thresholds", "description": "Minimum usable swell height (m)" },
+      { "name": "IdealHeightMinMeters", "type": "number", "default": 1.0, "group": "Thresholds", "description": "Ideal swell height lower bound (m)" },
+      { "name": "IdealHeightMaxMeters", "type": "number", "default": 2.5, "group": "Thresholds", "description": "Ideal swell height upper bound (m)" },
+      { "name": "UsableHeightMaxMeters", "type": "number", "default": 3.5, "group": "Thresholds", "description": "Maximum usable swell height (m)" },
+      { "name": "OffshoreToleranceDegrees", "type": "number", "default": 45, "group": "Thresholds", "description": "Angular tolerance for offshore/onshore wind classification" },
+      { "name": "ChoppyShare", "type": "number", "default": 0.5, "group": "Thresholds", "description": "Wind wave / swell ratio above which 10-point chop penalty applies" },
+      { "name": "VeryChoppyShare", "type": "number", "default": 0.75, "group": "Thresholds", "description": "Wind wave / swell ratio above which 20-point chop penalty applies" },
+      { "name": "PoorScoreCap", "type": "number", "default": 39, "group": "Scoring", "description": "Maximum score for short-period swell" }
+    ]
   },
   {
     "key": "OceanCurrents",

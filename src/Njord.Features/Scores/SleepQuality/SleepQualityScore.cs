@@ -11,12 +11,6 @@ namespace Njord.Features.Scores.SleepQuality;
 
 public sealed class SleepQualityScore(IOptions<SleepQualityConfig> config) : FeatureRule<ForecastAqInput>
 {
-    private const double HighPollen = 50.0;
-    private const double Pm25Limit = 25.0;
-    private const double GustLimit = 11.1;
-    private const double CapeLimit = 1000.0;
-    private const int PreSleepHours = 6;
-
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Score,
         FeatureCategory.Lifestyle,
@@ -82,11 +76,11 @@ public sealed class SleepQualityScore(IOptions<SleepQualityConfig> config) : Fea
     internal static bool IsPreSleep(SleepQualityConfig cfg, int hour)
     {
         var hoursBeforeNight = (((cfg.NightStartHour - hour) % 24) + 24) % 24;
-        return hoursBeforeNight is >= 1 and <= PreSleepHours;
+        return hoursBeforeNight is >= 1 and var h && h <= cfg.PreSleepHours;
     }
 
-    internal static bool HighPollenPresent(AirQualityPoint? air) =>
-        air is not null && Math.Max(air.BirchPollen ?? 0.0, air.GrassPollen ?? 0.0) >= HighPollen;
+    internal static bool HighPollenPresent(SleepQualityConfig cfg, AirQualityPoint? air) =>
+        air is not null && Math.Max(air.BirchPollen ?? 0.0, air.GrassPollen ?? 0.0) >= cfg.HighPollen;
 
     internal static double NightScore(SleepQualityConfig cfg, ForecastPoint weather, AirQualityPoint? air)
     {
@@ -95,36 +89,36 @@ public sealed class SleepQualityScore(IOptions<SleepQualityConfig> config) : Fea
         {
             score -= temperature switch
             {
-                > 25.0 => 30.0,
-                > 22.0 => 15.0,
-                < 5.0 => 10.0,
+                _ when temperature > cfg.HotThreshold => cfg.HotPenalty,
+                _ when temperature > cfg.WarmThreshold => cfg.WarmPenalty,
+                _ when temperature < cfg.ColdThreshold => cfg.ColdPenalty,
                 _ => 0.0,
             };
         }
 
-        if (weather.Humidity > 80.0)
+        if (weather.Humidity > cfg.HumidityThreshold)
         {
-            score -= 10.0;
+            score -= cfg.HumidityPenalty;
         }
 
-        if (air?.Pm25 > Pm25Limit)
+        if (air?.Pm25 > cfg.Pm25Limit)
         {
-            score -= 15.0;
+            score -= cfg.Pm25Penalty;
         }
 
-        if (HighPollenPresent(air))
+        if (HighPollenPresent(cfg, air))
         {
-            score -= cfg.PollenSensitive ? 20.0 : 5.0;
+            score -= cfg.PollenSensitive ? cfg.PollenSensitivePenalty : cfg.PollenPenalty;
         }
 
-        if (weather.WindGusts > GustLimit)
+        if (weather.WindGusts > cfg.GustLimit)
         {
-            score -= 10.0;
+            score -= cfg.GustPenalty;
         }
 
-        if (weather is { Cape: > CapeLimit, Precipitation: > 0.0 })
+        if (weather is { Cape: { } cape, Precipitation: > 0.0 } && cape > cfg.CapeLimit)
         {
-            score -= 15.0;
+            score -= cfg.ThunderstormPenalty;
         }
 
         return Math.Clamp(score, 0.0, 100.0);
@@ -133,34 +127,34 @@ public sealed class SleepQualityScore(IOptions<SleepQualityConfig> config) : Fea
     internal static double VentilationScore(SleepQualityConfig cfg, ForecastPoint weather, AirQualityPoint? air)
     {
         var score = 100.0;
-        if (weather.Temperature > 25.0)
+        if (weather.Temperature > cfg.HotThreshold)
         {
-            score -= 30.0;
+            score -= cfg.VentilationHotPenalty;
         }
 
-        if (weather.Humidity > 80.0)
+        if (weather.Humidity > cfg.HumidityThreshold)
         {
-            score -= 20.0;
+            score -= cfg.VentilationHumidityPenalty;
         }
 
-        if (weather.WindGusts > GustLimit)
+        if (weather.WindGusts > cfg.GustLimit)
         {
-            score -= 15.0;
+            score -= cfg.VentilationGustPenalty;
         }
 
         if (weather.Precipitation > 0.1)
         {
-            score -= 30.0;
+            score -= cfg.VentilationRainPenalty;
         }
 
-        if (air?.Pm25 > Pm25Limit)
+        if (air?.Pm25 > cfg.Pm25Limit)
         {
-            score -= 40.0;
+            score -= cfg.VentilationPm25Penalty;
         }
 
-        if (HighPollenPresent(air))
+        if (HighPollenPresent(cfg, air))
         {
-            score -= cfg.PollenSensitive ? 40.0 : 15.0;
+            score -= cfg.PollenSensitive ? cfg.VentilationPollenSensitivePenalty : cfg.VentilationPollenPenalty;
         }
 
         return Math.Clamp(score, 0.0, 100.0);

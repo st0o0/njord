@@ -58,6 +58,7 @@ export interface FeatureOption {
   type: 'number' | 'numberArray' | 'boolean'
   default: number | number[] | boolean
   description?: string
+  group?: string
 }
 
 export type OptionValue = number | number[] | boolean

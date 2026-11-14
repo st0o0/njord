@@ -152,15 +152,32 @@ public sealed class SleepQualityScoreTests
 
     [Fact]
     public void HighPollenPresent_returns_true_when_birch_above_50() =>
-        Assert.True(SleepQualityScore.HighPollenPresent(new AirQualityPoint(DateTimeOffset.UtcNow, BirchPollen: 55.0)));
+        Assert.True(SleepQualityScore.HighPollenPresent(new SleepQualityConfig(), new AirQualityPoint(DateTimeOffset.UtcNow, BirchPollen: 55.0)));
 
     [Fact]
     public void HighPollenPresent_returns_false_when_below_50() =>
-        Assert.False(SleepQualityScore.HighPollenPresent(new AirQualityPoint(DateTimeOffset.UtcNow, BirchPollen: 40.0, GrassPollen: 30.0)));
+        Assert.False(SleepQualityScore.HighPollenPresent(new SleepQualityConfig(), new AirQualityPoint(DateTimeOffset.UtcNow, BirchPollen: 40.0, GrassPollen: 30.0)));
 
     [Fact]
     public void HighPollenPresent_returns_false_for_null() =>
-        Assert.False(SleepQualityScore.HighPollenPresent(null));
+        Assert.False(SleepQualityScore.HighPollenPresent(new SleepQualityConfig(), null));
+
+    [Fact]
+    public void Custom_hot_threshold_changes_penalty_boundary()
+    {
+        var cfg = new SleepQualityConfig { Enabled = true, HotThreshold = 28.0 };
+        var weather = new ForecastPoint(DateTimeOffset.UtcNow, Temperature: 26.0, Humidity: 50.0);
+        Assert.Equal(85.0, SleepQualityScore.NightScore(cfg, weather, null));
+    }
+
+    [Fact]
+    public void Custom_pollen_sensitive_penalty()
+    {
+        var cfg = new SleepQualityConfig { Enabled = true, PollenSensitive = true, PollenSensitivePenalty = 30.0 };
+        var weather = new ForecastPoint(DateTimeOffset.UtcNow, Temperature: 18.0, Humidity: 50.0);
+        var air = new AirQualityPoint(DateTimeOffset.UtcNow, BirchPollen: 60.0);
+        Assert.Equal(70.0, SleepQualityScore.NightScore(cfg, weather, air));
+    }
 
     [Fact]
     public void NightScore_perfect_conditions_yield_100()

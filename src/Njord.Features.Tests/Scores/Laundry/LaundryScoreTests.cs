@@ -10,6 +10,8 @@ namespace Njord.Features.Tests.Scores.Laundry;
 
 public sealed class LaundryScoreTests
 {
+    private static readonly LaundryConfig _defaultConfig = new();
+
     private static LaundryScore Feature() => new(Options.Create(new LaundryConfig { Enabled = true }));
 
     [Fact]
@@ -141,21 +143,21 @@ public sealed class LaundryScoreTests
     public void ScoreHour_returns_zero_at_night()
     {
         var point = new ForecastPoint(Now, IsDay: 0.0, Temperature: 25.0, Humidity: 40.0, WindSpeed: 5.0, PrecipitationProbability: 0.0, CloudCover: 0.0);
-        Assert.Equal(0.0, LaundryScore.ScoreHour(point));
+        Assert.Equal(0.0, LaundryScore.ScoreHour(point, _defaultConfig));
     }
 
     [Fact]
     public void ScoreHour_returns_zero_with_rain()
     {
         var point = new ForecastPoint(Now, IsDay: 1.0, Temperature: 25.0, Humidity: 40.0, WindSpeed: 5.0, PrecipitationProbability: 0.0, CloudCover: 0.0, Precipitation: 0.5);
-        Assert.Equal(0.0, LaundryScore.ScoreHour(point));
+        Assert.Equal(0.0, LaundryScore.ScoreHour(point, _defaultConfig));
     }
 
     [Fact]
     public void ScoreHour_perfect_conditions_yield_100()
     {
         var point = new ForecastPoint(Now, IsDay: 1.0, Temperature: 25.0, Humidity: 40.0, WindSpeed: 5.0, PrecipitationProbability: 0.0, CloudCover: 0.0, SunshineDuration: 3600.0);
-        Assert.Equal(100.0, LaundryScore.ScoreHour(point));
+        Assert.Equal(100.0, LaundryScore.ScoreHour(point, _defaultConfig));
     }
 
     [Fact]
@@ -163,7 +165,7 @@ public sealed class LaundryScoreTests
     {
         var warm = new ForecastPoint(Now, IsDay: 1.0, Temperature: 25.0, Humidity: 40.0, WindSpeed: 5.0, PrecipitationProbability: 0.0, CloudCover: 0.0);
         var cold = warm with { Temperature = 10.0 };
-        Assert.True(LaundryScore.ScoreHour(cold) < LaundryScore.ScoreHour(warm));
+        Assert.True(LaundryScore.ScoreHour(cold, _defaultConfig) < LaundryScore.ScoreHour(warm, _defaultConfig));
     }
 
     [Fact]
@@ -171,13 +173,13 @@ public sealed class LaundryScoreTests
     {
         var dry = new ForecastPoint(Now, IsDay: 1.0, Temperature: 25.0, Humidity: 40.0, WindSpeed: 5.0, PrecipitationProbability: 0.0, CloudCover: 0.0);
         var humid = dry with { Humidity = 80.0 };
-        Assert.True(LaundryScore.ScoreHour(humid) < LaundryScore.ScoreHour(dry));
+        Assert.True(LaundryScore.ScoreHour(humid, _defaultConfig) < LaundryScore.ScoreHour(dry, _defaultConfig));
     }
 
     [Fact]
     public void ScoreHour_uses_sunshine_duration_over_cloud_cover()
     {
         var point = new ForecastPoint(Now, IsDay: 1.0, Temperature: 25.0, Humidity: 40.0, WindSpeed: 5.0, PrecipitationProbability: 0.0, CloudCover: 100.0, SunshineDuration: 3600.0);
-        Assert.True(LaundryScore.ScoreHour(point) > 90.0);
+        Assert.True(LaundryScore.ScoreHour(point, _defaultConfig) > 90.0);
     }
 }
