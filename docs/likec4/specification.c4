@@ -1,37 +1,110 @@
 specification {
-  element externalSystem {
+
+  // ---- context level ----
+
+  element person {
+    notation "Person"
     style {
-      color muted
+      shape person
+      color green
+    }
+  }
+
+  element external {
+    notation "External system"
+    style {
+      color gray
     }
   }
 
   element system {
+    notation "Software system"
+    style {
+      color primary
+    }
+  }
+
+  // ---- container level ----
+
+  element container {
+    notation "Container (zone)"
     style {
       color blue
     }
   }
 
-  element container {
+  element domain {
+    notation "Domain project"
     style {
-      color sky
+      color indigo
     }
   }
 
-  element component {
+  element store {
+    notation "Data store"
+    style {
+      shape storage
+      color slate
+    }
+  }
+
+  // ---- actors, by hosting role ----
+
+  element singleton {
+    notation "Cluster singleton"
+    technology "Akka cluster singleton"
+    style {
+      color primary
+      shape component
+    }
+  }
+
+  element shard {
+    notation "Shard region entity"
+    technology "Akka sharded entity"
     style {
       color secondary
+      shape component
+      multiple true
     }
   }
 
-  element dataStore {
+  element child {
+    notation "Child / component"
     style {
-      shape cylinder
-      color green
+      color slate
+      shape component
+      size sm
     }
   }
 
-  tag ingest
-  tag domain
-  tag egress
+  // ---- tags ----
+
+  tag persistent
   tag pipeline
+
+  // ---- relationship kinds ----
+
+  relationship http {
+    technology "HTTP"
+  }
+
+  relationship ask {
+    technology "Akka Ask"
+  }
+
+  relationship tell {
+    technology "Akka Tell"
+    line dashed
+  }
+
+  relationship journal {
+    technology "Akka.Persistence"
+    line dotted
+  }
+
+  relationship stream {
+    technology "Akka.Streams"
+    color green
+  }
 }

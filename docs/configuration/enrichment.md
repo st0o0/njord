@@ -8,7 +8,7 @@ For full descriptions, configuration examples, and automation ideas for all 89 f
 
 ## Weather alerts
 
-Alert rules run on the high-resolution deterministic forecast from the Forecast API. Nine alerts (Frost, Heat, Storm, HeavyRain, Thunderstorm, Snow, Ice, WindChill, TropicalNight) also use ensemble spread data for confidence: low spread across the 51 ensemble members means high confidence. The remaining alerts (PressureDrop, Fog, Visibility, UV, Humidity, RainProbability, WetBulbDanger, ClearSkyUv, Shower, FireRisk) use a fixed Medium confidence because their variables have low ensemble sensitivity or are deterministic by nature.
+Alert rules run on the high-resolution deterministic forecast from the Forecast API. Fourteen alerts (Frost, Heat, Storm, HeavyRain, Thunderstorm, Snow, Ice, WindChill, TropicalNight, RainProbability, WetBulbDanger, Shower, CoastalFlood, FireRisk) also use ensemble spread data for confidence: low spread across the ensemble members means high confidence. The remaining alerts (PressureDrop, Fog, Visibility, UV, Humidity, ClearSkyUv, CompoundHeatStress, MigraineRisk) and the non-weather alerts (Pollen, Pm25, Dust, SmogRisk, PollenBlast, FloodRisk, FloodRain, SwimmingConditions) use a fixed Medium confidence because their variables have low ensemble sensitivity or are deterministic by nature.
 
 ```json
 {
@@ -77,6 +77,6 @@ For all other features (SmogRisk, Surf, SoilMoisture, SolarYield and more), see 
 
 ## Wire exposure
 
-Every feature result is delivered over gRPC (`GetEnrichments`, `StreamEnrichments`) as an `EnrichmentEvent`; its `feature` oneof case identifies the result type.
+Every feature result is delivered over gRPC as an `EntityStateUpdate` via the `Subscribe` RPC. Each update carries a per-OutputKind value type (`AlertValue`, `ScoreValue`, `ConditionValue`, `TrendValue`, `ForecastValue`, `WeatherValue`, `ObservationValue`) and is addressed by entity_id. The `GetManifest` RPC returns the entity definitions (platform, device class, icon, unit) for all enabled features across all locations.
 
 Values such as apparent temperature, dew point and UV index come directly from the Open-Meteo API; njord computes no further derived values.

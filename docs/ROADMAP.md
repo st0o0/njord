@@ -21,7 +21,7 @@ result and proto message, a `docs/data/features.json` entry, and a ha-njord enti
 | InversionDetection | Condition | |
 | AtmosphericStability | Condition | |
 | CloudCeiling | Condition | |
-| WindowScanner / TimeWindow / Calendar entity | Infrastructure | `calendar.<location>_activity_windows` in ha-njord |
+| WindowScanner / TimeWindow entity | Infrastructure | Best-window detection for scores and conditions |
 | Event system (data lifecycle, feature transitions) | Infrastructure | `event.<location>_data`, `event.<location>_features` |
 | i18n foundation (`translation_key`) | Infrastructure | |
 

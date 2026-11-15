@@ -10,20 +10,22 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
   themeConfig: {
     logo: '/logo.svg',
     nav: [
-      { text: 'Guide', link: '/getting-started' },
+      { text: 'Getting Started', link: '/getting-started/' },
       { text: 'Features', link: '/features/' },
       { text: 'Home Assistant', link: '/home-assistant/' },
       { text: 'Config', link: '/configuration/' },
-      { text: 'Reference', link: '/models' },
       { text: 'Builder', link: '/builder' },
+      { text: 'Developers', link: '/development/' },
     ],
 
     sidebar: [
       {
-        text: 'Guide',
+        text: 'Getting Started',
         items: [
-          { text: 'Getting Started', link: '/getting-started' },
-          { text: 'Architecture', link: '/architecture' },
+          { text: 'What is njord?', link: '/getting-started/' },
+          { text: 'Installation', link: '/getting-started/installation' },
+          { text: 'Connect Home Assistant', link: '/getting-started/home-assistant' },
+          { text: 'Features & Budget', link: '/getting-started/features' },
         ],
       },
       {
@@ -58,27 +60,28 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
           { text: 'Enrichment', link: '/configuration/enrichment' },
           { text: 'Persistence', link: '/configuration/persistence' },
           { text: 'Budget', link: '/configuration/budget' },
-        ],
-      },
-      {
-        text: 'Reference',
-        items: [
           { text: 'Model Catalog', link: '/models' },
           { text: 'Config Builder', link: '/builder' },
         ],
       },
       {
-        text: 'Legal',
         items: [
           { text: 'Attribution', link: '/attribution' },
         ],
       },
       {
-        text: 'Development',
+        text: 'For developers',
+        collapsed: true,
         items: [
-          { text: 'Setup & Service', link: '/development/setup' },
-          { text: 'Integration (ha-njord)', link: '/development/integration' },
-          { text: 'Mutation Testing', link: '/development/mutation-testing' },
+          { text: 'Contributing', link: '/development/' },
+          { text: 'Architecture', link: '/development/architecture' },
+          { text: 'Repository layout', link: '/development/layout' },
+          { text: 'Building & testing', link: '/development/building' },
+          { text: 'Actors', link: '/development/actors' },
+          { text: 'Data flow', link: '/development/data-flow' },
+          { text: 'gRPC API', link: '/development/grpc' },
+          { text: 'ha-njord integration', link: '/development/integration' },
+          { text: 'Local development', link: '/development/local-dev' },
         ],
       },
     ],

@@ -1,30 +1,54 @@
 views {
+
+  style element.tag = #persistent {
+    icon bootstrap:database
+  }
+
+  style element.tag = #pipeline {
+    icon bootstrap:water
+  }
+
+  // System context: Open-Meteo -> njord -> Home Assistant
   view index {
-    title 'Open-Meteo → njord → Home Assistant'
-    include openMeteo, njord, homeAssistant
+    title 'System context'
+    description 'njord and the systems it talks to'
+    include *
     autoLayout LeftRight
   }
 
-  view internals {
-    title 'Three-zone architecture'
-    include
-      njord,
-      njord.ingest,
-      njord.domain,
-      njord.consumers,
-      njord.persistence,
-      openMeteo,
-      homeAssistant
-    autoLayout LeftRight
+  // Project-level overview
+  view zones of njord {
+    title 'Project architecture'
+    description 'Njord.OpenMeteo, Njord.Polling, Njord.Pipeline, Njord.Features, Njord.Budget, Njord.Grpc'
+    include *
+    exclude njord.persistence
   }
 
-  view pipeline {
-    title 'Akka.Streams data flow'
-    include
-      njord.pipeline,
-      njord.pipeline.*,
-      openMeteo,
-      homeAssistant
-    autoLayout LeftRight
+  // Njord.OpenMeteo: gateway + 6 clients
+  view ingest of njord.openMeteoProject {
+    title 'Njord.OpenMeteo'
+    description 'OpenMeteoGateway routes to 6 typed domain clients'
+    include *
+  }
+
+  // Njord.Polling: PollManager + PollWorker
+  view polling of njord.pollingProject {
+    title 'Njord.Polling'
+    description 'PollManager singleton and PollWorker shard entities'
+    include *
+  }
+
+  // Njord.Pipeline: ForecastPipeline + FeatureEngine
+  view pipeline of njord.pipelineProject {
+    title 'Njord.Pipeline'
+    description 'MergeHub -> FeatureEngine -> BroadcastHub'
+    include *
+  }
+
+  // Njord.Grpc: consumer + service
+  view consumers of njord.grpcProject {
+    title 'Njord.Grpc'
+    description 'GrpcConsumer, NjordGrpcService, ManifestBuilder'
+    include *
   }
 }

@@ -15,7 +15,7 @@ Open-Meteo's free tier (non-commercial use) has these soft limits:
 
 ## Calls per cycle
 
-Each PollWorker fetches the domains required by the enabled [features](./#features-and-domains). The defaults (21 features) need three domains:
+Each PollWorker fetches the domains required by the enabled [features](./#features-and-domains). The defaults (21 features) need three of the six domains (Forecast, Ensemble, Air Quality). Enabling Flood, Marine or Seasonal features adds those domains:
 
 | Domain | Endpoint | Fetched when | Call weight |
 |--------|----------|--------------|-------------|

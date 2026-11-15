@@ -1,6 +1,6 @@
 # Entities
 
-The integration creates entities across six platforms: `weather`, `sensor`, `binary_sensor`, `calendar`, `event`, and `button`.
+The integration creates entities across five platforms: `weather`, `sensor`, `binary_sensor`, `event`, and `button`.
 
 ## Weather (`weather.*`)
 
@@ -99,14 +99,6 @@ These attributes come from the gRPC API.
 
 ---
 
-## Calendar (`calendar.*`)
-
-One calendar entity per location shows the activity time windows of the score features.
-
-Entity ID: `calendar.{location}_activity_windows`
-
----
-
 ## Diagnostic sensors (server device)
 
 | Entity | Unit | Description |
@@ -126,7 +118,7 @@ Each usage sensor carries `limit` and `used` attributes.
 
 | Entity | Default | Description |
 |--------|---------|-------------|
-| `binary_sensor.njord_forecast_stream` | enabled | gRPC domain data stream connectivity (diagnostic) |
+| `binary_sensor.njord_domain_stream` | enabled | gRPC domain data stream connectivity (diagnostic) |
 | `binary_sensor.njord_enrichment_stream` | enabled | gRPC enrichment stream connectivity (diagnostic) |
 
 ---

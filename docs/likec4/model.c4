@@ -1,124 +1,185 @@
 model {
-  openMeteo = externalSystem 'Open-Meteo API' {
-    description 'Free weather API: Ensemble Mean (weather, solar), Air Quality and Flood endpoints'
+
+  // ---- external systems ----
+
+  openMeteo = external 'Open-Meteo API' {
+    description 'Free weather API: Forecast, Ensemble Mean, Air Quality, Flood, Marine, Seasonal endpoints'
+    link https://open-meteo.com/en/docs
   }
+
+  homeAssistant = external 'Home Assistant' {
+    description 'ha-njord custom integration, connected over gRPC streaming'
+    link https://github.com/st0o0/ha-njord
+  }
+
+  // ---- njord ----
 
   njord = system 'njord' {
-    description '.NET service on Akka.NET + Akka.Streams'
+    description '.NET service on Akka.NET + Akka.Streams: polls Open-Meteo, evaluates 89 feature rules, streams results over gRPC'
 
-    ingest = container 'Ingest' {
-      #ingest
-      description 'Open-Meteo gateway and HTTP client'
+    // ==== Njord.OpenMeteo ====
 
-      openMeteoGateway = component 'OpenMeteoGateway' {
-        #ingest
-        description 'Routes FetchDomain requests to Weather, Air Quality and Flood, budget throttle, parallel fetches'
+    openMeteoProject = container 'Njord.OpenMeteo' {
+      description 'Gateway and 6 typed HTTP clients, one per Open-Meteo domain'
+
+      gateway = singleton 'OpenMeteoGateway' {
+        description 'Stream-based dispatch: queue, budget gate, SelectAsyncUnordered, WireTap reply, SinkRef to pipeline'
       }
-      openMeteoClient = component 'OpenMeteoClient' {
-        #ingest
-        description 'HTTP client, builds requests, parses JSON into DomainForecast records'
+
+      budgetGate = child 'GatewayBudgetGate' {
+        description 'Token-bucket rate limiter (80% of requests/min, burst max(rate/30, 16))'
+      }
+
+      forecastClient = child 'ForecastClient' {
+        description 'api.open-meteo.com/v1/forecast: deterministic best_match (1-9 km)'
+      }
+
+      ensembleClient = child 'EnsembleClient' {
+        description 'ensemble-api.open-meteo.com/v1/ensemble: spread variables + ensemble-mean models'
+      }
+
+      airQualityClient = child 'AirQualityClient' {
+        description 'air-quality-api.open-meteo.com: PM2.5, PM10, ozone, pollen, European/US AQI'
+      }
+
+      floodClient = child 'FloodClient' {
+        description 'flood-api.open-meteo.com: GloFAS river discharge (mean, median, P25, P75, max)'
+      }
+
+      marineClient = child 'MarineClient' {
+        description 'marine-api.open-meteo.com: waves, swell, currents, SST'
+      }
+
+      seasonalClient = child 'SeasonalClient' {
+        description 'seasonal-api.open-meteo.com: monthly anomalies, weekly EFI/SOT probabilities'
       }
     }
 
-    domain = container 'Domain' {
-      #domain
-      description 'Poll scheduling, projection engine, alert libraries'
+    // ==== Njord.Polling ====
 
-      pollManager = component 'PollManager' {
-        #domain
-        description 'Cluster singleton: starts one poll worker per configured location, answers poll-state queries'
+    pollingProject = container 'Njord.Polling' {
+      description 'Poll scheduling: one PollManager singleton + one PollWorker shard entity per location'
+
+      pollManager = singleton 'PollManager' {
+        description 'One target per location; StartPolling/StopPolling, poll state + health from reports'
       }
-      pollWorker = component 'PollWorker' {
-        #domain
-        description 'Persistent shard entity per location: decides when it is fetched, fetches all three domains'
-      }
-      forecastPipeline = component 'ForecastPipeline' {
-        #domain
-        description 'ProjectionEngine keeps a LocationForecast per location and runs the affected projection groups'
-      }
-      analysis = component 'Alert libraries' {
-        #domain
-        description 'Weather, air quality and flood alerts, including cross-domain FloodRain'
-      }
-      budgetTracker = component 'BudgetTracker' {
-        #domain
-        description 'Persistent request budget usage per minute, day and month'
+
+      pollWorker = shard 'PollWorker' {
+        #persistent
+        description 'Entity per location: per-domain independent timers, discovery -> learned cycle, FetchDomain dispatch'
       }
     }
 
-    consumers = container 'Consumers' {
-      #egress
-      description 'Output adapters attached to the pipeline via SourceRef'
+    // ==== Njord.Pipeline ====
 
-      grpcApi = component 'gRPC API' {
-        #egress
-        description 'GrpcConsumer plus Weather and Ops services on port 8081'
-      }
-    }
-
-    pipeline = container 'Pipeline' {
+    pipelineProject = container 'Njord.Pipeline' {
       #pipeline
-      description 'Akka.Streams data flow, fetch to consumers'
+      description 'MergeHub -> FeatureEngine -> BroadcastHub streaming pipeline'
 
-      fetchQueue = component 'Fetch queue' {
+      forecastPipeline = singleton 'ForecastPipeline' {
         #pipeline
-        description 'FetchDomain requests from the poll workers'
+        description 'MergeHub (domain data in) -> FeatureEngine -> BroadcastHub (pipeline events out)'
       }
-      throttle = component 'GatewayThrottleStage' {
+
+      featureEngine = child 'FeatureEngine' {
         #pipeline
-        description 'Token bucket that keeps requests within the API budget'
-      }
-      httpStage = component 'Fetch' {
-        #pipeline
-        description 'SelectAsyncUnordered calls to OpenMeteoClient'
-      }
-      domainHub = component 'MergeHub' {
-        #pipeline
-        description 'MergeHub of DomainDataReceived from the fetch branch'
-      }
-      projection = component 'ProjectionEngine' {
-        #pipeline
-        description 'Updates the LocationForecast and evaluates projection groups by domain'
-      }
-      eventHub = component 'PipelineEvent hub' {
-        #pipeline
-        description 'BroadcastHub of typed PipelineEvents for consumers'
+        description 'Ring buffer of LocationForecasts per location, domain slot replacement, rule dispatch by requirements'
       }
     }
 
-    persistence = dataStore 'SQLite' {
-      description 'Journal and snapshots for budget usage and the poll workers state'
+    // ==== Njord.Features ====
+
+    featuresProject = container 'Njord.Features' {
+      description '89 IFeatureRule implementations across 7 OutputKinds'
+
+      featureRules = child 'Feature rules' {
+        description 'Alert (30), Score (7), Condition (23), Trend (1), Forecast (4), Weather (1), Observation (23)'
+      }
+    }
+
+    // ==== Njord.Budget ====
+
+    budgetProject = container 'Njord.Budget' {
+      description 'Persistent API usage accounting and health check'
+
+      budgetTracker = singleton 'BudgetTracker' {
+        #persistent
+        description 'Per-minute, per-day, per-month usage tracking; health check source'
+      }
+    }
+
+    // ==== Njord.Grpc ====
+
+    grpcProject = container 'Njord.Grpc' {
+      description 'gRPC service and entity state management'
+
+      grpcConsumer = singleton 'GrpcConsumer' {
+        description 'Entity state (EntityStates/StaleEntities), BroadcastHub of EntityEvents, availability tracking'
+      }
+
+      grpcService = child 'NjordGrpcService' {
+        description 'gRPC service on port 8081: GetManifest, Subscribe, GetStatus, TriggerPoll'
+      }
+
+      manifestBuilder = child 'ManifestBuilder' {
+        description 'Entity definitions from FeatureDescriptor.EntityMetadata x locations at startup'
+      }
+    }
+
+    // ==== Persistence ====
+
+    persistence = store 'SQLite / PostgreSQL' {
+      description 'Akka.Persistence journal and snapshots for PollWorker state and BudgetTracker usage'
     }
   }
 
-  homeAssistant = externalSystem 'Home Assistant' {
-    description 'ha-njord custom integration, connected over gRPC'
-  }
+  // ---- context relationships ----
 
-  // System-level relationships
-  openMeteo -> njord 'weather, air quality, flood data'
-  njord -> homeAssistant 'gRPC streams (ha-njord)'
+  openMeteo -> njord 'weather data (6 domains)'
+  njord -> homeAssistant 'gRPC streaming (ha-njord)'
 
-  // Internal relationships
-  pollManager -> pollWorker 'StartPolling / TriggerImmediatePoll'
-  pollWorker -> pollManager 'PollWorkerReport'
-  pollWorker -> openMeteoGateway 'FetchDomain'
-  openMeteoGateway -> openMeteoClient 'fetch'
-  openMeteoClient -> openMeteo 'HTTP GET'
-  openMeteoGateway -> forecastPipeline 'SinkRef<DomainDataReceived>'
-  forecastPipeline -> analysis 'projection groups'
-  forecastPipeline -> grpcApi 'SourceRef<PipelineEvent>'
-  grpcApi -> homeAssistant 'gRPC streams'
-  pollWorker -> persistence 'poll state per location'
-  openMeteoGateway -> budgetTracker 'recorded calls'
-  budgetTracker -> persistence 'budget usage'
+  // ---- Njord.OpenMeteo: gateway to clients ----
 
-  // Pipeline flow
-  fetchQueue -> throttle 'domain requests'
-  throttle -> httpStage 'throttled requests'
-  httpStage -> openMeteo 'HTTP GET'
-  httpStage -> domainHub 'DomainDataReceived'
-  domainHub -> projection 'DomainDataReceived'
-  projection -> eventHub 'PipelineEvent'
-  eventHub -> homeAssistant 'gRPC via GrpcConsumer'
+  gateway -> budgetGate 'rate-limited requests'
+  gateway -> forecastClient 'Forecast'
+  gateway -> ensembleClient 'Ensemble'
+  gateway -> airQualityClient 'AirQuality'
+  gateway -> floodClient 'Flood'
+  gateway -> marineClient 'Marine'
+  gateway -> seasonalClient 'Seasonal'
+  forecastClient -[http]-> openMeteo 'HTTP GET'
+  ensembleClient -[http]-> openMeteo 'HTTP GET'
+  airQualityClient -[http]-> openMeteo 'HTTP GET'
+  floodClient -[http]-> openMeteo 'HTTP GET'
+  marineClient -[http]-> openMeteo 'HTTP GET'
+  seasonalClient -[http]-> openMeteo 'HTTP GET'
+
+  // ---- Njord.Polling: scheduling ----
+
+  pollManager -[tell]-> pollWorker 'StartPolling / StopPolling'
+  pollWorker -[tell]-> pollManager 'PollWorkerReport'
+  pollWorker -[tell]-> gateway 'FetchDomain'
+  gateway -[tell]-> pollWorker 'FetchDomainCompleted / Failed / Rejected'
+
+  // ---- Njord.Pipeline: data flow ----
+
+  gateway -[stream]-> forecastPipeline 'SinkRef: DomainDataReceived'
+  forecastPipeline -> featureEngine 'process domain data'
+  featureEngine -> njord.featuresProject.featureRules 'evaluate matching rules'
+  forecastPipeline -[stream]-> grpcConsumer 'SourceRef: PipelineEvent'
+
+  // ---- Njord.Grpc: consumers ----
+
+  grpcConsumer -> grpcService 'entity state updates'
+  grpcService -> manifestBuilder 'entity definitions'
+  grpcService -> homeAssistant 'gRPC streams'
+
+  // ---- persistence ----
+
+  pollWorker -[journal]-> njord.persistence 'DomainPolled events'
+  budgetTracker -[journal]-> njord.persistence 'budget usage events'
+
+  // ---- budget ----
+
+  gateway -[tell]-> budgetTracker 'RecordApiCall'
 }

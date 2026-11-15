@@ -1,0 +1,52 @@
+views {
+
+  style element.tag = #persistent {
+    icon bootstrap:database
+  }
+
+  dynamic view poll-flow {
+    title 'Poll cycle'
+    description 'A PollWorker domain timer fires and fetches new data'
+    autoLayout TopBottom
+
+    njord.pollingProject.pollWorker -> njord.openMeteoProject.gateway 'FetchDomain(location, domain)'
+    njord.openMeteoProject.gateway -> njord.openMeteoProject.budgetGate 'check rate limit'
+    njord.openMeteoProject.budgetGate -> njord.openMeteoProject.forecastClient 'route to domain client'
+    njord.openMeteoProject.forecastClient -> openMeteo 'HTTP GET'
+    njord.openMeteoProject.forecastClient <- openMeteo 'DomainForecast'
+    njord.openMeteoProject.gateway -> njord.pollingProject.pollWorker 'FetchDomainCompleted (hash, outcome)'
+    njord.pollingProject.pollWorker -> njord.persistence 'persist DomainPolled'
+    njord.pollingProject.pollWorker -> njord.pollingProject.pollManager 'PollWorkerReport'
+    njord.openMeteoProject.gateway -> njord.pipelineProject.forecastPipeline 'DomainDataReceived via SinkRef'
+  }
+
+  dynamic view pipeline-flow {
+    title 'Feature pipeline'
+    description 'Domain data enters the pipeline, rules evaluate, results reach gRPC consumers'
+    autoLayout TopBottom
+
+    njord.openMeteoProject.gateway -> njord.pipelineProject.forecastPipeline 'DomainDataReceived into MergeHub'
+    njord.pipelineProject.forecastPipeline -> njord.pipelineProject.featureEngine 'StatefulSelectMany'
+    njord.pipelineProject.featureEngine -> njord.featuresProject.featureRules 'evaluate matching rules'
+    njord.featuresProject.featureRules -> njord.pipelineProject.featureEngine 'FeatureResult'
+    njord.pipelineProject.featureEngine -> njord.pipelineProject.forecastPipeline 'PipelineEvent[] into BroadcastHub'
+    njord.pipelineProject.forecastPipeline -> njord.grpcProject.grpcConsumer 'PipelineEvent via SourceRef'
+    njord.grpcProject.grpcConsumer -> njord.grpcProject.grpcService 'EntityStateUpdate'
+    njord.grpcProject.grpcService -> homeAssistant 'gRPC stream to ha-njord'
+  }
+
+  dynamic view subscribe-flow {
+    title 'gRPC Subscribe'
+    description 'ha-njord connects and receives entity updates'
+    autoLayout TopBottom
+
+    homeAssistant -> njord.grpcProject.grpcService 'GetManifest()'
+    njord.grpcProject.grpcService -> njord.grpcProject.manifestBuilder 'build entity definitions'
+    njord.grpcProject.manifestBuilder -> njord.grpcProject.grpcService 'ManifestResponse'
+    njord.grpcProject.grpcService -> homeAssistant 'entity definitions'
+    homeAssistant -> njord.grpcProject.grpcService 'Subscribe()'
+    njord.grpcProject.grpcService -> njord.grpcProject.grpcConsumer 'attach consumer'
+    njord.grpcProject.grpcConsumer -> njord.grpcProject.grpcService 'snapshot: current entity states'
+    njord.grpcProject.grpcService -> homeAssistant 'EntityStateUpdate stream'
+  }
+}
