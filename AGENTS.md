@@ -7,6 +7,11 @@ on Akka.NET + Akka.Streams: polls the Open-Meteo APIs (weather forecast, ensembl
 flood, marine) per location, evaluates feature rules on the data, and serves it to Home Assistant
 over gRPC (the ha-njord integration).
 
+## Conventions reference
+
+Base .NET and Akka.NET conventions: https://anvil.st0o0.net/llms-full.txt
+Below are Njord-specific extensions and overrides. When a rule here conflicts with Anvil, this file wins.
+
 ## Solution structure
 
 10 production projects, one test project each (except Host), plus `Njord.Tests.Shared`.
@@ -240,81 +245,70 @@ Full-stack verification is the `e2e-test` skill (`.claude/skills/e2e-test/SKILL.
 - Central package management: versions only in `src/Directory.Packages.props`; use `dotnet add package`.
 - While 0.x, breaking changes are fine (`refactor!:`), including persistence records.
 
-### C#
+### C# (Njord-specific extensions)
 
-- `sealed` by default, records for messages/DTOs, nullable enabled. Style is enforced by `.editorconfig`.
-- No XML docs. Never `async void`, `.Result`, `.Wait()`. Always pass `CancellationToken` through.
-- `dotnet format` is enforced by CI; run it after editing `.cs` files.
-- Enum to wire text or to another enum: extension method with an explicit `switch`, one arm per member,
-  default throws `ArgumentOutOfRangeException` (`ToProto()`, `ToDomain()`, `ToApiVariable()`). No casts
-  between enums, no `Enum.Parse`/`ToString().ToLower()`. Hand-written wire mappings get one Theory per
-  direction (`<Name>MappingTests`); the exhaustive switch covers completeness at compile time.
+Base rules: see Anvil C# Conventions. Additional Njord rules:
+
+- Enum-to-wire and enum-to-enum mapping: extension method with exhaustive `switch`, names
+  `ToProto()`, `ToDomain()`, `ToApiVariable()`. Hand-written wire mappings get one Theory per
+  direction (`<Name>MappingTests`).
   API variable string names use `[JsonStringEnumMemberName]` on per-domain API enums in `Njord.OpenMeteo`
   with a cached `FrozenDictionary` lookup (`ApiVariableNames`), outside the switch convention.
 - Every static class with `this` methods ends in `Extensions` and lives in a file of the same name; state
-  extensions live next to, not inside, the state record. This is a review convention, not an ArchUnit rule.
+  extensions live next to, not inside, the state record.
 - Mappings are extension methods in static classes named `<Domain><Target>MappingExtensions` (file name = class
   name): no state, never in actors; names `ToProto`, `ToDomain`, `ToMessage`, never `Map*`.
   Protobuf timestamps via `ToTimestamp()`.
 - No em dashes in code, docs or commit messages.
 
-### Akka
+### Akka (Njord-specific extensions)
 
-Rules apply to production code.
+Base rules (actor design, messaging, persistence, state management): see Anvil Akka.NET conventions.
+Njord-specific patterns and overrides below. Rules apply to production code.
 
-- **Setups** are `XxxSetup : ISetup<T>` (Terp.Hosting), chained via `builder.Setups().Add<T>()`
-  (SetupChain) in `Program.cs`; `AkkaSetup : ActorSystemSetup` (Terp.Akka.Hosting) is the single
-  actor system of the host. Each library registers its actors via
-  `services.AddActorRegistration<T>()` (`Terp.Akka.Hosting.IActorRegistration`);
-  `AkkaSetup.BuildSystem` calls `builder.ApplyRegistrations(serviceProvider)` to apply them all.
-- **No `ContinueWith`.** Use `PipeTo` with `success:` and `failure:`. The mappers are pure; log in the
-  result handler, not in the mapper.
+- **Terp setup chain.** `XxxSetup : ISetup<T>` (Terp.Hosting), chained via `builder.Setups().Add<T>()`
+  in `Program.cs`; `AkkaSetup : ActorSystemSetup` (Terp.Akka.Hosting) is the single actor system.
+  Each library registers its actors via `services.AddActorRegistration<T>()`
+  (`Terp.Akka.Hosting.IActorRegistration`); `AkkaSetup.BuildSystem` calls
+  `builder.ApplyRegistrations(serviceProvider)` to apply them all.
+- **Actor resolution by marker.** `Context.TryGetActor<IPollManager>(out var m)` - markers in `ActorKeys.cs`.
+- **PipeTo mappers are pure** - log in the result handler, not in the mapper:
   ```csharp
   gateway.Ask<FetchDomainResponse>(new FetchDomain(location, domain), timeout).PipeTo(Self,
       success: reply => new DomainFetchReplied(domain, reply),
       failure: ex => new DomainFetchReplied(domain, AskFailure(location, domain, timeout, ex)));
   ```
-- **No `Status.Failure`/`Status.Success`.** Use `XxxFailed(Exception Cause)` (plus request id when
-  correlated); the requester must handle it.
-- **No `EventStream`.** Use explicit actor references. TestKit probes may subscribe in tests.
-- **No `IActorRef` constructor parameters.** Resolve by marker: `Context.TryGetActor<IPollManager>(out var m)`.
-- **Messages:** commands `VerbNoun` with `VerbNounCompleted`/`VerbNounFailed` (and `Rejected` where the
-  domain has it) in one file; queries `QueryNoun` with `NounResult`/`NounFailed`; events past tense in
-  `Njord.Persistence`. `Failed` always carries `Exception Cause`.
-- **Naming:** `*Manager` for a coordinating actor (Cluster Singleton), `*Worker` for an actor per entity or per
-  request (sharded entity or child), other actors take a domain-role name (`BudgetTracker`, `OpenMeteoGateway`,
-  `ForecastPipeline`). All sealed. `*State` is reserved for immutable state records.
-- **State:** a stateful actor has `<Actor>.cs` (plumbing: routing, persistence lifecycle, timers) and
-  `<Actor>State.cs` (immutable record, never nested; `Empty` static; `Apply(event)` returns a new state;
-  `ProcessCommand` returns `(State, Event)` for persistent actors). Logic lives in state extensions.
-  State is never sent or snapshotted raw: callers get a message record, `SaveSnapshot` gets
-  `Persisted<Name>State`.
-- **Sharding:** one `ShardMessageExtractor` in `Njord.Polling` matching `IWith*Id` interfaces, never concrete
-  types. Passivation only through `ShardOptions.PassivateIdleEntityAfter`, never `SetReceiveTimeout` +
-  `Passivate`. (PollWorker opts out of passivation.)
-- **Logging:** `private readonly ILoggingAdapter _log = Context.GetLogger();` (inline, readonly, `_log`).
+- **Naming override.** Beyond Anvil's `*Manager`/`*Worker`/`*Actor`, Njord allows domain-role names
+  for actors that don't fit those categories (`BudgetTracker`, `OpenMeteoGateway`, `ForecastPipeline`).
+  `*State` is reserved for immutable state records.
+- **State is an immutable record** (differs from Anvil's mutable `sealed class` pattern).
+  `<Actor>State.cs` is an immutable record (never nested); `Empty` static; `Apply(event)` returns
+  a new state; `ProcessCommand` returns `(State, Event)` for persistent actors. Logic lives in
+  state extensions, not inside the record.
+- **Messages extension.** `VerbNounRejected` where the domain has it, in addition to
+  `Completed`/`Failed`. `Failed` always carries `Exception Cause`.
+- **Sharding.** One `ShardMessageExtractor` in `Njord.Polling` matching `IWith*Id` interfaces, never
+  concrete types. PollWorker opts out of passivation.
+- **Logging.** `private readonly ILoggingAdapter _log = Context.GetLogger();` (inline, readonly, `_log`).
   `ActorCategoryLogger` writes the class's full type name as category; `akka.loglevel` follows the
   lowest `Serilog:MinimumLevel`.
-- **Persistence:** records in `Njord.Persistence` are positional, `DateTimeOffset`/`TimeSpan` (never ticks),
+- **Persistence records** in `Njord.Persistence` are positional, `DateTimeOffset`/`TimeSpan` (never ticks),
   past-tense events (`DomainPolled`), `Persisted<Name>State` snapshots, new members nullable or defaulted,
-  closed sets as `Persisted*` enums with explicit values, no `Event`/`Dto` suffix, no custom serializer.
+  closed sets as `Persisted*` enums with explicit values.
   State <-> record mapping in `<Owner>PersistenceMappingExtensions`, state -> contract in
-  `<Owner>MessageMappingExtensions`. "Snapshot" is reserved for persisted state. `Apply` takes the event
-  record. Snapshot when `LastSequenceNr % SnapshotInterval == 0`, never after every event; after
-  `SaveSnapshotSuccess`: `DeleteMessages(seqNr)` + `DeleteSnapshots(seqNr - 1)`. `DeferAsync` only for
-  non-trivial side effects and never when the handler persists internally. Bounded-lifecycle entities
-  need no snapshots.
+  `<Owner>MessageMappingExtensions`. After `SaveSnapshotSuccess`: `DeleteMessages(seqNr)` +
+  `DeleteSnapshots(seqNr - 1)`.
 - **Health checks ask the actors** (`PipelineHealthCheck` -> `PollManager`, `BudgetHealthCheck` ->
-  `BudgetTracker`) with a 3 s timeout, degrade when the
-  actor is missing or silent, and keep the rule in an `internal static Evaluate(...)`. The host adds
-  `data-directory` (Sqlite only). Akka.Hosting registers persistence (journal + snapshot), actor system
-  liveness and cluster readiness checks. `/healthz`: 200 Healthy/Degraded, 503 Unhealthy; `/alive` is unconditional.
+  `BudgetTracker`) with a 3 s timeout, degrade when the actor is missing or silent, and keep the
+  rule in an `internal static Evaluate(...)`. The host adds `data-directory` (Sqlite only).
+  `/healthz`: 200 Healthy/Degraded, 503 Unhealthy; `/alive` is unconditional.
 
-### Tests
+### Tests (Njord-specific extensions)
 
-- Class suffix `Tests`, `public sealed`. Layout mirrors production 1:1: `Foo.cs` -> `FooTests.cs`,
-  `FooState.cs` -> `FooStateTests.cs`. Topic splits (`FooRetryTests`) only when one file gets large.
-  Names are `Snake_case_sentences` describing behavior.
+Base assertion and test philosophy rules: see Anvil Testing conventions. Njord-specific patterns:
+
+- Layout mirrors production 1:1: `Foo.cs` -> `FooTests.cs`, `FooState.cs` -> `FooStateTests.cs`.
+  Topic splits (`FooRetryTests`) only when one file gets large. Names are `Snake_case_sentences`.
 - Actor tests derive from `Akka.Hosting.TestKit.TestKit`. Collaborators are `CreateTestProbe()` probes
   registered in `ActorRegistry.For(Sys).Register<IMarker>(probe)` (register every marker the actor
   resolves); many probes go in a `TestProbes` record. Create the actor with
@@ -322,28 +316,23 @@ Rules apply to production code.
   Never reuse an actor name after `GracefulStop`.
 - State records are tested as plain xUnit `<Name>StateTests` (3-5 facts: Apply, ProcessCommand,
   snapshot round trip); actors test message routing and lifecycle only.
-- Waits: `ExpectMsg`/`probe.ExpectMsg`/`AwaitAssert`/`AwaitCondition`; `ExpectNoMsg(200 ms)` for absence.
-  No `Thread.Sleep`, no arbitrary delay. Retry-backoff tests pass a short `BackoffPolicy`.
+- Retry-backoff tests pass a short `BackoffPolicy`.
 - `FakeTimeProvider` or a fixed timestamp, never `DateTime.UtcNow`.
 - NSubstitute only for plain interfaces (never actors, use probes): `Received(1)` with `Arg.Is`.
-- Assertions: `Assert.NotNull` before nullable access (no `!.`, except `JsonNode` indexers); `Assert.Single`;
-  count before indexing; assert the exact value; no vacuous assertion after a proven value;
-  `var ex = Assert.Throws<T>(...)` then assert on `ex`; `Assert.IsType<T>(obj, exactMatch: false)`;
-  `Assert.Multiple` for groups; `Assert.Equal` over `Assert.True(a == b)`. Pass
-  `TestContext.Current.CancellationToken` in async tests (xUnit1069 is an error).
-- `Theory` for small sweeps, separate named `[Fact]`s for large distinct fixtures. Endpoint tests send a
-  request and assert status/body. No data-only, constructor, property or DI-wiring tests.
-- `Njord.IntegrationTests` use a fixture with probes, like FunkArr. `Njord.Tests.Shared` stays small
+- No `!.` except `JsonNode` indexers. Pass `TestContext.Current.CancellationToken` (xUnit1069 is an error).
+- No data-only, constructor, property or DI-wiring tests.
+- `Njord.IntegrationTests` use a fixture with probes. `Njord.Tests.Shared` stays small
   (options monitor, builders, fakes). Verify snapshots only for persistence records.
-- After any change run ALL test projects, not only the affected ones (snapshot tests catch breaks elsewhere).
+- After any change run ALL test projects (snapshot tests catch breaks elsewhere).
 
 ### Metrics
 
-- One `Meter("Njord.<Domain>")` per library (`OpenMeteo`, `Budget`, `Polling`, `Pipeline`) in an
+Base metrics pattern (one meter per domain, naming, tags): see Anvil Observability conventions.
+
+- Meters: `Njord.OpenMeteo`, `Njord.Budget`, `Njord.Polling`, `Njord.Pipeline` - each in an
   `internal static class Telemetry` with `MeterName` and `internal static readonly` instruments;
   `TelemetrySetup` registers them via `.AddMeter()`, so a new meter is added there.
-- Names `njord_<area>_<name>` in snake_case; counters end `_total`, time histograms `_seconds`. Bounded tag
-  cardinality. Exported via OpenTelemetry Prometheus exporter.
+- Names `njord_<area>_<name>` in snake_case. Exported via OpenTelemetry Prometheus exporter.
 
 ## Options
 
