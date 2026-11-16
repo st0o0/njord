@@ -53,4 +53,48 @@ public sealed class DomainForecastTests
             () => Assert.Equal(TimeResolution.Hourly, forecast.Resolution),
             () => Assert.Equal(_run, forecast.LastValid));
     }
+
+    // --- ContentHash ---
+
+    [Fact]
+    public void Identical_points_produce_the_same_content_hash()
+    {
+        var points = ImmutableArray.Create(
+            new ForecastPoint(_run, Temperature: 20, Humidity: 50),
+            new ForecastPoint(_run.AddHours(1), Temperature: 21, Humidity: 55));
+        var a = new DomainForecast<ForecastPoint>(DomainKind.Forecast, _run, TimeResolution.Hourly, points);
+        var b = new DomainForecast<ForecastPoint>(DomainKind.Forecast, _run.AddHours(6), TimeResolution.Hourly, points);
+
+        Assert.Equal(a.ContentHash(), b.ContentHash());
+    }
+
+    [Fact]
+    public void Different_points_produce_different_content_hash()
+    {
+        var pointsA = ImmutableArray.Create(new ForecastPoint(_run, Temperature: 20));
+        var pointsB = ImmutableArray.Create(new ForecastPoint(_run, Temperature: 21));
+        var a = new DomainForecast<ForecastPoint>(DomainKind.Forecast, _run, TimeResolution.Hourly, pointsA);
+        var b = new DomainForecast<ForecastPoint>(DomainKind.Forecast, _run, TimeResolution.Hourly, pointsB);
+
+        Assert.NotEqual(a.ContentHash(), b.ContentHash());
+    }
+
+    [Fact]
+    public void Different_model_run_does_not_affect_content_hash()
+    {
+        var points = ImmutableArray.Create(new ForecastPoint(_run, Temperature: 18));
+        var a = new DomainForecast<ForecastPoint>(DomainKind.Forecast, _run, TimeResolution.Hourly, points);
+        var b = new DomainForecast<ForecastPoint>(DomainKind.Forecast, _run.AddDays(1), TimeResolution.Hourly, points);
+
+        Assert.Equal(a.ContentHash(), b.ContentHash());
+    }
+
+    [Fact]
+    public void Empty_points_produce_a_stable_hash()
+    {
+        var a = new DomainForecast<ForecastPoint>(DomainKind.Forecast, _run, TimeResolution.Hourly, []);
+        var b = new DomainForecast<ForecastPoint>(DomainKind.Forecast, _run.AddHours(3), TimeResolution.Hourly, []);
+
+        Assert.Equal(a.ContentHash(), b.ContentHash());
+    }
 }

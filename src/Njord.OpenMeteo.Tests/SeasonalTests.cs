@@ -62,7 +62,7 @@ public sealed class SeasonalTests
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Seasonal, forecast.Domain),
             () => Assert.Equal(TimeResolution.Monthly, forecast.Resolution),
-            () => Assert.Equal(_modelRun, forecast.ModelRun),
+            () => Assert.Equal(new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero), forecast.ModelRun),
             () => Assert.Equal(new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero), forecast.FirstValid),
             () => Assert.Equal(new DateTimeOffset(2027, 1, 1, 0, 0, 0, TimeSpan.Zero), forecast.LastValid),
             () => Assert.Equal(new SeasonalPoint(new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero), 1.0, -20.0, 80.0), forecast.Points[1]));

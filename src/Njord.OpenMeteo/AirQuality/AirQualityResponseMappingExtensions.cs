@@ -55,6 +55,6 @@ internal static class AirQualityResponseMappingExtensions
         }
 
         return new DomainForecast<AirQualityPoint>(
-            DomainKind.AirQuality, modelRun, TimeResolution.Hourly, [.. points]);
+            DomainKind.AirQuality, DateTimeOffset.FromUnixTimeSeconds(h.Time[0]), TimeResolution.Hourly, [.. points]);
     }
 }

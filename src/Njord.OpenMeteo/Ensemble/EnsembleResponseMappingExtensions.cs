@@ -143,7 +143,7 @@ internal static class EnsembleResponseMappingExtensions
         }
 
         return new DomainForecast<EnsemblePoint>(
-            DomainKind.Ensemble, modelRun, TimeResolution.Hourly, [.. points]);
+            DomainKind.Ensemble, DateTimeOffset.FromUnixTimeSeconds(times[0]), TimeResolution.Hourly, [.. points]);
     }
 
     private static string? ResolveBaseName(string key, string modelSuffix)

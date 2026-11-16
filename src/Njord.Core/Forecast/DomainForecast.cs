@@ -12,4 +12,16 @@ public sealed record DomainForecast<T>(
     public DateTimeOffset FirstValid => Points.IsDefaultOrEmpty ? default : Points[0].ValidFrom;
 
     public DateTimeOffset LastValid => Points.IsDefaultOrEmpty ? default : Points[^1].ValidFrom;
+
+    public int ContentHash()
+    {
+        var hash = new HashCode();
+        hash.Add(Domain);
+        hash.Add(Resolution);
+        foreach (var p in Points)
+        {
+            hash.Add(p);
+        }
+        return hash.ToHashCode();
+    }
 }

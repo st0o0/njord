@@ -44,7 +44,7 @@ internal static class FloodResponseMappingExtensions
 
         return builder.Count == 0
             ? null
-            : new DomainForecast<FloodPoint>(DomainKind.Flood, modelRun, TimeResolution.Daily, builder.ToImmutable());
+            : new DomainForecast<FloodPoint>(DomainKind.Flood, DateTimeOffset.FromUnixTimeSeconds(times[0]), TimeResolution.Daily, builder.ToImmutable());
     }
 
     private const string MemberPrefix = "river_discharge_member";

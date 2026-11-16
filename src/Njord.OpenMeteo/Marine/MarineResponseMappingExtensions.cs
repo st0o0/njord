@@ -46,6 +46,6 @@ internal static class MarineResponseMappingExtensions
         }
 
         return new DomainForecast<MarinePoint>(
-            DomainKind.Marine, modelRun, TimeResolution.Hourly, [.. points]);
+            DomainKind.Marine, DateTimeOffset.FromUnixTimeSeconds(h.Time[0]), TimeResolution.Hourly, [.. points]);
     }
 }

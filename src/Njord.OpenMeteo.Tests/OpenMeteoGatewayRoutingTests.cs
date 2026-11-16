@@ -70,7 +70,7 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
 
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Forecast, completed.Domain),
-            () => Assert.Equal(received.Data.GetHashCode(), completed.Hash),
+            () => Assert.Equal(received.Data.ContentHash(), completed.Hash),
             () => Assert.Equal("lucerne", received.Location.Name),
             () => Assert.Equal(47.05, received.Location.Latitude),
             () => Assert.IsType<DomainForecast<ForecastPoint>>(received.Data),
@@ -244,6 +244,6 @@ public sealed class OpenMeteoGatewayRoutingTests : Akka.Hosting.TestKit.TestKit
             () => Assert.Equal(DomainKind.Ensemble, completed.Domain),
             () => Assert.Equal(["ecmwf", "ukmo"], new[] { first.ModelId, second.ModelId }.Order()),
             () => Assert.Null(primary.ModelId),
-            () => Assert.Equal(primary.Data.GetHashCode(), completed.Hash));
+            () => Assert.Equal(primary.Data.ContentHash(), completed.Hash));
     }
 }

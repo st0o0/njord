@@ -8,4 +8,5 @@ public interface IDomainForecast
     TimeResolution Resolution { get; }
     DateTimeOffset FirstValid { get; }
     DateTimeOffset LastValid { get; }
+    int ContentHash();
 }

@@ -194,6 +194,6 @@ internal static class ForecastResponseMappingExtensions
         }
 
         return new DomainForecast<ForecastPoint>(
-            DomainKind.Forecast, modelRun, TimeResolution.Hourly, [.. points]);
+            DomainKind.Forecast, DateTimeOffset.FromUnixTimeSeconds(h.Time[0]), TimeResolution.Hourly, [.. points]);
     }
 }

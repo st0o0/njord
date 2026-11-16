@@ -37,7 +37,7 @@ public sealed class OpenMeteoResponseMappingsTests
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Forecast, forecast.Domain),
             () => Assert.Equal(TimeResolution.Hourly, forecast.Resolution),
-            () => Assert.Equal(_run, forecast.ModelRun),
+            () => Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(Hour0), forecast.ModelRun),
             () => Assert.Equal(2, forecast.Points.Length),
             () => Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(Hour0), forecast.Points[0].ValidFrom),
             () => Assert.Equal(20.5, forecast.Points[0].Temperature),

@@ -29,7 +29,7 @@ internal static class SeasonalResponseMappingExtensions
         }
 
         return builder.Any(p => p.TemperatureAnomaly is not null || p.PrecipitationAnomaly is not null)
-            ? new DomainForecast<SeasonalPoint>(DomainKind.Seasonal, modelRun, TimeResolution.Monthly, builder.ToImmutable())
+            ? new DomainForecast<SeasonalPoint>(DomainKind.Seasonal, DateTimeOffset.FromUnixTimeSeconds(m.Time[0]), TimeResolution.Monthly, builder.ToImmutable())
             : null;
     }
 
@@ -65,7 +65,7 @@ internal static class SeasonalResponseMappingExtensions
                 || p.TemperatureAnomalyGt1 is not null || p.TemperatureAnomalyGt2 is not null || p.TemperatureAnomalyLtM1 is not null
                 || p.TemperatureAnomalyLtM2 is not null || p.PrecipitationAnomalyGt0 is not null
                 || p.PrecipitationAnomalyGt10 is not null || p.PrecipitationAnomalyGt20 is not null)
-            ? new DomainForecast<SeasonalWeeklyPoint>(DomainKind.Seasonal, modelRun, TimeResolution.Weekly, builder.ToImmutable())
+            ? new DomainForecast<SeasonalWeeklyPoint>(DomainKind.Seasonal, DateTimeOffset.FromUnixTimeSeconds(w.Time[0]), TimeResolution.Weekly, builder.ToImmutable())
             : null;
     }
 }
