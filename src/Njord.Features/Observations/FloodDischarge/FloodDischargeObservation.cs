@@ -13,7 +13,7 @@ public sealed class FloodDischargeObservation(IOptions<FloodDischargeObservation
         FeatureCategory.Flood,
         Name: "FloodDischargeObservation",
         new DomainRequirements(Flood: FloodParams.Discharge),
-        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor, Unit: "m³/s"));
+        EntityMetadata: new EntityMetadata(EntityPlatform.Sensor, DeviceClass: "volume_flow_rate", Unit: "m³/s"));
 
     public override bool Enabled => config.Value.Enabled;
 
