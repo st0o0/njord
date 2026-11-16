@@ -11,6 +11,7 @@ internal static class StatusMappingExtensions
     {
         PollPhase.Discovery => ProtoPollPhase.Discovery,
         PollPhase.Steady => ProtoPollPhase.Steady,
+        PollPhase.Suspended => ProtoPollPhase.Suspended,
         _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, null),
     };
 
@@ -31,6 +32,30 @@ internal static class StatusMappingExtensions
         if (entry.CycleSeconds is { } cycleSeconds)
         {
             status.CycleSeconds = cycleSeconds;
+        }
+
+        if (entry.DomainStates is { } domainStates)
+        {
+            foreach (var ds in domainStates)
+            {
+                var domainStatus = new Proto.DomainPollStatus
+                {
+                    Domain = ds.Domain,
+                    Phase = ds.Phase.ToProto(),
+                    MissCount = ds.MissCount,
+                };
+                if (ds.CycleSeconds is { } dsCycle)
+                {
+                    domainStatus.CycleSeconds = dsCycle;
+                }
+
+                if (ds.NextPollAt is { } nextPoll)
+                {
+                    domainStatus.NextPoll = nextPoll.ToTimestamp();
+                }
+
+                status.DomainStates.Add(domainStatus);
+            }
         }
 
         return status;

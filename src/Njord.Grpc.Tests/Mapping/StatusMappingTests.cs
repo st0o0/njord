@@ -15,6 +15,7 @@ public sealed class StatusMappingTests
     [Theory]
     [InlineData(PollPhase.Discovery, ProtoPollPhase.Discovery)]
     [InlineData(PollPhase.Steady, ProtoPollPhase.Steady)]
+    [InlineData(PollPhase.Suspended, ProtoPollPhase.Suspended)]
     public void Poll_phase_maps_to_proto(PollPhase domain, ProtoPollPhase expected) =>
         Assert.Equal(expected, domain.ToProto());
 
@@ -84,5 +85,43 @@ public sealed class StatusMappingTests
         var budget = new BudgetStatusResult(100, 10, 0, 0);
 
         Assert.Equal(0.0, budget.ToProto().UsagePercent);
+    }
+
+    [Fact]
+    public void Model_status_maps_per_domain_poll_states()
+    {
+        var nextPoll = _now.AddHours(1);
+        var domainStates = new List<DomainPollStateEntry>
+        {
+            new("Forecast", PollPhase.Steady, 3600, 0, nextPoll),
+            new("AirQuality", PollPhase.Discovery, null, 2, nextPoll.AddMinutes(10)),
+        };
+        var entry = new PollStateEntry(_vienna, PollPhase.Steady, _now, _now.AddHours(-1), 0, 3600, domainStates);
+
+        var status = entry.ToModelStatus();
+
+        Assert.Equal(2, status.DomainStates.Count);
+        var forecast = status.DomainStates[0];
+        var aq = status.DomainStates[1];
+        Assert.Multiple(
+            () => Assert.Equal("Forecast", forecast.Domain),
+            () => Assert.Equal(ProtoPollPhase.Steady, forecast.Phase),
+            () => Assert.Equal(3600, forecast.CycleSeconds),
+            () => Assert.Equal(0, forecast.MissCount),
+            () => Assert.Equal(nextPoll.ToTimestamp(), forecast.NextPoll),
+            () => Assert.Equal("AirQuality", aq.Domain),
+            () => Assert.Equal(ProtoPollPhase.Discovery, aq.Phase),
+            () => Assert.False(aq.HasCycleSeconds),
+            () => Assert.Equal(2, aq.MissCount));
+    }
+
+    [Fact]
+    public void Model_status_with_null_domain_states_has_empty_list()
+    {
+        var entry = new PollStateEntry(_vienna, PollPhase.Discovery, _now, null, 0, null);
+
+        var status = entry.ToModelStatus();
+
+        Assert.Empty(status.DomainStates);
     }
 }

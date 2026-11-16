@@ -5,17 +5,25 @@ namespace Njord.Polling;
 
 internal static class PollWorkerMessageMappingExtensions
 {
-    // Derives the PollStateEntry from the Forecast domain's state for backward compatibility with gRPC.
     public static PollStateEntry ToPollStateEntry(this PollWorkerState state)
     {
         var target = state.Target ?? throw new InvalidOperationException("A poll worker without a target has no poll state");
         var weather = state.GetDomain(DomainKind.Forecast);
+        var domainStates = state.Domains.Values
+            .Select(d => new DomainPollStateEntry(
+                d.Domain.ToString(),
+                d.Phase,
+                d.LearnedCycle is { } cycle ? (long)cycle.TotalSeconds : null,
+                d.MissCount,
+                d.NextPollAt))
+            .ToList();
         return new PollStateEntry(
             target.Location,
             weather.Phase,
             state.NextPollUtc,
             weather.LastChanged,
             weather.MissCount,
-            weather.LearnedCycle is { } cycle ? (long)cycle.TotalSeconds : null);
+            weather.LearnedCycle is { } c ? (long)c.TotalSeconds : null,
+            domainStates);
     }
 }

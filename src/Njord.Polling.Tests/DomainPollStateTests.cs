@@ -32,6 +32,17 @@ public sealed class DomainPollStateTests
     }
 
     [Fact]
+    public void Tolerance_boundary_rejects_intervals_just_outside_twenty_percent()
+    {
+        var state = StartedAll()
+            .Apply(Changed(DomainKind.Flood, 1, T0))
+            .Apply(Changed(DomainKind.Flood, 2, T0.AddHours(10)))
+            .Apply(Changed(DomainKind.Flood, 3, T0.AddHours(10).Add(TimeSpan.FromHours(12.01))));
+
+        Assert.Equal(PollPhase.Discovery, state.GetDomain(DomainKind.Flood).Phase);
+    }
+
+    [Fact]
     public void Domains_learn_independently()
     {
         var state = Steady(DomainKind.AirQuality)

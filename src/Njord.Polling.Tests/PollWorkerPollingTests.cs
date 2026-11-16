@@ -379,4 +379,55 @@ public sealed class PollWorkerPollingTests : Akka.Hosting.TestKit.TestKit
         await _gateway.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), ct);
     }
 
+    // --- Steady scheduling ---
+
+    [Fact(Timeout = 30_000)]
+    public async Task A_steady_domain_polls_at_the_learned_cycle_minus_buffer()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var worker = await StartedWorkerAsync(ct);
+
+        await AnswerAllAsync(Completed(1), ct);
+        for (var hash = 2; hash <= 3; hash++)
+        {
+            _time.Advance(TimeSpan.FromHours(1));
+            worker.Tell(new TriggerLocationPoll(TargetId));
+            await AnswerAllAsync(Completed(hash), ct);
+        }
+
+        var steadyDelay = TimeSpan.FromHours(1) - DomainPollStateExtensions.SteadyBuffer;
+        await StopAsync(worker, ct);
+        _time.Advance(steadyDelay);
+        CreateWorker();
+
+        await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
+        var request = await ExpectRequestAsync(ct);
+        Assert.Contains(request.Domain, _enabledDomains);
+    }
+
+    [Fact(Timeout = 30_000)]
+    public async Task Five_misses_in_steady_fall_back_to_discovery_through_the_actor()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var worker = await StartedWorkerAsync(ct);
+
+        await AnswerAllAsync(Completed(1), ct);
+        for (var hash = 2; hash <= 3; hash++)
+        {
+            _time.Advance(TimeSpan.FromHours(1));
+            worker.Tell(new TriggerLocationPoll(TargetId));
+            await AnswerAllAsync(Completed(hash), ct);
+        }
+
+        PollWorkerReport? lastReport = null;
+        for (var miss = 0; miss < 5; miss++)
+        {
+            _time.Advance(TimeSpan.FromHours(1));
+            worker.Tell(new TriggerLocationPoll(TargetId));
+            lastReport = await AnswerAllAndLastReportAsync(Completed(3), ct);
+        }
+
+        Assert.Equal(PollPhase.Discovery, lastReport!.State.Phase);
+    }
+
 }

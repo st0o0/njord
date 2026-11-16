@@ -74,6 +74,30 @@ public sealed class PollWorkerStateTests
                 weather.NextPollAt));
     }
 
+    [Fact]
+    public void A_consistent_change_in_steady_stays_steady()
+    {
+        var state = Steady().Apply(Changed(DomainKind.Forecast, 4, T0.AddHours(9)));
+        var weather = state.GetDomain(DomainKind.Forecast);
+
+        Assert.Multiple(
+            () => Assert.Equal(PollPhase.Steady, weather.Phase),
+            () => Assert.Equal(TimeSpan.FromHours(3), weather.LearnedCycle),
+            () => Assert.Equal(0, weather.MissCount));
+    }
+
+    [Fact]
+    public void An_inconsistent_change_in_steady_falls_back_to_discovery()
+    {
+        var state = Steady().Apply(Changed(DomainKind.Forecast, 4, T0.AddHours(7)));
+        var weather = state.GetDomain(DomainKind.Forecast);
+
+        Assert.Multiple(
+            () => Assert.Equal(PollPhase.Discovery, weather.Phase),
+            () => Assert.Null(weather.LearnedCycle),
+            () => Assert.Equal(TimeSpan.FromHours(1), weather.CandidateCycle));
+    }
+
     // --- Changed / Unchanged event effects ---
 
     [Fact]
@@ -352,6 +376,33 @@ public sealed class PollWorkerStateTests
             () => Assert.Equal(PollPhase.Suspended, weather.Phase),
             () => Assert.Equal(T0 + PollWorkerState.SuspendedRecheckInterval, weather.NextPollAt),
             () => Assert.Equal(0, weather.ConsecutiveFailures));
+    }
+
+    [Fact]
+    public void A_no_data_event_in_steady_transitions_to_suspended()
+    {
+        var at = T0.AddHours(9);
+        var state = Steady().Apply(NoData(DomainKind.Forecast, at));
+        var weather = state.GetDomain(DomainKind.Forecast);
+
+        Assert.Multiple(
+            () => Assert.Equal(PollPhase.Suspended, weather.Phase),
+            () => Assert.Equal(at + PollWorkerState.SuspendedRecheckInterval, weather.NextPollAt));
+    }
+
+    [Fact]
+    public void A_no_data_event_in_suspended_stays_suspended()
+    {
+        var firstNoData = T0;
+        var secondNoData = firstNoData + PollWorkerState.SuspendedRecheckInterval;
+        var state = Started()
+            .Apply(NoData(DomainKind.Forecast, firstNoData))
+            .Apply(NoData(DomainKind.Forecast, secondNoData));
+        var weather = state.GetDomain(DomainKind.Forecast);
+
+        Assert.Multiple(
+            () => Assert.Equal(PollPhase.Suspended, weather.Phase),
+            () => Assert.Equal(secondNoData + PollWorkerState.SuspendedRecheckInterval, weather.NextPollAt));
     }
 
     [Fact]

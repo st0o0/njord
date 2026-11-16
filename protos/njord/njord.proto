@@ -218,6 +218,15 @@ enum PollPhase {
   POLL_PHASE_UNSPECIFIED = 0;
   POLL_PHASE_DISCOVERY = 1;
   POLL_PHASE_STEADY = 2;
+  POLL_PHASE_SUSPENDED = 3;
+}
+
+message DomainPollStatus {
+  string domain = 1;
+  PollPhase phase = 2;
+  optional int64 cycle_seconds = 3;
+  int32 miss_count = 4;
+  google.protobuf.Timestamp next_poll = 5;
 }
 
 message ModelStatus {
@@ -227,6 +236,7 @@ message ModelStatus {
   int32 miss_count = 6;
   optional int64 cycle_seconds = 7;
   PollPhase phase = 8;
+  repeated DomainPollStatus domain_states = 9;
 }
 
 // ═══════════════════════════════════════
