@@ -196,7 +196,7 @@ public sealed class OpenMeteoClientTests
         var uri = await Capture("marine-api", http => Marine(http), TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            $"/v1/marine?latitude=47.05&longitude=8.31&hourly=wave_height,sea_surface_temperature&forecast_days={new MarineOptions().ForecastDays}&timeformat=unixtime&timezone=UTC",
+            $"/v1/marine?latitude=47.05&longitude=8.31&hourly=wave_height,sea_surface_temperature&forecast_days={new MarineOptions().ForecastDays}&wind_speed_unit=ms&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
