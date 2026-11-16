@@ -9,6 +9,8 @@ Keeps the gRPC services thin: every mapping from domain results and messages to 
 ### Requirement: gRPC services delegate mapping to pure functions
 Each gRPC service implementation in `Njord.Grpc` SHALL delegate response shaping to pure `ToProto()` extension methods in `Njord.Grpc/Mapping/`, grouped per OutputKind (weather, alert, score, condition, trend, forecast, observation). The `Mapping/` directory SHALL be flat (no version subfolders). Mapper classes SHALL live in the `Njord.Grpc.Mapping` namespace. An RPC method SHALL read as: map the request, ask an actor resolved by marker, map the result, return it. Mappers SHALL take only message results and request protos as input; they SHALL NOT read options or domain registries.
 
+The `ModelStatus` proto message SHALL include a `repeated DomainPollStatus domain_states` field exposing the per-domain learning state. Each `DomainPollStatus` entry SHALL contain the domain name, phase (Discovery/Steady/Suspended), learned cycle seconds (if any), miss count, and next poll timestamp. The `ToModelStatus` mapping extension SHALL populate these fields from the `PollStateEntry` domain states.
+
 #### Scenario: Mapping is per-OutputKind, not per-feature
 - **WHEN** a new alert feature is added (e.g. HailAlert)
 - **THEN** no new mapping extension class SHALL be needed; the existing alert `ToProto()` mapper SHALL handle it
@@ -27,6 +29,10 @@ Each gRPC service implementation in `Njord.Grpc` SHALL delegate response shaping
   derived from a poll state entry)
 - **THEN** both RPCs call the same shared mapper function for the shared fields, instead of
   each RPC independently re-implementing the field-by-field construction
+
+#### Scenario: Per-domain poll state is included in GetStatus ModelStatus
+- **WHEN** GetStatus is called and a location has domains in different learning phases
+- **THEN** the ModelStatus response SHALL include a DomainPollStatus entry per active domain showing its individual phase, learned cycle, miss count, and next poll time
 
 ### Requirement: Generic OutputKind mappers replace per-feature switch
 The mapping layer SHALL provide one mapper per OutputKind that converts any feature result of that kind to the corresponding proto value type. There SHALL be no switch or conditional on individual feature types. The mapper SHALL extract the common fields defined by the OutputKind base result (e.g. severity + trigger for alerts, value + label for scores).
