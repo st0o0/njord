@@ -16,6 +16,8 @@ internal static class WeatherValueMappingExtensions
             WindDirection = r.WindDirection,
             Pressure = r.Pressure,
             Condition = r.Condition,
+            WeatherCode = r.WeatherCode,
+            IsDay = r.IsDay,
         };
         if (r.CloudCover is { } cloudCover)
         {
@@ -62,6 +64,8 @@ internal static class WeatherValueMappingExtensions
             WindDirection = p.WindDirection,
             Pressure = p.Pressure,
             Condition = p.Condition,
+            WeatherCode = p.WeatherCode,
+            IsDay = p.IsDay,
         };
         if (p.PrecipitationProbability is { } probability)
         {

@@ -16,7 +16,8 @@ public sealed class WeatherRule(IOptions<WeatherConfig> config) : FeatureRule<Fo
             Forecast: ForecastParams.Temperature | ForecastParams.WeatherCode | ForecastParams.Humidity
                       | ForecastParams.WindSpeed | ForecastParams.WindDirection | ForecastParams.Pressure
                       | ForecastParams.ApparentTemperature | ForecastParams.CloudCover | ForecastParams.DewPoint
-                      | ForecastParams.Visibility | ForecastParams.Precipitation | ForecastParams.WindGusts),
+                      | ForecastParams.Visibility | ForecastParams.Precipitation | ForecastParams.WindGusts
+                      | ForecastParams.IsDay),
         EntityMetadata: new EntityMetadata(EntityPlatform.Weather));
 
     public override bool Enabled => config.Value.Enabled;
@@ -46,6 +47,8 @@ public sealed class WeatherRule(IOptions<WeatherConfig> config) : FeatureRule<Fo
             current.WindDirection ?? 0,
             current.Pressure ?? 0,
             MapCondition(current.WeatherCode),
+            (int)(current.WeatherCode ?? 0),
+            (current.IsDay ?? 1.0) >= 1.0,
             hourly,
             current.CloudCover,
             current.DewPoint,
@@ -66,6 +69,8 @@ public sealed class WeatherRule(IOptions<WeatherConfig> config) : FeatureRule<Fo
             p.WindDirection ?? 0,
             p.Pressure ?? 0,
             MapCondition(p.WeatherCode),
+            (int)(p.WeatherCode ?? 0),
+            (p.IsDay ?? 1.0) >= 1.0,
             p.PrecipitationProbability,
             p.Precipitation,
             p.CloudCover);

@@ -19,6 +19,7 @@ public sealed class WeatherRuleTests
         int hour,
         double? temperature = 20.0,
         double? weatherCode = 0,
+        double? isDay = 1.0,
         double? cloudCover = null,
         double? dewPoint = null,
         double? visibility = null,
@@ -32,6 +33,7 @@ public sealed class WeatherRuleTests
         WindDirection: 270.0,
         Pressure: 1015.0,
         WeatherCode: weatherCode,
+        IsDay: isDay,
         CloudCover: cloudCover,
         DewPoint: dewPoint,
         Visibility: visibility,
@@ -122,5 +124,35 @@ public sealed class WeatherRuleTests
         var result = Assert.IsType<WeatherResult>(Run(Rule(), _now, Build(Point(0, weatherCode: code))));
 
         Assert.Equal(expected, result.Condition);
+    }
+
+    [Fact]
+    public void Weather_code_carried_through_to_result()
+    {
+        var result = Assert.IsType<WeatherResult>(Run(Rule(), _now, Build(Point(0, weatherCode: 61), Point(1, weatherCode: 3))));
+
+        Assert.Multiple(
+            () => Assert.Equal(61, result.WeatherCode),
+            () => Assert.Equal(3, result.HourlyForecast[0].WeatherCode));
+    }
+
+    [Fact]
+    public void Is_day_carried_through_to_result()
+    {
+        var result = Assert.IsType<WeatherResult>(Run(Rule(), _now, Build(Point(0, isDay: 0.0), Point(1, isDay: 1.0))));
+
+        Assert.Multiple(
+            () => Assert.False(result.IsDay),
+            () => Assert.True(result.HourlyForecast[0].IsDay));
+    }
+
+    [Fact]
+    public void Null_is_day_defaults_to_true()
+    {
+        var result = Assert.IsType<WeatherResult>(Run(Rule(), _now, Build(Point(0, isDay: null), Point(1, isDay: null))));
+
+        Assert.Multiple(
+            () => Assert.True(result.IsDay),
+            () => Assert.True(result.HourlyForecast[0].IsDay));
     }
 }

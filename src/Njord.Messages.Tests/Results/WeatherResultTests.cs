@@ -11,7 +11,7 @@ public sealed class WeatherResultTests
     public void Construction_with_current_conditions()
     {
         var result = new WeatherResult(
-            _vienna, 18.5, 16.2, 65, 12.3, 225, 1013.25, "cloudy", []);
+            _vienna, 18.5, 16.2, 65, 12.3, 225, 1013.25, "cloudy", 3, true, []);
 
         Assert.Equal(_vienna, result.Location);
         Assert.Equal(18.5, result.Temperature);
@@ -35,7 +35,7 @@ public sealed class WeatherResultTests
         };
 
         var result = new WeatherResult(
-            _vienna, 18.5, 16.2, 65, 12.3, 225, 1013.25, "cloudy", points);
+            _vienna, 18.5, 16.2, 65, 12.3, 225, 1013.25, "cloudy", 3, true, points);
 
         Assert.Equal(2, result.HourlyForecast.Count);
         Assert.Equal(time, result.HourlyForecast[0].Time);
@@ -56,7 +56,7 @@ public sealed class WeatherResultTests
     [Fact]
     public void Is_a_feature_result()
     {
-        var result = new WeatherResult(_vienna, 18.5, 16.2, 65, 12.3, 225, 1013.25, "clear", []);
+        var result = new WeatherResult(_vienna, 18.5, 16.2, 65, 12.3, 225, 1013.25, "clear", 0, true, []);
 
         Assert.IsAssignableFrom<FeatureResult>(result);
     }

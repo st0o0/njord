@@ -11,6 +11,8 @@ public sealed record WeatherForecastPoint(
     double WindDirection,
     double Pressure,
     string Condition,
+    int WeatherCode = 0,
+    bool IsDay = true,
     double? PrecipitationProbability = null,
     double? Precipitation = null,
     double? CloudCover = null);
@@ -24,6 +26,8 @@ public sealed record WeatherResult(
     double WindDirection,
     double Pressure,
     string Condition,
+    int WeatherCode,
+    bool IsDay,
     IReadOnlyList<WeatherForecastPoint> HourlyForecast,
     double? CloudCover = null,
     double? DewPoint = null,

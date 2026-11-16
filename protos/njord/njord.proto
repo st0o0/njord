@@ -116,6 +116,8 @@ message WeatherValue {
   optional double visibility = 11;
   optional double precipitation = 12;
   optional double wind_gusts = 13;
+  optional int32 weather_code = 14;
+  optional bool is_day = 15;
 }
 
 message WeatherForecastPoint {
@@ -130,6 +132,8 @@ message WeatherForecastPoint {
   optional double precipitation_probability = 9;
   optional double precipitation = 10;
   optional double cloud_cover = 11;
+  optional int32 weather_code = 12;
+  optional bool is_day = 13;
 }
 
 message AlertValue {

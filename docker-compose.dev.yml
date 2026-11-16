@@ -1,0 +1,152 @@
+services:
+  njord:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: njord-dev
+    restart: unless-stopped
+    ports:
+      - "8080:8080"   # HTTP: health and metrics
+      - "8081:8081"   # gRPC: Home Assistant (ha-njord)
+    volumes:
+      - njord-data:/app/data
+    environment:
+      # ── Location (coastal + river for full domain coverage) ───
+      - Njord__Locations__0__Name=Barcelona
+      - Njord__Locations__0__Latitude=41.3874
+      - Njord__Locations__0__Longitude=2.1686
+
+      # ── Polling (shorter intervals for dev) ───────────────────
+      - Njord__Polling__PollInterval=00:30:00
+      - Njord__Polling__DiscoveryInterval=00:10:00
+
+      # ── Forecast / Ensemble / Domain options ──────────────────
+      - Njord__Forecast__ForecastDays=4
+      - Njord__Ensemble__Models__0=ecmwf_ifs025_ensemble_mean
+      - Njord__Ensemble__Models__1=ncep_gefs025_ensemble_mean
+      - Njord__Ensemble__Models__2=google_weathernext2_ensemble_mean
+      - Njord__Flood__IncludeEnsemble=true
+
+      # ── Alerts ────────────────────────────────────────────────
+      - Njord__Features__Frost__Enabled=true
+      - Njord__Features__Heat__Enabled=true
+      - Njord__Features__Storm__Enabled=true
+      - Njord__Features__HeavyRain__Enabled=true
+      - Njord__Features__Uv__Enabled=true
+      - Njord__Features__Fog__Enabled=true
+      - Njord__Features__Snow__Enabled=true
+      - Njord__Features__PressureDrop__Enabled=true
+      - Njord__Features__Thunderstorm__Enabled=true
+      - Njord__Features__Ice__Enabled=true
+      - Njord__Features__WindChill__Enabled=true
+      - Njord__Features__Visibility__Enabled=true
+      - Njord__Features__TropicalNight__Enabled=true
+      - Njord__Features__Humidity__Enabled=true
+      - Njord__Features__RainProbability__Enabled=true
+      - Njord__Features__WetBulbDanger__Enabled=true
+      - Njord__Features__ClearSkyUv__Enabled=true
+      - Njord__Features__SnowDepthWatch__Enabled=true
+      - Njord__Features__Dust__Enabled=true
+      - Njord__Features__Shower__Enabled=true
+      - Njord__Features__SmogRisk__Enabled=true
+      - Njord__Features__PollenBlast__Enabled=true
+      - Njord__Features__FireRisk__Enabled=true
+
+      # ── Scores ────────────────────────────────────────────────
+      - Njord__Features__Commute__Enabled=true
+      - Njord__Features__Exercise__Enabled=true
+      - Njord__Features__Laundry__Enabled=true
+      - Njord__Features__Outdoor__Enabled=true
+      - Njord__Features__Bbq__Enabled=true
+      - Njord__Features__Gardening__Enabled=true
+      - Njord__Features__Swimming__Enabled=true
+      - Njord__Features__Surf__Enabled=true
+      - Njord__Features__Ventilation__Enabled=true
+      - Njord__Features__NightVentilation__Enabled=true
+      - Njord__Features__SprayWindow__Enabled=true
+
+      # ── Conditions ────────────────────────────────────────────
+      - Njord__Features__Pollen__Enabled=true
+      - Njord__Features__Pm25__Enabled=true
+      - Njord__Features__GranularAqi__Enabled=true
+      - Njord__Features__RagweedPollen__Enabled=true
+      - Njord__Features__SatelliteRadiation__Enabled=true
+      - Njord__Features__InversionDetection__Enabled=true
+      - Njord__Features__AtmosphericStability__Enabled=true
+      - Njord__Features__CloudCeiling__Enabled=true
+      - Njord__Features__ElevatedWind__Enabled=true
+
+      # ── Trends ────────────────────────────────────────────────
+      - Njord__Features__ConfidenceTrend__Enabled=true
+      - Njord__Features__FrontApproaching__Enabled=true
+      - Njord__Features__PollenTrend__Enabled=true
+
+      # ── Forecasts ─────────────────────────────────────────────
+      - Njord__Features__FloodRisk__Enabled=true
+      - Njord__Features__FloodRain__Enabled=true
+      - Njord__Features__FloodTimeline__Enabled=true
+      - Njord__Features__CoastalFlood__Enabled=true
+      - Njord__Features__OceanCurrents__Enabled=true
+      - Njord__Features__SeasonalOutlook__Enabled=true
+      - Njord__Features__SolarYield__Enabled=true
+      - Njord__Features__SolarYield__BatteryCapacityKwh=10.0
+      - Njord__Features__HeatPumpCop__Enabled=true
+      - Njord__Features__HeatPumpCop__TargetTemperature=35
+      - Njord__Features__IrrigationNeed__Enabled=true
+      - Njord__Features__Evapotranspiration__Enabled=true
+      - Njord__Features__SoilMoisture__Enabled=true
+      - Njord__Features__GrowingDegree__Enabled=true
+      - Njord__Features__FrostDepth__Enabled=true
+      - Njord__Features__ForecastModelComparison__Enabled=true
+      - Njord__Features__EnsembleModelComparison__Enabled=true
+
+      # ── Health & Wellness ─────────────────────────────────────
+      - Njord__Features__CompoundHeatStress__Enabled=true
+      - Njord__Features__MigraineRisk__Enabled=true
+      - Njord__Features__AllergySeverity__Enabled=true
+      - Njord__Features__AsthmaRisk__Enabled=true
+      - Njord__Features__SleepQuality__Enabled=true
+
+      # ── Weather ───────────────────────────────────────────────
+      - Njord__Features__Weather__Enabled=true
+
+      # ── Observations ──────────────────────────────────────────
+      - Njord__Features__Pm25Observation__Enabled=true
+      - Njord__Features__Pm10Observation__Enabled=true
+      - Njord__Features__OzoneObservation__Enabled=true
+      - Njord__Features__NitrogenDioxideObservation__Enabled=true
+      - Njord__Features__EuropeanAqiObservation__Enabled=true
+      - Njord__Features__CarbonMonoxideObservation__Enabled=true
+      - Njord__Features__SulphurDioxideObservation__Enabled=true
+      - Njord__Features__WaveHeightObservation__Enabled=true
+      - Njord__Features__WaterTemperatureObservation__Enabled=true
+      - Njord__Features__WavePeriodObservation__Enabled=true
+      - Njord__Features__WaveDirectionObservation__Enabled=true
+      - Njord__Features__OceanCurrentVelocityObservation__Enabled=true
+      - Njord__Features__FloodDischargeObservation__Enabled=true
+      - Njord__Features__DischargeMeanObservation__Enabled=true
+      - Njord__Features__UvIndexObservation__Enabled=true
+      - Njord__Features__DewPointObservation__Enabled=true
+      - Njord__Features__WindGustsObservation__Enabled=true
+      - Njord__Features__SoilTemperatureObservation__Enabled=true
+      - Njord__Features__SoilMoistureObservation__Enabled=true
+      - Njord__Features__SnowDepthObservation__Enabled=true
+      - Njord__Features__EvapotranspirationObservation__Enabled=true
+      - Njord__Features__ShortwaveRadiationObservation__Enabled=true
+      - Njord__Features__VisibilityObservation__Enabled=true
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: ha-dev
+    restart: unless-stopped
+    ports:
+      - "8123:8123"
+    volumes:
+      - ha-config:/config
+      - ../ha-njord/custom_components/njord:/config/custom_components/njord:ro
+    environment:
+      - TZ=Europe/Madrid
+
+volumes:
+  njord-data:
+  ha-config:

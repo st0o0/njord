@@ -129,7 +129,7 @@ public sealed class EntityRegistryTests
         };
         var registry = Registry([_vienna], models, new EntityTestRule("Weather", OutputKind.Weather));
 
-        var result = new WeatherResult(_vienna, 20, 19, 55, 3, 270, 1015, "clear", []);
+        var result = new WeatherResult(_vienna, 20, 19, 55, 3, 270, 1015, "clear", 0, true, []);
         Assert.Equal("vienna_weather", registry.Find(result));
     }
 
@@ -143,8 +143,8 @@ public sealed class EntityRegistryTests
         };
         var registry = Registry([_vienna], models, new EntityTestRule("Weather", OutputKind.Weather));
 
-        var forecastModel = new WeatherResult(_vienna, 20, 19, 55, 3, 270, 1015, "clear", [], ModelId: "ecmwf_ifs025");
-        var ensembleModel = new WeatherResult(_vienna, 20, 19, 55, 3, 270, 1015, "clear", [], ModelId: "ncep_gefs025_ensemble_mean");
+        var forecastModel = new WeatherResult(_vienna, 20, 19, 55, 3, 270, 1015, "clear", 0, true, [], ModelId: "ecmwf_ifs025");
+        var ensembleModel = new WeatherResult(_vienna, 20, 19, 55, 3, 270, 1015, "clear", 0, true, [], ModelId: "ncep_gefs025_ensemble_mean");
 
         Assert.Multiple(
             () => Assert.Equal("vienna_ecmwf_ifs025_weather", registry.Find(forecastModel)),
@@ -156,7 +156,7 @@ public sealed class EntityRegistryTests
     {
         var registry = Registry([_vienna], new EntityTestRule("Weather", OutputKind.Weather));
 
-        var result = new WeatherResult(_vienna, 20, 19, 55, 3, 270, 1015, "clear", [], ModelId: "nonexistent_model");
+        var result = new WeatherResult(_vienna, 20, 19, 55, 3, 270, 1015, "clear", 0, true, [], ModelId: "nonexistent_model");
         Assert.Null(registry.Find(result));
     }
 

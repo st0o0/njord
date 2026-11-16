@@ -68,7 +68,7 @@ public sealed class EntityStateUpdateMappingTests
     [Fact]
     public void Weather_dispatches()
     {
-        var result = new WeatherResult(_vienna, 18, 17, 60, 2, 270, 1015, "clear", []);
+        var result = new WeatherResult(_vienna, 18, 17, 60, 2, 270, 1015, "clear", 0, true, []);
 
         Assert.Equal(Proto.EntityStateUpdate.ValueOneofCase.Weather, result.ToEntityStateUpdate("e", _updatedAt).ValueCase);
     }

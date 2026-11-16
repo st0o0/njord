@@ -13,11 +13,11 @@ public sealed class WeatherValueMappingTests
     {
         var points = new List<WeatherForecastPoint>
         {
-            new(_time, 20, 19, 55, 3, 180, 1012, "cloudy", 0.4, 1.2, 80),
+            new(_time, 20, 19, 55, 3, 180, 1012, "cloudy", 3, true, 0.4, 1.2, 80),
             new(_time.AddHours(1), 21, 20, 50, 4, 190, 1011, "sunny"),
         };
         var result = new WeatherResult(
-            new Location("Vienna", 48.2, 16.37), 18.5, 17.0, 60, 2.5, 270, 1015, "clear", points,
+            new Location("Vienna", 48.2, 16.37), 18.5, 17.0, 60, 2.5, 270, 1015, "clear", 0, true, points,
             CloudCover: 75, DewPoint: 14.2, Visibility: 39520, Precipitation: 0.5, WindGusts: 8.1);
 
         var value = result.ToWeatherValue();
@@ -35,7 +35,9 @@ public sealed class WeatherValueMappingTests
             () => Assert.Equal(14.2, value.DewPoint),
             () => Assert.Equal(39520, value.Visibility),
             () => Assert.Equal(0.5, value.Precipitation),
-            () => Assert.Equal(8.1, value.WindGusts));
+            () => Assert.Equal(8.1, value.WindGusts),
+            () => Assert.Equal(0, value.WeatherCode),
+            () => Assert.True(value.IsDay));
         var first = value.HourlyForecast[0];
         var second = value.HourlyForecast[1];
         Assert.Multiple(
@@ -50,6 +52,8 @@ public sealed class WeatherValueMappingTests
             () => Assert.Equal(0.4, first.PrecipitationProbability),
             () => Assert.Equal(1.2, first.Precipitation),
             () => Assert.Equal(80, first.CloudCover),
+            () => Assert.Equal(3, first.WeatherCode),
+            () => Assert.True(first.IsDay),
             () => Assert.False(second.HasPrecipitationProbability),
             () => Assert.False(second.HasPrecipitation),
             () => Assert.False(second.HasCloudCover));
@@ -59,7 +63,7 @@ public sealed class WeatherValueMappingTests
     public void Null_extended_fields_not_set_on_proto()
     {
         var result = new WeatherResult(
-            new Location("Vienna", 48.2, 16.37), 18.5, 17.0, 60, 2.5, 270, 1015, "clear", []);
+            new Location("Vienna", 48.2, 16.37), 18.5, 17.0, 60, 2.5, 270, 1015, "clear", 0, true, []);
 
         var value = result.ToWeatherValue();
 
