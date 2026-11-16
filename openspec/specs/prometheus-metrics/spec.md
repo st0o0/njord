@@ -1,6 +1,6 @@
 ## Purpose
 
-Exposes njord runtime metrics through one `Meter` per feature library (`Njord.OpenMeteo`, `Njord.Pipeline`, `Njord.Mqtt`, ...) and prometheus-net export, with bounded naming and tag conventions.
+Exposes njord runtime metrics through one `Meter` per feature library (`Njord.OpenMeteo`, `Njord.Budget`, `Njord.Polling`, `Njord.Pipeline`) and prometheus-net export, with bounded naming and tag conventions.
 ## Requirements
 ### Requirement: Prometheus scrape endpoint
 The service SHALL expose a `/metrics` endpoint on the existing Kestrel HTTP
@@ -34,9 +34,9 @@ The budget layer SHALL expose four observable gauges on the `Njord.Budget` meter
 - `njord_budget_used_monthly` (ObservableGauge): current monthly API request count.
 - `njord_budget_limit_daily` (ObservableGauge): daily limit.
 - `njord_budget_limit_monthly` (ObservableGauge): resolved monthly limit.
-- `njord_gateway_throttle_wait_seconds` (Histogram): time a fetch target was parked by `GatewayThrottleStage` before being released.
+- `njord_gateway_throttle_wait_seconds` (Histogram): time a fetch target was parked by `BudgetGateStage` before being released.
 
-Budget usage SHALL be published by `BudgetTracker` into the `BudgetUsageState` owned by `Njord.Budget` (after recovery and after each persisted `ApiCallRecorded`). The used gauges read that state and the limit gauges read the effective budget from the current polling configuration (`IOptions<PollingOptions>`), so a budget change is visible without any component pushing limits.
+Budget usage SHALL be read from `BudgetTracker` (`QueryBudgetStatus` / `BudgetStatusResult`). The used gauges read that status and the limit gauges read the effective budget from the current polling configuration (`IOptions<PollingOptions>`), so a budget change is visible without any component pushing limits.
 
 #### Scenario: Budget gauges reflect actor state
 - **WHEN** `BudgetTracker` has recorded 150 requests today and 4200 this month
@@ -49,7 +49,7 @@ Budget usage SHALL be published by `BudgetTracker` into the `BudgetUsageState` o
 - **AND** `njord_budget_limit_monthly` reports 300000
 
 #### Scenario: Throttle wait is recorded
-- **WHEN** `GatewayThrottleStage` parks a fetch target for 3.5 seconds before releasing it
+- **WHEN** `BudgetGateStage` parks a fetch target for 3.5 seconds before releasing it
 - **THEN** `njord_gateway_throttle_wait_seconds` records 3.5
 
 ### Requirement: Pipeline metrics
@@ -73,33 +73,6 @@ Budget usage SHALL be published by `BudgetTracker` into the `BudgetUsageState` o
 - **WHEN** a poll cycle for location "lucerne" with 2 models completes with one success and one failed report
 - **THEN** `njord_poll_cycle_models{location="lucerne"}` is set to 2
 - **AND** `njord_poll_cycle_failed_models{location="lucerne"}` is set to 1
-
-### Requirement: Egress metrics
-The MQTT layer SHALL record on the `Njord.Mqtt` meter:
-- `njord_mqtt_dedup_total` (Counter): incremented on each publish decision of `MqttStatePublisher`, with labels `location`, `decision` (published, skipped). `published` SHALL be counted only after the message was sent successfully.
-- `njord_mqtt_publish_failures_total` (Counter): incremented for each state message whose publish failed or timed out, with label `location`.
-- `njord_mqtt_connected` (Gauge): 1 when `MqttConnection` is connected, 0 after a disconnect. When MQTT is disabled the gauge is never recorded.
-
-#### Scenario: Dedup decision is counted
-- **WHEN** `MqttStatePublisher` skips a publish because the payload hash matches
-- **THEN** `njord_mqtt_dedup_total{location="lucerne",decision="skipped"}` is incremented by 1
-
-#### Scenario: New data is published
-- **WHEN** `MqttStatePublisher` publishes because the payload hash differs
-- **THEN** `njord_mqtt_dedup_total{location="lucerne",decision="published"}` is incremented by 1
-
-#### Scenario: MQTT connection state is exposed
-- **WHEN** `MqttConnection` connects successfully
-- **THEN** `njord_mqtt_connected` is set to 1
-
-#### Scenario: MQTT disconnection is exposed
-- **WHEN** `MqttConnection` loses the connection
-- **THEN** `njord_mqtt_connected` is set to 0
-
-#### Scenario: Publish failure is counted
-- **WHEN** the publish of a state message for location "lucerne" fails
-- **THEN** `njord_mqtt_publish_failures_total{location="lucerne"}` is incremented by 1
-- **AND** `njord_mqtt_dedup_total{location="lucerne",decision="published"}` is not incremented
 
 ### Requirement: Metric naming follows Prometheus conventions
 All instrument names SHALL use snake_case with an `njord_` prefix. Instruments

@@ -9,10 +9,10 @@ Feature-driven domain requirement declaration, union, and resolution for determi
 ### Requirement: Handlers declare required parameters
 Every handler SHALL declare, through its feature descriptor, exactly the API parameters it
 requires per domain, and separately the parameters it can use when present. The supported
-domains SHALL be Weather, Ensemble, AirQuality, Flood, Marine, Seasonal, and Satellite.
+domains SHALL be Forecast, Ensemble, AirQuality, Flood, Marine, Seasonal, and Satellite.
 
 #### Scenario: Handler requirement per domain
-- **WHEN** a handler needs temperature and wind speed from Weather
+- **WHEN** a handler needs temperature and wind speed from Forecast
 - **THEN** its feature's required parameters SHALL contain those two weather parameters and no parameters of any other domain
 
 #### Scenario: Handler requires ensemble spread
@@ -28,7 +28,7 @@ Requirements SHALL support a union operator that combines the parameters of each
 including the Ensemble domain.
 
 #### Scenario: Union of two requirements
-- **WHEN** one requirement asks for Weather temperature and another for Weather wind speed and Flood river discharge
+- **WHEN** one requirement asks for Forecast temperature and another for Forecast wind speed and Flood river discharge
 - **THEN** the union SHALL contain both weather parameters and the flood parameter
 
 #### Scenario: Union includes ensemble
@@ -40,8 +40,8 @@ A requirement SHALL report whether it needs a given domain, true exactly when th
 at least one parameter set.
 
 #### Scenario: Domain without parameters
-- **WHEN** a requirement contains only Weather parameters
-- **THEN** it SHALL report Weather as required and Ensemble, AirQuality, Flood and Marine as not required
+- **WHEN** a requirement contains only Forecast parameters
+- **THEN** it SHALL report Forecast as required and Ensemble, AirQuality, Flood and Marine as not required
 
 #### Scenario: Ensemble required
 - **WHEN** a requirement contains `Ensemble: TemperatureSpread`
@@ -56,7 +56,7 @@ SHALL count the fetched parameters including the base parameters.
 
 The base-params computation SHALL be an instance method on the `DomainRequirements` value type, callable without a service provider or static helper class.
 
-#### Scenario: Weather code is fetched
+#### Scenario: Forecast code is fetched
 - **WHEN** only the Frost feature is enabled
 - **THEN** the resolved requirements SHALL contain `weather_code` next to the Frost parameters
 

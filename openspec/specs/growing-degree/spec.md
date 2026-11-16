@@ -22,7 +22,7 @@ The system SHALL provide a `GrowingDegree` forecast in the Lifestyle category th
 - **THEN** the cumulative GDD SHALL be 5 + 10 + 3 + 15 = 33
 
 ### Requirement: GrowingDegree config
-The `GrowingDegreeConfig` SHALL support a configurable base temperature (default 5C). Section `Njord:Features:Lifestyle:GrowingDegree`. Default disabled.
+The `GrowingDegreeConfig` SHALL support a configurable base temperature (default 5C). Section `Njord:Features:GrowingDegree`. Default disabled.
 
 #### Scenario: Custom base temperature
 - **WHEN** the operator sets base temperature to 10C (common for corn)

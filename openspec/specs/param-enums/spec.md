@@ -4,25 +4,25 @@
 TBD - created by archiving change restructure-forecast-and-clients. Update Purpose after archive.
 ## Requirements
 ### Requirement: Per-domain parameter flags
-Weather, AirQuality, Flood, Marine, Seasonal and Satellite SHALL each have a flags
+Forecast, AirQuality, Flood, Marine, Seasonal and Satellite SHALL each have a flags
 enumeration with one member per requested API variable. Members SHALL be combinable and
-distinct. These enums SHALL live in `Njord.Forecast` and SHALL NOT carry any API-specific
+distinct. These enums SHALL live in `Njord.Core` and SHALL NOT carry any API-specific
 attributes.
 
 #### Scenario: Combining flags
 - **WHEN** two weather parameters are combined
 - **THEN** the combination SHALL contain both and no other parameter
 
-#### Scenario: Weather capacity
+#### Scenario: Forecast capacity
 - **WHEN** all current weather variables are combined
 - **THEN** every one SHALL remain distinct (64-bit capacity)
 
 #### Scenario: No API attributes on domain enums
-- **WHEN** any `XxxParams` enum in `Njord.Forecast` is inspected
+- **WHEN** any `XxxParams` enum in `Njord.Core` is inspected
 - **THEN** no member SHALL carry `[JsonStringEnumMemberName]` or `[EnumMember]` attributes
 
 ### Requirement: All point fields except ValidFrom are nullable
-Weather, AirQuality, Flood and Marine points SHALL represent a missing value as null, never
+Forecast, AirQuality, Flood and Marine points SHALL represent a missing value as null, never
 as 0 or false.
 
 #### Scenario: Variable not delivered
@@ -51,8 +51,8 @@ files that directly map to strings SHALL be removed and replaced by a two-step m
 domain param -> API variable enum (explicit switch) -> API string (cached dictionary lookup).
 
 #### Scenario: ToApiNames through API variable enum
-- **WHEN** a set of `WeatherParam` flags is converted to API names
-- **THEN** each flag member SHALL be mapped to a `WeatherApiVariable` member and then to its
+- **WHEN** a set of `ForecastParams` flags is converted to API names
+- **THEN** each flag member SHALL be mapped to a `ForecastApiVariable` member and then to its
   API string name
 
 #### Scenario: Old switch-based ToApiName removed

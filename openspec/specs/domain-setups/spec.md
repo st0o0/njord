@@ -121,11 +121,11 @@ retries). Clients SHALL receive their API variable lists from `IOptions<FeatureR
 - **WHEN** `HealthOptions` is resolved
 - **THEN** it holds the defaults of the `Njord:Health` section in `appsettings.json`
 
-### Requirement: BudgetSetup registers the budget usage state, gauges and check
-`BudgetSetup` SHALL register the `BudgetUsageState`, the observable budget gauges (reading the usage state and the effective budget from `IOptions<PollingOptions>`) and the `budget` health check (failure status `Unhealthy`).
+### Requirement: BudgetSetup registers the budget gauges and check
+`BudgetSetup` SHALL register the observable budget gauges (reading usage via `QueryBudgetStatus` / `BudgetStatusResult` and the effective budget from `IOptions<PollingOptions>`) and the `budget` health check (failure status `Unhealthy`).
 
 #### Scenario: Gauges follow the usage and the configured budget
-- **WHEN** the usage state receives new values and the budget override changes
+- **WHEN** the budget status reports new values and the budget override changes
 - **THEN** the gauges report the new used values and the new effective limits
 
 #### Scenario: Budget check is registered

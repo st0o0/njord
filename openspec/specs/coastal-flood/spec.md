@@ -34,8 +34,8 @@ The system SHALL provide a `CoastalFlood` alert in the Marine category that eval
 - **THEN** the CoastalFlood alert SHALL not fire (Project returns null)
 
 ### Requirement: CoastalFlood config
-The `CoastalFloodConfig` SHALL support configurable sea level deviation threshold (default 0.3m), wave height threshold (default 1.5m), and wind speed threshold (default 15 km/h). Section `Njord:Features:Marine:CoastalFlood`. Default disabled.
+The `CoastalFloodConfig` SHALL support configurable sea level deviation threshold (default 0.3m), wave height threshold (default 1.5m), and wind speed threshold (default 15 km/h). Section `Njord:Features:CoastalFlood`. Default disabled.
 
 #### Scenario: Config section
 - **WHEN** the operator enables CoastalFlood
-- **THEN** the config SHALL be read from `Njord:Features:Marine:CoastalFlood`
+- **THEN** the config SHALL be read from `Njord:Features:CoastalFlood`

@@ -11,7 +11,7 @@ type with shipped defaults is constructed empty with `new XOptions()` instead of
 `AppSettingsDefaults`, when `Assert.True`/`Assert.False` wraps an equality comparison, or when the
 null-forgiving operator is used on a non-`JsonNode` receiver. Allow-list entries SHALL carry a reason
 and SHALL fail the spec when they are no longer needed. Test classes SHALL end in `Tests`, not `Spec`.
-Test classes that test actors SHALL inherit `Akka.TestKit.Xunit.TestKit` directly, not a shared base
+Test classes that test actors SHALL inherit `Akka.Hosting.TestKit.TestKit` directly, not a shared base
 class. No test file SHALL reference `TestTimeouts` or `AddTestTimefactor`.
 
 #### Scenario: Missing timeout
@@ -35,7 +35,7 @@ class. No test file SHALL reference `TestTimeouts` or `AddTestTimefactor`.
 - **THEN** the architecture test fails
 
 #### Scenario: Shared base class violation
-- **WHEN** a test class inherits from `NjordActorSpec` or any abstract `*SpecBase`/`*TestKit` class
+- **WHEN** a test class inherits from a shared actor test base class or any abstract `*SpecBase`/`*TestKit` class
 - **THEN** the architecture test fails
 
 #### Scenario: Timeout constant violation

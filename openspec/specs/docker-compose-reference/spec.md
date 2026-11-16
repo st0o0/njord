@@ -13,11 +13,11 @@ The repository SHALL contain `docker-compose.example.yml` (renamed from `docker-
 - **AND** `docker-compose.yml` does not exist
 
 ### Requirement: Environment variables grouped by section
-The environment variables SHALL be organized into named groups using YAML comments: MQTT, Locations, Polling & Models, Parameters, Persistence, Budget, Enrichment.
+The environment variables SHALL be organized into named groups using YAML comments: Locations, Polling, Persistence, Budget, Features.
 
 #### Scenario: Sections are visually distinct
 - **WHEN** a user reads the compose file
-- **THEN** each group is separated by a comment header (e.g., `# -- MQTT (required) --`)
+- **THEN** each group is separated by a comment header (e.g., `# -- Locations --`)
 
 ### Requirement: SQLite volume mapping
 The compose file SHALL define a named volume (`njord-data`) mapped to `/app/data` for SQLite journal persistence.

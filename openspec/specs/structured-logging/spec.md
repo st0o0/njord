@@ -24,15 +24,15 @@ All actor classes (types extending `ActorBase` or its subclasses) SHALL use `Con
 
 ### Requirement: Non-actor logging via ILogger
 
-Non-actor classes (gRPC services such as `OpsGrpcService`, `MqttNetPublisher`) SHALL use `ILogger<T>` obtained via dependency injection for logging. These classes SHALL NOT reference `Serilog.Context` or any Serilog-specific API.
+Non-actor classes (gRPC services such as `NjordGrpcService`) SHALL use `ILogger<T>` obtained via dependency injection for logging. These classes SHALL NOT reference `Serilog.Context` or any Serilog-specific API.
 
 #### Scenario: gRPC service uses ILogger
-- **WHEN** `OpsGrpcService` emits a log message
-- **THEN** the log is emitted via `ILogger<OpsGrpcService>` obtained from DI
+- **WHEN** `NjordGrpcService` emits a log message
+- **THEN** the log is emitted via `ILogger<NjordGrpcService>` obtained from DI
 
 #### Scenario: Non-actor log includes SourceContext
-- **WHEN** `OpsGrpcService` emits a log message through `ILogger<OpsGrpcService>`
-- **THEN** the log event contains `SourceContext` with value `"Njord.Grpc.OpsGrpcService"`
+- **WHEN** `NjordGrpcService` emits a log message through `ILogger<NjordGrpcService>`
+- **THEN** the log event contains `SourceContext` with value `"Njord.Grpc.NjordGrpcService"`
 
 ### Requirement: No Serilog imports in application code
 
@@ -54,35 +54,23 @@ The Serilog console output template SHALL include the `SourceContext` property b
 - **WHEN** a framework log event from `Microsoft.AspNetCore.Hosting.Diagnostics` is rendered
 - **THEN** the console output contains `[Microsoft.AspNetCore.Hosting.Diagnostics]`
 
-### Requirement: MQTT connected log
-
-`MqttConnection` SHALL emit an Information-level log when a connection to the MQTT broker is successfully established, including the host and port.
-
-#### Scenario: Successful MQTT connection
-- **WHEN** `MqttConnection` successfully connects to the MQTT broker
-- **THEN** an Information log `"MQTT connected to {Host}:{Port}"` is emitted
-
-#### Scenario: Reconnection after disconnect
-- **WHEN** `MqttConnection` reconnects after a connection loss
-- **THEN** the same Information log is emitted again (not just on first connect)
-
 ### Requirement: Namespace override documentation for stream tracing
 
 The example configuration (`appsettings.Example.json`) SHALL include commented examples showing how to enable Debug-level stream tracing per subsystem using Serilog `MinimumLevel.Override` entries. The override keys SHALL be log categories (the full type name of the actor that owns the graph), not `.Log()` stage names.
 
 #### Scenario: Example config contains stream tracing overrides
 - **WHEN** reading `appsettings.Example.json`
-- **THEN** it contains a commented override entry for `Njord.Mqtt.MqttStatePublisher` with an explanation that it enables the `mqtt-state-in` and `mqtt-state-out` stages
+- **THEN** it contains a commented override entry for `Njord.Pipeline.ForecastPipeline` with an explanation that it enables the pipeline stream stages
 
 ### Requirement: Static helpers do not log
-Static mapping and computation helpers (`StatePayloadBuilder`, `HorizonProjection`, `TopicScheme`, the analyzers' formula classes, the proto mapping extensions) SHALL NOT accept `ILogger` or `ILoggingAdapter` parameters and SHALL NOT log. Logging SHALL be performed by the calling actor or service. `StreamSupervision.LoggingDecider`, which builds a supervision decider from a logger, is the only static member that takes a logger.
+Static mapping and computation helpers (the feature rules' scoring helpers, the proto mapping extensions) SHALL NOT accept `ILogger` or `ILoggingAdapter` parameters and SHALL NOT log. Logging SHALL be performed by the calling actor or service. `StreamSupervision.LoggingDecider`, which builds a supervision decider from a logger, is the only static member that takes a logger.
 
-#### Scenario: Payload builders do not log
-- **WHEN** `MqttStatePublisher` maps an event with `StatePayloadBuilder`
-- **THEN** the builder emits no log events; the actor's `.Log()` stages and logger do
+#### Scenario: Mapping extensions do not log
+- **WHEN** `GrpcConsumer` maps an event with a `ToProto()` extension
+- **THEN** the extension emits no log events; the actor's logger does
 
 ### Requirement: Lifecycle transitions are logged at Information level
-Operationally significant lifecycle events SHALL be logged at Information level, including `"OpenMeteoGateway stream materialized"` (`OpenMeteoGateway`), `"Starting {Count} poll workers"` (`PollManager`), `"Received forecast SourceRef from gateway — materializing analysis pipeline"` (`ForecastPipeline`), `"MQTT connected to {Host}:{Port}"` (`MqttConnection`), `"Discovery interval changed from {Previous} to {Current}"` (`PollManager`) and the `ConfigManager` reload messages. Per-poll events such as `"Data changed for {Location}/{Model}"` (`PollWorker`) SHALL be logged at Debug level.
+Operationally significant lifecycle events SHALL be logged at Information level, including `"OpenMeteoGateway stream materialized"` (`OpenMeteoGateway`), `"Starting {Count} poll workers"` (`PollManager`), `"Received forecast SourceRef from gateway — materializing analysis pipeline"` (`ForecastPipeline`), `"Discovery interval changed from {Previous} to {Current}"` (`PollManager`) and the `ConfigManager` reload messages. Per-poll events such as `"Data changed for {Location}/{Model}"` (`PollWorker`) SHALL be logged at Debug level.
 
 #### Scenario: Gateway materialization stays at Information
 - **WHEN** `OpenMeteoGateway` materializes its streams

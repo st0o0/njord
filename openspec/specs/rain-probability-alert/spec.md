@@ -36,5 +36,5 @@ The feature descriptor SHALL declare `Weather: PrecipitationProbability` and `En
 The feature descriptor SHALL set `DefaultEnabled = true`.
 
 #### Scenario: Default configuration
-- **WHEN** no explicit configuration is provided for `Njord:Features:Weather:RainProbability`
+- **WHEN** no explicit configuration is provided for `Njord:Features:RainProbability`
 - **THEN** the alert SHALL be enabled with default thresholds

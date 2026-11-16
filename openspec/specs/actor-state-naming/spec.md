@@ -16,7 +16,7 @@ An actor's state record SHALL be named `<ActorName>State` and its extensions
 The `*State` suffix is reserved for immutable state records. Actor classes
 SHALL use domain-role names.
 
-#### Scenario: MQTT state publisher actor
-- **WHEN** the MQTT state publishing actor is referenced
-- **THEN** it SHALL be named `MqttStatePublisher` (not `MqttState`) and its marker interface `IMqttStatePublisher`
+#### Scenario: Budget tracker actor
+- **WHEN** the persistent budget accounting actor is referenced
+- **THEN** it SHALL be named `BudgetTracker` (not `BudgetState`) and its marker interface `IBudgetTracker`
 

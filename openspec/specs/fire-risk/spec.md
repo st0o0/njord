@@ -26,7 +26,7 @@ The system SHALL provide a `FireRisk` alert in the Lifestyle category that score
 - **THEN** confidence SHALL be derived from the ensemble temperature spread
 
 ### Requirement: FireRisk config
-The `FireRiskConfig` SHALL support configurable thresholds for temperature (default 30C), humidity (default 30%), wind speed (default 20 km/h), soil moisture (default 0.10 m3/m3), and dry hours (default 48). Section `Njord:Features:Lifestyle:FireRisk`. Default disabled.
+The `FireRiskConfig` SHALL support configurable thresholds for temperature (default 30C), humidity (default 30%), wind speed (default 20 km/h), soil moisture (default 0.10 m3/m3), and dry hours (default 48). Section `Njord:Features:FireRisk`. Default disabled.
 
 #### Scenario: Custom thresholds
 - **WHEN** the operator sets temperature threshold to 35C

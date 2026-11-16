@@ -37,9 +37,9 @@ Integration tests SHALL run two host lifetimes over the same SQLite file and ass
 - **THEN** the second lifetime reports the worker in the steady phase with the same cycle
 
 ### Requirement: Integration tests are isolated and bounded
-Each integration fixture SHALL use unique temporary directories (database and override file), its own broker container, and explicit timeouts from `TestTimeouts`; host-based fixtures SHALL run one after another because the Akka remoting port is fixed, and SHALL dispose hosts and containers deterministically.
+Each integration fixture SHALL use unique temporary directories (database and override file), and explicit timeouts from `TestTimeConstants`; host-based fixtures SHALL run one after another because the Akka remoting port is fixed, and SHALL dispose hosts deterministically.
 
 #### Scenario: Consecutive test classes
 - **WHEN** two integration test classes run one after another
-- **THEN** they use different databases and brokers and do not observe each other's data
+- **THEN** they use different databases and do not observe each other's data
 

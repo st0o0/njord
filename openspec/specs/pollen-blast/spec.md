@@ -26,8 +26,8 @@ The system SHALL provide a `PollenBlast` alert in the AirQuality category that d
 - **THEN** it SHALL require both Weather (temperature, precipitation, wind speed) and AirQuality (pollen parameters) domains
 
 ### Requirement: PollenBlast config
-The `PollenBlastConfig` SHALL support configurable temperature threshold (default 15C), minimum wind speed (default 5 km/h), and minimum pollen concentration delta (default 10 grains/m3). Section `Njord:Features:AirQuality:PollenBlast`. Default disabled.
+The `PollenBlastConfig` SHALL support configurable temperature threshold (default 15C), minimum wind speed (default 5 km/h), and minimum pollen concentration delta (default 10 grains/m3). Section `Njord:Features:PollenBlast`. Default disabled.
 
 #### Scenario: Config section
 - **WHEN** the operator enables PollenBlast
-- **THEN** the config SHALL be read from `Njord:Features:AirQuality:PollenBlast`
+- **THEN** the config SHALL be read from `Njord:Features:PollenBlast`

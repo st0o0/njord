@@ -1,8 +1,8 @@
 # wire-format-golden-masters Specification
 
 ## Purpose
-Pins the externally visible output of njord (MQTT state messages and gRPC analysis and
-forecast responses) with snapshot tests, so internal refactorings can prove they changed
+Pins the externally visible output of njord (gRPC analysis and
+forecast responses and persistence records) with snapshot tests, so internal refactorings can prove they changed
 nothing a consumer sees.
 ## Requirements
 ### Requirement: No orphaned snapshot files

@@ -25,16 +25,12 @@ Every feature SHALL be identified by its C# type, not by a string name, a featur
 - **WHEN** all registered features are listed
 - **THEN** no two features SHALL share the same C# type
 
-#### Scenario: No Name property
-- **WHEN** a feature is inspected
-- **THEN** it SHALL NOT expose a `Name` property or any string-returning identity method
-
-### Requirement: FeatureDescriptor without Name dependency
-`FeatureDescriptor` SHALL contain `OutputKind`, `FeatureCategory`, `bool DefaultEnabled`, `DomainRequirements Requirements`, and `int PollDepth`. It SHALL NOT reference a name or string identifier. The previous `IFeature.Name`-based config key derivation (`Category:Name`) SHALL be replaced by per-feature `IOptions<T>` binding.
+### Requirement: FeatureDescriptor carries identity and metadata
+`FeatureDescriptor` SHALL contain `OutputKind`, `FeatureCategory`, `Name` (the config section name), `bool DefaultEnabled`, `DomainRequirements Requirements`, `int PollDepth`, and `EntityMetadata` (platform/device_class/icon/unit for HA entity definition). Config binding uses `Njord:Features:<Name>`.
 
 #### Scenario: Descriptor content
 - **WHEN** the FrostAlert feature descriptor is inspected
-- **THEN** it reports category Weather, output Alert, default enabled true, its required weather parameters, and PollDepth 0, but no name
+- **THEN** it reports category Weather, output Alert, default enabled true, Name "Frost", its required forecast parameters, PollDepth 0, and EntityMetadata for entity definition
 
 ### Requirement: Feature resolution from per-feature config
 Feature resolution SHALL compute enabled features by checking each feature's own `IOptions<T>.Enabled` property, not by looking up a string key in a `FeatureOptions` dictionary. The union of requirements, required domains, and cost computation SHALL use the same formulas as before.
@@ -45,7 +41,7 @@ Feature resolution SHALL compute enabled features by checking each feature's own
 
 #### Scenario: Cost matches startup validation
 - **WHEN** the total of enabled features' requirements is computed
-- **THEN** it SHALL equal the projected usage `BudgetCalculator` validates at startup
+- **THEN** it SHALL equal the projected usage `BudgetGuard` validates at startup
 
 ### Requirement: Catalog includes forecast and ensemble models
 The GetCatalog response SHALL list all active models from both ForecastOptions and
@@ -62,6 +58,6 @@ entries SHALL exist for every model in the list.
 - **THEN** `CatalogLocation.Models` SHALL be `["icon_d2", "icon_eu", "ecmwf_ifs025_ensemble_mean"]` with `icon_d2` as primary
 
 #### Scenario: Catalog sourced from ActiveModels
-- **WHEN** WeatherGrpcService builds the catalog
+- **WHEN** NjordGrpcService builds the catalog
 - **THEN** it SHALL use `IOptions<ActiveModels>` and `IOptions<NjordOptions>`, not `IOptions<EnsembleOptions>`
 

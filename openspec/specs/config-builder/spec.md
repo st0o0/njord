@@ -49,7 +49,7 @@ The builder SHALL compute and display projected monthly API usage using the same
 - **THEN** a warning is displayed with suggestions to reduce usage
 
 ### Requirement: Export as appsettings.json
-The builder SHALL generate a complete `appsettings.json` matching the njord configuration schema. Feature toggles and options SHALL be exported under a flat `Features` object keyed by feature name. Weather settings SHALL be under `Njord.Weather`. Only non-default values SHALL be included.
+The builder SHALL generate a complete `appsettings.json` matching the njord configuration schema. Feature toggles and options SHALL be exported under a flat `Features` object keyed by feature name. Forecast settings SHALL be under `Njord:Forecast`. Only non-default values SHALL be included.
 
 #### Scenario: Feature toggle in JSON export
 - **WHEN** a user disables Frost (default enabled)
@@ -59,9 +59,9 @@ The builder SHALL generate a complete `appsettings.json` matching the njord conf
 - **WHEN** a user changes Frost thresholds to `[-1, -10, -20]`
 - **THEN** the exported JSON SHALL contain `"Features": { "Frost": { "Thresholds": [-1, -10, -20] } }`
 
-#### Scenario: Weather section in JSON export
+#### Scenario: Forecast section in JSON export
 - **WHEN** a user changes forecast days to 7
-- **THEN** the exported JSON SHALL contain `"Weather": { "ForecastDays": 7 }`
+- **THEN** the exported JSON SHALL contain `"Forecast": { "ForecastDays": 7 }`
 
 ### Requirement: Export as environment variables
 The builder SHALL generate the equivalent configuration as environment variables using the .NET `__` separator convention. Feature env vars SHALL use the flat path `Njord__Features__<Name>__<Setting>`.
@@ -74,9 +74,9 @@ The builder SHALL generate the equivalent configuration as environment variables
 - **WHEN** a user sets Frost thresholds to `[-1, -10, -20]`
 - **THEN** the exported env vars SHALL be `Njord__Features__Frost__Thresholds__0=-1`, `...__1=-10`, `...__2=-20`
 
-#### Scenario: Weather env var
+#### Scenario: Forecast env var
 - **WHEN** a user changes forecast days
-- **THEN** the exported env var SHALL be `Njord__Weather__ForecastDays=7`
+- **THEN** the exported env var SHALL be `Njord__Forecast__ForecastDays=7`
 
 ### Requirement: Import existing appsettings.json
 The builder SHALL accept a pasted `appsettings.json` and populate all builder fields from it. Feature settings SHALL be read from the flat `Features` object. Unknown keys SHALL be ignored.
@@ -134,7 +134,7 @@ The builder SHALL list all features grouped by feature category. Each feature SH
 - **THEN** it shows the full monthly AirQuality cost
 
 #### Scenario: Cost when domain already active
-- **WHEN** Weather is already required and a user views FrostAlert
+- **WHEN** Forecast is already required and a user views FrostAlert
 - **THEN** it shows "+0"
 
 ### Requirement: Budget meter reflects the free tier
@@ -156,7 +156,7 @@ The builder SHALL export `Njord:Features` (JSON and environment variables) and S
 - **THEN** all individual alert features are enabled and the export uses `Features`
 
 ### Requirement: Model selection in the builder
-The Config Builder SHALL list the supported weather models with provider, resolution and forecast length, let the user enable them and choose the primary, and emit `Njord:Weather:Models` and the `ModelComparison` feature accordingly.
+The Config Builder SHALL list the supported weather models with provider, resolution and forecast length, let the user enable them and choose the primary, and emit `Njord:Forecast:Models` and the `ModelComparison` feature accordingly.
 
 #### Scenario: Add a model
 - **WHEN** the user enables a second model

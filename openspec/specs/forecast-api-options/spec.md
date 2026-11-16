@@ -40,7 +40,7 @@ When `Njord:Forecast:Models` is populated, the Forecast API client SHALL send a 
 - **THEN** startup validation SHALL fail naming the duplicate
 
 ### Requirement: Forecast API budget accounting
-The Forecast API call weight SHALL be `ceil(variables / 10) * ceil(ForecastDays / 14)` with no model multiplier when using best_match, or multiplied by the model count when explicit models are configured.
+The Forecast API call weight SHALL be `ceil(variables / 10) * (ForecastDays / 14.0)` with no model multiplier when using best_match, or multiplied by the model count when explicit models are configured.
 
 #### Scenario: Default best_match weight
 - **WHEN** 11 forecast variables are required and ForecastDays is 4

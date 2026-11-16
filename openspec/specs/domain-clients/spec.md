@@ -9,8 +9,8 @@ One thick Open-Meteo client per domain behind IDomainClient; the gateway only or
 Every fetched domain SHALL have exactly one `IDomainClient` in `Njord.Core/Domain` exposing
 its `DomainKind`, its `CallWeight` and `FetchAsync(latitude, longitude, now,
 cancellationToken)` returning a `FetchResult` (`FetchSuccess`, `FetchEmpty` or `FetchError`).
-The set of domains SHALL be Weather, Ensemble, AirQuality, Flood, Marine, Seasonal, and Satellite.
-Clients SHALL obtain their domain's API variable list from `FeatureRequirementsOptions`, convert
+The set of domains SHALL be Forecast, Ensemble, AirQuality, Flood, Marine, Seasonal, and Satellite.
+Clients SHALL obtain their domain's API variable list from `DomainRequirements`, convert
 domain params to API variable enums, and use the cached `ToApiName` lookup to build the query
 string. Clients SHALL use named constants from `ClientRequest` for all query-parameter keys
 and fixed values.
@@ -37,12 +37,12 @@ and fixed values.
   `wind_speed_unit`, `ensemble`) and their fixed values (`ms`, `true`) SHALL be referenced
   through constants on `ClientRequest`, not string literals
 
-### Requirement: ForecastClient replaces WeatherClient for DomainKind.Weather
-The `ForecastClient` SHALL be registered as the `IDomainClient` for `DomainKind.Weather`. Its `HttpClient` base address SHALL be `https://api.open-meteo.com/`. It SHALL use the path `v1/forecast`.
+### Requirement: ForecastClient is the client for DomainKind.Forecast
+The `ForecastClient` SHALL be registered as the `IDomainClient` for `DomainKind.Forecast`. Its `HttpClient` base address SHALL be `https://api.open-meteo.com/`. It SHALL use the path `v1/forecast`.
 
 #### Scenario: DI registration
 - **WHEN** the service container resolves `IDomainClient` instances
-- **THEN** the Weather domain SHALL be served by `ForecastClient`, not `WeatherClient`
+- **THEN** the Forecast domain SHALL be served by `ForecastClient`
 
 ### Requirement: EnsembleClient registered for DomainKind.Ensemble
 The `EnsembleClient` SHALL be registered as the `IDomainClient` for `DomainKind.Ensemble`. Its `HttpClient` base address SHALL be `https://ensemble-api.open-meteo.com/`. It SHALL use the path `v1/ensemble`.
@@ -51,8 +51,8 @@ The `EnsembleClient` SHALL be registered as the `IDomainClient` for `DomainKind.
 - **WHEN** the service container resolves `IDomainClient` instances
 - **THEN** the Ensemble domain SHALL be served by `EnsembleClient`
 
-### Requirement: Weather call weight lives in the client
-The ForecastClient SHALL report a `CallWeight` of `ceil(variables / 10) * ceil(forecastDays / 14)` with no model multiplier. The EnsembleClient SHALL report `ceil(variables / 10) * ceil(forecastDays / 14) * modelCount`.
+### Requirement: Forecast call weight lives in the client
+The ForecastClient SHALL report a `CallWeight` of `ceil(variables / 10) * (forecastDays / 14.0)` with no model multiplier. The EnsembleClient SHALL report `ceil(variables / 10) * (forecastDays / 14.0) * modelCount`.
 
 #### Scenario: Forecast weight
 - **WHEN** 31 weather API variables are resolved
@@ -83,8 +83,8 @@ to the pipeline and reply; it SHALL contain no per-domain code.
 - **WHEN** the client returns `FetchError`
 - **THEN** the gateway SHALL reply `FetchDomainFailed` with the error's reason
 
-### Requirement: Weather response uses dictionary-based deserialization
-`WeatherResponse` SHALL NOT use a custom `JsonConverter`. The hourly block SHALL be
+### Requirement: Forecast response uses dictionary-based deserialization
+`ForecastResponse` SHALL NOT use a custom `JsonConverter`. The hourly block SHALL be
 deserialized as `Dictionary<string, JsonElement>` (or via `[JsonExtensionData]`), following
 the Flood precedent. Multi-model key splitting and member-series filtering SHALL be performed
 in the mapping layer, not the deserialization layer.
@@ -96,7 +96,7 @@ in the mapping layer, not the deserialization layer.
 #### Scenario: Multi-model response
 - **WHEN** the API returns suffixed hourly keys (e.g. `temperature_2m_ecmwf_ifs025_ensemble_mean`)
 - **THEN** the mapping SHALL split each key into variable name and model id using the
-  longest-prefix match against `ApiVariableNames.For<WeatherApiVariable>()`, and produce one
+  longest-prefix match against `ApiVariableNames.For<ForecastApiVariable>()`, and produce one
   forecast per model
 
 #### Scenario: Member series are dropped

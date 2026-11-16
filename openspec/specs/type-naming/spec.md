@@ -8,7 +8,7 @@ No production type SHALL have `Snapshot` in its name. The persisted state of a p
 
 #### Scenario: A type name contains Snapshot
 - **WHEN** a production type named `FooSnapshot` is added
-- **THEN** the architecture spec fails
+- **THEN** the architecture test fails
 
 #### Scenario: Persisted state keeps its name
 - **WHEN** the persistence project is inspected

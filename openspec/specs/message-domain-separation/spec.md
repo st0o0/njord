@@ -2,18 +2,6 @@
 
 Defines which messages belong in the shared Njord.Messages project. All inter-actor messages including stream handshakes live in Messages. Njord.Messages references Akka.Streams for ISinkRef/ISourceRef but not Akka.Actor or other actor-infrastructure packages.
 ## Requirements
-### Requirement: Mqtt message namespace
-
-Messages related to MQTT connection lifecycle SHALL be defined in the `Njord.Messages.Mqtt` namespace within the Njord.Messages project. This SHALL include connection state notifications and inbound subscription management.
-
-#### Scenario: MQTT connected notification is a shared message
-- **WHEN** MqttConnection establishes a broker connection
-- **THEN** it SHALL notify listeners using a message type defined in Njord.Messages.Mqtt
-
-#### Scenario: Inbound subscription is a shared message
-- **WHEN** an actor wants to receive inbound MQTT messages from MqttConnection
-- **THEN** it SHALL send a subscription message defined in Njord.Messages.Mqtt
-
 ### Requirement: Njord.Messages package dependencies
 Njord.Messages SHALL reference the Akka.Streams NuGet package to support ISinkRef<T> and ISourceRef<T> in stream handshake message types. It SHALL NOT reference Akka.Actor, Akka.Cluster, Akka.Persistence, or Akka.Hosting.
 

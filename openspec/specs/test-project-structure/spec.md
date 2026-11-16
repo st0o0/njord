@@ -3,7 +3,7 @@
 Organization of test projects, their dependency boundaries, shared infrastructure, and which test types belong where.
 ## Requirements
 ### Requirement: Shared test infrastructure project
-The solution SHALL contain a `Njord.Tests.Shared` class library project that holds JSON fixture files, reusable test fakes (`FakeOpenMeteoClient`, `ConfigHarness`), actor-spec support (`NjordActorSpec`, `FeatureServices`, `DisabledAnalyzers`, `AnalysisFixture`), Akka configuration helpers (`TestPersistenceConfig`, `TestTimefactorConfig`), timeout constants (`TestTimeouts`, `TestTimeConstants`), and `TestOptionsMonitor<T>`. This project SHALL NOT be a test project and SHALL NOT contain any test classes. Every file SHALL be used by at least two test projects.
+The solution SHALL contain a `Njord.Tests.Shared` class library project that holds JSON fixture files, reusable test fakes (`FakeOpenMeteoClient`, `ConfigHarness`), actor-test support (`FeatureServices`, `AnalysisFixture`), Akka configuration helpers (`TestPersistenceConfig`, `TestTimefactorConfig`), timeout and time constants (`TestTimeConstants`), and `TestOptionsMonitor<T>`. This project SHALL NOT be a test project and SHALL NOT contain any test classes. Every file SHALL be used by at least two test projects.
 
 #### Scenario: Shared project provides fixture files
 - **WHEN** a test project references `Njord.Tests.Shared`
@@ -52,7 +52,7 @@ use custom collector classes when TestProbe provides equivalent functionality.
 - **THEN** zero tests fail due to timing or thread starvation
 
 ### Requirement: Unit and actor tests in per-library test projects
-Tests SHALL live in per-library test projects named `Njord.<Name>.Tests`, next to the library they test, plus the host project `Njord.Tests` for host-level specs (`ConfigManager`, options binding). Each test project is its own executable and SHALL contain only unit tests and actor lifecycle tests that require no Docker containers and no network I/O. No test project SHALL declare a package reference to `Testcontainers`, `WireMock.Net.Testcontainers`, or `MQTTnet`.
+Tests SHALL live in per-library test projects named `Njord.<Name>.Tests`, next to the library they test, plus `Njord.IntegrationTests` for whole-host tests via TestServer. Each per-library test project is its own executable and SHALL contain only unit tests and actor lifecycle tests that require no Docker containers and no network I/O. No test project SHALL declare a package reference to `Testcontainers` or `WireMock.Net.Testcontainers`.
 
 #### Scenario: Unit tests run without Docker
 - **WHEN** `dotnet run --project <Project>/<Project>.csproj` is executed without a Docker daemon
@@ -83,9 +83,9 @@ Tests SHALL live in per-library test projects named `Njord.<Name>.Tests`, next t
 - **THEN** it SHALL NOT implement `IDisposable` or `IAsyncDisposable` for ActorSystem cleanup — the base class handles shutdown
 
 ### Requirement: Persistence tests keep their helpers local
-`Njord.Persistence.Tests` SHALL contain `PersistenceRoundtripHelper.cs` (a static `Roundtrip<T>(T record)` helper using `TypeNameHandling.All`), one roundtrip spec per persistence area (`BudgetTrackerDtoRoundtripSpec`, `PollWorkerRecordsSpec` with its Verify wire-format baselines) and `WireFormatSpec` with inline expected JSON for the budget records. The helper is NOT in `Njord.Tests.Shared`, because it is used only by `Njord.Persistence.Tests` and the shared-infrastructure rule above requires at least two consumers.
+`Njord.Persistence.Tests` SHALL contain `PersistenceRoundtripHelper.cs` (a static `Roundtrip<T>(T record)` helper using `TypeNameHandling.All`), one roundtrip test class per persistence area (`BudgetTrackerDtoRoundtripTests`, `PollWorkerRecordsTests` with its Verify wire-format baselines) and `WireFormatTests` with inline expected JSON for the budget records. The helper is NOT in `Njord.Tests.Shared`, because it is used only by `Njord.Persistence.Tests` and the shared-infrastructure rule above requires at least two consumers.
 
 #### Scenario: Roundtrip and wire-format specs sit together
 - **WHEN** `Njord.Persistence.Tests` is inspected
-- **THEN** it contains the roundtrip specs, `WireFormatSpec` and `PersistenceRoundtripHelper`, and `Njord.Tests.Shared` contains no persistence helper
+- **THEN** it contains the roundtrip tests, `WireFormatTests` and `PersistenceRoundtripHelper`, and `Njord.Tests.Shared` contains no persistence helper
 

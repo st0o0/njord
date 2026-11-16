@@ -21,11 +21,11 @@ DomainForecast<T> SHALL hold Domain (DomainKind), ModelRun (DateTimeOffset), Res
 - **THEN** its ModelRun SHALL be the model initialization time from the response, not the fetch time
 
 ### Requirement: LocationForecast is a closed read-model
-LocationForecast SHALL have nullable properties for each domain (Weather, AirQuality, Flood, Solar, Marine). A With method SHALL update one domain while preserving others.
+LocationForecast SHALL have nullable properties for each domain (Forecast, AirQuality, Flood, Solar, Marine). A With method SHALL update one domain while preserving others.
 
 #### Scenario: Updating one domain preserves others
-- **WHEN** LocationForecast has Weather and Flood data and Weather is updated
-- **THEN** the new LocationForecast SHALL have the new Weather and the unchanged Flood
+- **WHEN** LocationForecast has Forecast and Flood data and Forecast is updated
+- **THEN** the new LocationForecast SHALL have the new Forecast and the unchanged Flood
 
 ### Requirement: ForecastQueries provides temporal operations
 ForecastQueries SHALL provide static methods: ValueAt (point valid at a specific time), Window (all points in a range), Nearest (closest point within tolerance), Correlate (inner join of two series on overlapping valid times).
@@ -35,5 +35,5 @@ ForecastQueries SHALL provide static methods: ValueAt (point valid at a specific
 - **THEN** it SHALL return the 07:00 point (the one whose valid window contains 07:30)
 
 #### Scenario: Correlate joins different resolutions
-- **WHEN** an hourly Weather series and a 6-hourly Flood series are correlated
-- **THEN** each Flood point SHALL be paired with the Weather points within its valid window
+- **WHEN** an hourly Forecast series and a 6-hourly Flood series are correlated
+- **THEN** each Flood point SHALL be paired with the Forecast points within its valid window

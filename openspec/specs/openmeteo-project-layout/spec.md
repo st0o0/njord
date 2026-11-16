@@ -5,14 +5,14 @@ Njord.OpenMeteo is organized into one folder per fetched domain plus shared fold
 
 ## Requirements
 ### Requirement: Domain-folder project structure
-`Njord.OpenMeteo` SHALL organize files into one folder per fetched domain (`Weather/`,
+`Njord.OpenMeteo` SHALL organize files into one folder per fetched domain (`Forecast/`,
 `AirQuality/`, `Flood/`, `Marine/`, `Seasonal/`, `Satellite/`). Each domain folder SHALL
 contain the client, API variable enum, response DTOs and response mapping extensions for
 that domain.
 
-#### Scenario: Weather folder contents
-- **WHEN** the `Weather/` folder is listed
-- **THEN** it SHALL contain the weather client, `WeatherApiVariable` enum, weather response
+#### Scenario: Forecast folder contents
+- **WHEN** the `Forecast/` folder is listed
+- **THEN** it SHALL contain the weather client, `ForecastApiVariable` enum, weather response
   DTO, weather response mapping extensions and the weather response converter
 
 #### Scenario: No domain files at project root

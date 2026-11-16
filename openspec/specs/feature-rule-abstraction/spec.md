@@ -9,8 +9,8 @@ Typed FeatureRule abstraction: features are identified by their C# type, read ty
 The system SHALL provide an abstract `FeatureRule<TInput>` base class that every feature implements. `TInput` is a readonly record struct containing only the domain forecasts the feature declared in its requirements. The base class SHALL expose two abstract methods: `Project` (extracts `TInput` from `LocationForecast`, returning null when required domains are missing) and `Evaluate` (pure evaluation taking `FeatureContext<TInput>`, returning a `FeatureResult` or null to skip).
 
 #### Scenario: Feature receives only declared domains
-- **WHEN** a feature declares `Requirements: Weather(Temperature2m)` and uses `WeatherInput`
-- **THEN** its `Evaluate` method receives only `WeatherInput` containing the weather forecast, and has no compile-time access to AirQuality, Flood, Marine, Seasonal, Satellite or Ensemble data
+- **WHEN** a feature declares `Requirements: Weather(Temperature2m)` and uses `ForecastInput`
+- **THEN** its `Evaluate` method receives only `ForecastInput` containing the weather forecast, and has no compile-time access to AirQuality, Flood, Marine, Seasonal, Satellite or Ensemble data
 
 #### Scenario: Feature skips when domains are missing
 - **WHEN** `Project` is called with a `LocationForecast` that lacks a required domain
@@ -25,19 +25,19 @@ The system SHALL provide an abstract `FeatureRule<TInput>` base class that every
 - **THEN** `Project` SHALL succeed with Weather data alone, and the alert SHALL use Medium confidence
 
 ### Requirement: Typed input records for domain combinations
-The system SHALL provide shared readonly record struct input types for common domain combinations. At minimum: `WeatherInput`, `WeatherEnsembleInput`, `WeatherAqInput`, `WeatherSolarInput`, `FloodWeatherInput`, `FloodMarineWeatherInput`, `MarineWeatherInput`, `SeasonalInput`. A feature that needs a combination not covered SHALL define its own input record.
+The system SHALL provide shared readonly record struct input types for common domain combinations. At minimum: `ForecastInput`, `ForecastEnsembleInput`, `ForecastAqInput`, `WeatherSolarInput`, `FloodForecastInput`, `FloodMarineForecastInput`, `MarineForecastInput`, `SeasonalInput`. A feature that needs a combination not covered SHALL define its own input record.
 
 #### Scenario: Single-domain feature uses single-domain input
 - **WHEN** a weather-only feature is defined (e.g. PressureDrop which does not need confidence)
-- **THEN** it SHALL use `WeatherInput` containing only `DomainForecast<WeatherPoint>`
+- **THEN** it SHALL use `ForecastInput` containing only `DomainForecast<ForecastPoint>`
 
 #### Scenario: Weather + Ensemble feature uses combined input
 - **WHEN** an alert requires both weather data and ensemble spread for confidence
-- **THEN** it SHALL use `WeatherEnsembleInput` containing `DomainForecast<WeatherPoint>` and `DomainForecast<EnsemblePoint>`
+- **THEN** it SHALL use `ForecastEnsembleInput` containing `DomainForecast<ForecastPoint>` and `DomainForecast<EnsemblePoint>`
 
 #### Scenario: Cross-domain feature uses multi-domain input
 - **WHEN** a feature requires Weather, Marine and Flood data
-- **THEN** it SHALL use `FloodMarineWeatherInput` containing all three domain forecasts
+- **THEN** it SHALL use `FloodMarineForecastInput` containing all three domain forecasts
 
 ### Requirement: Feature has no string identifier
 A feature SHALL NOT have a `Name` property, a string identifier, or any mechanism to retrieve its textual identity at runtime. The C# type IS the identity. Wire keys and config section paths are derived externally, never stored on or retrievable from the feature.
@@ -92,11 +92,11 @@ Each feature SHALL return a feature-specific sealed record that extends an abstr
 - **THEN** `FeatureContext.History` SHALL have 3 entries, not 9
 
 ### Requirement: Alert confidence from ensemble spread
-Alert features that require ensemble data SHALL access confidence through the ensemble forecast in their typed input, not through a field on WeatherPoint. Confidence SHALL be derived by looking up the `EnsemblePoint` at the relevant timestamp and passing its spread value to `ConfidenceThresholds.LevelFor`. When ensemble data is absent from the input (because the alert does not require it), confidence SHALL be `ConfidenceLevel.Medium`.
+Alert features that require ensemble data SHALL access confidence through the ensemble forecast in their typed input, not through a field on ForecastPoint. Confidence SHALL be derived by looking up the `EnsemblePoint` at the relevant timestamp and passing its spread value to `ConfidenceThresholds.LevelFor`. When ensemble data is absent from the input (because the alert does not require it), confidence SHALL be `ConfidenceLevel.Medium`.
 
 #### Scenario: Alert with ensemble calculates confidence from spread
 - **WHEN** FrostAlert evaluates with ensemble data available
-- **THEN** it SHALL look up the EnsemblePoint at the coldest WeatherPoint's ValidFrom and pass `TemperatureSpread` to `ConfidenceThresholds.LevelFor`
+- **THEN** it SHALL look up the EnsemblePoint at the coldest ForecastPoint's ValidFrom and pass `TemperatureSpread` to `ConfidenceThresholds.LevelFor`
 
 #### Scenario: Alert without ensemble uses Medium confidence
 - **WHEN** PressureDropAlert evaluates (it does not require Ensemble)

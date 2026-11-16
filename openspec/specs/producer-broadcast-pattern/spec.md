@@ -19,10 +19,10 @@ A producer actor SHALL support multiple consumers holding active SourceRefs to i
 No actor SHALL exist solely to merge inputs from multiple producers and broadcast the merged result to consumers. There SHALL be no MergeHub-plus-BroadcastHub intermediary such as the former `EgressActor`. `ForecastPipeline` owning a MergeHub input and a BroadcastHub output is not such an intermediary: it analyzes every element between the two hubs.
 
 #### Scenario: System starts without hub actors
-- **WHEN** the actor system starts with MQTT enabled
+- **WHEN** the actor system starts
 - **THEN** no actor is registered whose sole purpose is merging and broadcasting events from multiple producers
 
 #### Scenario: Data flows from producer to consumer without intermediary
-- **WHEN** `MqttStatePublisher` needs pipeline events
+- **WHEN** `GrpcConsumer` needs pipeline events
 - **THEN** it subscribes directly to `ForecastPipeline`'s BroadcastHub and no intermediate hub actor relays the events
 

@@ -18,10 +18,6 @@ All actor classes SHALL order their fields in a consistent sequence: (1) constan
 
 Private message records used within an actor SHALL be declared as nested sealed records grouped together at the top of the class body, before the constructor.
 
-#### Scenario: MqttConnection private messages
-- **WHEN** inspecting `MqttConnection`'s private message records (`Connected`, `ConnectFailed`, `Disconnected`, `Reconnect`, `Inbound`, `StatusSubscribed`, `StatusSubscribeFailed`, `PublishOnline`, `OnlinePublished`, `OnlinePublishFailed`)
-- **THEN** they SHALL be grouped together at the top of the class body
-
 #### Scenario: ForecastPipeline private messages
 - **WHEN** inspecting `ForecastPipeline`'s private message records (`AnalysisGraphEnded`)
 - **THEN** they SHALL be grouped together at the top of the class body

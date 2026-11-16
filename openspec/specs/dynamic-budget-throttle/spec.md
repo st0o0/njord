@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Budget-aware throttling of the `OpenMeteoGateway` fetch stream: an `IBudgetProvider` supplies the current request rate, `GatewayBudgetGate` encapsulates the token bucket and usage tracking, and `GatewayThrottleStage` shapes fetch targets by delegating to the gate.
+Budget-aware throttling of the `OpenMeteoGateway` fetch stream: an `IBudgetProvider` supplies the current request rate, `GatewayBudgetGate` encapsulates the token bucket and usage tracking, and `BudgetGateStage` shapes fetch targets by delegating to the gate.
 ## Requirements
 ### Requirement: BudgetGateStage is a custom GraphStage that shapes and accounts fetch requests
 `BudgetGateStage<T>` SHALL be an `internal sealed` class extending `GraphStage<FlowShape<T, T>>` with a `TimerGraphStageLogic`. It SHALL take an `IBudgetProvider`, an `IActorRef` for the budget tracker, a `TimeProvider`, a `Func<T, int>` cost function, and a `maxCallWeight` floor for the burst. Its token bucket SHALL use `TimeProvider.GetUtcNow()` for time, not `DateTime.Now`. A periodic timer SHALL refresh the rate from `IBudgetProvider` every 5 seconds. The `MaxBurst` SHALL be at least `maxCallWeight`. After each successful acquisition the stage SHALL send `RecordApiCall(weight)` to the budget tracker via fire-and-forget `Tell`. The stage SHALL never reject an element -- it SHALL park elements and retry via `ScheduleOnce` until tokens are available.

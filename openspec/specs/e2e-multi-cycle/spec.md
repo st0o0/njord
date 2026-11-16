@@ -27,7 +27,7 @@ The E2E test plan SHALL verify that data updates across multiple poll cycles.
 The E2E test plan SHALL verify that budget tracking reflects actual API usage.
 
 #### Scenario: Budget status via gRPC matches HA entity
-- **WHEN** `OpsService/GetStatus` budget fields are compared to `sensor.daily_usage` and `sensor.monthly_usage`
+- **WHEN** `NjordService/GetStatus` budget fields are compared to `sensor.daily_usage` and `sensor.monthly_usage`
 - **THEN** the values are consistent (same or within one poll cycle's worth of calls)
 
 #### Scenario: Budget increases after triggered poll

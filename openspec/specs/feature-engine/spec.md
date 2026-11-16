@@ -27,7 +27,7 @@ The engine SHALL maintain a bounded ring buffer of `LocationForecast` snapshots 
 - **THEN** the ring buffer SHALL be empty and features with `PollDepth > 0` SHALL produce no result until enough polls accumulate
 
 ### Requirement: FeatureResolution from enabled features
-The engine SHALL compute the union of `DomainRequirements` from all features whose config has `Enabled = true`. This union SHALL be used by `BudgetCalculator` and poll resolution, replacing the current `FeatureResolution.RequiredParams` logic.
+The engine SHALL compute the union of `DomainRequirements` from all features whose config has `Enabled = true`. This union SHALL be used by `BudgetGuard` and poll resolution.
 
 #### Scenario: Disabled feature does not contribute requirements
 - **WHEN** a feature with `Requirements: Weather(Uv)` has `Enabled = false` in its config

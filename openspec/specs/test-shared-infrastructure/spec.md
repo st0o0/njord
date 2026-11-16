@@ -2,19 +2,18 @@
 
 ## Purpose
 
-Shared test infrastructure in `Njord.Tests.Shared`: a common base class for actor specs, shared time constants and a `FakeTimeProvider` factory.
+Shared test infrastructure in `Njord.Tests.Shared`: shared time constants and a `FakeTimeProvider` factory.
 
 ## Requirements
-### Requirement: Actor specs share a base class for common setup
-Actor test specs (`*Spec` classes that extend `Akka.Hosting.TestKit.TestKit`) SHALL extend
-a shared `NjordActorSpec` base class in `Njord.Tests.Shared` that provides default
-`ConfigureServices`/`ConfigureAkka` setup (test persistence, timefactor, default options),
-unless the spec needs fundamentally different configuration.
+### Requirement: Actor tests extend the Hosting TestKit directly
+Actor test classes (`*Tests` classes) SHALL extend `Akka.Hosting.TestKit.TestKit` directly and
+use shared helpers from `Njord.Tests.Shared` (test persistence, timefactor, default options)
+in their `ConfigureAkka`/`ConfigureServices` overrides; there SHALL be no shared abstract actor test base class.
 
-#### Scenario: New actor spec uses base class
-- **WHEN** a new actor spec is created
-- **THEN** it extends `NjordActorSpec` and overrides only the spec-specific configuration,
-  not the common persistence/timefactor/options setup
+#### Scenario: New actor test uses the TestKit directly
+- **WHEN** a new actor test class is created
+- **THEN** it extends `Akka.Hosting.TestKit.TestKit` and wires persistence, timefactor and options
+  through the shared helpers
 
 ### Requirement: Time constants and FakeTimeProvider are shared
 Test files SHALL use shared `TestTimeConstants` epoch values and a

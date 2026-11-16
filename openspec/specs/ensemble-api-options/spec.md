@@ -44,8 +44,8 @@ The Ensemble API client SHALL read the model list from `Njord:Ensemble:Models`. 
 - **THEN** a startup warning SHALL name the two ignored models
 
 ### Requirement: Ensemble API budget accounting with independent ForecastDays
-The Ensemble API call weight SHALL use its own ForecastDays (not the Forecast API value) in the formula `ceil(variables / 10) * ceil(ForecastDays / 14) * modelCount`.
+The Ensemble API call weight SHALL use its own ForecastDays (not the Forecast API value) in the formula `ceil(variables / 10) * (ForecastDays / 14.0) * modelCount`.
 
 #### Scenario: Independent ForecastDays in budget
 - **WHEN** Forecast ForecastDays is 4 and Ensemble ForecastDays is 15 with 1 model and 5 ensemble variables
-- **THEN** the Ensemble call weight SHALL be `ceil(5/10) * ceil(15/14) * 1 = 2`, not `ceil(5/10) * ceil(4/14) * 1 = 1`
+- **THEN** the Ensemble call weight SHALL be `ceil(5/10) * (15/14.0) * 1 ≈ 1.07`, not `ceil(5/10) * (4/14.0) * 1 ≈ 0.29`

@@ -5,7 +5,7 @@
 Shared TestKit configuration and conventions ensuring all actor and stream tests are 100% deterministic — no wall-clock dependencies, timing races, or non-reproducible timestamps.
 ## Requirements
 ### Requirement: TestKit timefactor configuration
-All Akka TestKit-derived test classes SHALL configure `akka.test.timefactor = 3` so that all TestKit timeouts (ExpectMsg, ExpectNoMsg, FishForMessage, Within, AwaitAssert, AwaitCondition) scale automatically for slower CI environments. The dilation SHALL apply to the TestKit defaults and to every explicit duration passed to these waits. The timefactor value SHALL be defined once in the shared test timeout constants (`TestTimeouts`) and the shared TestKit configuration SHALL read it from there.
+All Akka TestKit-derived test classes SHALL configure `akka.test.timefactor = 3` so that all TestKit timeouts (ExpectMsg, ExpectNoMsg, FishForMessage, Within, AwaitAssert, AwaitCondition) scale automatically for slower CI environments. The dilation SHALL apply to the TestKit defaults and to every explicit duration passed to these waits. The timefactor value SHALL be defined once in the shared test timeout constants (`TestTimeConstants`) and the shared TestKit configuration SHALL read it from there.
 
 #### Scenario: Default timeout scales with timefactor
 - **WHEN** a test calls `ExpectMsgAsync<T>()` without an explicit timeout
@@ -64,21 +64,21 @@ Tests SHALL NOT use `Task.Delay` or `Task.WhenAny` with real-time delays for ass
 - **THEN** the window SHALL be at least 500ms (before timefactor scaling)
 
 ### Requirement: Dilated waits stay below the xUnit timeout
-Every Akka wait a hosted spec makes SHALL end, after dilation, well before the xUnit timeout that wraps it, so that a failing wait reports its descriptive Akka assertion instead of being killed by xUnit. The shared bound for explicit `AwaitAssert`/`AwaitCondition`/`ExpectMsg` waits (`TestTimeouts.AwaitAssertMax`) SHALL be an un-dilated value whose dilated duration is at least 10 seconds below the hosted xUnit timeout (`TestTimeouts.Hosted`). Waits that TestKit does not dilate (task waits, manual deadline loops) SHALL use a separate real-time bound (`TestTimeouts.RealTimeWaitMax`) equal to the dilated `AwaitAssertMax`. Specs with dilated waits SHALL use `TestTimeouts.Hosted` instead of a literal xUnit timeout. A guard spec SHALL enforce these relations.
+Every Akka wait a hosted test makes SHALL end, after dilation, well before the xUnit timeout that wraps it, so that a failing wait reports its descriptive Akka assertion instead of being killed by xUnit. The shared bound for explicit `AwaitAssert`/`AwaitCondition`/`ExpectMsg` waits (`TestTimeConstants.AwaitAssertMax`) SHALL be an un-dilated value whose dilated duration is at least 10 seconds below the hosted xUnit timeout (`TestTimeConstants.Hosted`). Waits that TestKit does not dilate (task waits, manual deadline loops) SHALL use a separate real-time bound (`TestTimeConstants.RealTimeWaitMax`) equal to the dilated `AwaitAssertMax`. Tests with dilated waits SHALL use `TestTimeConstants.Hosted` instead of a literal xUnit timeout. A guard test SHALL enforce these relations.
 
 #### Scenario: Dilated AwaitAssertMax stays below Hosted
-- **WHEN** `TestTimeouts.AwaitAssertMax` is dilated by the configured timefactor
-- **THEN** the result plus a 10-second margin SHALL NOT exceed `TestTimeouts.Hosted`
+- **WHEN** `TestTimeConstants.AwaitAssertMax` is dilated by the configured timefactor
+- **THEN** the result plus a 10-second margin SHALL NOT exceed `TestTimeConstants.Hosted`
 
 #### Scenario: Real-time bound stays below Hosted
-- **WHEN** a spec bounds a non-dilated wait with `TestTimeouts.RealTimeWaitMax`
-- **THEN** that bound SHALL equal the dilated `AwaitAssertMax` and, plus a 10-second margin, SHALL NOT exceed `TestTimeouts.Hosted`
+- **WHEN** a test bounds a non-dilated wait with `TestTimeConstants.RealTimeWaitMax`
+- **THEN** that bound SHALL equal the dilated `AwaitAssertMax` and, plus a 10-second margin, SHALL NOT exceed `TestTimeConstants.Hosted`
 
 #### Scenario: Dilated TestKit default stays below Hosted
-- **WHEN** a hosted spec makes a TestKit wait without an explicit duration
-- **THEN** the dilated default (9 s) plus a 10-second margin SHALL NOT exceed `TestTimeouts.Hosted`
+- **WHEN** a hosted test makes a TestKit wait without an explicit duration
+- **THEN** the dilated default (9 s) plus a 10-second margin SHALL NOT exceed `TestTimeConstants.Hosted`
 
 #### Scenario: Wrong constants fail the guard
-- **WHEN** `TestTimeouts.AwaitAssertMax` is set so that its dilated value exceeds the budget (e.g. 15 s dilated to 45 s against a 30 s `Hosted`)
-- **THEN** the guard spec SHALL fail with a message naming the dilated value and `Hosted`
+- **WHEN** `TestTimeConstants.AwaitAssertMax` is set so that its dilated value exceeds the budget (e.g. 15 s dilated to 45 s against a 30 s `Hosted`)
+- **THEN** the guard test SHALL fail with a message naming the dilated value and `Hosted`
 

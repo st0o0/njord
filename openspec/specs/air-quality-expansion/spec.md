@@ -29,7 +29,7 @@ Air quality exposes additional API variables for the features that need them.
 - **THEN** the request SHALL contain none of `ammonia`, `olive_pollen` and `us_aqi`
 
 ### Requirement: Dust alert enrichment
-The system SHALL provide a `DustAlert` enrichment (toggle default false) that raises an alert from forecast `dust` concentration using three-step severity thresholds from `Njord:Enrichment:Alerts`. It SHALL require the `Dust` param and trigger the AirQuality domain.
+The system SHALL provide a `DustAlert` enrichment (toggle default false) that raises an alert from forecast `dust` concentration using three-step severity thresholds from `Njord:Features`. It SHALL require the `Dust` param and trigger the AirQuality domain.
 
 #### Scenario: Dust above the first threshold
 - **WHEN** `DustAlert` is enabled and forecast dust within the alert window exceeds the first threshold

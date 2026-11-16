@@ -43,7 +43,7 @@ The system SHALL allow `MarineOptions.ForecastDays` values from 1 to 16. The def
 - **THEN** the swell members of that point SHALL be null and `HasFields(SwellWaveHeight)` SHALL return false
 
 ### Requirement: Surf conditions enrichment
-The system SHALL provide a `SurfConditions` enrichment (toggle default false) that evaluates swell quality from swell period, swell height and, when Weather wind direction is available, wind relative to swell direction (offshore, cross, onshore), and emits a lifestyle event with a score, a rating and its key values over the existing lifestyle wire. It SHALL trigger the Marine domain.
+The system SHALL provide a `SurfConditions` enrichment (toggle default false) that evaluates swell quality from swell period, swell height and, when Forecast wind direction is available, wind relative to swell direction (offshore, cross, onshore), and emits a lifestyle event with a score, a rating and its key values over the existing lifestyle wire. It SHALL trigger the Marine domain.
 
 #### Scenario: Long-period moderate swell with offshore wind
 - **WHEN** swell period is above 12 s, swell height is within the usable band and wind blows against the swell direction
@@ -54,7 +54,7 @@ The system SHALL provide a `SurfConditions` enrichment (toggle default false) th
 - **THEN** the rating SHALL be poor
 
 #### Scenario: No wind data
-- **WHEN** Weather wind direction is unavailable
+- **WHEN** Forecast wind direction is unavailable
 - **THEN** the event SHALL still be produced from swell alone and SHALL indicate that wind was not considered
 
 #### Scenario: Toggle off

@@ -14,13 +14,13 @@ status SHALL be `200 OK` when all checks are `Healthy`, `200 OK` with
 when any check is `Unhealthy`.
 
 #### Scenario: All checks healthy
-- **WHEN** MqttConnectionHealthCheck and PipelineHealthCheck both return
+- **WHEN** BudgetHealthCheck and PipelineHealthCheck both return
   `Healthy`
 - **THEN** the `/healthz` response status is `200` and the body indicates
   `Healthy`
 
 #### Scenario: One check degraded
-- **WHEN** MqttConnectionHealthCheck returns `Degraded` and
+- **WHEN** BudgetHealthCheck returns `Degraded` and
   PipelineHealthCheck returns `Healthy`
 - **THEN** the `/healthz` response status is `200` and the body indicates
   `Degraded`

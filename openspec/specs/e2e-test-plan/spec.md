@@ -59,6 +59,6 @@ The test plan SHALL define an orchestration model using Opus as main agent with 
 - **WHEN** a tester follows S8 and S9
 - **THEN** S8.1/S8.2 expect the oneof JSON names `weather` / `airQuality`; S8.5 allows `precipitation` to be omitted when 0; Marine returns NotFound for inland locations by design; S9 expects `events[]` where the feature is the oneof case (e.g. `fog`), alert severity at `<case>.alert.severity`, no `type_name`, and S9.4 checks that an event has a feature oneof case
 
-#### Scenario: Ops, health and budget checks
+#### Scenario: Status, health and budget checks
 - **WHEN** a tester follows S10, S11, S12 and S13.4
 - **THEN** S10.1 uses `GetCatalog` on `njord.v2.WeatherService`; S10.3 expects poll state per location (target phase and cycle); S11.1 treats `server_monthly_usage` as a percentage; S12.1 expects `/healthz` plain text `Healthy` or `Degraded`; S13.4 expects the increment to equal the sum of call weights of the resolved domains (e.g. 11 for the e2e config)

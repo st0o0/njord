@@ -30,7 +30,7 @@ Njord.Messages SHALL organize its types into the following top-level namespaces:
 - **THEN** they are found in the `Njord.Messages.Fetch` namespace
 
 ### Requirement: PipelineEvent subtypes are standalone records
-The 8 PipelineEvent subtypes (ForecastDataReceived, AirQualityDataReceived, FloodDataReceived, MarineDataReceived, SeasonalDataReceived, SatelliteDataReceived, EnsembleDataReceived, Heartbeat) SHALL be top-level sealed records inheriting from PipelineEvent, not nested inside it.
+The 7 PipelineEvent subtypes (ForecastDataReceived, AirQualityDataReceived, FloodDataReceived, MarineDataReceived, SeasonalDataReceived, EnsembleDataReceived, Heartbeat) SHALL be top-level sealed records inheriting from PipelineEvent, not nested inside it.
 
 #### Scenario: PipelineEvent subtypes are not nested
 - **WHEN** a consumer pattern-matches on a PipelineEvent

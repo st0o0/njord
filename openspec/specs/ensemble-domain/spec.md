@@ -7,15 +7,15 @@ Ensemble as a first-class domain (DomainKind.Ensemble) with its own client, poll
 ## Requirements
 
 ### Requirement: Ensemble is a first-class domain
-The system SHALL treat Ensemble as its own `DomainKind` with an independent poll cycle, call weight, failure backoff, and discovery phase -- identical in lifecycle to Weather, AirQuality, Flood, Marine, Seasonal, and Satellite.
+The system SHALL treat Ensemble as its own `DomainKind` with an independent poll cycle, call weight, failure backoff, and discovery phase -- identical in lifecycle to Forecast, AirQuality, Flood, Marine, Seasonal, and Satellite.
 
 #### Scenario: Ensemble polls independently
-- **WHEN** the Weather domain completes a poll cycle
+- **WHEN** the Forecast domain completes a poll cycle
 - **THEN** the Ensemble domain's next poll time SHALL NOT be affected
 
-#### Scenario: Ensemble failure does not block Weather
+#### Scenario: Ensemble failure does not block Forecast
 - **WHEN** the Ensemble API returns an error
-- **THEN** the Weather domain SHALL continue polling on its own schedule
+- **THEN** the Forecast domain SHALL continue polling on its own schedule
 
 ### Requirement: EnsembleClient fetches from the Ensemble Mean API
 The `EnsembleClient` SHALL be an `IDomainClient` with `Domain = DomainKind.Ensemble`. It SHALL fetch from `ensemble-api.open-meteo.com/v1/ensemble` with the `models` parameter set to the resolved ensemble model ids.
@@ -29,7 +29,7 @@ The `EnsembleClient` SHALL be an `IDomainClient` with `Domain = DomainKind.Ensem
 - **THEN** the EnsembleClient SHALL request the full weather variable set for all configured ensemble-mean models, plus the spread variables
 
 ### Requirement: EnsembleClient delivers spread as primary and comparison models in Models
-The `EnsembleClient`'s `FetchSuccess` SHALL carry an `EnsemblePoint` array as its primary forecast (spread data from the first configured ensemble-mean model) and the per-model `WeatherPoint` forecasts in `FetchSuccess.Models`.
+The `EnsembleClient`'s `FetchSuccess` SHALL carry an `EnsemblePoint` array as its primary forecast (spread data from the first configured ensemble-mean model) and the per-model `ForecastPoint` forecasts in `FetchSuccess.Models`.
 
 #### Scenario: Primary forecast is EnsemblePoint
 - **WHEN** the EnsembleClient returns a successful fetch
@@ -37,10 +37,10 @@ The `EnsembleClient`'s `FetchSuccess` SHALL carry an `EnsemblePoint` array as it
 
 #### Scenario: Comparison models in Models dictionary
 - **WHEN** multiple ensemble-mean models are configured and ModelComparison is enabled
-- **THEN** `FetchSuccess.Models` SHALL contain one `DomainForecast<WeatherPoint>` per model, keyed by model id
+- **THEN** `FetchSuccess.Models` SHALL contain one `DomainForecast<ForecastPoint>` per model, keyed by model id
 
 ### Requirement: Ensemble call weight
-The EnsembleClient SHALL report a `CallWeight` of `ceil(variables / 10) * ceil(forecastDays / 14) * modelCount`. When only spread variables are requested (3 variables), the weight for a single model with up to 14 forecast days SHALL be 1.
+The EnsembleClient SHALL report a `CallWeight` of `ceil(variables / 10) * (forecastDays / 14.0) * modelCount`. When only spread variables are requested (3 variables), the weight for a single model with up to 14 forecast days SHALL be 1.
 
 #### Scenario: Spread-only weight
 - **WHEN** 3 spread variables are requested for 1 model with 4 forecast days

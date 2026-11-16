@@ -2,7 +2,7 @@
 
 ## Purpose
 
-A VitePress static documentation site at njord.st0o0.net providing getting-started guides, configuration reference, model catalog, MQTT topic reference, and Home Assistant integration guide.
+A VitePress static documentation site at njord.st0o0.net providing getting-started guides, configuration reference, model catalog, and Home Assistant integration guide.
 ## Requirements
 ### Requirement: Site is built with VitePress and served as static files
 The documentation site SHALL be a VitePress project at `docs/` (pnpm, `docs/package.json`).
@@ -24,7 +24,7 @@ SHALL set `themeConfig.logo` to `/logo.svg`.
 - **THEN** pages with `<likec4-view>` tags show interactive architecture diagrams
 
 ### Requirement: Getting Started page covers Docker setup
-The site SHALL include a `/getting-started/` page explaining how to run njord via Docker with a minimal configuration, including the required MQTT broker host and at least one location and model.
+The site SHALL include a `/getting-started/` page explaining how to run njord via Docker with a minimal configuration, including at least one location.
 
 #### Scenario: Minimal config example
 - **WHEN** a user reads the Getting Started page
@@ -36,13 +36,6 @@ The site SHALL include a `/models/` page listing all models from `ModelCoverageR
 #### Scenario: Model detail shows coverage and horizon
 - **WHEN** a user looks up `icon_d2` in the model catalog
 - **THEN** they see: Regional, DE/CH/AT, bounds 43-57°N 1-18°E, max 60h, 1h resolution
-
-### Requirement: MQTT reference documents topic scheme and payloads
-The site SHALL include an `/mqtt-reference/` page documenting the topic structure (`{baseTopic}/{location}/{model}/{horizon}` and `{baseTopic}/{location}/{feature}[/{sub}]`), the state payload JSON format, and the availability topic. It SHALL NOT document MQTT Discovery payloads, because njord publishes none.
-
-#### Scenario: Topic scheme documented
-- **WHEN** a user reads the MQTT reference
-- **THEN** they understand the topic hierarchy and can predict topic names for their config
 
 ### Requirement: Home Assistant guide covers integration
 The site SHALL include a `/home-assistant/` page covering: how njord entities appear in HA, recommended `recorder:` exclude patterns for `sensor.njord_*`, and example dashboard cards.

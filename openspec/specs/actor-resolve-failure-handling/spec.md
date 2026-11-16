@@ -7,7 +7,7 @@ Defines how actors handle failures when resolving dependent actors: warn and ret
 When a dependency resolution `PipeTo` delivers a failure record during
 **runtime recovery** (after `Terminated`), the actor SHALL log the error at
 Warning level and schedule a retry using `BackoffPolicy.DelayWithJitter()`.
-The `StreamConsumerActor` base resolves the pipeline asynchronously on start as
+The `GrpcConsumer` resolves the pipeline asynchronously on start as
 well, bounded by its reply timeout, so a consumer never crashes on a missing
 registry entry.
 
@@ -24,8 +24,8 @@ synchronously at construction via `Context.GetActor<T>()` and SHALL NOT
 implement its own resolve-retry loop. If the region is missing, the actor
 crashes and the BackoffSupervisor restarts it.
 
-#### Scenario: StreamConsumerActor subclass receives a resolve-failed message during recovery
-- **WHEN** the `StreamConsumerActor` base cannot resolve the pipeline, or gets no SourceRef within its reply timeout
+#### Scenario: GrpcConsumer receives a resolve-failed message during recovery
+- **WHEN** the `GrpcConsumer` cannot resolve the pipeline, or gets no SourceRef within its reply timeout
 - **THEN** the actor logs a warning and attaches again after the next backoff delay
 
 #### Scenario: Missing dependency at startup crashes the actor
