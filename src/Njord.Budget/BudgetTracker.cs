@@ -93,6 +93,7 @@ public sealed class BudgetTracker : ReceivePersistentActor
             var previous = _state;
             _state = newState;
             LogBudgetTransitions(previous, newState);
+            PublishState();
             MaybeSnapshot();
         });
     }

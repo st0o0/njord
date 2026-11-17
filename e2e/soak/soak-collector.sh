@@ -166,8 +166,8 @@ collect_metrics() {
 
 collect_grpc_status() {
   local raw
-  raw=$(grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto \
-    "$GRPC_HOST" njord.v2.OpsService/GetStatus 2>/dev/null) || {
+  raw=$(grpcurl -plaintext -import-path protos -proto njord/njord.proto \
+    "$GRPC_HOST" njord.NjordService/GetStatus 2>/dev/null) || {
     printf '{"reachable":false}'
     return
   }
