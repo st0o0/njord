@@ -135,7 +135,7 @@ collect_metrics() {
 
   extract_gauge() {
     local name="$1"
-    echo "$raw" | grep "^${name} " | grep -v '^#' | awk '{printf "%.0f", $2+0}'
+    echo "$raw" | grep "^${name}" | grep -v '^#' | awk '{printf "%.0f", $2+0}'
   }
 
   local fetch_total polls_total cycle_learned events_total skipped_total failed_total changed_total
