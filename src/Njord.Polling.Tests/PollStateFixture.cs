@@ -27,7 +27,7 @@ internal static class PollStateFixture
     }
 
     public static Dictionary<int, TimeSpan> DefaultIntervals(params DomainKind[] domains) =>
-        domains.ToDictionary(d => (int)d, d => DomainDefaults.PollInterval(d));
+        domains.ToDictionary(d => (int)d, DomainDefaults.PollInterval);
 
     public static PollWorkerState Started(DateTimeOffset? at = null, TimeSpan? forecastInterval = null) =>
         PollWorkerState.Empty.Apply(new PollingStarted("lucerne", _forecastOnly,

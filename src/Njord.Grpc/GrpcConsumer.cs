@@ -63,17 +63,6 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
 
         _entityHubInput = entityInput;
         _entityHubSource = entitySource;
-
-        SeedDefaultState();
-
-        Timers.StartPeriodicTimer("availability", new AvailabilityTick(), _availabilityCheckInterval);
-
-        var pipeline = Context.GetActor<IForecastPipeline>();
-        pipeline.Tell(new RequestPipelineOutput(0));
-    }
-
-    private void SeedDefaultState()
-    {
         var startTime = _timeProvider.GetUtcNow();
         foreach (var entry in _registry.All)
         {
@@ -82,6 +71,11 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
                 _state = _state.ApplyEntity(entry.EntityId, defaultResult, startTime);
             }
         }
+
+        Timers.StartPeriodicTimer("availability", new AvailabilityTick(), _availabilityCheckInterval);
+
+        var pipeline = Context.GetActor<IForecastPipeline>();
+        pipeline.Tell(new RequestPipelineOutput(0));
     }
 
     private void ReconnectToPipeline()
@@ -133,16 +127,19 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
         var snapshot = new ConsumerSnapshot([.. _state.EntityStates.Values
             .OrderBy(e => e.EntityId, StringComparer.Ordinal)]);
 
-        var initial = new List<ConsumerEvent> { snapshot };
-        initial.AddRange(_state.StaleEntities.Order(StringComparer.Ordinal)
-            .Select(ConsumerEvent (id) => new EntityBecameUnavailable(id, _state.EntityStates[id].LastUpdated)));
+        List<ConsumerEvent> initial =
+        [
+            snapshot,
+            .. _state.StaleEntities.Order(StringComparer.Ordinal)
+                .Select(ConsumerEvent (id) => new EntityBecameUnavailable(id, _state.EntityStates[id].LastUpdated))
+
+        ];
 
         Source.From(initial)
             .Concat(_entityHubSource)
             .KeepAlive<ConsumerEvent, ConsumerEvent, NotUsed>(_keepAliveInterval, () => new ConsumerKeepAlive())
             .Buffer(StreamClientBufferSize, OverflowStrategy.Backpressure)
             .IdleTimeout(_clientIdleTimeout)
-            .Where(static e => e is not ConsumerKeepAlive)
             .RunWith(StreamRefs.SourceRef<ConsumerEvent>(), _mat)
             .PipeTo(Sender, Self,
                 sr => new RequestEntityStreamCompleted(msg.RequestId, sr),
