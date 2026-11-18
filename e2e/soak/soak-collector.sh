@@ -250,8 +250,6 @@ collect_ha_entities() {
 # ── Phase detection ──────────────────────────────────────────────
 PHASE="warmup"
 PREV_PHASE=""
-FIRST_FETCH_SEEN=false
-STEADY_SEEN=false
 
 update_phase() {
   local elapsed_sec="$1"
@@ -261,16 +259,11 @@ update_phase() {
   PREV_PHASE="$PHASE"
 
   if [[ "$PHASE" == "warmup" ]] && [[ "$fetch_total" -gt 0 ]]; then
-    PHASE="discovery"
+    PHASE="active"
     log_event "MILE" "First poll completed (fetch_total=$fetch_total)"
   fi
 
-  if [[ "$PHASE" == "discovery" ]] && [[ "$grpc_phase" == "POLL_PHASE_STEADY" ]]; then
-    PHASE="steady_state"
-    log_event "MILE" "Discovery -> Learned transition (phase=STEADY)"
-  fi
-
-  if [[ "$PHASE" == "steady_state" ]] && [[ "$elapsed_sec" -ge "$RESTART_AT_SEC" ]]; then
+  if [[ "$PHASE" == "active" ]] && [[ "$elapsed_sec" -ge "$RESTART_AT_SEC" ]]; then
     PHASE="pre_restart"
   fi
 

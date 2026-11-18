@@ -66,7 +66,7 @@ docker compose -f e2e/docker-compose.e2e.yml -f e2e/docker-compose.soak.yml up -
 | `pre_restart` | T+2h | `elapsed >= restart_at` | Snapshot state, trigger restart |
 | `restarting` | T+2h to T+2h+~30s | `docker restart` issued | Container down, /alive polled |
 | `recovery` | T+2h+~30s to T+2h+~60s | `/alive` responds | Waiting for HA reconnection |
-| `post_restart` | T+2h+~60s to T+4h | Post-restart validation done | Same as steady_state, verifying recovery |
+| `post_restart` | T+2h+~60s to T+4h | Post-restart validation done | Same as active, verifying recovery |
 | `complete` | T+4h | Final tick | Test done |
 
 ## Data Sources (per tick)

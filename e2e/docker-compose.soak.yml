@@ -6,3 +6,5 @@ services:
       - Njord__Polling__Domains__AirQuality__PollInterval=00:15:00
       - Njord__Polling__Domains__Marine__PollInterval=00:30:00
       - Njord__Polling__Domains__Ensemble__PollInterval=00:30:00
+      - Njord__Polling__Domains__Seasonal__PollInterval=01:00:00
+      - Njord__Polling__Domains__Flood__PollInterval=01:00:00
