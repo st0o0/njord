@@ -2,12 +2,12 @@
 
 ## Purpose
 
-Deterministic content-based change detection for domain forecasts, enabling the learning cycle to discover real API update frequencies instead of mirroring the poll interval.
+Deterministic content-based change detection for domain forecasts. ContentHash drives both pipeline dispatch (changed data enters the pipeline, unchanged data is skipped) and adaptive drift observations.
 
 ## Requirements
 
 ### Requirement: Domain forecast change detection uses a deterministic content hash
-The system SHALL detect data changes between polls using a content-based hash that is deterministic for identical data. The hash SHALL include the domain kind, time resolution, and all forecast points. The hash SHALL NOT include the model run timestamp or any reference-based fields.
+The system SHALL detect data changes between polls using a content-based hash that is deterministic for identical data. The hash SHALL include the domain kind, time resolution, and all forecast points. The hash SHALL NOT include the model run timestamp or any reference-based fields. ContentHash drives both pipeline dispatch (changed data enters the pipeline, unchanged data is skipped) and adaptive drift observations.
 
 #### Scenario: Identical data across two polls produces the same hash
 - **WHEN** a domain client fetches the same API data twice (same hourly timestamps, same values)
