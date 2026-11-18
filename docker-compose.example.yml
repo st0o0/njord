@@ -57,8 +57,9 @@ services:
       #- Njord__Features__ForecastModelComparison__Enabled=false # passive, needs 2+ Njord__Forecast__Models
       #- Njord__Features__SeasonalOutlook__Enabled=true # 3-month outlook, one extra call per day and location
       #- Njord__Features__Pollen__Enabled=false
-      # Poll interval of a model whose update cycle is not learned yet:
-      #- Njord__Polling__DiscoveryInterval=00:20:00
+      # Per-domain poll intervals (defaults: Forecast/AQ=60m, Marine/Ensemble=6h, Seasonal/Flood=24h):
+      #- Njord__Polling__Domains__Forecast__PollInterval=01:00:00
+      #- Njord__Polling__Domains__Marine__PollInterval=06:00:00
 
       # ── Persistence ───────────────────────────────────────────
       #- Njord__Persistence__DataPath=data/njord.db

@@ -11,12 +11,25 @@ public sealed class PollingOptionsValidator(
     IOptions<DomainCallConfig> callConfig,
     IOptions<DomainRequirements> requirements) : IValidateOptions<PollingOptions>
 {
+    private static readonly TimeSpan _maxDomainInterval = TimeSpan.FromHours(24);
+
     public ValidateOptionsResult Validate(string? name, PollingOptions options)
     {
         var failures = new ValidationFailures();
 
         failures.Require(options.PollInterval > TimeSpan.Zero, "PollInterval must be positive.");
-        failures.Require(options.DiscoveryInterval > TimeSpan.Zero, "DiscoveryInterval must be positive.");
+
+        foreach (var (domain, over) in options.Domains)
+        {
+            if (over.PollInterval <= TimeSpan.Zero)
+            {
+                failures.Add($"Domains:{domain}:PollInterval must be positive.");
+            }
+            else if (over.PollInterval > _maxDomainInterval)
+            {
+                failures.Add($"Domains:{domain}:PollInterval must not exceed 24 hours.");
+            }
+        }
 
         if (options.BudgetOverride is { } budget && (budget.RequestsPerMonth <= 0 || budget.RequestsPerMinute <= 0))
         {
@@ -33,7 +46,6 @@ public sealed class PollingOptionsValidator(
         return failures.ToResult();
     }
 
-    // A scope that fails its own validation is reported by NjordOptionsValidator instead of throwing here.
     private NjordOptions? ReadScope()
     {
         try

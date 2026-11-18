@@ -45,11 +45,35 @@ public sealed class PollingOptionsValidatorTests
     }
 
     [Fact]
-    public void Should_reject_a_non_positive_discovery_interval()
+    public void Should_reject_a_non_positive_domain_interval_override()
     {
-        var result = ValidatorFor().Validate(null, new PollingOptions { DiscoveryInterval = TimeSpan.Zero });
+        var options = new PollingOptions
+        {
+            Domains = new Dictionary<string, DomainPollingOverride>
+            {
+                ["Marine"] = new DomainPollingOverride { PollInterval = TimeSpan.Zero },
+            },
+        };
 
-        Assert.Equal("DiscoveryInterval must be positive.", ValidationAssert.SingleFailure(result));
+        var result = ValidatorFor().Validate(null, options);
+
+        Assert.Contains("Domains:Marine:PollInterval must be positive.", ValidationAssert.SingleFailure(result));
+    }
+
+    [Fact]
+    public void Should_reject_a_domain_interval_exceeding_24_hours()
+    {
+        var options = new PollingOptions
+        {
+            Domains = new Dictionary<string, DomainPollingOverride>
+            {
+                ["Forecast"] = new DomainPollingOverride { PollInterval = TimeSpan.FromHours(25) },
+            },
+        };
+
+        var result = ValidatorFor().Validate(null, options);
+
+        Assert.Contains("Domains:Forecast:PollInterval must not exceed 24 hours.", ValidationAssert.SingleFailure(result));
     }
 
     [Fact]

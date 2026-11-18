@@ -13,7 +13,9 @@ Configuration is **static**: it is read once at startup. There is no runtime con
     "Forecast": { "ForecastDays": 4 },
     "Polling": {
       "PollInterval": "01:00:00",
-      "DiscoveryInterval": "00:20:00",
+      "Domains": {
+        "Marine": { "PollInterval": "06:00:00" }
+      },
       "BudgetOverride": null
     },
     "Persistence": { "DataPath": "data/njord.db" },
@@ -34,8 +36,8 @@ A minimal setup for Lucerne:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `Polling:PollInterval` | `01:00:00` | How often each PollWorker fetches all domains of its location |
-| `Polling:DiscoveryInterval` | `00:20:00` | Poll interval until a worker has learned the update cycle of the data |
+| `Polling:PollInterval` | `01:00:00` | Global minimum poll interval (floor for all domains) |
+| `Polling:Domains:<Domain>:PollInterval` | per-domain | Override a domain's poll interval (defaults: Forecast/AQ=1h, Marine/Ensemble=6h, Seasonal/Flood=24h) |
 | `Forecast:ForecastDays` | `4` | Days of weather forecast to request (1 to 16) |
 | `Ensemble:ForecastDays` | `4` | Days of ensemble forecast to request (1 to 35) |
 | `Ensemble:Models` | 3 ensemble-mean models | Ensemble-mean model IDs to compare |

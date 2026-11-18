@@ -34,10 +34,15 @@ public sealed class PollWorkerFetchReplyTests : Akka.Hosting.TestKit.TestKit
     public async Task A_missing_gateway_ends_in_a_transient_backoff()
     {
         var ct = TestContext.Current.CancellationToken;
+        var intervals = new Dictionary<int, TimeSpan>
+        {
+            [(int)DomainKind.Forecast] = TimeSpan.FromHours(1),
+            [(int)DomainKind.AirQuality] = TimeSpan.FromHours(1),
+        };
         Sys.ActorOf(
-                Props.Create(() => new PollWorker(_target.Id, _time, Options.Create(new PollingOptions()), _requirements)),
+                Props.Create(() => new PollWorker(_target.Id, _time, _requirements)),
                 $"worker-{Guid.NewGuid():N}")
-            .Tell(new StartPolling(_target, TimeSpan.FromHours(1)));
+            .Tell(new StartPolling(_target, intervals));
 
         var planned = await _manager.ExpectMsgAsync<PollWorkerReport>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         Assert.Equal(PollWorkerOutcome.Planned, planned.Outcome);

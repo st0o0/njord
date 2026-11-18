@@ -13,8 +13,7 @@ public sealed class StatusMappingTests
     private static readonly DateTimeOffset _now = new(2026, 6, 1, 12, 0, 0, TimeSpan.Zero);
 
     [Theory]
-    [InlineData(PollPhase.Discovery, ProtoPollPhase.Discovery)]
-    [InlineData(PollPhase.Steady, ProtoPollPhase.Steady)]
+    [InlineData(PollPhase.Active, ProtoPollPhase.Active)]
     [InlineData(PollPhase.Suspended, ProtoPollPhase.Suspended)]
     public void Poll_phase_maps_to_proto(PollPhase domain, ProtoPollPhase expected) =>
         Assert.Equal(expected, domain.ToProto());
@@ -27,29 +26,25 @@ public sealed class StatusMappingTests
     public void Model_status_maps_all_fields_with_optionals_present()
     {
         var lastChange = _now.AddHours(-1);
-        var entry = new PollStateEntry(_vienna, PollPhase.Steady, _now, lastChange, 3, 3600);
+        var entry = new PollStateEntry(_vienna, PollPhase.Active, _now, lastChange);
 
         var status = entry.ToModelStatus();
 
         Assert.Multiple(
             () => Assert.Equal("Vienna", status.Location),
-            () => Assert.Equal(ProtoPollPhase.Steady, status.Phase),
+            () => Assert.Equal(ProtoPollPhase.Active, status.Phase),
             () => Assert.Equal(_now.ToTimestamp(), status.NextPoll),
-            () => Assert.Equal(lastChange.ToTimestamp(), status.LastChange),
-            () => Assert.Equal(3, status.MissCount),
-            () => Assert.Equal(3600, status.CycleSeconds));
+            () => Assert.Equal(lastChange.ToTimestamp(), status.LastChange));
     }
 
     [Fact]
     public void Model_status_omits_nullable_fields_when_null()
     {
-        var entry = new PollStateEntry(_vienna, PollPhase.Discovery, _now, null, 0, null);
+        var entry = new PollStateEntry(_vienna, PollPhase.Active, _now, null);
 
         var status = entry.ToModelStatus();
 
-        Assert.Multiple(
-            () => Assert.Null(status.LastChange),
-            () => Assert.False(status.HasCycleSeconds));
+        Assert.Null(status.LastChange);
     }
 
     [Fact]
@@ -93,10 +88,10 @@ public sealed class StatusMappingTests
         var nextPoll = _now.AddHours(1);
         var domainStates = new List<DomainPollStateEntry>
         {
-            new("Forecast", PollPhase.Steady, 3600, 0, nextPoll),
-            new("AirQuality", PollPhase.Discovery, null, 2, nextPoll.AddMinutes(10)),
+            new("Forecast", PollPhase.Active, 3600, nextPoll),
+            new("AirQuality", PollPhase.Active, 60, nextPoll.AddMinutes(10)),
         };
-        var entry = new PollStateEntry(_vienna, PollPhase.Steady, _now, _now.AddHours(-1), 0, 3600, domainStates);
+        var entry = new PollStateEntry(_vienna, PollPhase.Active, _now, _now.AddHours(-1), domainStates);
 
         var status = entry.ToModelStatus();
 
@@ -105,20 +100,18 @@ public sealed class StatusMappingTests
         var aq = status.DomainStates[1];
         Assert.Multiple(
             () => Assert.Equal("Forecast", forecast.Domain),
-            () => Assert.Equal(ProtoPollPhase.Steady, forecast.Phase),
+            () => Assert.Equal(ProtoPollPhase.Active, forecast.Phase),
             () => Assert.Equal(3600, forecast.CycleSeconds),
-            () => Assert.Equal(0, forecast.MissCount),
             () => Assert.Equal(nextPoll.ToTimestamp(), forecast.NextPoll),
             () => Assert.Equal("AirQuality", aq.Domain),
-            () => Assert.Equal(ProtoPollPhase.Discovery, aq.Phase),
-            () => Assert.False(aq.HasCycleSeconds),
-            () => Assert.Equal(2, aq.MissCount));
+            () => Assert.Equal(ProtoPollPhase.Active, aq.Phase),
+            () => Assert.Equal(60, aq.CycleSeconds));
     }
 
     [Fact]
     public void Model_status_with_null_domain_states_has_empty_list()
     {
-        var entry = new PollStateEntry(_vienna, PollPhase.Discovery, _now, null, 0, null);
+        var entry = new PollStateEntry(_vienna, PollPhase.Active, _now, null);
 
         var status = entry.ToModelStatus();
 

@@ -73,7 +73,7 @@ public sealed class NjordGrpcServiceTests : Akka.Hosting.TestKit.TestKit
             () => Assert.Equal(10_000, status.Budget.DailyLimit),
             () => Assert.Equal(["Forecast:Heat"], status.ActiveEnrichments),
             () => Assert.Equal("Vienna", model.Location),
-            () => Assert.Equal(Proto.PollPhase.Steady, model.Phase),
+            () => Assert.Equal(Proto.PollPhase.Active, model.Phase),
             () => Assert.False(status.BudgetPartial),
             () => Assert.False(status.ModelsPartial));
     }
@@ -142,7 +142,7 @@ public sealed class NjordGrpcServiceTests : Akka.Hosting.TestKit.TestKit
         {
             Receive<QueryPollStates>(_ => Sender.Tell(new PollStatesResult(
             [
-                new PollStateEntry(_vienna, PollPhase.Steady, TestTimeConstants.BudgetEpoch, null, 0, null),
+                new PollStateEntry(_vienna, PollPhase.Active, TestTimeConstants.BudgetEpoch, null),
             ])));
             Receive<TriggerImmediatePoll>(_ => Sender.Tell(new TriggerImmediatePollCompleted(1, ["Vienna"])));
         }

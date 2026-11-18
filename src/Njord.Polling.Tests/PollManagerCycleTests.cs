@@ -6,20 +6,24 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
+using Njord.Core.Forecast;
 using Njord.Messages.Polling;
 using Njord.Tests.Shared;
 
 namespace Njord.Polling.Tests;
 
-// The data-change counter comes from the workers' reports.
 public sealed class PollManagerCycleTests : Akka.Hosting.TestKit.TestKit
 {
     private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private readonly string _location = $"cycle{Guid.NewGuid():N}";
     private readonly ConcurrentQueue<(string Instrument, double Value)> _measurements = new();
     private readonly IOptions<NjordOptions> _njordOptions;
-    private readonly IOptions<PollingOptions> _pollingOptions =
-        Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = TimeSpan.FromHours(1)));
+    private readonly IOptions<PollingOptions> _pollingOptions = Options.Create(new PollingOptions());
+
+    private static readonly IOptions<DomainRequirements> _requirements =
+        Options.Create(new DomainRequirements(Forecast: ForecastParams.Temperature));
+
     private IActorRef _manager = null!;
 
     public PollManagerCycleTests()
@@ -39,7 +43,7 @@ public sealed class PollManagerCycleTests : Akka.Hosting.TestKit.TestKit
             var region = CreateTestProbe("region");
             region.IgnoreMessages(_ => true);
             registry.Register<IPollRegion>(region.Ref);
-            _manager = system.ActorOf(Props.Create(() => new PollManager(_njordOptions, _pollingOptions, _time)), "manager");
+            _manager = system.ActorOf(Props.Create(() => new PollManager(_njordOptions, _pollingOptions, _requirements, _time)), "manager");
         });
     }
 
@@ -76,7 +80,7 @@ public sealed class PollManagerCycleTests : Akka.Hosting.TestKit.TestKit
     {
         var target = new PollTarget(new Location(_location, 0, 0));
         _manager.Tell(new PollWorkerReport(target, outcome,
-            new PollStateEntry(target.Location, PollPhase.Discovery, _time.GetUtcNow(), null, 0, null)));
+            new PollStateEntry(target.Location, PollPhase.Active, _time.GetUtcNow(), null)));
     }
 
     private double[] Values(string instrument) =>

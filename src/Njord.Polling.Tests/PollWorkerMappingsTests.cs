@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Njord.Core;
+using Njord.Core.Polling;
 using Njord.Messages.Polling;
 using Njord.Persistence.Events.Polling;
 using static Njord.Polling.Tests.PollStateFixture;
@@ -11,24 +12,21 @@ public sealed class PollWorkerMappingsTests
     [Fact]
     public void ToPollStateEntry_describes_the_target_and_its_poll_state()
     {
-        var entry = Steady().ToPollStateEntry();
+        var entry = WithChanges().ToPollStateEntry();
 
         Assert.Multiple(
             () => Assert.Equal(Lucerne, entry.Location),
-            () => Assert.Equal(PollPhase.Steady, entry.Phase),
-            () => Assert.Equal(T0.AddHours(6), entry.LastChangeUtc),
-            () => Assert.Equal(0, entry.MissCount),
-            () => Assert.Equal(10800L, entry.CycleSeconds));
+            () => Assert.Equal(PollPhase.Active, entry.Phase),
+            () => Assert.Equal(T0.AddHours(6), entry.LastChangeUtc));
     }
 
     [Fact]
-    public void ToPollStateEntry_reports_a_null_cycle_in_discovery()
+    public void ToPollStateEntry_reports_domain_interval()
     {
         var entry = Started().ToPollStateEntry();
 
         Assert.Multiple(
-            () => Assert.Equal(PollPhase.Discovery, entry.Phase),
-            () => Assert.Null(entry.CycleSeconds),
+            () => Assert.Equal(PollPhase.Active, entry.Phase),
             () => Assert.Null(entry.LastChangeUtc));
     }
 
@@ -43,22 +41,22 @@ public sealed class PollWorkerMappingsTests
     [Fact]
     public void GetPersistenceState_and_FromPersistence_roundtrip()
     {
-        var state = Steady().Apply(Unchanged(DomainKind.Forecast, T0.AddHours(9)));
+        var state = WithChanges().Apply(Unchanged(DomainKind.Forecast, T0.AddHours(9)));
 
         var restored = state.GetPersistenceState().FromPersistence();
 
         Assert.Multiple(
             () => Assert.Equal(state.Target, restored.Target),
             () => Assert.Equal(state.Active, restored.Active),
-            () => Assert.Equal(state.DiscoveryInterval, restored.DiscoveryInterval),
             () => Assert.Equal(state.Domains.Count, restored.Domains.Count),
-            () => Assert.Equal(state.GetDomain(DomainKind.Forecast), restored.GetDomain(DomainKind.Forecast)));
+            () => Assert.Equal(state.GetDomain(DomainKind.Forecast).PollInterval,
+                restored.GetDomain(DomainKind.Forecast).PollInterval));
     }
 
     [Fact]
     public void GetPersistenceState_writes_the_domain_states()
     {
-        var state = Steady();
+        var state = WithChanges();
 
         var dto = state.GetPersistenceState();
 
@@ -66,15 +64,14 @@ public sealed class PollWorkerMappingsTests
         Assert.Multiple(
             () => Assert.Equal("lucerne", dto.Location),
             () => Assert.True(dto.Active),
-            () => Assert.Equal(TimeSpan.FromMinutes(20), dto.DiscoveryInterval),
             () => Assert.Single(dto.DomainStates));
 
         var domainDto = dto.DomainStates[0];
         Assert.Multiple(
             () => Assert.Equal((int)DomainKind.Forecast, domainDto.Domain),
             () => Assert.Equal(3, domainDto.LastHash),
-            () => Assert.Equal(PersistedPollPhase.Steady, domainDto.Phase),
-            () => Assert.Equal(TimeSpan.FromHours(3), domainDto.LearnedCycle));
+            () => Assert.Equal(PersistedPollPhase.Active, domainDto.Phase),
+            () => Assert.Equal(TimeSpan.FromMinutes(60), domainDto.PollInterval));
     }
 
     [Fact]
@@ -85,7 +82,6 @@ public sealed class PollWorkerMappingsTests
         Assert.Multiple(
             () => Assert.Null(restored.Target),
             () => Assert.False(restored.Active),
-            () => Assert.Equal(TimeSpan.Zero, restored.DiscoveryInterval),
             () => Assert.Empty(restored.Domains));
     }
 
@@ -93,7 +89,8 @@ public sealed class PollWorkerMappingsTests
     public void A_started_state_keeps_the_coordinates_through_the_persistence_roundtrip()
     {
         var state = PollWorkerState.Empty.Apply(
-            new PollingStarted("lucerne", [(int)DomainKind.Forecast], Discovery, T0, 47.05, 8.31));
+            new PollingStarted("lucerne", [(int)DomainKind.Forecast],
+                IntervalsFor((DomainKind.Forecast, TimeSpan.FromMinutes(60))), T0, 47.05, 8.31));
 
         var dto = state.GetPersistenceState();
         var restored = dto.FromPersistence();
@@ -107,20 +104,9 @@ public sealed class PollWorkerMappingsTests
     }
 
     [Fact]
-    public void A_started_event_without_coordinates_falls_back_to_zero()
-    {
-        var state = Started();
-
-        Assert.NotNull(state.Target);
-        Assert.Multiple(
-            () => Assert.Equal(0, state.Target.Location.Latitude),
-            () => Assert.Equal(0, state.Target.Location.Longitude));
-    }
-
-    [Fact]
     public void A_snapshot_without_coordinates_restores_the_zero_fallback()
     {
-        var dto = new PersistedPollWorkerState("lucerne", true, Discovery, null);
+        var dto = new PersistedPollWorkerState("lucerne", true, null);
 
         var state = dto.FromPersistence();
 
@@ -131,70 +117,20 @@ public sealed class PollWorkerMappingsTests
     }
 
     [Fact]
-    public void A_second_start_with_new_coordinates_replaces_the_target_and_keeps_the_domains()
+    public void A_domain_without_a_persisted_interval_uses_the_default()
     {
-        var polled = Steady();
-        var domainBefore = polled.GetDomain(DomainKind.Forecast);
+        var dto = new PersistedPollWorkerState("lucerne", true,
+            [new PersistedDomainState((int)DomainKind.Marine, 7)]);
 
-        var moved = polled.Apply(
-            new PollingStarted("lucerne", [(int)DomainKind.Forecast], Discovery, T0.AddHours(7), 47.10, 8.40));
-
-        Assert.NotNull(moved.Target);
-        Assert.Multiple(
-            () => Assert.Equal(47.10, moved.Target.Location.Latitude),
-            () => Assert.Equal(8.40, moved.Target.Location.Longitude),
-            () => Assert.Equal(domainBefore, moved.GetDomain(DomainKind.Forecast)));
-    }
-
-    [Fact]
-    public void A_second_start_with_new_coordinates_and_interval_replaces_the_target()
-    {
-        var moved = Started().Apply(
-            new PollingStarted("lucerne", [(int)DomainKind.Forecast], TimeSpan.FromMinutes(30), T0, 47.10, 8.40));
-
-        Assert.NotNull(moved.Target);
-        Assert.Multiple(
-            () => Assert.Equal(47.10, moved.Target.Location.Latitude),
-            () => Assert.Equal(8.40, moved.Target.Location.Longitude));
-    }
-
-    [Fact]
-    public void An_old_format_snapshot_with_a_numeric_phase_restores_a_steady_domain()
-    {
-        const string oldFormat = """
-{
-  "Location": "lucerne",
-  "Active": true,
-  "DiscoveryInterval": "00:20:00",
-  "DomainStates": [
-    {
-      "Domain": 0,
-      "LastHash": 2,
-      "Phase": 1,
-      "LearnedCycle": "03:00:00",
-      "MissCount": 0,
-      "LastChanged": "2026-07-15T10:00:00+00:00",
-      "NextPollAt": "2026-07-15T13:00:00+00:00"
-    }
-  ]
-}
-""";
-
-        var dto = JsonConvert.DeserializeObject<PersistedPollWorkerState>(oldFormat);
-
-        Assert.NotNull(dto);
         var state = dto.FromPersistence();
-        var weather = state.GetDomain(DomainKind.Forecast);
-        Assert.Multiple(
-            () => Assert.Equal(PollPhase.Steady, weather.Phase),
-            () => Assert.Equal(new PollTarget(new Location("lucerne", 0, 0)), state.Target),
-            () => Assert.Equal(TimeSpan.FromHours(3), weather.LearnedCycle));
+
+        Assert.Equal(DomainDefaults.PollInterval(DomainKind.Marine), state.GetDomain(DomainKind.Marine).PollInterval);
     }
 
     [Fact]
     public void Mapper_produced_snapshot_survives_newtonsoft_roundtrip_with_type_name_handling_all()
     {
-        var state = Steady().Apply(Unchanged(DomainKind.Forecast, T0.AddHours(9)));
+        var state = WithChanges().Apply(Unchanged(DomainKind.Forecast, T0.AddHours(9)));
         var dto = state.GetPersistenceState();
 
         var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
@@ -206,13 +142,13 @@ public sealed class PollWorkerMappingsTests
         Assert.Multiple(
             () => Assert.Equal(dto.Location, recovered.Location),
             () => Assert.Equal(dto.Active, recovered.Active),
-            () => Assert.Equal(dto.DomainStates!.Count, recovered.DomainStates.Count),
-            () => Assert.Equal(dto.DomainStates[0], recovered.DomainStates[0]));
+            () => Assert.Equal(dto.DomainStates!.Count, recovered.DomainStates!.Count),
+            () => Assert.Equal(dto.DomainStates[0], recovered.DomainStates![0]));
     }
 
     [Theory]
-    [InlineData(PollPhase.Discovery, PersistedPollPhase.Discovery)]
-    [InlineData(PollPhase.Steady, PersistedPollPhase.Steady)]
+    [InlineData(PollPhase.Active, PersistedPollPhase.Active)]
+    [InlineData(PollPhase.Suspended, PersistedPollPhase.Suspended)]
     public void Every_poll_phase_roundtrips_through_its_persisted_phase(PollPhase phase, PersistedPollPhase persisted)
     {
         Assert.Multiple(
@@ -242,5 +178,11 @@ public sealed class PollWorkerMappingsTests
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() => ((PersistedPollPhase)99).ToDomain());
 
         Assert.Equal("phase", ex.ParamName);
+    }
+
+    [Fact]
+    public void Legacy_steady_phase_maps_to_active()
+    {
+        Assert.Equal(PollPhase.Active, ((PersistedPollPhase)1).ToDomain());
     }
 }

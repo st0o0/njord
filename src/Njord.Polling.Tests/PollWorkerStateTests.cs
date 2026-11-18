@@ -1,4 +1,5 @@
 using Njord.Core;
+using Njord.Core.Polling;
 using Njord.Messages.Polling;
 using Njord.Persistence.Events.Polling;
 using static Njord.Polling.Tests.PollStateFixture;
@@ -7,6 +8,8 @@ namespace Njord.Polling.Tests;
 
 public sealed class PollWorkerStateTests
 {
+    private static readonly TimeSpan _forecastInterval = TimeSpan.FromMinutes(60);
+
     // --- Initial state ---
 
     [Fact]
@@ -18,7 +21,7 @@ public sealed class PollWorkerStateTests
     }
 
     [Fact]
-    public void Initial_state_is_discovery_with_immediate_poll()
+    public void Initial_state_is_active_with_immediate_poll()
     {
         var state = Started();
         var weather = state.GetDomain(DomainKind.Forecast);
@@ -26,76 +29,10 @@ public sealed class PollWorkerStateTests
         Assert.Multiple(
             () => Assert.Equal(new PollTarget(Lucerne), state.Target),
             () => Assert.True(state.Active),
-            () => Assert.Equal(Discovery, state.DiscoveryInterval),
-            () => Assert.Equal(PollPhase.Discovery, weather.Phase),
+            () => Assert.Equal(PollPhase.Active, weather.Phase),
             () => Assert.Equal(T0, state.NextPollUtc),
-            () => Assert.Null(weather.LastHash));
-    }
-
-    // --- Discovery -> Steady progression ---
-
-    [Fact]
-    public void First_data_change_stays_in_discovery()
-    {
-        var state = Started().Apply(Changed(DomainKind.Forecast, 42, T0.AddMinutes(20)));
-        var weather = state.GetDomain(DomainKind.Forecast);
-
-        Assert.Multiple(
-            () => Assert.Equal(PollPhase.Discovery, weather.Phase),
-            () => Assert.Equal(42, weather.LastHash),
-            () => Assert.Equal(T0.AddMinutes(20), weather.LastChanged),
-            () => Assert.Null(weather.LearnedCycle),
-            () => Assert.Equal(T0.AddMinutes(40), weather.NextPollAt));
-    }
-
-    [Fact]
-    public void Second_data_change_records_a_candidate_and_stays_in_discovery()
-    {
-        var state = Started()
-            .Apply(Changed(DomainKind.Forecast, 42, T0.AddHours(1)))
-            .Apply(Changed(DomainKind.Forecast, 99, T0.AddHours(4)));
-        var weather = state.GetDomain(DomainKind.Forecast);
-
-        Assert.Multiple(
-            () => Assert.Equal(PollPhase.Discovery, weather.Phase),
-            () => Assert.Equal(TimeSpan.FromHours(3), weather.CandidateCycle),
-            () => Assert.Null(weather.LearnedCycle));
-    }
-
-    [Fact]
-    public void Third_consistent_change_computes_cycle_and_transitions_to_steady()
-    {
-        var weather = Steady().GetDomain(DomainKind.Forecast);
-
-        Assert.Multiple(
-            () => Assert.Equal(PollPhase.Steady, weather.Phase),
-            () => Assert.Equal(TimeSpan.FromHours(3), weather.LearnedCycle),
-            () => Assert.Equal(T0.AddHours(6) + TimeSpan.FromHours(3) - DomainPollStateExtensions.SteadyBuffer,
-                weather.NextPollAt));
-    }
-
-    [Fact]
-    public void A_consistent_change_in_steady_stays_steady()
-    {
-        var state = Steady().Apply(Changed(DomainKind.Forecast, 4, T0.AddHours(9)));
-        var weather = state.GetDomain(DomainKind.Forecast);
-
-        Assert.Multiple(
-            () => Assert.Equal(PollPhase.Steady, weather.Phase),
-            () => Assert.Equal(TimeSpan.FromHours(3), weather.LearnedCycle),
-            () => Assert.Equal(0, weather.MissCount));
-    }
-
-    [Fact]
-    public void An_inconsistent_change_in_steady_falls_back_to_discovery()
-    {
-        var state = Steady().Apply(Changed(DomainKind.Forecast, 4, T0.AddHours(7)));
-        var weather = state.GetDomain(DomainKind.Forecast);
-
-        Assert.Multiple(
-            () => Assert.Equal(PollPhase.Discovery, weather.Phase),
-            () => Assert.Null(weather.LearnedCycle),
-            () => Assert.Equal(TimeSpan.FromHours(1), weather.CandidateCycle));
+            () => Assert.Null(weather.LastHash),
+            () => Assert.Equal(_forecastInterval, weather.PollInterval));
     }
 
     // --- Changed / Unchanged event effects ---
@@ -112,35 +49,24 @@ public sealed class PollWorkerStateTests
     }
 
     [Fact]
-    public void An_unchanged_event_increments_the_miss_count()
+    public void An_unchanged_event_schedules_next_poll_at_effective_interval()
     {
         var state = Started()
             .Apply(Changed(DomainKind.Forecast, 42, T0))
-            .Apply(Unchanged(DomainKind.Forecast, T0.AddMinutes(20)));
+            .Apply(Unchanged(DomainKind.Forecast, T0.AddMinutes(60)));
         var weather = state.GetDomain(DomainKind.Forecast);
 
-        Assert.Multiple(
-            () => Assert.Equal(1, weather.MissCount),
-            () => Assert.Equal(T0.AddMinutes(40), weather.NextPollAt));
+        Assert.Equal(T0.AddMinutes(60) + _forecastInterval, weather.NextPollAt);
     }
 
     [Fact]
-    public void Data_change_resets_miss_count()
+    public void Data_change_resets_consecutive_failures()
     {
-        var state = Steady();
-        var now = T0.AddHours(9);
-        for (var i = 0; i < 3; i++)
-        {
-            state = state.Apply(Unchanged(DomainKind.Forecast, now));
-            var next = state.GetDomain(DomainKind.Forecast).NextPollAt;
-            Assert.NotNull(next);
-            now = next.Value;
-        }
+        var state = Started()
+            .Apply(Failed(DomainKind.Forecast, T0, TimeSpan.FromMinutes(2)) with { ConsecutiveFailures = 2 })
+            .Apply(Changed(DomainKind.Forecast, 42, T0.AddMinutes(2)));
 
-        Assert.Equal(3, state.GetDomain(DomainKind.Forecast).MissCount);
-
-        state = state.Apply(Changed(DomainKind.Forecast, 4, now));
-        Assert.Equal(0, state.GetDomain(DomainKind.Forecast).MissCount);
+        Assert.Equal(0, state.GetDomain(DomainKind.Forecast).ConsecutiveFailures);
     }
 
     // --- Failure events ---
@@ -154,22 +80,6 @@ public sealed class PollWorkerStateTests
     }
 
     [Fact]
-    public void A_rate_limit_delay_sets_the_retry()
-    {
-        var state = Started().Apply(Failed(DomainKind.Forecast, T0, PollWorkerState.RateLimitMinDelay));
-
-        Assert.Equal(T0 + TimeSpan.FromMinutes(5), state.GetDomain(DomainKind.Forecast).NextPollAt);
-    }
-
-    [Fact]
-    public void A_pipeline_unavailable_delay_retries_soon()
-    {
-        var state = Started().Apply(Failed(DomainKind.Forecast, T0, PollWorkerState.PipelineUnavailableRetry));
-
-        Assert.Equal(T0 + TimeSpan.FromSeconds(5), state.GetDomain(DomainKind.Forecast).NextPollAt);
-    }
-
-    [Fact]
     public void A_failed_event_records_the_consecutive_failure_count()
     {
         var evt = Failed(DomainKind.Forecast, T0, TimeSpan.FromMinutes(2)) with { ConsecutiveFailures = 2 };
@@ -178,20 +88,10 @@ public sealed class PollWorkerStateTests
     }
 
     [Fact]
-    public void A_changed_event_resets_the_consecutive_failure_count()
+    public void Failures_preserve_phase()
     {
-        var state = Started()
-            .Apply(Failed(DomainKind.Forecast, T0, TimeSpan.FromMinutes(2)) with { ConsecutiveFailures = 2 })
-            .Apply(Changed(DomainKind.Forecast, 42, T0.AddMinutes(2)));
-
-        Assert.Equal(0, state.GetDomain(DomainKind.Forecast).ConsecutiveFailures);
-    }
-
-    [Fact]
-    public void Failures_preserve_phase_and_cycle()
-    {
-        var state = Steady();
-        var now = T0.AddHours(9);
+        var state = Started();
+        var now = T0;
         for (var i = 0; i < 20; i++)
         {
             state = state.Apply(Failed(DomainKind.Forecast, now));
@@ -200,10 +100,7 @@ public sealed class PollWorkerStateTests
             now = next.Value;
         }
 
-        var weather = state.GetDomain(DomainKind.Forecast);
-        Assert.Multiple(
-            () => Assert.Equal(PollPhase.Steady, weather.Phase),
-            () => Assert.Equal(TimeSpan.FromHours(3), weather.LearnedCycle));
+        Assert.Equal(PollPhase.Active, state.GetDomain(DomainKind.Forecast).Phase);
     }
 
     [Fact]
@@ -214,154 +111,25 @@ public sealed class PollWorkerStateTests
         Assert.Throws<ArgumentOutOfRangeException>(() => Started().Apply(evt));
     }
 
-    // --- Miss backoff and fallback ---
+    // --- Per-domain intervals ---
 
     [Fact]
-    public void Retry_backoff_doubles_per_miss()
+    public void Each_domain_carries_its_own_poll_interval()
     {
-        var state = Steady();
-        var now = T0.AddHours(9);
-        TimeSpan[] expected = [TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(4), TimeSpan.FromMinutes(8)];
-
-        foreach (var delay in expected)
-        {
-            state = state.Apply(Unchanged(DomainKind.Forecast, now));
-            var next = state.GetDomain(DomainKind.Forecast).NextPollAt;
-            Assert.NotNull(next);
-            Assert.Equal(now + delay, next);
-            now = next.Value;
-        }
-
-        Assert.Equal(4, state.GetDomain(DomainKind.Forecast).MissCount);
-    }
-
-    [Fact]
-    public void Retry_backoff_never_exceeds_15_minutes()
-    {
-        var state = Steady();
-        var now = T0.AddHours(9);
-        for (var i = 0; i < 4; i++)
-        {
-            state = state.Apply(Unchanged(DomainKind.Forecast, now));
-            var next = state.GetDomain(DomainKind.Forecast).NextPollAt;
-            Assert.NotNull(next);
-            var nextAt = next.Value;
-            Assert.True(nextAt - now <= TimeSpan.FromMinutes(15), $"miss {i + 1} waits {nextAt - now}");
-            now = nextAt;
-        }
-
-        Assert.Equal(PollPhase.Steady, state.GetDomain(DomainKind.Forecast).Phase);
-    }
-
-    [Fact]
-    public void Five_misses_in_steady_falls_back_to_discovery()
-    {
-        var state = Steady();
-        Assert.Equal(PollPhase.Steady, state.GetDomain(DomainKind.Forecast).Phase);
-
-        var now = T0.AddHours(9);
-        var lastMiss = now;
-        for (var i = 0; i < 5; i++)
-        {
-            lastMiss = now;
-            state = state.Apply(Unchanged(DomainKind.Forecast, now));
-            var next = state.GetDomain(DomainKind.Forecast).NextPollAt;
-            Assert.NotNull(next);
-            now = next.Value;
-        }
-
-        var weather = state.GetDomain(DomainKind.Forecast);
-        Assert.Multiple(
-            () => Assert.Equal(PollPhase.Discovery, weather.Phase),
-            () => Assert.Null(weather.LearnedCycle),
-            () => Assert.Equal(0, weather.MissCount),
-            () => Assert.Equal(lastMiss + Discovery, weather.NextPollAt));
-    }
-
-    [Fact]
-    public void Discovery_misses_do_not_fall_back()
-    {
-        var state = Started();
-        var now = T0;
-        for (var i = 0; i < 10; i++)
-        {
-            state = state.Apply(Unchanged(DomainKind.Forecast, now));
-            var weather = state.GetDomain(DomainKind.Forecast);
-            Assert.Equal(PollPhase.Discovery, weather.Phase);
-            Assert.Equal(now + Discovery, weather.NextPollAt);
-            Assert.NotNull(weather.NextPollAt);
-            now = weather.NextPollAt.Value;
-        }
-
-        Assert.Equal(10, state.GetDomain(DomainKind.Forecast).MissCount);
-    }
-
-    // --- Replan (StartPolling with changed interval) ---
-
-    [Fact]
-    public void A_shorter_discovery_interval_replans_a_pending_discovery_poll()
-    {
-        var state = Started().Apply(Changed(DomainKind.Forecast, 42, T0));
-
-        var replanned = state.Apply(new PollingStarted("lucerne", [(int)DomainKind.Forecast], TimeSpan.FromMinutes(5), T0.AddMinutes(1)));
+        var state = StartedAll();
 
         Assert.Multiple(
-            () => Assert.Equal(T0.AddMinutes(5), replanned.GetDomain(DomainKind.Forecast).NextPollAt),
-            () => Assert.Equal(TimeSpan.FromMinutes(5), replanned.DiscoveryInterval));
+            () => Assert.Equal(DomainDefaults.PollInterval(DomainKind.Forecast), state.GetDomain(DomainKind.Forecast).PollInterval),
+            () => Assert.Equal(DomainDefaults.PollInterval(DomainKind.Marine), state.GetDomain(DomainKind.Marine).PollInterval),
+            () => Assert.Equal(DomainDefaults.PollInterval(DomainKind.Flood), state.GetDomain(DomainKind.Flood).PollInterval));
     }
 
     [Fact]
-    public void A_replanned_poll_is_never_earlier_than_now()
+    public void A_start_with_different_intervals_updates_domains()
     {
-        var state = Started().Apply(Changed(DomainKind.Forecast, 42, T0));
+        var state = Started(forecastInterval: TimeSpan.FromMinutes(30));
 
-        var replanned = state.Apply(new PollingStarted("lucerne", [(int)DomainKind.Forecast], TimeSpan.FromMinutes(5), T0.AddMinutes(10)));
-
-        Assert.Equal(T0.AddMinutes(10), replanned.GetDomain(DomainKind.Forecast).NextPollAt);
-    }
-
-    [Fact]
-    public void A_longer_discovery_interval_moves_the_next_poll_out()
-    {
-        var state = Started().Apply(Changed(DomainKind.Forecast, 42, T0));
-
-        var replanned = state.Apply(new PollingStarted("lucerne", [(int)DomainKind.Forecast], TimeSpan.FromHours(1), T0));
-
-        Assert.Equal(T0.AddHours(1), replanned.GetDomain(DomainKind.Forecast).NextPollAt);
-    }
-
-    [Fact]
-    public void Steady_delays_are_not_replanned()
-    {
-        var steady = Steady();
-        var weatherBefore = steady.GetDomain(DomainKind.Forecast).NextPollAt;
-
-        var replanned = steady.Apply(new PollingStarted("lucerne", [(int)DomainKind.Forecast], TimeSpan.FromHours(2), T0.AddHours(6)));
-
-        Assert.Equal(weatherBefore, replanned.GetDomain(DomainKind.Forecast).NextPollAt);
-    }
-
-    [Fact]
-    public void A_start_with_the_same_interval_keeps_the_state()
-    {
-        var state = Steady();
-
-        var restarted = state.Apply(new PollingStarted("lucerne", [(int)DomainKind.Forecast], Discovery, T0.AddHours(7)));
-
-        Assert.Equal(state.Domains, restarted.Domains);
-    }
-
-    [Fact]
-    public void Stopping_deactivates_and_a_new_start_resumes_the_learned_state()
-    {
-        var stopped = Steady().Apply(new PollingStopped(T0.AddHours(7)));
-        var resumed = stopped.Apply(new PollingStarted("lucerne", [(int)DomainKind.Forecast], Discovery, T0.AddHours(8)));
-
-        Assert.Multiple(
-            () => Assert.False(stopped.Active),
-            () => Assert.True(resumed.Active),
-            () => Assert.Equal(TimeSpan.FromHours(3), resumed.GetDomain(DomainKind.Forecast).LearnedCycle),
-            () => Assert.Equal(Steady().GetDomain(DomainKind.Forecast).NextPollAt, resumed.GetDomain(DomainKind.Forecast).NextPollAt));
+        Assert.Equal(TimeSpan.FromMinutes(30), state.GetDomain(DomainKind.Forecast).PollInterval);
     }
 
     // --- NoData / Suspended ---
@@ -376,18 +144,6 @@ public sealed class PollWorkerStateTests
             () => Assert.Equal(PollPhase.Suspended, weather.Phase),
             () => Assert.Equal(T0 + PollWorkerState.SuspendedRecheckInterval, weather.NextPollAt),
             () => Assert.Equal(0, weather.ConsecutiveFailures));
-    }
-
-    [Fact]
-    public void A_no_data_event_in_steady_transitions_to_suspended()
-    {
-        var at = T0.AddHours(9);
-        var state = Steady().Apply(NoData(DomainKind.Forecast, at));
-        var weather = state.GetDomain(DomainKind.Forecast);
-
-        Assert.Multiple(
-            () => Assert.Equal(PollPhase.Suspended, weather.Phase),
-            () => Assert.Equal(at + PollWorkerState.SuspendedRecheckInterval, weather.NextPollAt));
     }
 
     [Fact]
@@ -406,7 +162,7 @@ public sealed class PollWorkerStateTests
     }
 
     [Fact]
-    public void A_changed_event_on_a_suspended_domain_resets_to_discovery()
+    public void A_changed_event_on_a_suspended_domain_resets_to_active()
     {
         var state = Started()
             .Apply(NoData(DomainKind.Forecast, T0))
@@ -414,7 +170,7 @@ public sealed class PollWorkerStateTests
         var weather = state.GetDomain(DomainKind.Forecast);
 
         Assert.Multiple(
-            () => Assert.Equal(PollPhase.Discovery, weather.Phase),
+            () => Assert.Equal(PollPhase.Active, weather.Phase),
             () => Assert.Equal(42, weather.LastHash),
             () => Assert.Equal(0, weather.ConsecutiveFailures));
     }
@@ -434,9 +190,25 @@ public sealed class PollWorkerStateTests
     [Fact]
     public void A_persisted_domain_without_a_failure_count_recovers_as_zero()
     {
-        var legacy = new PersistedPollWorkerState("lucerne", true, Discovery,
+        var legacy = new PersistedPollWorkerState("lucerne", true,
             [new PersistedDomainState((int)DomainKind.Forecast, 7)]);
 
         Assert.Equal(0, legacy.FromPersistence().GetDomain(DomainKind.Forecast).ConsecutiveFailures);
+    }
+
+    // --- Stopping and resuming ---
+
+    [Fact]
+    public void Stopping_deactivates_and_a_new_start_resumes()
+    {
+        var state = WithChanges();
+        var stopped = state.Apply(new PollingStopped(T0.AddHours(7)));
+        var resumed = stopped.Apply(new PollingStarted("lucerne", [(int)DomainKind.Forecast],
+            IntervalsFor((DomainKind.Forecast, _forecastInterval)), T0.AddHours(8)));
+
+        Assert.Multiple(
+            () => Assert.False(stopped.Active),
+            () => Assert.True(resumed.Active),
+            () => Assert.Equal(PollPhase.Active, resumed.GetDomain(DomainKind.Forecast).Phase));
     }
 }

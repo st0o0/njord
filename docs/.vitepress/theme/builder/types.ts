@@ -188,7 +188,7 @@ export interface NjordConfig {
   marine: { forecastDays: number }
   flood: { forecastDays: number; includeEnsemble: boolean }
   seasonal: { forecastMonths: number; model: string }
-  discoveryInterval: string
+  domainIntervals: Record<string, string>
   features: Record<string, boolean>
   locations: LocationConfig[]
   // Only values that differ from the feature default: featureOptions['Frost'].Thresholds = [0, -5, -15]
@@ -211,7 +211,14 @@ export function defaultConfig(): NjordConfig {
     marine: { forecastDays: 8 },
     flood: { forecastDays: 92, includeEnsemble: false },
     seasonal: { forecastMonths: 3, model: '' },
-    discoveryInterval: '00:20:00',
+    domainIntervals: {
+      Forecast: '01:00:00',
+      AirQuality: '01:00:00',
+      Marine: '06:00:00',
+      Ensemble: '06:00:00',
+      Seasonal: '24:00:00',
+      Flood: '24:00:00',
+    },
     features: defaultFeatures(),
     locations: [],
     featureOptions: {},

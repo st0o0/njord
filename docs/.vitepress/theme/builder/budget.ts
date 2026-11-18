@@ -22,30 +22,45 @@ export interface BudgetResult {
 }
 
 // Mirrors BudgetGuard (Njord.Polling): every domain uses CallWeight.Of(varCount, days)
-// = ceil(vars / 10) * (days / 14). Seasonal is 30 calls/month * max(weight, 1.3).
+// = ceil(vars / 10) * (days / 14). Each domain polls at its own interval.
+// Seasonal is 30 calls/month * max(weight, 1.3).
 export function computeBudget(config: NjordConfig): BudgetResult {
-  const pollMinutes = parseTimeSpan(config.pollInterval)
-  const cyclesPerDay = pollMinutes > 0 ? MINUTES_PER_DAY / pollMinutes : 0
-  const cyclesPerMonth = cyclesPerDay * DAYS_PER_MONTH
-
+  const pollFloor = parseTimeSpan(config.pollInterval)
   const domains = requiredDomains(config.features)
   const locationCount = Math.max(config.locations.length, 1)
-  const domainCallsPerCycle = domains.filter(d => d !== 'Seasonal').length * locationCount
-  const weightPerCycle = callsPerLocationCycle(config, config.features)
-  const apiCallWeight = weightPerCycle
+
+  const domainWeights: Record<string, { weight: number; interval: number }> = {}
+  if (domains.includes('Forecast')) domainWeights.Forecast = { weight: weatherWeight(config, config.features), interval: resolvedInterval('Forecast', config, pollFloor) }
+  if (domains.includes('Ensemble')) domainWeights.Ensemble = { weight: ensembleWeight(config, config.features), interval: resolvedInterval('Ensemble', config, pollFloor) }
+  if (domains.includes('AirQuality')) domainWeights.AirQuality = { weight: airQualityWeight(config, config.features), interval: resolvedInterval('AirQuality', config, pollFloor) }
+  if (domains.includes('Flood')) domainWeights.Flood = { weight: floodWeight(config, config.features), interval: resolvedInterval('Flood', config, pollFloor) }
+  if (domains.includes('Marine')) domainWeights.Marine = { weight: marineWeight(config, config.features), interval: resolvedInterval('Marine', config, pollFloor) }
+
+  let projectedMonthly = 0
+  for (const d of Object.values(domainWeights)) {
+    const cyclesPerMonth = d.interval > 0 ? (MINUTES_PER_DAY * DAYS_PER_MONTH) / d.interval : 0
+    projectedMonthly += locationCount * d.weight * cyclesPerMonth
+  }
+
+  const seasonalPerMonth = seasonalWeightPerMonth(config, config.features)
+  projectedMonthly += locationCount * seasonalPerMonth
+
+  const projected = Math.round(projectedMonthly)
+  const domainCallsPerCycle = Object.keys(domainWeights).length * locationCount
+  const weightPerCycle = Object.values(domainWeights).reduce((s, d) => s + d.weight, 0)
+  const fastestInterval = Math.min(...Object.values(domainWeights).map(d => d.interval), pollFloor || 60)
+  const cyclesPerDay = fastestInterval > 0 ? MINUTES_PER_DAY / fastestInterval : 0
+  const callsPerDay = Math.round(projected / DAYS_PER_MONTH)
 
   const limit = config.budgetOverride?.requestsPerMonth ?? FREE_TIER_MONTHLY
   const guard = Math.round(limit * GUARD_FACTOR)
-  const seasonalPerMonth = seasonalWeightPerMonth(config, config.features)
-  const callsPerDay = Math.round(locationCount * weightPerCycle * cyclesPerDay + locationCount * seasonalPerMonth / DAYS_PER_MONTH)
-  const projected = Math.round(locationCount * weightPerCycle * cyclesPerMonth + locationCount * seasonalPerMonth)
   const percentUsed = limit > 0 ? (projected / limit) * 100 : 0
 
   return {
     domainCallsPerCycle,
     cyclesPerDay: Math.round(cyclesPerDay * 10) / 10,
-    cyclesPerMonth: Math.round(cyclesPerMonth),
-    apiCallWeight,
+    cyclesPerMonth: Math.round(cyclesPerDay * DAYS_PER_MONTH),
+    apiCallWeight: weightPerCycle,
     callsPerDay,
     projected,
     limit,
@@ -53,6 +68,21 @@ export function computeBudget(config: NjordConfig): BudgetResult {
     percentUsed,
     overBudget: projected > guard,
   }
+}
+
+function resolvedInterval(domain: string, config: NjordConfig, floor: number): number {
+  const domainInterval = config.domainIntervals[domain] ? parseTimeSpan(config.domainIntervals[domain]) : 0
+  const def = domainInterval > 0 ? domainInterval : DOMAIN_DEFAULT_MINUTES[domain] ?? 60
+  return def < floor ? floor : def
+}
+
+const DOMAIN_DEFAULT_MINUTES: Record<string, number> = {
+  Forecast: 60,
+  AirQuality: 60,
+  Marine: 360,
+  Ensemble: 360,
+  Seasonal: 1440,
+  Flood: 1440,
 }
 
 function weatherWeight(config: NjordConfig, features: Record<string, boolean>): number {
@@ -119,11 +149,12 @@ function callsPerLocationCycle(config: NjordConfig, features: Record<string, boo
 // Marginal calls per day and location of enabling a feature (or saved by disabling it) given the other enabled
 // features; 0 when everything it needs is already fetched. Uses the same formula as the budget itself.
 export function featureCostPerDay(config: NjordConfig, key: string): number {
-  const cycles = MINUTES_PER_DAY / (parseTimeSpan(config.pollInterval) || 60)
+  const pollFloor = parseTimeSpan(config.pollInterval) || 60
   const on = { ...config.features, [key]: true }
   const off = { ...config.features, [key]: false }
-  const seasonalDelta = (seasonalWeightPerMonth(config, on) - seasonalWeightPerMonth(config, off)) / DAYS_PER_MONTH
-  return Math.round((callsPerLocationCycle(config, on) - callsPerLocationCycle(config, off)) * cycles + seasonalDelta)
+  const budgetOn = computeBudget({ ...config, features: on })
+  const budgetOff = computeBudget({ ...config, features: off })
+  return Math.round((budgetOn.projected - budgetOff.projected) / DAYS_PER_MONTH)
 }
 
 export function budgetLevel(percentUsed: number): 'ok' | 'warn' | 'over' {

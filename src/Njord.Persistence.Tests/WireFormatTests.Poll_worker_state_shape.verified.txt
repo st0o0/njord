@@ -1,18 +1,15 @@
 {
   "Location": "lucerne",
   "Active": true,
-  "DiscoveryInterval": "00:20:00",
   "DomainStates": [
     {
       "Domain": 0,
       "LastHash": 42,
-      "Phase": 1,
-      "LearnedCycle": "03:00:00",
-      "MissCount": 2,
+      "Phase": 0,
       "LastChanged": "2026-07-15T10:00:00+00:00",
-      "CandidateCycle": "03:00:00",
       "NextPollAt": "2026-07-15T13:00:00+00:00",
-      "ConsecutiveFailures": 0
+      "ConsecutiveFailures": 0,
+      "PollInterval": "01:00:00"
     }
   ],
   "Latitude": 47.05,

@@ -2,7 +2,6 @@ namespace Njord.Messages.Polling;
 
 public enum PollPhase
 {
-    Discovery,
-    Steady,
+    Active,
     Suspended,
 }

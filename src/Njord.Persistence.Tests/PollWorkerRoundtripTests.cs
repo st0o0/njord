@@ -8,7 +8,9 @@ public sealed class PollWorkerRoundtripTests
 
     public static TheoryData<object> Events() =>
     [
-        new PollingStarted("lucerne", [(int)0, (int)1], TimeSpan.FromMinutes(20), _utc, 47.05, 8.31),
+        new PollingStarted("lucerne", [(int)0, (int)1],
+            new Dictionary<int, TimeSpan> { [0] = TimeSpan.FromMinutes(60), [1] = TimeSpan.FromMinutes(60) },
+            _utc, 47.05, 8.31),
         new PollingStopped(_utc),
         new DomainPolled(0, PersistedDomainPollOutcome.Changed, 42, _utc, null),
         new DomainPolled(1, PersistedDomainPollOutcome.Unchanged, null, _utc, null),
@@ -20,12 +22,11 @@ public sealed class PollWorkerRoundtripTests
     public void Populated_worker_state_roundtrip()
     {
         var state = new PersistedPollWorkerState(
-            "lucerne", true, TimeSpan.FromMinutes(20),
-            new List<PersistedDomainState>
-            {
-                new(0, 7, PersistedPollPhase.Steady, TimeSpan.FromHours(6), 2, _utc.AddHours(-6), TimeSpan.FromHours(6), _utc.AddHours(6)),
+            "lucerne", true,
+            [
+                new(0, 7, PersistedPollPhase.Active, _utc.AddHours(-6), _utc.AddHours(6), 0, TimeSpan.FromMinutes(60)),
                 new(1, null),
-            },
+            ],
             47.05, 8.31);
 
         var recovered = PersistenceRoundtripHelper.Roundtrip(state);
@@ -39,11 +40,10 @@ public sealed class PollWorkerRoundtripTests
     public void Suspended_domain_state_roundtrip()
     {
         var state = new PersistedPollWorkerState(
-            "barcelona", true, TimeSpan.FromMinutes(20),
-            new List<PersistedDomainState>
-            {
-                new(4, null, PersistedPollPhase.Suspended, null, 0, null, null, _utc.AddHours(24)),
-            },
+            "barcelona", true,
+            [
+                new(4, null, PersistedPollPhase.Suspended, null, _utc.AddHours(24)),
+            ],
             41.39, 2.17);
 
         var recovered = PersistenceRoundtripHelper.Roundtrip(state);
@@ -56,8 +56,7 @@ public sealed class PollWorkerRoundtripTests
     [Fact]
     public void Unstarted_worker_state_roundtrip()
     {
-        var empty = new PersistedPollWorkerState(
-            null, false, TimeSpan.Zero, null);
+        var empty = new PersistedPollWorkerState(null, false, null);
 
         Assert.Equal(empty, PersistenceRoundtripHelper.Roundtrip(empty));
     }
@@ -70,13 +69,12 @@ public sealed class PollWorkerRoundtripTests
 
         Assert.IsType(evt.GetType(), recovered);
 
-        // PollingStarted contains int[] which uses reference equality; compare structurally.
         if (evt is PollingStarted original && recovered is PollingStarted restored)
         {
             Assert.Multiple(
                 () => Assert.Equal(original.Location, restored.Location),
                 () => Assert.Equal(original.Domains, restored.Domains),
-                () => Assert.Equal(original.DiscoveryInterval, restored.DiscoveryInterval),
+                () => Assert.Equal(original.DomainIntervals, restored.DomainIntervals),
                 () => Assert.Equal(original.Utc, restored.Utc),
                 () => Assert.Equal(original.Latitude, restored.Latitude),
                 () => Assert.Equal(original.Longitude, restored.Longitude));

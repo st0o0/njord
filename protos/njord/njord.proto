@@ -216,8 +216,7 @@ message BudgetStatus {
 
 enum PollPhase {
   POLL_PHASE_UNSPECIFIED = 0;
-  POLL_PHASE_DISCOVERY = 1;
-  POLL_PHASE_STEADY = 2;
+  POLL_PHASE_ACTIVE = 1;
   POLL_PHASE_SUSPENDED = 3;
 }
 

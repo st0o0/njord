@@ -14,7 +14,7 @@ public sealed class ShardMessageExtractorTests
         var target = new PollTarget(new Location("Lucerne", 0, 0));
 
         Assert.Multiple(
-            () => Assert.Equal("Lucerne", _extractor.EntityId(new StartPolling(target, TimeSpan.FromMinutes(20)))),
+            () => Assert.Equal("Lucerne", _extractor.EntityId(new StartPolling(target, new Dictionary<int, TimeSpan>()))),
             () => Assert.Equal("Lucerne", _extractor.EntityId(new StopPolling("Lucerne"))),
             () => Assert.Equal("Lucerne", _extractor.EntityId(new TriggerLocationPoll("Lucerne"))));
     }

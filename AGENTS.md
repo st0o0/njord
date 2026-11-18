@@ -97,7 +97,7 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 - **Feature libraries are plain libraries.** `Njord.Features` references only Core and below; no feature project
   references another or an adapter (Grpc).
 - **One `PollWorker` per location, per-domain independent timers.** No rounds, no waiting for all
-  domains; each domain learns its own update cycle (Discovery -> learned cycle with miss tolerance).
+  domains; each domain polls at its own configured interval (defaults from API update frequencies) with adaptive drift.
 - **Streams for data flow, actors for lifecycle; the stable side owns the hubs.** Domain data and
   pipeline events travel as Akka.Streams (StreamRefs); requests, outcomes and scheduling as messages.
 - **Gateway is stream-only.** PollWorker sends `FetchDomain` via Tell; the gateway's stream checks
@@ -362,7 +362,7 @@ interface. Manual `PostConfigure` is reserved for derived values (`PollingOption
 | `Njord:Solar` | `SolarOptions` | `Tilt` (30, 0..90), `Azimuth` (180, 0..360); used by Forecast/Ensemble clients for GTI |
 | `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210), `IncludeEnsemble` (false) |
 | `Njord:Features:<Name>` | `<Name>Config` | `Enabled` (default from the descriptor) plus the feature's options |
-| `Njord:Polling` | `PollingOptions` | `PollInterval` (60 min), `DiscoveryInterval` (20 min), `BudgetOverride`, `Budget` (derived, default `OpenMeteoFreeTier`) |
+| `Njord:Polling` | `PollingOptions` | `PollInterval` (60 min, global floor), `Domains` (per-domain interval overrides), `BudgetOverride`, `Budget` (derived, default `OpenMeteoFreeTier`) |
 | `Njord:Persistence` | `PersistenceOptions` | `ConnectionString` (set = PostgreSQL, absent = SQLite), `DataPath` |
 | `Njord:Health` | `HealthOptions` | poll overdue/stalled factors, budget degraded % |
 

@@ -5,8 +5,7 @@ namespace Njord.Messages.Polling;
 public sealed record DomainPollStateEntry(
     string Domain,
     PollPhase Phase,
-    long? CycleSeconds,
-    int MissCount,
+    long? IntervalSeconds,
     DateTimeOffset? NextPollAt);
 
 public sealed record PollStateEntry(
@@ -14,6 +13,4 @@ public sealed record PollStateEntry(
     PollPhase Phase,
     DateTimeOffset NextPollUtc,
     DateTimeOffset? LastChangeUtc,
-    int MissCount,
-    long? CycleSeconds,
     IReadOnlyList<DomainPollStateEntry>? DomainStates = null);

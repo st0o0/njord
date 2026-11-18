@@ -28,7 +28,8 @@ services:
   njord:
     environment:
       - Njord__Polling__PollInterval=00:15:00
-      - Njord__Polling__DiscoveryInterval=00:05:00
+      - Njord__Polling__Domains__Forecast__PollInterval=00:15:00
+      - Njord__Polling__Domains__AirQuality__PollInterval=00:15:00
 ```
 
 Start with:
@@ -61,8 +62,7 @@ docker compose -f e2e/docker-compose.e2e.yml -f e2e/docker-compose.soak.yml up -
 | Phase | Timeframe | Trigger | What happens |
 |-------|-----------|---------|-------------|
 | `warmup` | T+0 to ~T+5m | Start | Stack is up, waiting for first poll |
-| `discovery` | ~T+5m to ~T+15m | `fetch_total > 0` | Domains learning their update cycle |
-| `steady_state` | ~T+15m to T+2h | GetStatus phase = `POLL_PHASE_STEADY` | Regular polling, all domains learned |
+| `active` | ~T+5m to T+2h | `fetch_total > 0` | All domains polling at configured intervals |
 | `pre_restart` | T+2h | `elapsed >= restart_at` | Snapshot state, trigger restart |
 | `restarting` | T+2h to T+2h+~30s | `docker restart` issued | Container down, /alive polled |
 | `recovery` | T+2h+~30s to T+2h+~60s | `/alive` responds | Waiting for HA reconnection |
@@ -112,7 +112,7 @@ Each line in `soak-results.jsonl` is a JSON object:
   "grpc_status": {
     "reachable": true,
     "uptime_seconds": 300,
-    "phase": "POLL_PHASE_DISCOVERY",
+    "phase": "POLL_PHASE_ACTIVE",
     "miss_count": 0,
     "cycle_seconds": 0,
     "enrichment_count": 65,
@@ -170,7 +170,7 @@ Each line in `soak-results.jsonl` is a JSON object:
 
 | ID | Check | Condition | Severity | Restart |
 |----|-------|-----------|----------|---------|
-| P1 | STEADY reached | `grpc_status.phase == "POLL_PHASE_STEADY"` within 30 min | FAIL | warmup only |
+| P1 | ACTIVE reached | `grpc_status.phase == "POLL_PHASE_ACTIVE"` within 10 min | FAIL | warmup only |
 | P2 | Low miss count | `grpc_status.miss_count <= 2` in steady state | WARN | excl. restart |
 | P3 | All enrichments | `grpc_status.enrichment_count == 65` in all ticks | FAIL | excl. restart |
 

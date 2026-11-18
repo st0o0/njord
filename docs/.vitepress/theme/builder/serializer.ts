@@ -80,7 +80,13 @@ export function exportAsJson(config: NjordConfig): string {
 
   const defaults = defaultConfig()
   const polling: Record<string, unknown> = { PollInterval: config.pollInterval }
-  if (config.discoveryInterval !== defaults.discoveryInterval) polling.DiscoveryInterval = config.discoveryInterval
+  const domainOverrides: Record<string, Record<string, string>> = {}
+  for (const [domain, interval] of Object.entries(config.domainIntervals)) {
+    if (interval !== defaults.domainIntervals[domain]) {
+      domainOverrides[domain] = { PollInterval: interval }
+    }
+  }
+  if (Object.keys(domainOverrides).length > 0) polling.Domains = domainOverrides
   if (config.budgetOverride) polling.BudgetOverride = config.budgetOverride
   n.Polling = polling
   const forecast: Record<string, unknown> = {}
@@ -179,8 +185,10 @@ export function exportAsEnvVars(config: NjordConfig): string {
     if (config.persistence.connectionString) add('Njord__Persistence__ConnectionString', config.persistence.connectionString)
   }
 
-  if (config.discoveryInterval !== defaults.discoveryInterval) {
-    add('Njord__Polling__DiscoveryInterval', config.discoveryInterval)
+  for (const [domain, interval] of Object.entries(config.domainIntervals)) {
+    if (interval !== defaults.domainIntervals[domain]) {
+      add(`Njord__Polling__Domains__${domain}__PollInterval`, interval)
+    }
   }
   if (config.dataPath !== defaults.dataPath) add('Njord__Persistence__DataPath', config.dataPath)
 
@@ -225,7 +233,7 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   config.featureOptions = {}
 
   const pollInterval = n.Polling?.PollInterval
-  const discoveryInterval = n.Polling?.DiscoveryInterval
+  const pollingDomains = n.Polling?.Domains as Record<string, { PollInterval?: string }> | undefined
   const budgetOverride = n.Polling?.BudgetOverride
   if (pollInterval) config.pollInterval = pollInterval
   if (n.Forecast) {
@@ -265,7 +273,13 @@ export function importFromJson(json: string): Partial<NjordConfig> {
       model: n.Seasonal.Model ?? d.model,
     }
   }
-  if (discoveryInterval) config.discoveryInterval = discoveryInterval
+  if (pollingDomains) {
+    const intervals: Record<string, string> = {}
+    for (const [domain, settings] of Object.entries(pollingDomains)) {
+      if (settings.PollInterval) intervals[domain] = settings.PollInterval
+    }
+    if (Object.keys(intervals).length > 0) config.domainIntervals = intervals
+  }
   if (n.Features && typeof n.Features === 'object') {
     for (const [name, settings] of Object.entries(n.Features as Record<string, unknown>)) {
       const key = parseFeatureKey(name)
@@ -312,7 +326,7 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     const parts = key.split('__').slice(1)
 
     if (parts[0] === 'Polling' && parts[1] === 'PollInterval') config.pollInterval = value
-    else if (parts[0] === 'Polling' && parts[1] === 'DiscoveryInterval') config.discoveryInterval = value
+    else if (parts[0] === 'Polling' && parts[1] === 'Domains' && parts[3] === 'PollInterval') config.domainIntervals[parts[2]] = value
     else if (parts[0] === 'Polling' && parts[1] === 'BudgetOverride') {
       const budgetParts = parts.slice(2)
       const budget = config.budgetOverride ?? { requestsPerMonth: 0, requestsPerMinute: 0 }

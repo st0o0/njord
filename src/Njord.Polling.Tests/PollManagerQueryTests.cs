@@ -5,15 +5,15 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
+using Njord.Core.Forecast;
 using Njord.Messages.Polling;
 using Njord.Tests.Shared;
 
 namespace Njord.Polling.Tests;
 
-// A probe plays the poll shard region; the test plays the workers by sending their reports.
 public sealed class PollManagerQueryTests : Akka.Hosting.TestKit.TestKit
 {
-    private static readonly TimeSpan _discovery = TimeSpan.FromMinutes(20);
     private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private TestProbe _region = null!;
 
@@ -31,8 +31,10 @@ public sealed class PollManagerQueryTests : Akka.Hosting.TestKit.TestKit
         ],
     });
 
-    private readonly IOptions<PollingOptions> _pollingOptions =
-        Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = _discovery));
+    private readonly IOptions<PollingOptions> _pollingOptions = Options.Create(new PollingOptions());
+
+    private static readonly IOptions<DomainRequirements> _requirements =
+        Options.Create(new DomainRequirements(Forecast: ForecastParams.Temperature));
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
@@ -51,23 +53,22 @@ public sealed class PollManagerQueryTests : Akka.Hosting.TestKit.TestKit
     ];
 
     private IActorRef CreateManager() =>
-        Sys.ActorOf(Props.Create(() => new PollManager(_njordOptions, _pollingOptions, _time)), $"manager-{Guid.NewGuid():N}");
+        Sys.ActorOf(Props.Create(() => new PollManager(_njordOptions, _pollingOptions, _requirements, _time)), $"manager-{Guid.NewGuid():N}");
 
     private async Task<IActorRef> StartedManagerAsync(CancellationToken ct)
     {
         var manager = CreateManager();
-        foreach (var target in _targets)
+        foreach (var _ in _targets)
         {
-            var start = await _region.ExpectMsgAsync<StartPolling>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-            Assert.Equal(new StartPolling(target, _discovery), start);
+            await _region.ExpectMsgAsync<StartPolling>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         }
 
         return manager;
     }
 
-    private PollStateEntry Entry(PollTarget target, PollPhase phase = PollPhase.Discovery, int misses = 0,
-        DateTimeOffset? lastChange = null, long? cycle = null) =>
-        new(target.Location, phase, _time.GetUtcNow() + _discovery, lastChange, misses, cycle);
+    private PollStateEntry Entry(PollTarget target, PollPhase phase = PollPhase.Active,
+        DateTimeOffset? lastChange = null) =>
+        new(target.Location, phase, _time.GetUtcNow() + TimeSpan.FromMinutes(60), lastChange);
 
     private static async Task<PollStatesResult> QueryAsync(IActorRef manager, CancellationToken ct) =>
         await manager.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(15), ct);
@@ -82,11 +83,9 @@ public sealed class PollManagerQueryTests : Akka.Hosting.TestKit.TestKit
 
         Assert.Equal(_targets.Length, states.Entries.Count);
         Assert.All(states.Entries, e => Assert.Multiple(
-            () => Assert.Equal(PollPhase.Discovery, e.Phase),
+            () => Assert.Equal(PollPhase.Active, e.Phase),
             () => Assert.Equal(_time.GetUtcNow(), e.NextPollUtc),
-            () => Assert.Null(e.LastChangeUtc),
-            () => Assert.Null(e.CycleSeconds),
-            () => Assert.Equal(0, e.MissCount)));
+            () => Assert.Null(e.LastChangeUtc)));
         Assert.Equal(_targets.Select(t => t.Location), states.Entries.Select(e => e.Location));
     }
 
@@ -96,17 +95,17 @@ public sealed class PollManagerQueryTests : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var manager = await StartedManagerAsync(ct);
         var change = _time.GetUtcNow();
-        var steady = Entry(_targets[0], PollPhase.Steady, lastChange: change, cycle: 10800);
-        var missed = Entry(_targets[1], misses: 1, lastChange: change);
+        var active = Entry(_targets[0], PollPhase.Active, lastChange: change);
+        var unchanged = Entry(_targets[1], lastChange: change);
 
-        manager.Tell(new PollWorkerReport(_targets[0], PollWorkerOutcome.Changed, steady));
-        manager.Tell(new PollWorkerReport(_targets[1], PollWorkerOutcome.Changed, missed with { MissCount = 0 }));
-        manager.Tell(new PollWorkerReport(_targets[1], PollWorkerOutcome.Unchanged, missed));
+        manager.Tell(new PollWorkerReport(_targets[0], PollWorkerOutcome.Changed, active));
+        manager.Tell(new PollWorkerReport(_targets[1], PollWorkerOutcome.Changed, unchanged));
+        manager.Tell(new PollWorkerReport(_targets[1], PollWorkerOutcome.Unchanged, unchanged));
 
         var states = await QueryAsync(manager, ct);
         Assert.Multiple(
-            () => Assert.Equal(steady, states.Entries[0]),
-            () => Assert.Equal(missed, states.Entries[1]));
+            () => Assert.Equal(active, states.Entries[0]),
+            () => Assert.Equal(unchanged, states.Entries[1]));
     }
 
     [Fact(Timeout = 30_000)]

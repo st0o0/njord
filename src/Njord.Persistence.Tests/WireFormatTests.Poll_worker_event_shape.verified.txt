@@ -1,10 +1,13 @@
-{
+﻿{
   "Location": "lucerne",
   "Domains": [
     0,
     1
   ],
-  "DiscoveryInterval": "00:20:00",
+  "DomainIntervals": {
+    "0": "01:00:00",
+    "1": "01:00:00"
+  },
   "Utc": "2026-07-15T10:00:00+00:00",
   "Latitude": 47.05,
   "Longitude": 8.31

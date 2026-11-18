@@ -29,23 +29,23 @@ internal sealed record PollManagerState(
     ImmutableDictionary<string, PollStateEntry> States,
     ImmutableDictionary<IActorRef, string> Watched,
     ImmutableDictionary<string, int> RestartAttempts,
-    TimeSpan DiscoveryInterval,
+    Dictionary<int, TimeSpan> DomainIntervals,
     DateTimeOffset StartedUtc,
     DateTimeOffset? LastSuccessfulPollUtc)
 {
     public static PollManagerState Create(
-        PollManagerConfig config, TimeSpan discoveryInterval, DateTimeOffset now)
+        PollManagerConfig config, Dictionary<int, TimeSpan> domainIntervals, DateTimeOffset now)
     {
         var states = config.Targets.ToImmutableDictionary(
             t => t.Id,
-            t => new PollStateEntry(t.Location, PollPhase.Discovery, now, null, 0, null),
+            t => new PollStateEntry(t.Location, PollPhase.Active, now, null),
             StringComparer.OrdinalIgnoreCase);
 
         return new PollManagerState(
             states,
             [],
             ImmutableDictionary.Create<string, int>(StringComparer.OrdinalIgnoreCase),
-            discoveryInterval,
+            domainIntervals,
             now,
             null);
     }

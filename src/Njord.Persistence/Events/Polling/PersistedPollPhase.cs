@@ -2,7 +2,6 @@ namespace Njord.Persistence.Events.Polling;
 
 public enum PersistedPollPhase
 {
-    Discovery = 0,
-    Steady = 1,
+    Active = 0,
     Suspended = 2,
 }

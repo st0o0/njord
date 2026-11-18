@@ -9,8 +9,7 @@ internal static class StatusMappingExtensions
 {
     public static ProtoPollPhase ToProto(this PollPhase phase) => phase switch
     {
-        PollPhase.Discovery => ProtoPollPhase.Discovery,
-        PollPhase.Steady => ProtoPollPhase.Steady,
+        PollPhase.Active => ProtoPollPhase.Active,
         PollPhase.Suspended => ProtoPollPhase.Suspended,
         _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, null),
     };
@@ -22,16 +21,10 @@ internal static class StatusMappingExtensions
             Location = entry.Location.Name,
             Phase = entry.Phase.ToProto(),
             NextPoll = entry.NextPollUtc.ToTimestamp(),
-            MissCount = entry.MissCount,
         };
         if (entry.LastChangeUtc is { } lastChange)
         {
             status.LastChange = lastChange.ToTimestamp();
-        }
-
-        if (entry.CycleSeconds is { } cycleSeconds)
-        {
-            status.CycleSeconds = cycleSeconds;
         }
 
         if (entry.DomainStates is { } domainStates)
@@ -42,11 +35,10 @@ internal static class StatusMappingExtensions
                 {
                     Domain = ds.Domain,
                     Phase = ds.Phase.ToProto(),
-                    MissCount = ds.MissCount,
                 };
-                if (ds.CycleSeconds is { } dsCycle)
+                if (ds.IntervalSeconds is { } interval)
                 {
-                    domainStatus.CycleSeconds = dsCycle;
+                    domainStatus.CycleSeconds = interval;
                 }
 
                 if (ds.NextPollAt is { } nextPoll)

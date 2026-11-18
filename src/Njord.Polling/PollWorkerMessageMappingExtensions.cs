@@ -13,8 +13,7 @@ internal static class PollWorkerMessageMappingExtensions
             .Select(d => new DomainPollStateEntry(
                 d.Domain.ToString(),
                 d.Phase,
-                d.LearnedCycle is { } cycle ? (long)cycle.TotalSeconds : null,
-                d.MissCount,
+                (long)d.EffectiveInterval.TotalSeconds,
                 d.NextPollAt))
             .ToList();
         return new PollStateEntry(
@@ -22,8 +21,6 @@ internal static class PollWorkerMessageMappingExtensions
             weather.Phase,
             state.NextPollUtc,
             weather.LastChanged,
-            weather.MissCount,
-            weather.LearnedCycle is { } c ? (long)c.TotalSeconds : null,
             domainStates);
     }
 }

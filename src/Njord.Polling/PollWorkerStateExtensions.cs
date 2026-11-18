@@ -9,45 +9,23 @@ public static class PollWorkerStateExtensions
     public static PollWorkerState Apply(this PollWorkerState state, PollingStarted evt)
     {
         var target = new PollTarget(new Location(evt.Location, evt.Latitude ?? 0, evt.Longitude ?? 0));
-        if (state.Target is null)
-        {
-            var domains = state.Domains;
-            foreach (var d in evt.Domains)
-            {
-                var dk = (DomainKind)d;
-                if (!domains.ContainsKey(dk))
-                {
-                    domains = domains.SetItem(dk, DomainPollState.Empty(dk) with { NextPollAt = evt.Utc });
-                }
-            }
+        var domains = state.Domains;
 
-            return state with
+        foreach (var d in evt.Domains)
+        {
+            var dk = (DomainKind)d;
+            var interval = evt.DomainIntervals.TryGetValue(d, out var ts) ? ts : TimeSpan.FromMinutes(60);
+            if (!domains.TryGetValue(dk, out var existing))
             {
-                Target = target,
-                Active = true,
-                DiscoveryInterval = evt.DiscoveryInterval,
-                Domains = domains,
-            };
+                domains = domains.SetItem(dk, DomainPollState.Empty(dk, interval) with { NextPollAt = evt.Utc });
+            }
+            else
+            {
+                domains = domains.SetItem(dk, existing with { PollInterval = interval });
+            }
         }
 
-        if (evt.DiscoveryInterval != state.DiscoveryInterval)
-        {
-            // Replan discovery-phase domains to the new interval
-            var domains = state.Domains;
-            foreach (var (dk, ds) in state.Domains)
-            {
-                if (ds is { Phase: PollPhase.Discovery, NextPollAt: { } nextPoll } && nextPoll > evt.Utc)
-                {
-                    var replanned = nextPoll - state.DiscoveryInterval + evt.DiscoveryInterval;
-                    var next = replanned < evt.Utc ? evt.Utc : replanned;
-                    domains = domains.SetItem(dk, ds with { NextPollAt = next });
-                }
-            }
-
-            return state with { Target = target, Active = true, DiscoveryInterval = evt.DiscoveryInterval, Domains = domains };
-        }
-
-        return state with { Target = target, Active = true };
+        return state with { Target = target, Active = true, Domains = domains };
     }
 
     public static PollWorkerState Apply(this PollWorkerState state, PollingStopped _) =>
@@ -60,20 +38,27 @@ public static class PollWorkerStateExtensions
 
         ds = evt.Outcome switch
         {
-            PersistedDomainPollOutcome.Changed => ds.RecordHashChange(evt.Hash!.Value, evt.Utc, state.DiscoveryInterval),
-            PersistedDomainPollOutcome.Unchanged => ds.RecordHashUnchanged(evt.Utc, state.DiscoveryInterval),
-            PersistedDomainPollOutcome.Failed => ds with { NextPollAt = evt.Utc + (evt.Delay ?? TimeSpan.FromMinutes(1)) },
-            PersistedDomainPollOutcome.NoData => ds with { Phase = PollPhase.Suspended, NextPollAt = evt.Utc + (evt.Delay ?? PollWorkerState.SuspendedRecheckInterval) },
+            PersistedDomainPollOutcome.Changed => ds.RecordHashChange(evt.Hash!.Value, evt.Utc),
+            PersistedDomainPollOutcome.Unchanged => ds.RecordHashUnchanged(evt.Utc),
+            PersistedDomainPollOutcome.Failed => ds with
+            {
+                NextPollAt = evt.Utc + (evt.Delay ?? TimeSpan.FromMinutes(1)),
+                ConsecutiveFailures = evt.ConsecutiveFailures,
+            },
+            PersistedDomainPollOutcome.NoData => ds with
+            {
+                Phase = PollPhase.Suspended,
+                NextPollAt = evt.Utc + (evt.Delay ?? PollWorkerState.SuspendedRecheckInterval),
+                ConsecutiveFailures = evt.ConsecutiveFailures,
+            },
             _ => throw new ArgumentOutOfRangeException(nameof(evt), $"Unknown outcome: {evt.Outcome}"),
         };
-
-        ds = ds with { ConsecutiveFailures = evt.ConsecutiveFailures };
 
         return state with { Domains = state.Domains.SetItem(domain, ds) };
     }
 
     public static DomainPollState GetDomain(this PollWorkerState state, DomainKind domain) =>
-        state.Domains.TryGetValue(domain, out var ds) ? ds : DomainPollState.Empty(domain);
+        state.Domains.TryGetValue(domain, out var ds) ? ds : DomainPollState.Empty(domain, TimeSpan.FromMinutes(60));
 
     public static IReadOnlyList<DomainKind> DueDomainsAt(
         this PollWorkerState state, IEnumerable<DomainKind> enabled, DateTimeOffset now) =>

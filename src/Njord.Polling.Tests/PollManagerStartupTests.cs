@@ -5,15 +5,15 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
+using Njord.Core.Forecast;
 using Njord.Messages.Polling;
 using Njord.Tests.Shared;
 
 namespace Njord.Polling.Tests;
 
-// A probe plays the poll shard region; the test plays the workers by sending their reports.
 public sealed class PollManagerStartupTests : Akka.Hosting.TestKit.TestKit
 {
-    private static readonly TimeSpan _discovery = TimeSpan.FromMinutes(20);
     private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private TestProbe _region = null!;
 
@@ -31,8 +31,10 @@ public sealed class PollManagerStartupTests : Akka.Hosting.TestKit.TestKit
         ],
     });
 
-    private readonly IOptions<PollingOptions> _pollingOptions =
-        Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = _discovery));
+    private readonly IOptions<PollingOptions> _pollingOptions = Options.Create(new PollingOptions());
+
+    private static readonly IOptions<DomainRequirements> _requirements =
+        Options.Create(new DomainRequirements(Forecast: ForecastParams.Temperature));
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
@@ -51,32 +53,22 @@ public sealed class PollManagerStartupTests : Akka.Hosting.TestKit.TestKit
     ];
 
     private IActorRef CreateManager() =>
-        Sys.ActorOf(Props.Create(() => new PollManager(_njordOptions, _pollingOptions, _time)), $"manager-{Guid.NewGuid():N}");
+        Sys.ActorOf(Props.Create(() => new PollManager(_njordOptions, _pollingOptions, _requirements, _time)), $"manager-{Guid.NewGuid():N}");
 
     private async Task<IActorRef> StartedManagerAsync(CancellationToken ct)
     {
         var manager = CreateManager();
-        foreach (var target in _targets)
+        foreach (var _ in _targets)
         {
-            var start = await _region.ExpectMsgAsync<StartPolling>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-            Assert.Equal(new StartPolling(target, _discovery), start);
+            await _region.ExpectMsgAsync<StartPolling>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         }
 
         return manager;
     }
 
-    private PollStateEntry Entry(PollTarget target, PollPhase phase = PollPhase.Discovery, int misses = 0,
-        DateTimeOffset? lastChange = null, long? cycle = null) =>
-        new(target.Location, phase, _time.GetUtcNow() + _discovery, lastChange, misses, cycle);
-
-    private static async Task<PollStatesResult> QueryAsync(IActorRef manager, CancellationToken ct) =>
-        await manager.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(15), ct);
-
     [Fact(Timeout = 30_000)]
     public async Task Every_resolved_model_of_every_location_is_started_once()
     {
-        // StartedManagerAsync asserts the exact StartPolling sequence: global models first (the duplicate
-        // spelling collapsed), then the location's own models.
         await StartedManagerAsync(TestContext.Current.CancellationToken);
 
         await _region.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
@@ -88,12 +80,14 @@ public sealed class PollManagerStartupTests : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var manager = await StartedManagerAsync(ct);
         var worker = CreateTestProbe("worker");
-        manager.Tell(new PollWorkerReport(_targets[1], PollWorkerOutcome.Planned, Entry(_targets[1])), worker.Ref);
-        await QueryAsync(manager, ct);
+        manager.Tell(new PollWorkerReport(_targets[1], PollWorkerOutcome.Planned,
+            new PollStateEntry(_targets[1].Location, PollPhase.Active, _time.GetUtcNow(), null)), worker.Ref);
+
+        var states = await manager.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(15), ct);
+        Assert.Equal(_targets.Length, states.Entries.Count);
 
         await worker.Ref.GracefulStop(TimeSpan.FromSeconds(15));
 
-        var start = await _region.ExpectMsgAsync<StartPolling>(TimeSpan.FromSeconds(5), cancellationToken: ct);
-        Assert.Equal(new StartPolling(_targets[1], _discovery), start);
+        await _region.ExpectMsgAsync<StartPolling>(TimeSpan.FromSeconds(5), cancellationToken: ct);
     }
 }

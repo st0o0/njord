@@ -25,7 +25,6 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
     private readonly HashSet<DomainKind> _inFlight = [];
 
     private readonly TimeProvider _timeProvider;
-    private readonly TimeSpan _pollInterval;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly DomainKind[] _enabledDomains;
     private PollWorkerState _state = PollWorkerState.Empty;
@@ -34,12 +33,11 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
     public override string PersistenceId { get; }
 
-    public PollWorker(string entityId, TimeProvider timeProvider, IOptions<PollingOptions> pollingOptions,
+    public PollWorker(string entityId, TimeProvider timeProvider,
         IOptions<DomainRequirements> requirements)
     {
         _enabledDomains = [.. requirements.Value.RequiredDomains()];
         _timeProvider = timeProvider;
-        _pollInterval = pollingOptions.Value.PollInterval;
         PersistenceId = $"poll-worker-{entityId}";
 
         Recover<PollingStarted>(evt => _state = _state.Apply(evt));
@@ -88,7 +86,6 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
     {
         var location = cmd.Target.Location;
         if (_state is { Active: true, Target: { } current }
-            && _state.DiscoveryInterval == cmd.DiscoveryInterval
             && current.Location.Latitude == location.Latitude
             && current.Location.Longitude == location.Longitude)
         {
@@ -96,21 +93,13 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             return;
         }
 
-        var previous = _state.DiscoveryInterval;
-        var wasStarted = _state.Target is not null;
         var evt = new PollingStarted(cmd.Target.Location.Name,
-            [.. _enabledDomains.Select(d => (int)d)], cmd.DiscoveryInterval, _timeProvider.GetUtcNow(),
+            [.. _enabledDomains.Select(d => (int)d)], cmd.DomainIntervals, _timeProvider.GetUtcNow(),
             location.Latitude, location.Longitude);
         var seqNrBefore = LastSequenceNr;
         Persist(evt, e =>
         {
             _state = _state.Apply(e);
-            if (wasStarted && previous != e.DiscoveryInterval)
-            {
-                _log.Debug("Discovery interval of {Location} changed from {Previous} to {Current}",
-                    e.Location, previous, e.DiscoveryInterval);
-            }
-
             ScheduleAllDomains();
             Report(PollWorkerOutcome.Planned);
             MaybeSnapshot(seqNrBefore);
@@ -224,7 +213,9 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
     private DomainPolled ToDomainPolled(DomainKind domain, FetchDomainResponse? reply, DateTimeOffset now)
     {
-        var failures = _state.GetDomain(domain).ConsecutiveFailures;
+        var ds = _state.GetDomain(domain);
+        var failures = ds.ConsecutiveFailures;
+        var cap = ds.PollInterval;
         return reply switch
         {
             FetchDomainCompleted c when c.Hash != _state.GetDomainHash(domain) =>
@@ -239,10 +230,10 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
                     PollWorkerState.SuspendedRecheckInterval),
             FetchDomainFailed { Reason: PollFailureReason.RateLimited } =>
                 new DomainPolled((int)domain, PersistedDomainPollOutcome.Failed, null, now,
-                    FailureBackoff.RateLimited(failures + 1, _pollInterval), failures + 1),
+                    FailureBackoff.RateLimited(failures + 1, cap), failures + 1),
             _ =>
                 new DomainPolled((int)domain, PersistedDomainPollOutcome.Failed, null, now,
-                    FailureBackoff.Delay(failures + 1, _pollInterval), failures + 1),
+                    FailureBackoff.Delay(failures + 1, cap), failures + 1),
         };
     }
 
@@ -321,12 +312,12 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         switch (reply)
         {
             case FetchDomainCompleted completed when completed.Hash != ds.LastHash:
-                _log.Debug("Data changed for {Location}/{Domain} - phase={Phase}, cycle={Cycle}",
-                    target.Location, domain, ds.Phase, ds.LearnedCycle);
+                _log.Debug("Data changed for {Location}/{Domain} - phase={Phase}, interval={Interval}",
+                    target.Location, domain, ds.Phase, ds.EffectiveInterval);
                 break;
             case FetchDomainCompleted:
-                _log.Debug("Hash unchanged for {Location}/{Domain} - miss={Miss}, phase={Phase}",
-                    target.Location, domain, ds.MissCount, ds.Phase);
+                _log.Debug("Hash unchanged for {Location}/{Domain} - phase={Phase}, interval={Interval}",
+                    target.Location, domain, ds.Phase, ds.EffectiveInterval);
                 break;
             case FetchDomainFailed { Reason: PollFailureReason.Transport } failed:
                 _log.Warning("Fetch failed for {Location}/{Domain} (transport) - details={Details}",
@@ -351,16 +342,9 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         }
     }
 
-    private void RecordTelemetry(DomainKind domain, PersistedDomainPollOutcome outcome, DomainPollState? before)
+    private void RecordTelemetry(DomainKind domain, PersistedDomainPollOutcome outcome, DomainPollState? _)
     {
         Telemetry.RecordDomainPoll(domain, outcome);
-        if (outcome == PersistedDomainPollOutcome.Changed && before is { Phase: PollPhase.Discovery } &&
-            _state.GetDomain(domain).Phase == PollPhase.Steady)
-        {
-            Telemetry.RecordCycleLearned(domain);
-            _log.Info("Learned update cycle {Cycle} for {Location}/{Domain}",
-                _state.GetDomain(domain).LearnedCycle, _state.Target?.Location, domain);
-        }
     }
 
     private static string TimerKey(DomainKind domain) => $"poll-{domain}";

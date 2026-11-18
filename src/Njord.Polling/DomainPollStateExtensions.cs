@@ -1,82 +1,39 @@
 using Njord.Messages.Polling;
 
-
 namespace Njord.Polling;
 
 public static class DomainPollStateExtensions
 {
-    private static readonly TimeSpan _maxRetryBackoff = TimeSpan.FromMinutes(15);
-    private const int MaxMissesBeforeFallback = 5;
-
     internal static readonly TimeSpan SteadyBuffer = TimeSpan.FromSeconds(30);
-    private const double CycleTolerance = 0.2;
 
     public static DomainPollState RecordHashChange(
-        this DomainPollState domain, int hash, DateTimeOffset now, TimeSpan discoveryInterval)
+        this DomainPollState domain, int hash, DateTimeOffset now)
     {
-        if (domain.Phase == PollPhase.Suspended)
+        var updated = domain with
         {
-            return domain.FallBackToDiscovery(now, discoveryInterval) with { LastHash = hash, LastChanged = now };
+            Phase = PollPhase.Active,
+            LastHash = hash,
+            LastChanged = now,
+            ConsecutiveFailures = 0,
+            NextPollAt = now + domain.EffectiveInterval - SteadyBuffer,
+        };
+
+        if (domain.LastChanged is { } previous)
+        {
+            var observed = now - previous;
+            updated = updated.UpdateDrift(observed);
         }
 
-        var changed = domain with { LastHash = hash, LastChanged = now, MissCount = 0 };
-        if (domain.LastChanged is not { } previous)
-        {
-            return changed with { NextPollAt = now + discoveryInterval };
-        }
-
-        var interval = now - previous;
-        var reference = domain.Phase == PollPhase.Steady ? domain.LearnedCycle : domain.CandidateCycle;
-        return reference is { } known && IsConsistent(interval, known)
-            ? changed.TransitionToSteady(interval)
-            : changed.FallBackToDiscovery(now, discoveryInterval, interval);
+        return updated;
     }
 
     public static DomainPollState RecordHashUnchanged(
-        this DomainPollState domain, DateTimeOffset now, TimeSpan discoveryInterval)
+        this DomainPollState domain, DateTimeOffset now)
     {
-        var misses = domain.MissCount + 1;
-        if (domain.Phase != PollPhase.Steady)
-        {
-            return domain with { MissCount = misses, NextPollAt = now + discoveryInterval };
-        }
-
-        return misses >= MaxMissesBeforeFallback
-            ? domain.FallBackToDiscovery(now, discoveryInterval)
-            : domain with { MissCount = misses, NextPollAt = now + RetryBackoff(misses) };
-    }
-
-    public static DomainPollState TransitionToSteady(this DomainPollState domain, TimeSpan cycle)
-    {
-        var anchor = domain.LastChanged ?? domain.NextPollAt ?? DateTimeOffset.MinValue;
-        var delay = cycle - SteadyBuffer;
         return domain with
         {
-            Phase = PollPhase.Steady,
-            LearnedCycle = cycle,
-            CandidateCycle = cycle,
-            MissCount = 0,
-            NextPollAt = anchor + (delay > TimeSpan.Zero ? delay : cycle),
+            ConsecutiveFailures = 0,
+            NextPollAt = now + domain.EffectiveInterval,
         };
-    }
-
-    public static DomainPollState FallBackToDiscovery(
-        this DomainPollState domain, DateTimeOffset now, TimeSpan discoveryInterval, TimeSpan? candidate = null) =>
-        domain with
-        {
-            Phase = PollPhase.Discovery,
-            LearnedCycle = null,
-            CandidateCycle = candidate,
-            MissCount = 0,
-            NextPollAt = now + discoveryInterval,
-        };
-
-    private static bool IsConsistent(TimeSpan interval, TimeSpan reference) =>
-        Math.Abs((interval - reference).TotalSeconds) <= reference.TotalSeconds * CycleTolerance;
-
-    private static TimeSpan RetryBackoff(int count)
-    {
-        var delay = TimeSpan.FromMinutes(Math.Pow(2, count - 1));
-        return delay > _maxRetryBackoff ? _maxRetryBackoff : delay;
     }
 }

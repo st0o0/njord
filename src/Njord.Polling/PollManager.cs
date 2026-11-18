@@ -3,6 +3,7 @@ using Akka.Event;
 using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Messages.Polling;
 using Terp.Akka;
 using Terp.Resilience;
@@ -27,11 +28,13 @@ public sealed class PollManager : ReceiveActor, IWithTimers
     public PollManager(
         IOptions<NjordOptions> options,
         IOptions<PollingOptions> polling,
+        IOptions<DomainRequirements> requirements,
         TimeProvider timeProvider)
     {
         _timeProvider = timeProvider;
         _config = PollManagerConfig.Create(options.Value.ResolvedLocations);
-        _state = PollManagerState.Create(_config, polling.Value.DiscoveryInterval, timeProvider.GetUtcNow());
+        var domainIntervals = BuildDomainIntervals(polling.Value, requirements.Value);
+        _state = PollManagerState.Create(_config, domainIntervals, timeProvider.GetUtcNow());
         Receive<PollWorkerReport>(OnReport);
         Receive<Terminated>(OnWorkerTerminated);
         Receive<RestartWorker>(OnRestartWorker);
@@ -45,8 +48,19 @@ public sealed class PollManager : ReceiveActor, IWithTimers
         _log.Info("Starting {Count} poll workers (one per location)", _config.Targets.Count);
         foreach (var target in _config.Targets)
         {
-            _pollRegion.Tell(new StartPolling(target, _state.DiscoveryInterval));
+            _pollRegion.Tell(new StartPolling(target, _state.DomainIntervals));
         }
+    }
+
+    private static Dictionary<int, TimeSpan> BuildDomainIntervals(PollingOptions polling, DomainRequirements requirements)
+    {
+        var intervals = new Dictionary<int, TimeSpan>();
+        foreach (var domain in requirements.RequiredDomains())
+        {
+            intervals[(int)domain] = polling.ResolvedInterval(domain);
+        }
+
+        return intervals;
     }
 
     private void OnReport(PollWorkerReport report)
@@ -89,7 +103,7 @@ public sealed class PollManager : ReceiveActor, IWithTimers
     {
         if (_config.TargetsById.TryGetValue(msg.LocationName, out var target))
         {
-            _pollRegion.Tell(new StartPolling(target, _state.DiscoveryInterval));
+            _pollRegion.Tell(new StartPolling(target, _state.DomainIntervals));
         }
     }
 

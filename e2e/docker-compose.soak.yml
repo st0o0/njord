@@ -2,4 +2,7 @@ services:
   njord:
     environment:
       - Njord__Polling__PollInterval=00:15:00
-      - Njord__Polling__DiscoveryInterval=00:05:00
+      - Njord__Polling__Domains__Forecast__PollInterval=00:15:00
+      - Njord__Polling__Domains__AirQuality__PollInterval=00:15:00
+      - Njord__Polling__Domains__Marine__PollInterval=00:30:00
+      - Njord__Polling__Domains__Ensemble__PollInterval=00:30:00

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Njord.Core;
+using Njord.Core.Polling;
 using Njord.Messages.Polling;
 using Njord.Persistence.Events.Polling;
 
@@ -10,19 +11,16 @@ internal static class PollWorkerPersistenceMappingExtensions
     public static PersistedPollWorkerState GetPersistenceState(this PollWorkerState state) => new(
         state.Target?.Location.Name,
         state.Active,
-        state.DiscoveryInterval,
         state.Domains.IsEmpty
             ? null
-            : state.Domains.Select(kv => new PersistedDomainState(
+            : [.. state.Domains.Select(kv => new PersistedDomainState(
                 (int)kv.Key,
                 kv.Value.LastHash,
                 kv.Value.Phase.ToPersistence(),
-                kv.Value.LearnedCycle,
-                kv.Value.MissCount,
                 kv.Value.LastChanged,
-                kv.Value.CandidateCycle,
                 kv.Value.NextPollAt,
-                kv.Value.ConsecutiveFailures)).ToList(),
+                kv.Value.ConsecutiveFailures,
+                kv.Value.PollInterval))],
         state.Target?.Location.Latitude,
         state.Target?.Location.Longitude);
 
@@ -36,21 +34,18 @@ internal static class PollWorkerPersistenceMappingExtensions
                     d.Phase.ToDomain(),
                     d.LastHash,
                     d.LastChanged,
-                    d.CandidateCycle,
-                    d.LearnedCycle,
-                    d.MissCount,
+                    d.PollInterval ?? DomainDefaults.PollInterval((DomainKind)d.Domain),
                     d.NextPollAt,
                     d.ConsecutiveFailures))
             : [];
 
-        // Ensure enabled domains have entries
         if (enabledDomains is { Count: > 0 })
         {
             foreach (var dk in enabledDomains)
             {
                 if (!domains.ContainsKey(dk))
                 {
-                    domains = domains.SetItem(dk, DomainPollState.Empty(dk));
+                    domains = domains.SetItem(dk, DomainPollState.Empty(dk, DomainDefaults.PollInterval(dk)));
                 }
             }
         }
@@ -58,24 +53,21 @@ internal static class PollWorkerPersistenceMappingExtensions
         return new PollWorkerState(
             dto is { Location: { } location } ? new PollTarget(new Location(location, dto.Latitude ?? 0, dto.Longitude ?? 0)) : null,
             dto.Active,
-            dto.DiscoveryInterval,
             domains);
     }
 
     public static PersistedPollPhase ToPersistence(this PollPhase phase) => phase switch
     {
-        PollPhase.Discovery => PersistedPollPhase.Discovery,
-        PollPhase.Steady => PersistedPollPhase.Steady,
+        PollPhase.Active => PersistedPollPhase.Active,
         PollPhase.Suspended => PersistedPollPhase.Suspended,
         _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, "Unknown poll phase"),
     };
 
     public static PollPhase ToDomain(this PersistedPollPhase phase) => phase switch
     {
-        PersistedPollPhase.Discovery => PollPhase.Discovery,
-        PersistedPollPhase.Steady => PollPhase.Steady,
+        PersistedPollPhase.Active => PollPhase.Active,
+        (PersistedPollPhase)1 => PollPhase.Active, // legacy Steady maps to Active
         PersistedPollPhase.Suspended => PollPhase.Suspended,
         _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, "Unknown persisted poll phase"),
     };
-
 }

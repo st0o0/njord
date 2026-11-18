@@ -1,0 +1,39 @@
+## MODIFIED Requirements
+
+### Requirement: A suspended domain recovers when data becomes available
+If a 24-hour recheck returns data (the fetch succeeds), the domain SHALL leave the `Suspended` phase and resume polling in the Active phase at its configured interval.
+
+#### Scenario: Recheck returns data
+- **WHEN** a suspended domain's 24-hour recheck returns a successful fetch with changed data
+- **THEN** the domain SHALL transition to the Active phase
+- **AND** the poll worker SHALL schedule the next poll at the domain's configured interval
+
+### Requirement: NoData suspends the domain with a 24-hour recheck
+When a poll worker receives a `NoData` failure for a domain, it SHALL transition that domain to the `Suspended` phase and schedule the next poll 24 hours later. The consecutive-failure count SHALL NOT be incremented.
+
+#### Scenario: First NoData for a domain
+- **WHEN** a domain that was in Active phase receives a `NoData` failure
+- **THEN** the domain SHALL enter the `Suspended` phase
+- **AND** the next poll SHALL be scheduled 24 hours later
+- **AND** the consecutive-failure count SHALL remain at zero
+
+#### Scenario: Repeated NoData keeps the domain suspended
+- **WHEN** a suspended domain's 24-hour recheck again receives `NoData`
+- **THEN** the domain SHALL remain in the `Suspended` phase
+- **AND** the next poll SHALL be scheduled 24 hours later
+
+#### Scenario: NoData does not affect other domains
+- **WHEN** Flood is suspended for a location
+- **THEN** the Forecast, Ensemble, AirQuality, Marine, and Seasonal poll schedules for that location SHALL be unchanged
+
+### Requirement: The suspended state survives restarts
+The `Suspended` phase and the `NoData` outcome SHALL be persisted so that a recovered poll worker does not reset a suspended domain back to Active and immediately retry.
+
+#### Scenario: Recovery of a suspended domain
+- **WHEN** a poll worker recovers and a domain was persisted as `Suspended` with a `NextPollAt` 20 hours in the future
+- **THEN** the domain SHALL remain `Suspended`
+- **AND** the next poll SHALL fire at the persisted time (not immediately)
+
+#### Scenario: Old records with Discovery or Steady phase
+- **WHEN** a poll worker recovers a domain state record with the legacy Discovery or Steady phase
+- **THEN** the domain SHALL recover as Active

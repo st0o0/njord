@@ -1,4 +1,5 @@
 using Njord.Core;
+using Njord.Core.Polling;
 using Njord.Messages.Polling;
 using static Njord.Polling.Tests.PollStateFixture;
 
@@ -6,95 +7,58 @@ namespace Njord.Polling.Tests;
 
 public sealed class DomainPollStateTests
 {
-    [Fact]
-    public void Intervals_within_twenty_percent_count_as_consistent()
-    {
-        var state = StartedAll()
-            .Apply(Changed(DomainKind.Flood, 1, T0))
-            .Apply(Changed(DomainKind.Flood, 2, T0.AddHours(10)))
-            .Apply(Changed(DomainKind.Flood, 3, T0.AddHours(10 + 11)));
-
-        Assert.Equal(PollPhase.Steady, state.GetDomain(DomainKind.Flood).Phase);
-    }
+    private static readonly TimeSpan _interval = TimeSpan.FromMinutes(60);
 
     [Fact]
-    public void Inconsistent_intervals_stay_in_discovery_with_the_newest_candidate()
+    public void A_changed_hash_schedules_next_poll_at_effective_interval_minus_buffer()
     {
-        var state = StartedAll()
-            .Apply(Changed(DomainKind.Flood, 1, T0))
-            .Apply(Changed(DomainKind.Flood, 2, T0.AddHours(1)))
-            .Apply(Changed(DomainKind.Flood, 3, T0.AddHours(4)));
-        var domain = state.GetDomain(DomainKind.Flood);
+        var domain = DomainPollState.Empty(DomainKind.Forecast, _interval);
+
+        var updated = domain.RecordHashChange(42, T0);
 
         Assert.Multiple(
-            () => Assert.Equal(PollPhase.Discovery, domain.Phase),
-            () => Assert.Equal(TimeSpan.FromHours(3), domain.CandidateCycle));
+            () => Assert.Equal(PollPhase.Active, updated.Phase),
+            () => Assert.Equal(42, updated.LastHash),
+            () => Assert.Equal(T0, updated.LastChanged),
+            () => Assert.Equal(T0 + _interval - DomainPollStateExtensions.SteadyBuffer, updated.NextPollAt));
     }
 
     [Fact]
-    public void Tolerance_boundary_rejects_intervals_just_outside_twenty_percent()
+    public void An_unchanged_hash_schedules_next_poll_at_effective_interval()
+    {
+        var domain = DomainPollState.Empty(DomainKind.Forecast, _interval)
+            .RecordHashChange(42, T0);
+
+        var updated = domain.RecordHashUnchanged(T0.AddMinutes(60));
+
+        Assert.Multiple(
+            () => Assert.Equal(PollPhase.Active, updated.Phase),
+            () => Assert.Equal(T0.AddMinutes(60) + _interval, updated.NextPollAt));
+    }
+
+    [Fact]
+    public void Domains_poll_independently()
     {
         var state = StartedAll()
-            .Apply(Changed(DomainKind.Flood, 1, T0))
-            .Apply(Changed(DomainKind.Flood, 2, T0.AddHours(10)))
-            .Apply(Changed(DomainKind.Flood, 3, T0.AddHours(10).Add(TimeSpan.FromHours(12.01))));
-
-        Assert.Equal(PollPhase.Discovery, state.GetDomain(DomainKind.Flood).Phase);
-    }
-
-    [Fact]
-    public void Domains_learn_independently()
-    {
-        var state = Steady(DomainKind.AirQuality)
             .Apply(Changed(DomainKind.Forecast, 1, T0))
-            .Apply(Changed(DomainKind.Forecast, 2, T0.AddHours(6)));
+            .Apply(Changed(DomainKind.Marine, 1, T0));
 
-        Assert.Multiple(
-            () => Assert.Equal(PollPhase.Steady, state.GetDomain(DomainKind.AirQuality).Phase),
-            () => Assert.Equal(PollPhase.Discovery, state.GetDomain(DomainKind.Forecast).Phase));
-    }
-
-    [Fact]
-    public void A_discovery_miss_waits_one_discovery_interval()
-    {
-        var state = StartedAll()
-            .Apply(Changed(DomainKind.Marine, 1, T0))
-            .Apply(Unchanged(DomainKind.Marine, T0 + Discovery));
-        var domain = state.GetDomain(DomainKind.Marine);
-
-        Assert.Multiple(
-            () => Assert.Equal(1, domain.MissCount),
-            () => Assert.Equal(T0 + Discovery + Discovery, domain.NextPollAt));
-    }
-
-    [Fact]
-    public void A_failed_domain_retries_after_its_delay_and_keeps_its_learning()
-    {
-        var at = T0.AddHours(3);
-        var state = Steady(DomainKind.AirQuality).Apply(Failed(DomainKind.AirQuality, at, TimeSpan.FromMinutes(5)));
-        var domain = state.GetDomain(DomainKind.AirQuality);
-
-        Assert.Multiple(
-            () => Assert.Equal(PollPhase.Steady, domain.Phase),
-            () => Assert.Equal(at.AddMinutes(5), domain.NextPollAt));
+        var forecast = state.GetDomain(DomainKind.Forecast);
+        var marine = state.GetDomain(DomainKind.Marine);
+        Assert.NotEqual(forecast.NextPollAt, marine.NextPollAt);
     }
 
     [Fact]
     public void The_location_is_next_due_when_its_earliest_domain_is()
     {
-        // Advance every domain past T0 so the NextPollUtc reflects only the re-planned ones.
         var state = StartedAll()
             .Apply(Changed(DomainKind.Forecast, 1, T0))
             .Apply(Changed(DomainKind.AirQuality, 1, T0))
             .Apply(Changed(DomainKind.Flood, 1, T0))
-            .Apply(Changed(DomainKind.Marine, 1, T0))
-            .Apply(Changed(DomainKind.Forecast, 2, T0.AddHours(6)))
-            .Apply(Changed(DomainKind.Forecast, 3, T0.AddHours(12)))
-            .Apply(Changed(DomainKind.Flood, 2, T0.AddHours(12)));
+            .Apply(Changed(DomainKind.Marine, 1, T0));
 
-        // Flood: 2 changes -> Discovery, NextPollAt = T0+12h + 20min.
-        // AirQuality, Marine: 1 change -> Discovery, NextPollAt = T0 + 20min (earliest).
-        Assert.Equal(T0 + Discovery, state.NextPollUtc);
+        var earliest = state.Domains.Values.Min(d => d.NextPollAt);
+        Assert.Equal(earliest, state.NextPollUtc);
     }
 
     [Fact]
@@ -105,10 +69,108 @@ public sealed class DomainPollStateTests
             .Apply(Changed(DomainKind.Flood, 1, T0.AddMinutes(10)));
         DomainKind[] enabled = [DomainKind.Forecast, DomainKind.Flood, DomainKind.AirQuality];
 
+        var dueAt5 = state.DueDomainsAt(enabled, T0 + TimeSpan.FromMinutes(5));
+        Assert.Equal([DomainKind.AirQuality], dueAt5);
+    }
+
+    [Fact]
+    public void A_changed_event_resets_consecutive_failures()
+    {
+        var domain = DomainPollState.Empty(DomainKind.Forecast, _interval) with { ConsecutiveFailures = 3 };
+
+        var updated = domain.RecordHashChange(42, T0);
+
+        Assert.Equal(0, updated.ConsecutiveFailures);
+    }
+
+    [Fact]
+    public void An_unchanged_event_resets_consecutive_failures()
+    {
+        var domain = DomainPollState.Empty(DomainKind.Forecast, _interval) with { ConsecutiveFailures = 3 };
+
+        var updated = domain.RecordHashUnchanged(T0);
+
+        Assert.Equal(0, updated.ConsecutiveFailures);
+    }
+
+    // --- Drift ---
+
+    [Fact]
+    public void First_change_does_not_trigger_drift()
+    {
+        var domain = DomainPollState.Empty(DomainKind.Forecast, _interval)
+            .RecordHashChange(1, T0);
+
         Assert.Multiple(
-            () => Assert.Equal([DomainKind.AirQuality], state.DueDomainsAt(enabled, T0 + TimeSpan.FromMinutes(5))),
-            () => Assert.Equal(
-                [DomainKind.Forecast, DomainKind.AirQuality],
-                state.DueDomainsAt(enabled, T0 + Discovery)));
+            () => Assert.Null(domain.ObservedIntervalEma),
+            () => Assert.Equal(0, domain.DriftObservationCount),
+            () => Assert.Equal(_interval, domain.EffectiveInterval));
+    }
+
+    [Fact]
+    public void Second_change_starts_tracking_but_does_not_drift_yet()
+    {
+        var domain = DomainPollState.Empty(DomainKind.Forecast, _interval)
+            .RecordHashChange(1, T0)
+            .RecordHashChange(2, T0.AddMinutes(30));
+
+        Assert.Multiple(
+            () => Assert.NotNull(domain.ObservedIntervalEma),
+            () => Assert.Equal(1, domain.DriftObservationCount),
+            () => Assert.Equal(_interval, domain.EffectiveInterval));
+    }
+
+    [Fact]
+    public void Three_observations_activate_drift()
+    {
+        var domain = DomainPollState.Empty(DomainKind.Forecast, _interval)
+            .RecordHashChange(1, T0)
+            .RecordHashChange(2, T0.AddMinutes(30))
+            .RecordHashChange(3, T0.AddMinutes(60))
+            .RecordHashChange(4, T0.AddMinutes(90));
+
+        Assert.Multiple(
+            () => Assert.Equal(3, domain.DriftObservationCount),
+            () => Assert.True(domain.EffectiveInterval < _interval));
+    }
+
+    [Fact]
+    public void Drift_is_clamped_at_half_the_configured_interval()
+    {
+        var domain = DomainPollState.Empty(DomainKind.Forecast, _interval);
+        for (var i = 0; i < 20; i++)
+        {
+            domain = domain.RecordHashChange(i, T0.AddMinutes(i * 5));
+        }
+
+        Assert.Equal(TimeSpan.FromMinutes(30), domain.EffectiveInterval);
+    }
+
+    [Fact]
+    public void Drift_is_clamped_at_double_the_configured_interval()
+    {
+        var domain = DomainPollState.Empty(DomainKind.Forecast, _interval);
+        for (var i = 0; i < 20; i++)
+        {
+            domain = domain.RecordHashChange(i, T0.AddHours(i * 10));
+        }
+
+        Assert.Equal(TimeSpan.FromMinutes(120), domain.EffectiveInterval);
+    }
+
+    // --- Suspended ---
+
+    [Fact]
+    public void A_suspended_domain_recovers_to_active_on_data_change()
+    {
+        var state = Started()
+            .Apply(NoData(DomainKind.Forecast, T0))
+            .Apply(Changed(DomainKind.Forecast, 42, T0.AddHours(24)));
+        var weather = state.GetDomain(DomainKind.Forecast);
+
+        Assert.Multiple(
+            () => Assert.Equal(PollPhase.Active, weather.Phase),
+            () => Assert.Equal(42, weather.LastHash),
+            () => Assert.Equal(0, weather.ConsecutiveFailures));
     }
 }

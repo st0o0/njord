@@ -14,10 +14,16 @@ namespace Njord.Polling.Tests;
 public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
 {
     private const string TargetId = "lucerne";
-    private static readonly TimeSpan _discovery = TimeSpan.FromMinutes(20);
+    private static readonly TimeSpan _forecastInterval = TimeSpan.FromMinutes(60);
     private static readonly Location _lucerne = new("lucerne", 47.05, 8.31);
     private static readonly PollTarget _target = new(_lucerne);
     private static readonly IReadOnlyList<DomainKind> _enabledDomains = [DomainKind.Forecast, DomainKind.AirQuality];
+
+    private static readonly Dictionary<int, TimeSpan> _intervals = new()
+    {
+        [(int)DomainKind.Forecast] = _forecastInterval,
+        [(int)DomainKind.AirQuality] = _forecastInterval,
+    };
 
     private readonly FakeTimeProvider _time = new(TestTimeConstants.PipelineEpoch);
     private TestProbe _gateway = null!;
@@ -37,13 +43,13 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
 
     private IActorRef CreateWorker(string entityId = TargetId) =>
         Sys.ActorOf(Props.Create(() => new PollWorker(
-            entityId, _time, Options.Create(new PollingOptions()),
+            entityId, _time,
             Options.Create(TestRequirements.For(_enabledDomains)))), $"worker-{Guid.NewGuid():N}");
 
     private async Task<IActorRef> StartedWorkerAsync(CancellationToken ct)
     {
         var worker = CreateWorker();
-        worker.Tell(new StartPolling(_target, _discovery));
+        worker.Tell(new StartPolling(_target, _intervals));
         await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         return worker;
     }
@@ -285,7 +291,6 @@ public sealed class PollWorkerFailureTests : Akka.Hosting.TestKit.TestKit
 
         Assert.Multiple(
             () => Assert.Equal(_time.GetUtcNow(), last.State.LastChangeUtc),
-            () => Assert.Equal(0, last.State.MissCount),
             () => Assert.Equal(_time.GetUtcNow() + TimeSpan.FromSeconds(60), last.State.NextPollUtc));
     }
 }

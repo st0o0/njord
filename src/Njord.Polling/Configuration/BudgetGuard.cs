@@ -18,29 +18,53 @@ internal static class BudgetGuard
 
     private static readonly TimeSpan _month = TimeSpan.FromDays(30);
 
-    private static readonly DomainKind[] _perCycleDomains =
-    [
-        DomainKind.Forecast, DomainKind.Ensemble, DomainKind.AirQuality, DomainKind.Flood, DomainKind.Marine,
-    ];
-
     internal static string? Violation(
         NjordOptions scope, PollingOptions polling, DomainRequirements requirements, DomainCallConfig callConfig)
     {
         var locationCount = scope.ResolvedLocations.Count;
 
-        var domainCallsPerCycle = locationCount * _perCycleDomains.Count(requirements.Requires);
-        var weightPerCycle = ForecastWeight(requirements, callConfig)
-            + EnsembleWeight(requirements, callConfig)
-            + AirQualityWeight(requirements, callConfig)
-            + FloodWeight(requirements, callConfig)
-            + MarineWeight(requirements, callConfig);
+        double projectedMonthly = 0;
 
-        var cyclesPerMonth = _month.TotalMinutes / polling.PollInterval.TotalMinutes;
-        var seasonalCalls = locationCount * SeasonalWeightPerMonth(requirements, callConfig);
-        var projectedMonthly = (long)Math.Round(locationCount * weightPerCycle * cyclesPerMonth + seasonalCalls);
+        if (requirements.Requires(DomainKind.Forecast))
+        {
+            var weight = ForecastWeight(requirements, callConfig);
+            var cycles = _month.TotalMinutes / polling.ResolvedInterval(DomainKind.Forecast).TotalMinutes;
+            projectedMonthly += locationCount * weight * cycles;
+        }
 
+        if (requirements.Requires(DomainKind.Ensemble))
+        {
+            var weight = EnsembleWeight(requirements, callConfig);
+            var cycles = _month.TotalMinutes / polling.ResolvedInterval(DomainKind.Ensemble).TotalMinutes;
+            projectedMonthly += locationCount * weight * cycles;
+        }
+
+        if (requirements.Requires(DomainKind.AirQuality))
+        {
+            var weight = AirQualityWeight(requirements, callConfig);
+            var cycles = _month.TotalMinutes / polling.ResolvedInterval(DomainKind.AirQuality).TotalMinutes;
+            projectedMonthly += locationCount * weight * cycles;
+        }
+
+        if (requirements.Requires(DomainKind.Flood))
+        {
+            var weight = FloodWeight(requirements, callConfig);
+            var cycles = _month.TotalMinutes / polling.ResolvedInterval(DomainKind.Flood).TotalMinutes;
+            projectedMonthly += locationCount * weight * cycles;
+        }
+
+        if (requirements.Requires(DomainKind.Marine))
+        {
+            var weight = MarineWeight(requirements, callConfig);
+            var cycles = _month.TotalMinutes / polling.ResolvedInterval(DomainKind.Marine).TotalMinutes;
+            projectedMonthly += locationCount * weight * cycles;
+        }
+
+        projectedMonthly += locationCount * SeasonalWeightPerMonth(requirements, callConfig);
+
+        var total = (long)Math.Round(projectedMonthly);
         var limit = polling.Budget.RequestsPerMonth;
-        var usagePercent = limit > 0 ? (double)projectedMonthly / limit * 100 : 0;
+        var usagePercent = limit > 0 ? (double)total / limit * 100 : 0;
         if (usagePercent <= MonthlyBudgetGuardFactor * 100)
         {
             return null;
@@ -48,25 +72,17 @@ internal static class BudgetGuard
 
         var guard = (int)Math.Round(limit * MonthlyBudgetGuardFactor);
         return
-            $"Projected API usage of {projectedMonthly} effective requests/month ({domainCallsPerCycle} domain calls per cycle " +
-            $"every {polling.PollInterval.TotalMinutes:0} min, weight {weightPerCycle:0.##}) exceeds the " +
+            $"Projected API usage of {total} effective requests/month exceeds the " +
             $"guard of {guard} (80% of the {limit}/month budget). " +
-            "Reduce locations or increase PollInterval.";
+            "Reduce locations, increase domain intervals, or increase PollInterval.";
     }
 
     private static double ForecastWeight(DomainRequirements requirements, DomainCallConfig config) =>
-        requirements.Requires(DomainKind.Forecast)
-            ? CallWeight.Of(BitOperations.PopCount((ulong)requirements.AllForecast), config.ForecastDays)
-                * Math.Max(1, config.ForecastModelCount)
-            : 0;
+        CallWeight.Of(BitOperations.PopCount((ulong)requirements.AllForecast), config.ForecastDays)
+            * Math.Max(1, config.ForecastModelCount);
 
     private static double EnsembleWeight(DomainRequirements requirements, DomainCallConfig config)
     {
-        if (!requirements.Requires(DomainKind.Ensemble))
-        {
-            return 0;
-        }
-
         var spreadVarCount = BitOperations.PopCount((ulong)requirements.AllEnsemble);
         var modelCount = Math.Max(1, config.EnsembleModelCount);
         var ensembleVars = modelCount > 1
@@ -76,20 +92,14 @@ internal static class BudgetGuard
     }
 
     private static double AirQualityWeight(DomainRequirements requirements, DomainCallConfig config) =>
-        requirements.Requires(DomainKind.AirQuality)
-            ? CallWeight.Of(BitOperations.PopCount((ulong)requirements.AllAirQuality), config.AirQualityDays)
-            : 0;
+        CallWeight.Of(BitOperations.PopCount((ulong)requirements.AllAirQuality), config.AirQualityDays);
 
     private static double FloodWeight(DomainRequirements requirements, DomainCallConfig config) =>
-        requirements.Requires(DomainKind.Flood)
-            ? CallWeight.Of(BitOperations.PopCount((ulong)requirements.AllFlood), config.FloodDays)
-                + (config.FloodIncludeEnsemble ? FloodEnsembleWeight - 1 : 0)
-            : 0;
+        CallWeight.Of(BitOperations.PopCount((ulong)requirements.AllFlood), config.FloodDays)
+            + (config.FloodIncludeEnsemble ? FloodEnsembleWeight - 1 : 0);
 
     private static double MarineWeight(DomainRequirements requirements, DomainCallConfig config) =>
-        requirements.Requires(DomainKind.Marine)
-            ? CallWeight.Of(BitOperations.PopCount((ulong)requirements.AllMarine), config.MarineDays)
-            : 0;
+        CallWeight.Of(BitOperations.PopCount((ulong)requirements.AllMarine), config.MarineDays);
 
     private static double SeasonalWeightPerMonth(DomainRequirements requirements, DomainCallConfig config)
     {

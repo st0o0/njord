@@ -16,19 +16,23 @@ public sealed class PollManagerStateTests
         ]);
 
     private static readonly PollTarget _lucerne = new(new Location("lucerne", 0, 0));
-    private static readonly PollTarget _zurich = new(new Location("zurich", 0, 0));
+
+    private static readonly Dictionary<int, TimeSpan> _intervals = new()
+    {
+        [(int)DomainKind.Forecast] = TimeSpan.FromMinutes(60),
+    };
 
     private static PollManagerState InitialState() =>
-        PollManagerState.Create(_config, TimeSpan.FromMinutes(20), _t0);
+        PollManagerState.Create(_config, _intervals, _t0);
 
     [Fact]
-    public void Create_initializes_all_targets_in_discovery_phase()
+    public void Create_initializes_all_targets_in_active_phase()
     {
         var state = InitialState();
 
         Assert.Equal(2, state.States.Count);
         Assert.All(state.States.Values, e => Assert.Multiple(
-            () => Assert.Equal(PollPhase.Discovery, e.Phase),
+            () => Assert.Equal(PollPhase.Active, e.Phase),
             () => Assert.Equal(_t0, e.NextPollUtc)));
     }
 
@@ -36,7 +40,7 @@ public sealed class PollManagerStateTests
     public void ApplyReport_updates_the_target_state()
     {
         var state = InitialState();
-        var entry = new PollStateEntry(_lucerne.Location, PollPhase.Steady, _t0.AddHours(1), _t0, 0, 3600);
+        var entry = new PollStateEntry(_lucerne.Location, PollPhase.Active, _t0.AddHours(1), _t0);
         var report = new PollWorkerReport(_lucerne, PollWorkerOutcome.Changed, entry);
 
         state = state.ApplyReport(report, ActorRefs.Nobody, _config, _t0);
@@ -49,7 +53,7 @@ public sealed class PollManagerStateTests
     {
         var state = InitialState();
         var unknown = new PollTarget(new Location("atlantis", 0, 0));
-        var entry = new PollStateEntry(unknown.Location, PollPhase.Steady, _t0, _t0, 0, null);
+        var entry = new PollStateEntry(unknown.Location, PollPhase.Active, _t0, _t0);
         var report = new PollWorkerReport(unknown, PollWorkerOutcome.Changed, entry);
 
         var newState = state.ApplyReport(report, ActorRefs.Nobody, _config, _t0);
@@ -65,7 +69,7 @@ public sealed class PollManagerStateTests
         PollWorkerOutcome outcome, bool succeeds)
     {
         var state = InitialState();
-        var entry = new PollStateEntry(_lucerne.Location, PollPhase.Steady, _t0.AddHours(1), null, 0, null);
+        var entry = new PollStateEntry(_lucerne.Location, PollPhase.Active, _t0.AddHours(1), null);
         var report = new PollWorkerReport(_lucerne, outcome, entry);
 
         state = state.ApplyReport(report, ActorRefs.Nobody, _config, _t0);
@@ -81,7 +85,7 @@ public sealed class PollManagerStateTests
             RestartAttempts = ImmutableDictionary.Create<string, int>(StringComparer.Ordinal)
                 .Add(_lucerne.Id, 3),
         };
-        var entry = new PollStateEntry(_lucerne.Location, PollPhase.Steady, _t0.AddHours(1), _t0, 0, 3600);
+        var entry = new PollStateEntry(_lucerne.Location, PollPhase.Active, _t0.AddHours(1), _t0);
         var report = new PollWorkerReport(_lucerne, PollWorkerOutcome.Changed, entry);
 
         state = state.ApplyReport(report, ActorRefs.Nobody, _config, _t0);
@@ -97,7 +101,7 @@ public sealed class PollManagerStateTests
             RestartAttempts = ImmutableDictionary.Create<string, int>(StringComparer.Ordinal)
                 .Add(_lucerne.Id, 2),
         };
-        var entry = new PollStateEntry(_lucerne.Location, PollPhase.Discovery, _t0.AddHours(1), null, 0, null);
+        var entry = new PollStateEntry(_lucerne.Location, PollPhase.Active, _t0.AddHours(1), null);
         var report = new PollWorkerReport(_lucerne, PollWorkerOutcome.Planned, entry);
 
         state = state.ApplyReport(report, ActorRefs.Nobody, _config, _t0);
