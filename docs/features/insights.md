@@ -29,7 +29,7 @@ Shows the daily temperature and precipitation of every model listed in `Njord:Fo
 Passive: it requests no data of its own and adds no API calls. It only observes the forecast data that is already fetched. Needs at least two forecast models; with the default empty list (best_match) there is nothing to compare.
 
 **Entity:** `weather.<location>_<model>` per configured model
-**Domains:** None (passive) | **Default:** On
+**Domains:** Forecast | **Default:** On
 
 ```yaml
 Njord__Features__ForecastModelComparison__Enabled: "true"
@@ -46,7 +46,7 @@ Shows the daily temperature and precipitation of every ensemble-mean model liste
 Passive: it requests no data of its own and adds no API calls. It defaults to `ecmwf_ifs025_ensemble_mean`, `ncep_gefs025_ensemble_mean` and `google_weathernext2_ensemble_mean`, so it works out of the box.
 
 **Entity:** `weather.<location>_<model>` per configured model
-**Domains:** None (passive) | **Default:** On
+**Domains:** Ensemble | **Default:** On
 
 ```yaml
 Njord__Features__EnsembleModelComparison__Enabled: "true"
@@ -70,7 +70,7 @@ Provides a monthly temperature anomaly and precipitation anomaly outlook for the
 
 The monthly tier uses three variables: `temperature_2m_anomaly`, `precipitation_anomaly` and `precipitation_mean`. A weekly probabilistic tier (EFI, SOT and anomaly thresholds) is available for shorter lead times. `Njord:Seasonal:Model` is optional; empty uses the API default.
 
-**Entity:** `sensor.<location>_seasonal_temperature_anomaly`
+**Entity:** `sensor.<location>_seasonal_outlook`
 **Domains:** Seasonal | **Default:** Off
 
 ```yaml
@@ -89,7 +89,7 @@ Njord__Seasonal__ForecastMonths: "3"   # 1 to 7
 
 Detects approaching weather fronts by monitoring pressure trends, temperature changes, and wind direction shifts. An early warning that conditions are about to change significantly.
 
-**Entity:** `sensor.<location>_front_approaching`
+**Entity:** `binary_sensor.<location>_front_approaching`
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
@@ -129,41 +129,11 @@ Common base temperatures:
 
 ---
 
-## PollenBlast
-
-Predicts sudden pollen explosions that occur when warm, dry, windy weather follows a rain period. During rain, pollen accumulates on plants; when conditions turn dry and warm, it is all released at once.
-
-Uses trend data from the last 8 poll cycles to detect the rain-to-dry transition.
-
-| Condition | Threshold |
-|-----------|-----------|
-| Temperature | > 15 °C |
-| Wind speed | > 1.4 m/s (5 km/h) |
-| Pollen increase | > 10 grains/m3 delta |
-| Prior rain | Detected in poll history |
-
-**Entity:** `binary_sensor.<location>_pollen_blast_alert`
-**Domains:** Forecast + AirQuality | **Default:** Off | **Confidence:** Medium
-
-```yaml
-Njord__Features__PollenBlast__Enabled: "true"
-Njord__Features__PollenBlast__TemperatureThreshold: "15"
-Njord__Features__PollenBlast__WindSpeedThreshold: "1.4"
-Njord__Features__PollenBlast__PollenDelta: "10"
-```
-
-**Automation ideas:**
-- Proactive allergy medication reminder before the blast
-- Close windows and switch to recirculated air before pollen spikes
-- Alert allergy-sensitive household members
-
----
-
 ## InversionDetection
 
 Detects temperature inversions by comparing temperature at the surface, 80 m and 120 m. Reports strength (`mild`, `strong`, `extreme`) and type (`radiation`, `subsidence`, `frontal`). Inversions trap pollution and fog near the ground.
 
-**Entity:** `sensor.<location>_inversion_detection`
+**Entity:** `binary_sensor.<location>_inversion_detection`
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
@@ -181,7 +151,7 @@ Njord__Features__InversionDetection__Enabled: "true"
 
 Assesses convection from CAPE, CIN (convective inhibition) and Lifted Index. Reports a class: `stable`, `marginal`, `capped`, `unstable` or `explosive`.
 
-**Entity:** `sensor.<location>_atmospheric_stability`
+**Entity:** `binary_sensor.<location>_atmospheric_stability`
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
@@ -199,7 +169,7 @@ Njord__Features__AtmosphericStability__Enabled: "true"
 
 Estimates the cloud base height from the low, mid and high cloud layers. Reports a category: `very_low`, `low`, `moderate`, `high`, `very_high` or `unlimited`.
 
-**Entity:** `sensor.<location>_cloud_ceiling`
+**Entity:** `binary_sensor.<location>_cloud_ceiling`
 **Domains:** Forecast | **Default:** Off
 
 ```yaml

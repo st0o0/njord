@@ -954,7 +954,8 @@
     "entities": ["sensor.{location}_seasonal_temperature_anomaly"],
     "automationExample": "Plan heating budget based on whether a cold winter is forecast",
     "enabledByDefault": false,
-    "domains": ["Seasonal"]
+    "domains": ["Seasonal"],
+    "seasonalParams": ["TemperatureAnomaly", "PrecipitationAnomaly", "PrecipitationMean"]
   },
   {
     "key": "ForecastModelComparison",
@@ -1036,6 +1037,7 @@
     "automationExample": "Activate flood barrier pump when flood risk is elevated",
     "enabledByDefault": false,
     "domains": ["Flood"],
+    "floodParams": ["Discharge", "DischargeMedian", "DischargeP75", "DischargeMax"],
     "options": [{ "name": "MedianFactor", "type": "number", "default": 2 }, { "name": "ForecastDays", "type": "number", "default": 7 }]
   },
   {
@@ -1050,6 +1052,7 @@
     "enabledByDefault": false,
     "domains": ["Forecast", "Flood"],
     "weatherParams": ["Precipitation"],
+    "floodParams": ["Discharge", "DischargeMedian", "DischargeP75"],
     "options": [{ "name": "HeavyRainThreshold", "type": "number", "default": 30 }, { "name": "ForecastDays", "type": "number", "default": 7 }]
   },
   {
@@ -1059,10 +1062,11 @@
     "output": "Condition",
     "description": "Shows the predicted river discharge curve for the coming weeks",
     "longDescription": "Provides a timeline of forecast river discharge levels for up to 92 days ahead. Shows when the river is expected to rise, peak, and fall. Useful for long-range flood planning.",
-    "entities": ["binary_sensor.{location}_river_discharge"],
+    "entities": ["binary_sensor.{location}_flood_timeline"],
     "automationExample": "Plan sandbag delivery based on when peak discharge is predicted",
     "enabledByDefault": false,
-    "domains": ["Flood"]
+    "domains": ["Flood"],
+    "floodParams": ["Discharge", "DischargeP75"]
   },
   {
     "key": "Swimming",

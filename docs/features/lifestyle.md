@@ -6,7 +6,7 @@ Lifestyle features help you make daily decisions -- from commuting to gardening 
 
 Rates how safe and comfortable your commute will be based on rain, wind, temperature, humidity, and ice risk. The result is a score from 0 (dangerous) to 100 (perfect conditions).
 
-**Entity:** `sensor.<location>_commute_safety` (score 0--100)
+**Entity:** `binary_sensor.<location>_commute` (score 0--100)
 **Domains:** Forecast | **Default:** On
 
 **Automation ideas:**
@@ -20,7 +20,7 @@ Rates how safe and comfortable your commute will be based on rain, wind, tempera
 
 Advises whether outdoor exercise is safe, considering heat stress, humidity, air quality (PM2.5 and ozone), and UV exposure. Reports a recommendation: ideal, moderate, caution, or avoid.
 
-**Entity:** `sensor.<location>_exercise`
+**Entity:** `binary_sensor.<location>_exercise`
 **Domains:** Forecast + AirQuality | **Default:** Off
 
 ```yaml
@@ -102,7 +102,7 @@ Njord__Features__NightVentilation__Enabled: "true"
 
 Finds the best time window to air out rooms, considering temperature, rain, PM2.5, and pollen. Avoids recommending ventilation during high-pollen or high-pollution periods.
 
-**Entity:** `binary_sensor.<location>_ventilation_window`
+**Entity:** `binary_sensor.<location>_ventilation`
 **Domains:** Forecast + AirQuality | **Default:** Off
 
 ```yaml
@@ -119,7 +119,7 @@ Njord__Features__Ventilation__Enabled: "true"
 
 Advises on gardening conditions based on temperature (not too hot, not freezing), wind (not too strong for delicate plants), and rain (save the watering).
 
-**Entity:** `binary_sensor.<location>_planting_safe`
+**Entity:** `binary_sensor.<location>_gardening`
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
@@ -142,7 +142,7 @@ Reports the topsoil (0--1 cm) moisture status. Tells you whether the ground is t
 | Optimal | 0.15 -- 0.35 | Good condition |
 | Wet | > 0.35 m3/m3 | Too wet, avoid foot traffic |
 
-**Entity:** `sensor.<location>_soil_moisture`
+**Entity:** `binary_sensor.<location>_soil_moisture`
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
@@ -168,7 +168,7 @@ Reports daily water loss from the ground through evaporation and plant transpira
 | Moderate | 2 -- 5 mm | Normal watering |
 | High | > 5 mm | Heavy irrigation needed |
 
-**Entity:** `sensor.<location>_evapotranspiration`
+**Entity:** `binary_sensor.<location>_evapotranspiration`
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
@@ -195,7 +195,7 @@ Reports snow accumulation depth. Useful for winter road maintenance, ski conditi
 | Heavy | > 25 cm | Heavy snow cover |
 | Extreme | > 50 cm | Exceptional accumulation |
 
-**Entity:** `sensor.<location>_snow_depth_watch`
+**Entity:** `binary_sensor.<location>_snow_depth_watch`
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
@@ -254,7 +254,7 @@ Njord__Features__SprayWindow__Enabled: "true"
 
 Advises whether to water, based on evapotranspiration, soil moisture, vapour pressure deficit and the rain forecast. Reports one of: `water`, `skip`, `reduce`, `soil_wet`.
 
-**Entity:** `sensor.<location>_irrigation_need`
+**Entity:** `binary_sensor.<location>_irrigation_need`
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
@@ -272,7 +272,7 @@ Njord__Features__IrrigationNeed__Enabled: "true"
 
 Estimates how deep frost penetrates the ground (in cm) with the Stefan model. Snow cover insulates (insulation factor) and wind amplifies the effect. Reports a risk level: `none`, `surface`, `shallow`, `moderate`, `deep`.
 
-**Entity:** `sensor.<location>_frost_depth` (cm)
+**Entity:** `binary_sensor.<location>_frost_depth` (cm)
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
@@ -296,7 +296,7 @@ Warns about the maximum possible UV index **without clouds**. Even on partly clo
 | Orange | 8 | Very high UV potential |
 | Red | 10 | Extreme UV potential |
 
-**Entity:** `binary_sensor.<location>_clear_sky_uv_alert`
+**Entity:** `binary_sensor.<location>_clear_sky_uv`
 **Domains:** Forecast | **Default:** Off | **Confidence:** Fixed Medium
 
 ```yaml
@@ -324,11 +324,11 @@ Assesses wildfire risk by combining multiple weather factors into a weighted sco
 
 | Severity | Combined Score |
 |----------|---------------|
-| Yellow | > 0.4 |
-| Orange | > 0.6 |
-| Red | > 0.8 |
+| Yellow | > 0.2 |
+| Orange | > 0.4 |
+| Red | > 0.7 |
 
-**Entity:** `binary_sensor.<location>_fire_risk_alert`
+**Entity:** `binary_sensor.<location>_fire_risk`
 **Domains:** Forecast + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
 
 ```yaml

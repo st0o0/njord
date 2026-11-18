@@ -22,7 +22,7 @@ features:
   - title: Six domains per location
     details: "Forecast (high-resolution deterministic), Ensemble (confidence and model comparison), Air Quality (PM2.5, ozone, pollen), Flood (river discharge), Marine (waves, currents), and Seasonal (monthly and weekly outlook)."
   - title: 89 features across all domains
-    details: "30 alerts (weather, air quality, flood, marine), 23 observations, 23 conditions, 7 scores (BBQ, laundry, outdoor, sleep quality, allergy, asthma, spray window), 4 forecasts (model comparison, seasonal outlook, growing degrees), 1 trend, and 1 weather entity."
+    details: "30 alerts (weather, air quality, flood, marine), 23 observations, 23 conditions, 7 scores (BBQ, laundry, outdoor, sleep quality, allergy, asthma, spray window), 4 forecasts (forecast model comparison, ensemble model comparison, seasonal outlook, growing degrees), 1 trend, and 1 weather entity."
   - title: Feature-driven configuration
     details: You switch features on, njord derives which API domains to poll and which variables to request. The Config Builder shows the cost per feature. A default setup with one location uses less than 1% of the free-tier budget.
   - title: Static configuration, low footprint

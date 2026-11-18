@@ -52,7 +52,7 @@ openspec/                         # OpenSpec change management
 | `Njord.Polling` | `PollManager`, `PollWorker`, `BudgetGuard`, `PollingOptionsValidator` | Core, Messages |
 | `Njord.Pipeline` | `ForecastPipeline`, `FeatureEngine`, stream materialization | Core, Messages |
 | `Njord.Features` | 89 `FeatureRule<TInput>` implementations, per-feature config classes | Core |
-| `Njord.Grpc` | `NjordGrpcService`, `GrpcConsumer`, `ManifestBuilder`, `EntityIdLookup`, per-OutputKind mappers | Core, Messages |
+| `Njord.Grpc` | `NjordGrpcService`, `GrpcConsumer`, `EntityRegistry`, per-OutputKind mappers | Core, Messages |
 | `Njord` (Host) | `Program.cs`, setup chain (`ISetup<T>`), health endpoints | all libraries |
 
 ## Features layout

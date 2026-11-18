@@ -30,7 +30,7 @@ Each location gets a PollWorker (persistent sharded entity). Each domain has ind
 - **Miss tolerance**: in Steady, unchanged hashes cause exponential backoff (2^(n-1) min, max 15 min). After 5 consecutive misses, falls back to Discovery
 - **Failure backoff**: 60 s * 2^(n-1), capped at the poll interval. Rate-limited and budget rejections wait at least 5 min
 
-The worker sends `FetchDomain` as Tell to the gateway and starts a 90 s reply timer.
+The worker sends `FetchDomain` as Tell to the gateway and starts a 60 s reply timer.
 
 ### Change detection
 

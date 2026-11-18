@@ -4,7 +4,7 @@ njord uses the Open-Meteo **Ensemble Mean** API. One call per location returns t
 
 The spread (`ensemble_std_dev`) is computed for 15 variables: temperature_2m, precipitation, wind_speed_10m, pressure_msl, cloud_cover, wind_gusts_10m, cape, snowfall, rain, dew_point_2m, relative_humidity_2m, surface_pressure, wind_direction_10m, wet_bulb_temperature_2m and wind_speed_100m. Which of them are requested follows the enabled features.
 
-The default model `ecmwf_ifs025_ensemble_mean` delivers neither `visibility` nor `uv_index`, so the `Forecast:Visibility` and `Forecast:Uv` alerts stay silent with it.
+The `Visibility` and `Uv` alerts use the Forecast domain (deterministic API), not the Ensemble domain, so the ensemble model selection has no effect on them.
 
 ## Default ensemble models
 

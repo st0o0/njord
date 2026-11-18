@@ -20,7 +20,7 @@ Alert rules run on the high-resolution deterministic forecast from the Forecast 
       "HeavyRain": { "HourlyThreshold": 10.0, "DailyThreshold": 25.0 },
       "PressureDrop": { "Threshold": 5.0, "SevereThreshold": 10.0 },
       "Fog": { "PersistentHours": 4 },
-      "Thunderstorm": { "CapeThresholds": [1000, 1500, 2500], "PrecipThreshold": 5.0, "GustThreshold": 20.0 },
+      "Thunderstorm": { "CapeThresholds": [1000, 1500, 2500], "PrecipThreshold": 5.0, "GustThreshold": 20.0, "CinThreshold": 200.0 },
       "Ice": { "Threshold": 2.0 },
       "WindChill": { "Thresholds": [-10, -20, -30] },
       "Visibility": { "Thresholds": [1000, 200, 50] },
@@ -71,7 +71,7 @@ FloodRain is the cross-domain example: it re-evaluates when either the Forecast 
 
 `Njord:Flood:IncludeEnsemble` (default `false`) requests all 50 GloFAS ensemble members (`ensemble=true`). FloodRisk then reports its confidence as the share of members above the alert threshold: High from 70 %, Low below 30 %, Medium in between. Severity is unchanged, and without the option the confidence stays at its fixed default.
 
-Cost: an ensemble flood request is budgeted with a call weight of 5 (50 members / 10 variables per call) instead of 1, which the startup budget guard and the Config Builder include. A shorter `Njord:Flood:ForecastDays` (default 92, maximum 210) reduces the response size; GloFAS skill also drops with lead time.
+Cost: enabling the flood ensemble adds 4 to the base flood call weight (the ensemble surcharge, from 50 members / 10 per call), which the startup budget guard and the Config Builder include. A shorter `Njord:Flood:ForecastDays` (default 92, maximum 210) reduces the base weight and the response size; GloFAS skill also drops with lead time.
 
 For all other features (SmogRisk, Surf, SoilMoisture, SolarYield and more), see the [Features reference](/features/) for descriptions, domains and defaults.
 

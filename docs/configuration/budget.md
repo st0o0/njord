@@ -13,52 +13,78 @@ Open-Meteo's free tier (non-commercial use) has these soft limits:
 | Hourly requests | 5,000 |
 | Per-minute requests | 600 |
 
-## Calls per cycle
+## Call weight formula
 
-Each PollWorker fetches the domains required by the enabled [features](./#features-and-domains). The defaults (21 features) need three of the six domains (Forecast, Ensemble, Air Quality). Enabling Flood, Marine or Seasonal features adds those domains:
-
-| Domain | Endpoint | Fetched when | Call weight |
-|--------|----------|--------------|-------------|
-| Forecast | `api.open-meteo.com/v1/forecast` | any weather feature is enabled | `ceil(variables / 10) * (forecastDays / 14)` |
-| Ensemble | Ensemble Mean API | a feature requiring ensemble spread or model comparison is enabled | Spread-only: 1. With models: `ceil(variables / 10) * (days / 14) * modelCount` |
-| Air Quality | Air Quality API | any Air Quality feature is enabled | 1 |
-| Flood | Flood API | `FloodRisk`, `FloodRain` or `FloodTimeline` is enabled | 1 |
-| Marine | Marine API | `Swimming`, `Surf`, `OceanCurrents` or `CoastalFlood` is enabled | 1 |
-| Seasonal | Seasonal API | `SeasonalOutlook` is enabled | ~1/day (daily cycle) |
+Each API request costs a **call weight** that depends on how many variables are fetched and how many forecast days are requested:
 
 ```
-calls per cycle  = locations x sum(domain weights)
-cycles per month = 30 days / poll interval
-projected        = calls per cycle x cycles per month
-guard            = monthly budget x 0.8
+weight = ceil(variables / 10) x (forecastDays / 14)
 ```
 
-### Example: one location, defaults (Lucerne)
+A request with 20 variables and 4 forecast days weighs `ceil(20/10) x (4/14) = 2 x 0.286 = 0.57`. Fewer variables or fewer days means a lighter request.
 
-| Setting | Value |
-|---------|-------|
-| Locations | 1 |
-| Domains | Forecast, Ensemble (spread-only), Air Quality |
-| Poll interval | 60 minutes |
+## Calls per domain
 
-```
-calls per cycle  = 1 x (4 + 1 + 1) = 6   (forecast ~30 vars = weight 4, ensemble spread = 1, AQ = 1)
-cycles per month = 30 x 24 = 720
-projected        = 6 x 720 = 4,320 per month
-guard            = 300,000 x 0.8 = 240,000
-```
+Each domain polls at its own interval and weighs differently:
 
-4,320 calls is about 1.4% of the free-tier month. Even ten locations (43,200) stay well below the guard.
+| Domain | Default days | Default interval | Weight formula | Cycles/month |
+|--------|-------------|------------------|----------------|-------------|
+| Forecast | 4 | 60 min | `ceil(vars/10) x (4/14) x max(1, modelCount)` | 720 |
+| Ensemble | 4 | 6 h | `ceil(vars/10) x (4/14) x modelCount` | 120 |
+| Air Quality | 5 | 60 min | `ceil(vars/10) x (5/14)` | 720 |
+| Marine | 8 | 6 h | `ceil(vars/10) x (8/14)` | 120 |
+| Flood | 92 | 24 h | `ceil(vars/10) x (92/14)` | 30 |
+| Seasonal | 3 months | ~daily | 30/month x `max(ceil(vars/10) x (90/14), 1.3)` | 30 (fixed) |
 
-### Example: all features, 3 ensemble comparison models
+The startup guard projects:
 
 ```
-calls per cycle  = 1 x (4 + 12 + 1 + 1 + 1) = 19  (forecast 4, ensemble with 3 models 12, AQ 1, Flood 1, Marine 1)
-                   + Seasonal ~1/day
-projected        ≈ 19 x 720 + 30 = ~13,710 per month
+projected = sum over each domain: locations x weight x cycles/month
+guard     = monthly budget x 0.8
 ```
 
-Still only 4.6% of the free tier. The [Config Builder](/builder) calculates the exact cost for your configuration.
+### Ensemble weight details
+
+With multiple comparison models (default: 3), the ensemble request includes both the forecast variables and the spread variables. The weight is `ceil((forecastVars + spreadVars) / 10) x (days/14) x modelCount`. With a single model, only the spread variables count.
+
+### Flood weight details
+
+Flood's 92 default forecast days make its per-request weight high: 5 variables at 92 days = `ceil(5/10) x (92/14) = 6.57`. But it only polls once per day (30 cycles/month), so the monthly cost stays moderate.
+
+Enabling `Njord:Flood:IncludeEnsemble` adds 4 to the base weight (50 GloFAS members, budgeted as `FloodEnsembleWeight - 1 = 4` on top of the base call weight).
+
+### Seasonal weight
+
+Seasonal is budgeted as a flat 30 requests per month (roughly daily), each weighing `max(ceil(vars/10) x (months x 30 / 14), 1.3)`.
+
+### Example: one location, defaults (21 features)
+
+The defaults need three domains (Forecast, Ensemble, Air Quality) with 20 forecast variables, 3 ensemble spread variables, and 5 air quality variables:
+
+| Domain | Variables | Weight | Interval | Cycles/month | Monthly |
+|--------|-----------|--------|----------|-------------|---------|
+| Forecast | 20 | 0.57 | 60 min | 720 | 411 |
+| Ensemble | 23 (20 + 3 spread) x 3 models | 2.57 | 6 h | 120 | 309 |
+| Air Quality | 5 | 0.36 | 60 min | 720 | 257 |
+| **Total** | | | | | **977** |
+
+977 calls is about **0.3%** of the free-tier month. Even ten locations (9,770) stay well below the guard.
+
+### Example: all 89 features, 3 ensemble models
+
+Enabling every feature adds Flood, Marine and Seasonal:
+
+| Domain | Variables | Weight | Interval | Cycles/month | Monthly |
+|--------|-----------|--------|----------|-------------|---------|
+| Forecast | 42 | 1.43 | 60 min | 720 | 1,029 |
+| Ensemble | 45 (42 + 3 spread) x 3 models | 4.29 | 6 h | 120 | 514 |
+| Air Quality | 18 | 0.71 | 60 min | 720 | 514 |
+| Flood | 5 | 6.57 | 24 h | 30 | 197 |
+| Marine | 11 | 1.14 | 6 h | 120 | 137 |
+| Seasonal | 3 | 30/month x 6.43 | ~daily | 30 | 193 |
+| **Total** | | | | | **2,584** |
+
+Still only **0.9%** of the free tier. The [Config Builder](/builder) calculates the exact cost for your configuration.
 
 ## Startup guard
 

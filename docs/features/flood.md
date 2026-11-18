@@ -12,7 +12,7 @@ Warns when forecast river discharge exceeds historical levels. Compares current 
 | Orange | Discharge above the 75th percentile |
 | Red | Discharge above the historical maximum |
 
-**Entity:** `binary_sensor.<location>_flood_risk_alert`
+**Entity:** `binary_sensor.<location>_flood_risk`
 **Domains:** Flood | **Default:** Off
 
 ```yaml
@@ -35,7 +35,7 @@ A cross-domain alert combining heavy rainfall from the Forecast domain with risi
 | Orange | 30+ mm rain in 24h while discharge is above median and rising |
 | Red | Same conditions but discharge above the 75th percentile |
 
-**Entity:** `binary_sensor.<location>_flood_rain_alert`
+**Entity:** `binary_sensor.<location>_flood_rain`
 **Domains:** Forecast + Flood | **Default:** Off
 
 ```yaml
@@ -53,7 +53,7 @@ Njord__Features__FloodRain__Enabled: "true"
 
 Provides a projected discharge timeline for the coming days. Not an alert -- just the raw discharge forecast as a sensor, giving you visibility into how river levels are expected to change.
 
-**Entity:** `sensor.<location>_river_discharge` (m3/s)
+**Entity:** `binary_sensor.<location>_flood_timeline`
 **Domains:** Flood | **Default:** Off
 
 ```yaml

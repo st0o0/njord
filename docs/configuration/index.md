@@ -42,10 +42,13 @@ A minimal setup for Lucerne:
 | `Ensemble:ForecastDays` | `4` | Days of ensemble forecast to request (1 to 35) |
 | `Ensemble:Models` | 3 ensemble-mean models | Ensemble-mean model IDs to compare |
 | `AirQuality:ForecastDays` | `5` | Days of air quality forecast to request (1 to 7) |
+| `AirQuality:Region` | `Global` | Region for air quality data (`Global`, `Europe`, `UnitedStates`) |
 | `Marine:ForecastDays` | `8` | Days of marine forecast to request (1 to 16) |
 | `Seasonal:ForecastMonths` | `3` | Months of seasonal outlook to keep (1 to 7) |
 | `Seasonal:Model` | empty | Optional seasonal model id; empty uses the API default |
 | `Flood:ForecastDays` | `92` | Days of river discharge forecast to request (1 to 210) |
+| `Solar:Tilt` | `30` | Panel tilt angle in degrees (0 to 90), used for GTI calculation |
+| `Solar:Azimuth` | `180` | Panel azimuth in degrees (0 to 360), used for GTI calculation |
 | `Features:<Name>:Enabled` | 21 features on by default (15 weather alerts + Commute + Pollen + PM2.5 + ForecastModelComparison + EnsembleModelComparison + Weather); all others off | Switches one feature on or off. The domains that are polled are derived from the enabled features (see below) |
 | `Persistence:DataPath` | `data/njord.db` | SQLite database file |
 
@@ -123,8 +126,11 @@ Log levels live in the `Serilog` section, outside `Njord`. Every log line shows 
 njord validates the configuration at startup and refuses to start if:
 
 - No locations are defined
-- A location has an empty name
+- A location has an empty name, missing coordinates, or coordinates outside their valid range (-90..90 for latitude, -180..180 for longitude)
+- Duplicate location names (case-insensitive)
 - `Forecast:ForecastDays` is outside 1 to 16
+- `Ensemble:ForecastDays` is outside 1 to 35, ensemble model list is empty, or contains duplicates
 - `AirQuality:ForecastDays` is outside 1 to 7, `Marine:ForecastDays` outside 1 to 16, or `Flood:ForecastDays` outside 1 to 210
-- PostgreSQL is selected without a connection string
+- `Seasonal:ForecastMonths` is outside 1 to 7
+- `Solar:Tilt` is outside 0 to 90, or `Solar:Azimuth` outside 0 to 360
 - Projected API usage exceeds 80% of the monthly budget

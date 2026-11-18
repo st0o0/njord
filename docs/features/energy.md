@@ -13,7 +13,7 @@ Configure your system:
 - **Tilt**: panel tilt angle in degrees from horizontal (default: 30), `Njord:Solar:Tilt`
 - **Azimuth**: panel compass direction, 180 = south (default: 180), `Njord:Solar:Azimuth`
 
-**Entity:** `sensor.<location>_solar_yield`
+**Entity:** `binary_sensor.<location>_solar_yield`
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
@@ -34,7 +34,7 @@ Njord__Solar__Azimuth: "180"
 
 Reports wind speed and direction at turbine hub heights (80 m and 120 m above ground). Ground-level wind (10 m) underestimates what a turbine experiences due to the wind speed profile increasing with altitude.
 
-**Entity:** `sensor.<location>_elevated_wind`
+**Entity:** `binary_sensor.<location>_elevated_wind`
 **Domains:** Forecast | **Default:** Off
 
 ```yaml
@@ -59,7 +59,7 @@ Estimates the heat pump coefficient of performance (COP) from the outdoor temper
 | inefficient | 1.5 -- 2.5 |
 | avoid | < 1.5 |
 
-**Entity:** `sensor.<location>_heat_pump_cop`
+**Entity:** `binary_sensor.<location>_heat_pump_cop`
 **Domains:** Forecast | **Default:** Off
 
 ```yaml

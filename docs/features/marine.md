@@ -12,7 +12,7 @@ Rates swimming safety based on wave height and sea surface temperature. Designed
 | Caution | Moderate waves or cool water |
 | Dangerous | High waves or very cold water |
 
-**Entity:** `binary_sensor.<location>_swimming_conditions_alert`
+**Entity:** `binary_sensor.<location>_swimming`
 **Domains:** Marine | **Default:** Off
 
 ```yaml
@@ -30,7 +30,7 @@ Njord__Features__Swimming__Enabled: "true"
 
 Reports surf conditions from swell wave height, swell period, and wind direction. Longer swell periods with moderate height and offshore (or light) wind produce the best surfing conditions.
 
-**Entity:** `sensor.<location>_surf_conditions`
+**Entity:** `binary_sensor.<location>_surf`
 **Domains:** Marine | **Default:** Off
 
 ```yaml
@@ -48,7 +48,7 @@ Njord__Features__Surf__Enabled: "true"
 
 Reports ocean current speed and direction. Useful for maritime operations, fishing, diving, and coastal safety planning.
 
-**Entity:** `sensor.<location>_ocean_currents`
+**Entity:** `binary_sensor.<location>_ocean_currents`
 **Domains:** Marine | **Default:** Off
 
 ```yaml

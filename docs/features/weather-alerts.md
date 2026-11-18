@@ -18,7 +18,7 @@ All thresholds use metric units: Celsius for temperature, m/s for wind, mm for r
 ## Alert Entity Pattern
 
 Each alert creates:
-- `binary_sensor.<location>_<name>_alert` -- on/off with attributes
+- `binary_sensor.<location>_<name>` -- on/off with attributes
 - One shared `event.<location>_weather_alert` for alert lifecycle events (started, escalated, de-escalated, cleared)
 
 ---
@@ -35,7 +35,7 @@ Warns when the forecast temperature drops below freezing. Critical for protectin
 | Orange | -5 °C | Moderate frost |
 | Red | -15 °C | Severe frost |
 
-**Entity:** `binary_sensor.<location>_frost_alert`
+**Entity:** `binary_sensor.<location>_frost`
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
@@ -60,7 +60,7 @@ Warns when air or apparent temperature exceeds dangerous levels. Uses the higher
 | Orange | 35 °C | Dangerous heat |
 | Red | 40 °C | Extreme heat |
 
-**Entity:** `binary_sensor.<location>_heat_alert`
+**Entity:** `binary_sensor.<location>_heat`
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
@@ -84,7 +84,7 @@ Warns when the wet-bulb temperature -- a measure combining heat and humidity -- 
 | Orange | 28 °C | Dangerous for outdoor work |
 | Red | 32 °C | Life-threatening, avoid all outdoor exertion |
 
-**Entity:** `binary_sensor.<location>_wet_bulb_danger_alert`
+**Entity:** `binary_sensor.<location>_wet_bulb_danger`
 **Domains:** Forecast + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
 
 ```yaml
@@ -109,7 +109,7 @@ Warns when the nighttime low stays above 20 °C, making sleep difficult. Checked
 | Orange | 23 °C | Uncomfortably hot night |
 | Red | 25 °C | Tropical night |
 
-**Entity:** `binary_sensor.<location>_tropical_night_alert`
+**Entity:** `binary_sensor.<location>_tropical_night`
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
@@ -133,7 +133,7 @@ Warns when the apparent temperature drops to dangerous wind-chill levels. Releva
 | Orange | -20 °C | Frostbite risk |
 | Red | -30 °C | Extreme danger |
 
-**Entity:** `binary_sensor.<location>_wind_chill_alert`
+**Entity:** `binary_sensor.<location>_wind_chill`
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
@@ -154,7 +154,7 @@ Warns when wind gusts are expected to exceed storm thresholds.
 | Orange | 25 m/s (90 km/h) | Storm |
 | Red | 33 m/s (119 km/h) | Violent storm |
 
-**Entity:** `binary_sensor.<location>_storm_alert`
+**Entity:** `binary_sensor.<location>_storm`
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
@@ -178,7 +178,7 @@ Detects convective storm potential from CAPE (atmospheric energy), precipitation
 | Orange | Strong gusts (> 15 m/s) during storm conditions |
 | Red | Extreme instability with severe gusts |
 
-**Entity:** `binary_sensor.<location>_thunderstorm_alert`
+**Entity:** `binary_sensor.<location>_thunderstorm`
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
@@ -206,7 +206,7 @@ Warns when significant rainfall is expected -- either in a single hour or accumu
 | Orange | Hourly > 20 mm or daily > 50 mm |
 | Red | Hourly > 40 mm or daily > 100 mm |
 
-**Entity:** `binary_sensor.<location>_heavy_rain_alert`
+**Entity:** `binary_sensor.<location>_heavy_rain`
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
@@ -231,7 +231,7 @@ Warns when the chance of rain is high in the next few hours. Uses the native `pr
 | Orange | 70% | Rain very likely |
 | Red | 90% | Rain almost certain |
 
-**Entity:** `binary_sensor.<location>_rain_probability_alert`
+**Entity:** `binary_sensor.<location>_rain_probability`
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
@@ -256,7 +256,7 @@ Warns about sudden convective showers -- intense, localized rainfall that can st
 | Orange | 5 mm/h | Moderate showers |
 | Red | 10 mm/h | Heavy downpour |
 
-**Entity:** `binary_sensor.<location>_shower_alert`
+**Entity:** `binary_sensor.<location>_shower`
 **Domains:** Forecast + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
 
 ```yaml
@@ -271,7 +271,7 @@ Njord__Features__Shower__Thresholds: "[3, 5, 10]"
 
 Warns when significant snowfall is expected, considering the freezing level height to confirm snow reaches the ground.
 
-**Entity:** `binary_sensor.<location>_snow_alert`
+**Entity:** `binary_sensor.<location>_snow`
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ---
@@ -286,7 +286,7 @@ Warns about black ice conditions: temperatures near or below freezing combined w
 | Orange | Temperature below 0 °C with rain |
 | Red | Temperature below -2 °C with wet surfaces |
 
-**Entity:** `binary_sensor.<location>_ice_alert`
+**Entity:** `binary_sensor.<location>_ice`
 **Domains:** Forecast + Ensemble | **Default:** On | **Confidence:** From ensemble spread
 
 ```yaml
@@ -311,7 +311,7 @@ Warns when atmospheric pressure drops rapidly -- a reliable indicator of approac
 | Yellow | 5 hPa / 3h | Front approaching |
 | Orange | 10 hPa / 3h | Severe weather system |
 
-**Entity:** `binary_sensor.<location>_pressure_drop_alert`
+**Entity:** `binary_sensor.<location>_pressure_drop`
 **Domains:** Forecast | **Default:** On | **Confidence:** Medium (pressure is inherently stable)
 
 ```yaml
@@ -325,7 +325,7 @@ Njord__Features__PressureDrop__SevereThreshold: "10"
 
 Warns when conditions favor fog formation: temperature close to dew point, low wind, and high humidity persisting for several hours.
 
-**Entity:** `binary_sensor.<location>_fog_alert`
+**Entity:** `binary_sensor.<location>_fog`
 **Domains:** Forecast | **Default:** On | **Confidence:** Medium (fog is a local phenomenon)
 
 ```yaml
@@ -349,7 +349,7 @@ Warns when forecast visibility drops below safe distances.
 | Orange | 200 m | Very poor visibility |
 | Red | 50 m | Near-zero visibility |
 
-**Entity:** `binary_sensor.<location>_visibility_alert`
+**Entity:** `binary_sensor.<location>_visibility`
 **Domains:** Forecast | **Default:** On | **Confidence:** Medium
 
 ```yaml
@@ -368,7 +368,7 @@ Warns when daytime dew point creates muggy, uncomfortable conditions.
 | Orange | 21 °C dew point | Uncomfortable |
 | Red | 24 °C dew point | Oppressive |
 
-**Entity:** `binary_sensor.<location>_humidity_alert`
+**Entity:** `binary_sensor.<location>_humidity`
 **Domains:** Forecast | **Default:** On | **Confidence:** Medium
 
 ```yaml
@@ -383,7 +383,7 @@ Njord__Features__Humidity__Thresholds: "[16, 21, 24]"
 
 Warns when the UV index reaches levels that can cause sunburn.
 
-**Entity:** `binary_sensor.<location>_uv_alert`
+**Entity:** `binary_sensor.<location>_uv`
 **Domains:** Forecast | **Default:** On | **Confidence:** Medium (UV depends on solar angle, not ensemble)
 
 ---
@@ -398,7 +398,7 @@ Warns about storm surge risk by combining sea level deviation, wave height, and 
 | Wave height | > 1.5 m |
 | Onshore wind | > 4.2 m/s (15 km/h) |
 
-**Entity:** `binary_sensor.<location>_coastal_flood_alert`
+**Entity:** `binary_sensor.<location>_coastal_flood`
 **Domains:** Marine + Forecast + Ensemble | **Default:** Off | **Confidence:** From ensemble spread
 
 ```yaml
@@ -431,7 +431,7 @@ Warns when heat and air pollution combine into a danger greater than either alon
 | Orange | Severe: several triggers met or values well above the limits |
 | Red | Extreme: wet-bulb temperature >= 35 °C |
 
-**Entity:** `binary_sensor.<location>_compound_heat_stress_alert`
+**Entity:** `binary_sensor.<location>_compound_heat_stress`
 **Domains:** Forecast + AirQuality | **Default:** Off | **Confidence:** Fixed Medium
 
 ```yaml
@@ -464,7 +464,7 @@ Warns when weather patterns known to trigger migraines are forecast. Uses the po
 | Orange | Moderate risk |
 | Red | Severe risk |
 
-**Entity:** `binary_sensor.<location>_migraine_risk_alert`
+**Entity:** `binary_sensor.<location>_migraine_risk`
 **Domains:** Forecast | **Default:** Off | **Confidence:** Medium
 
 ```yaml

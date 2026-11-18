@@ -12,7 +12,8 @@ services:
     image: ghcr.io/st0o0/njord:latest
     restart: unless-stopped
     ports:
-      - "8081:8081"
+      - "8080:8080"   # HTTP: health and metrics
+      - "8081:8081"   # gRPC: Home Assistant (ha-njord)
     volumes:
       - njord-data:/app/data
     environment:
@@ -69,6 +70,7 @@ If you prefer `docker run`:
 docker run -d \
   --name njord \
   --restart unless-stopped \
+  -p 8080:8080 \
   -p 8081:8081 \
   -v njord-data:/app/data \
   -e Njord__Locations__0__Name=Lucerne \

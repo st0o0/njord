@@ -119,8 +119,8 @@ Every feature creates one or more Home Assistant entities. The table below shows
 | Feature | Default | Description | Domains |
 |---------|---------|-------------|---------|
 | ConfidenceTrend | Off | Tracks how forecast confidence changes over time | Ensemble |
-| ForecastModelComparison | On | Passively compares the configured forecast models side by side (no extra API calls) | None |
-| EnsembleModelComparison | On | Passively compares the configured ensemble-mean models side by side (no extra API calls) | None |
+| ForecastModelComparison | On | Passively compares the configured forecast models side by side (no extra API calls) | Forecast |
+| EnsembleModelComparison | On | Passively compares the configured ensemble-mean models side by side (no extra API calls) | Ensemble |
 | SeasonalOutlook | Off | Monthly temperature and precipitation outlook | Seasonal |
 | FrontApproaching | Off | Detects approaching weather fronts | Forecast |
 | GrowingDegree | Off | Accumulates growing degree days for farming | Forecast |

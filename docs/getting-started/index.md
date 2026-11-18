@@ -1,6 +1,6 @@
 # What is njord?
 
-njord is a weather intelligence service for [Home Assistant](https://www.home-assistant.io/). It runs as a single Docker container, polls the free [Open-Meteo](https://open-meteo.com/) APIs every hour, and streams enriched weather data to Home Assistant over gRPC.
+njord is a weather intelligence service for [Home Assistant](https://www.home-assistant.io/). It runs as a single Docker container, polls the free [Open-Meteo](https://open-meteo.com/) APIs at regular intervals, and streams enriched weather data to Home Assistant over gRPC.
 
 <likec4-view view-id="index"></likec4-view>
 

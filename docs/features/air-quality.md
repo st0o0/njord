@@ -12,7 +12,7 @@ Warns when pollen concentrations reach levels that affect allergy sufferers. Che
 | Orange | 50 | High pollen |
 | Red | 100 | Very high pollen |
 
-**Entity:** `binary_sensor.<location>_pollen_alert`
+**Entity:** `binary_sensor.<location>_pollen`
 **Domains:** AirQuality | **Default:** On
 
 ```yaml
@@ -36,7 +36,7 @@ Warns when fine particulate matter (PM2.5) exceeds the WHO air quality guideline
 | Orange | 25 | Unhealthy for sensitive groups |
 | Red | 50 | Unhealthy for everyone |
 
-**Entity:** `binary_sensor.<location>_pm2_5_alert`
+**Entity:** `binary_sensor.<location>_pm25`
 **Domains:** AirQuality | **Default:** On
 
 **Automation ideas:**
@@ -56,7 +56,7 @@ Warns about Saharan dust events that can significantly degrade air quality, espe
 | Orange | 150 | High dust |
 | Red | 500 | Severe dust storm |
 
-**Entity:** `binary_sensor.<location>_dust_alert`
+**Entity:** `binary_sensor.<location>_dust`
 **Domains:** AirQuality | **Default:** Off
 
 ```yaml
@@ -70,7 +70,7 @@ Njord__Features__Dust__Thresholds: "[50, 150, 500]"
 
 Tracks how pollen concentrations are changing over multiple poll cycles. Reports whether pollen is rising, stable, or falling. Useful for planning outdoor activities in the coming days.
 
-**Entity:** `sensor.<location>_pollen_trend`
+**Entity:** `binary_sensor.<location>_pollen_trend`
 **Domains:** AirQuality | **Default:** Off
 
 ```yaml
@@ -88,7 +88,7 @@ Warns when atmospheric conditions trap pollution near the ground. Combines two s
 
 Both conditions must be present for the alert to fire.
 
-**Entity:** `binary_sensor.<location>_smog_risk_alert`
+**Entity:** `binary_sensor.<location>_smog_risk`
 **Domains:** Forecast + AirQuality | **Default:** Off | **Confidence:** Medium
 
 ```yaml
@@ -108,7 +108,7 @@ Njord__Features__SmogRisk__Pm25ThresholdUgm3: "25"
 
 Adds a ragweed pollen concentration sensor. Ragweed is a major allergen in North America and is increasingly found in parts of Europe. Follows the same pattern as the existing birch, grass, alder, and mugwort pollen sensors.
 
-**Entity:** `sensor.<location>_ragweed_pollen`
+**Entity:** `binary_sensor.<location>_ragweed_pollen`
 **Domains:** AirQuality | **Default:** Off
 
 ```yaml
@@ -119,16 +119,17 @@ Njord__Features__RagweedPollen__Enabled: "true"
 
 ## GranularAqi
 
-Adds five per-pollutant European Air Quality Index sensors. While the main `european_aqi` sensor gives an overall rating, these sub-indices show which specific pollutant is driving poor air quality.
+Reports per-pollutant European Air Quality Index values as attributes. While the main `european_aqi` observation gives an overall rating, these sub-indices show which specific pollutant is driving poor air quality.
 
-| Sensor | What it measures |
-|--------|-----------------|
-| `sensor.<location>_european_aqi_pm2_5` | PM2.5 contribution to AQI |
-| `sensor.<location>_european_aqi_pm10` | PM10 contribution |
-| `sensor.<location>_european_aqi_nitrogen_dioxide` | NO2 contribution |
-| `sensor.<location>_european_aqi_ozone` | Ozone contribution |
-| `sensor.<location>_european_aqi_sulphur_dioxide` | SO2 contribution |
+| Attribute | What it measures |
+|-----------|-----------------|
+| `pm25_aqi` | PM2.5 contribution to AQI |
+| `pm10_aqi` | PM10 contribution |
+| `no2_aqi` | NO2 contribution |
+| `ozone_aqi` | Ozone contribution |
+| `so2_aqi` | SO2 contribution |
 
+**Entity:** `binary_sensor.<location>_granular_aqi`
 **Domains:** AirQuality | **Default:** Off
 
 ```yaml

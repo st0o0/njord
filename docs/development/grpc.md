@@ -15,7 +15,7 @@ njord exposes a single `NjordService` (package `njord`, `csharp_namespace = "Njo
 
 ## Entity-first design
 
-The gRPC API is entity-first: every feature result is an entity with a unique ID, platform, device class, icon and unit. `ManifestBuilder` builds entity definitions from `FeatureDescriptor.EntityMetadata` x locations at startup.
+The gRPC API is entity-first: every feature result is an entity with a unique ID, platform, device class, icon and unit. `EntityRegistry` builds entity definitions from `FeatureDescriptor.EntityMetadata` x locations at startup.
 
 `Subscribe` provides a unified stream:
 1. **Snapshot on connect**: current state of all entities
@@ -30,13 +30,13 @@ Mapping is generic per OutputKind in `Njord.Grpc.Mapping/`:
 
 | Mapper | Maps |
 |--------|------|
-| `AlertMappingExtensions` | `AlertResult` -> `AlertValue` |
-| `ScoreMappingExtensions` | `ScoreResult` -> `ScoreValue` |
-| `ConditionMappingExtensions` | `ConditionResult` -> `ConditionValue` |
-| `TrendMappingExtensions` | `TrendResult` -> `TrendValue` |
-| `ForecastMappingExtensions` | `ForecastResult` -> `ForecastValue` |
-| `WeatherMappingExtensions` | `WeatherResult` -> `WeatherValue` |
-| `ObservationMappingExtensions` | `ObservationResult` -> `ObservationValue` |
+| `AlertValueMappingExtensions` | `AlertResult` -> `AlertValue` |
+| `ScoreValueMappingExtensions` | `ScoreResult` -> `ScoreValue` |
+| `ConditionValueMappingExtensions` | `ConditionResult` -> `ConditionValue` |
+| `TrendValueMappingExtensions` | `TrendResult` -> `TrendValue` |
+| `ForecastValueMappingExtensions` | `ForecastResult` -> `ForecastValue` |
+| `WeatherValueMappingExtensions` | `WeatherResult` -> `WeatherValue` |
+| `ObservationValueMappingExtensions` | `ObservationResult` -> `ObservationValue` |
 
 All mappers are extension methods (`ToProto()`). Proto-generated types live in `Njord.Grpc.Proto` and are referenced with the `Proto.` prefix. Timestamps via `ToTimestamp()`.
 
@@ -57,6 +57,6 @@ docker run --rm -v "$PWD:/work" -w /work python:3.12-slim \
 
 A GitHub Actions workflow (`sync-protos.yml`) automates this on njord releases.
 
-## EntityIdLookup
+## EntityRegistry
 
-`EntityIdLookup` maps `(FeatureResult type, location)` to `entity_id`. The ID format is deterministic from the feature descriptor and location name. `GrpcConsumer` maintains `EntityStates` (current values) and `StaleEntities` (availability).
+`EntityRegistry` maps `(FeatureResult type, location)` to `entity_id`. The ID format is deterministic from the feature descriptor and location name. `GrpcConsumer` maintains `EntityStates` (current values) and `StaleEntities` (availability).

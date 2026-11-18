@@ -3,7 +3,7 @@
 Explored 2026-10-20. Features ranked by automation value x feasibility, grouped into tiers by API cost.
 All features are a `FeatureRule<TInput>` in `Njord.Features/<OutputKind>/<Feature>/` with their own
 config (`Enabled` + thresholds), a `FeatureDescriptor` (incl. `PollDepth` for look-back), a typed
-result and proto message, a `docs/data/features.json` entry, and a ha-njord entity.
+result, a `docs/data/features.json` entry, and a ha-njord entity. No proto changes needed (generic per-OutputKind value types).
 
 ## Completed
 
