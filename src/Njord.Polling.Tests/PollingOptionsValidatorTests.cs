@@ -92,26 +92,25 @@ public sealed class PollingOptionsValidatorTests
         var validator = ValidatorFor(locations: 1);
         var options = new PollingOptions
         {
-            PollInterval = TimeSpan.FromMinutes(1),
-            Budget = new RequestBudget(10_000, 600),
+            Budget = new RequestBudget(570, 600),
         };
 
         var result = validator.Validate(null, options);
 
-        Assert.Contains("exceeds the guard of 8000", ValidationAssert.SingleFailure(result));
+        Assert.Contains("exceeds the guard of 456", ValidationAssert.SingleFailure(result));
     }
 
     [Fact]
     public void Should_count_ensemble_models_in_the_budget_projection()
     {
-        var options = new PollingOptions { Budget = new RequestBudget(1_300, 600) };
+        var options = new PollingOptions { Budget = new RequestBudget(700, 600) };
 
         var withoutComparison = ValidatorWith(null, 1).Validate(null, options);
         var withComparison = ValidatorWith(["a", "b", "c"], 1).Validate(null, options);
 
         Assert.Multiple(
             () => Assert.True(withoutComparison.Succeeded),
-            () => Assert.Contains("exceeds the guard of 1040", ValidationAssert.SingleFailure(withComparison)));
+            () => Assert.Contains("exceeds the guard of 560", ValidationAssert.SingleFailure(withComparison)));
     }
 
     [Fact]

@@ -58,10 +58,10 @@ public sealed class BudgetGuardTests
             Forecast: ForecastParams.Temperature,
             Ensemble: EnsembleParams.TemperatureSpread);
 
-        // forecast 0.286 + ensemble spread 1 var x 16/14 = 1.429 x 720 = 1029; guard 960 of 1200. 4 days: 411.
+        // forecast 0.286 x 720 = 206 + ensemble spread 1 var x 16/14 x 120 = 137 -> 343; guard 320 of 400. 4 days: 240.
         Assert.Multiple(
-            () => Assert.Null(Violation(Scope(), WithMonthlyBudget(1_200), resolved)),
-            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(1_200), resolved, new DomainCallConfig { EnsembleDays = 16 })));
+            () => Assert.Null(Violation(Scope(), WithMonthlyBudget(400), resolved)),
+            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(400), resolved, new DomainCallConfig { EnsembleDays = 16 })));
     }
 
     [Fact]
@@ -97,19 +97,19 @@ public sealed class BudgetGuardTests
     {
         var resolved = new DomainRequirements(Forecast: ForecastParams.Temperature, Flood: FloodParams.Discharge);
 
-        // forecast 0.286 + flood 1 var x 92/14 = 6.571 -> 4937 calls; guard 4800 of 6000. 14 days: 925.
+        // forecast 0.286 x 720 = 206 + flood 6.571 x 30 = 197 -> 403; guard 384 of 480. 14 days: 236.
         Assert.Multiple(
-            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(6_000), resolved)),
-            () => Assert.Null(Violation(Scope(), WithMonthlyBudget(6_000), resolved, new DomainCallConfig { FloodDays = 14 })));
+            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(480), resolved)),
+            () => Assert.Null(Violation(Scope(), WithMonthlyBudget(480), resolved, new DomainCallConfig { FloodDays = 14 })));
     }
 
     [Fact]
     public void Should_weigh_the_flood_ensemble_into_the_projection()
     {
         var resolved = new DomainRequirements(Forecast: ForecastParams.Temperature, Flood: FloodParams.Discharge);
-        var polling = WithMonthlyBudget(1_200);
+        var polling = WithMonthlyBudget(400);
 
-        // 14 days plain: (0.286 + 1) x 720 = 926 <= 960; ensemble: (0.286 + 1 + 4) x 720 = 3806.
+        // forecast 206 + flood 14d plain 1.0 x 30 = 30 -> 236; ensemble: 5.0 x 30 = 150 -> 356; guard 320 of 400.
         Assert.Multiple(
             () => Assert.Null(Violation(Scope(), polling, resolved, new DomainCallConfig { FloodDays = 14 })),
             () => Assert.NotNull(Violation(Scope(), polling, resolved, new DomainCallConfig { FloodDays = 14, FloodIncludeEnsemble = true })));
@@ -120,10 +120,10 @@ public sealed class BudgetGuardTests
     {
         var resolved = new DomainRequirements(Marine: MarineParams.WaveHeight);
 
-        // 1 var x 8/14 x 720 = 411 calls; guard 400 of 500, 480 of 600.
+        // 1 var x 8/14 x 120 = 69 calls; guard 68 of 85, 80 of 100.
         Assert.Multiple(
-            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(500), resolved)),
-            () => Assert.Null(Violation(Scope(), WithMonthlyBudget(600), resolved)));
+            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(85), resolved)),
+            () => Assert.Null(Violation(Scope(), WithMonthlyBudget(100), resolved)));
     }
 
     [Fact]
@@ -140,10 +140,10 @@ public sealed class BudgetGuardTests
     {
         var resolved = new DomainRequirements(Forecast: ForecastParams.Temperature, Ensemble: EnsembleParams.TemperatureSpread);
 
-        // forecast 0.286 + ensemble spread 0.286 = 0.571 x 720 = 411; guard 416 of 520, 400 of 500.
+        // forecast 0.286 x 720 = 206 + ensemble spread 0.286 x 120 = 34 -> 240; guard 248 of 310, 232 of 290.
         Assert.Multiple(
-            () => Assert.Null(Violation(Scope(), WithMonthlyBudget(520), resolved)),
-            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(500), resolved)));
+            () => Assert.Null(Violation(Scope(), WithMonthlyBudget(310), resolved)),
+            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(290), resolved)));
     }
 
     [Fact]
@@ -153,10 +153,10 @@ public sealed class BudgetGuardTests
             Forecast: ForecastParams.Temperature,
             Ensemble: EnsembleParams.TemperatureSpread);
 
-        // forecast 0.286 + ensemble (2 vars -> 1 x 4/14 x 3 models = 0.857) = 1.143 x 720 = 823; guard 800 of 1000. One model: 411.
+        // forecast 206 + ensemble (2 vars x 4/14 x 3 models = 0.857) x 120 = 103 -> 309; guard 296 of 370. One model: 240.
         Assert.Multiple(
-            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(1_000), resolved, new DomainCallConfig { EnsembleModelCount = 3 })),
-            () => Assert.Null(Violation(Scope(), WithMonthlyBudget(1_000), resolved, new DomainCallConfig { EnsembleModelCount = 1 })));
+            () => Assert.NotNull(Violation(Scope(), WithMonthlyBudget(370), resolved, new DomainCallConfig { EnsembleModelCount = 3 })),
+            () => Assert.Null(Violation(Scope(), WithMonthlyBudget(370), resolved, new DomainCallConfig { EnsembleModelCount = 1 })));
     }
 
     [Fact]
