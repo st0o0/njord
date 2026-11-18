@@ -138,12 +138,13 @@ public sealed class PollWorkerMappingsTests
         var recovered = JsonConvert.DeserializeObject<PersistedPollWorkerState>(json, settings);
 
         Assert.NotNull(recovered);
+        var originalDomains = Assert.IsType<List<PersistedDomainState>>(dto.DomainStates);
         var recoveredDomains = Assert.IsType<List<PersistedDomainState>>(recovered.DomainStates);
         Assert.Multiple(
             () => Assert.Equal(dto.Location, recovered.Location),
             () => Assert.Equal(dto.Active, recovered.Active),
-            () => Assert.Equal(dto.DomainStates!.Count, recoveredDomains.Count),
-            () => Assert.Equal(dto.DomainStates[0], recoveredDomains[0]));
+            () => Assert.Equal(originalDomains.Count, recoveredDomains.Count),
+            () => Assert.Equal(originalDomains[0], recoveredDomains[0]));
     }
 
     [Theory]
