@@ -361,7 +361,6 @@ while true; do
 
   # Check if restart is due
   if [[ "$PHASE" == "pre_restart" ]] && [[ "$RESTART_DONE" == "false" ]]; then
-    local metrics_for_restart entities_for_restart
     metrics_for_restart=$(collect_metrics 2>/dev/null) || metrics_for_restart='{}'
     entities_for_restart=$(collect_ha_entities 2>/dev/null) || entities_for_restart='{}'
     budget_for_restart=$(echo "$metrics_for_restart" | jq -c '.budget // {}' 2>/dev/null) || budget_for_restart='{}'

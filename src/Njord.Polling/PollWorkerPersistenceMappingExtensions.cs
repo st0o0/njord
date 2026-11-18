@@ -13,7 +13,7 @@ internal static class PollWorkerPersistenceMappingExtensions
         state.DiscoveryInterval,
         state.Domains.IsEmpty
             ? null
-            : [.. state.Domains.Select(kv => new PersistedDomainState(
+            : state.Domains.Select(kv => new PersistedDomainState(
                 (int)kv.Key,
                 kv.Value.LastHash,
                 kv.Value.Phase.ToPersistence(),
@@ -22,7 +22,7 @@ internal static class PollWorkerPersistenceMappingExtensions
                 kv.Value.LastChanged,
                 kv.Value.CandidateCycle,
                 kv.Value.NextPollAt,
-                kv.Value.ConsecutiveFailures))],
+                kv.Value.ConsecutiveFailures)).ToList(),
         state.Target?.Location.Latitude,
         state.Target?.Location.Longitude);
 

@@ -191,6 +191,25 @@ public sealed class PollWorkerMappingsTests
             () => Assert.Equal(TimeSpan.FromHours(3), weather.LearnedCycle));
     }
 
+    [Fact]
+    public void Mapper_produced_snapshot_survives_newtonsoft_roundtrip_with_type_name_handling_all()
+    {
+        var state = Steady().Apply(Unchanged(DomainKind.Forecast, T0.AddHours(9)));
+        var dto = state.GetPersistenceState();
+
+        var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
+        var json = JsonConvert.SerializeObject(dto, settings);
+        var recovered = JsonConvert.DeserializeObject<PersistedPollWorkerState>(json, settings);
+
+        Assert.NotNull(recovered);
+        Assert.NotNull(recovered.DomainStates);
+        Assert.Multiple(
+            () => Assert.Equal(dto.Location, recovered.Location),
+            () => Assert.Equal(dto.Active, recovered.Active),
+            () => Assert.Equal(dto.DomainStates!.Count, recovered.DomainStates.Count),
+            () => Assert.Equal(dto.DomainStates[0], recovered.DomainStates[0]));
+    }
+
     [Theory]
     [InlineData(PollPhase.Discovery, PersistedPollPhase.Discovery)]
     [InlineData(PollPhase.Steady, PersistedPollPhase.Steady)]
