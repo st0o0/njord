@@ -474,7 +474,6 @@ while true; do
   budget_json=$(echo "$metrics_budget_json" | jq -c '.budget // {}' 2>/dev/null) || budget_json='{}'
 
   # Staleness thresholds for the evaluator
-  local stale_thresholds
   stale_thresholds=$(printf '{"forecast":%d,"airquality":%d,"marine":%d,"ensemble":%d,"seasonal":%d,"flood":%d}' \
     "$STALE_FORECAST" "$STALE_AIRQUALITY" "$STALE_MARINE" "$STALE_ENSEMBLE" "$STALE_SEASONAL" "$STALE_FLOOD")
 
