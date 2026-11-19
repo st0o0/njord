@@ -1,0 +1,10 @@
+# Real-cycle soak test: production polling intervals, 48h duration.
+# No interval overrides -- DomainDefaults apply:
+#   Forecast/AirQuality 1h, Marine/Ensemble 6h, Seasonal/Flood 24h
+# Usage:
+#   docker compose -f e2e/docker-compose.e2e.yml -f e2e/docker-compose.realcycle.yml up -d --build
+#   bash e2e/soak/soak-collector.sh --ha-token "<token>" --profile realcycle
+services:
+  njord:
+    environment:
+      - Njord__Polling__PollInterval=01:00:00

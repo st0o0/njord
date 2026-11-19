@@ -261,3 +261,90 @@ bash e2e/soak/soak-collector.sh \
   --duration 1h \
   --restart-at 30m
 ```
+
+## Real-Cycle Profile (Production Intervals)
+
+Tests all domains at their production polling intervals (not accelerated).
+The longest cycle is Seasonal/Flood at 24h, so the test runs 48h for 2 full cycles.
+
+### Configuration
+
+No polling interval overrides -- `DomainDefaults` apply:
+
+| Domain | Poll Interval | Cycles in 48h |
+|--------|--------------|---------------|
+| Forecast | 1h | ~48 |
+| AirQuality | 1h | ~48 |
+| Marine | 6h | ~8 |
+| Ensemble | 6h | ~8 |
+| Seasonal | 24h | ~2 |
+| Flood | 24h | ~2 |
+
+### Parameters
+
+| Parameter | Value | Rationale |
+|-----------|-------|-----------|
+| Duration | 48h | 2 full Seasonal/Flood cycles |
+| Collection interval | 15m | 192 ticks, enough granularity without noise |
+| Restart at | 20h | Before the first 24h cycle completes, tests recovery mid-cycle |
+| Compose override | `docker-compose.realcycle.yml` | Sets `PollInterval=01:00:00` (global floor), no domain overrides |
+
+### Budget Estimate (48h, 1 location)
+
+- Forecast: 48 cycles x ~11 call weight = ~528 calls
+- Marine/Ensemble: 8 cycles each x ~4 calls = ~64 calls
+- Seasonal: 2 cycles x 1 call = ~2 calls
+- Flood: 2 cycles x ~2 calls = ~4 calls
+- **Total: ~598 calls (0.2% of 300k monthly)**
+
+### Per-Domain Staleness Thresholds
+
+The accelerated profile checks a single global staleness threshold. The real-cycle
+profile differentiates by domain, since Seasonal/Flood entities are naturally "old"
+between their 24h poll cycles.
+
+| Domain | Threshold (min) | Rationale |
+|--------|----------------|-----------|
+| Forecast | 120 | 1h poll + 1h grace |
+| AirQuality | 120 | 1h poll + 1h grace |
+| Marine | 420 | 6h poll + 1h grace |
+| Ensemble | 420 | 6h poll + 1h grace |
+| Seasonal | 1500 | 24h poll + 1h grace |
+| Flood | 1500 | 24h poll + 1h grace |
+
+Entity classification uses entity_id patterns (see `soak-collector.sh`).
+
+### Adjusted Evaluation (E3/E4)
+
+The global staleness checks (E3: `stalest_age_min < 30`, E4: `stalest_age_min < 20`)
+are replaced by per-domain checks when `staleness_thresholds` is present in the JSONL:
+
+| ID | Check | Condition | Severity |
+|----|-------|-----------|----------|
+| E3 | No stale entities (per-domain) | Each `domain_staleness.<d>` < `staleness_thresholds.<d>` | FAIL |
+| E4 | Freshness warning (per-domain) | Each `domain_staleness.<d>` < 80% of `staleness_thresholds.<d>` | WARN |
+
+### Running
+
+```bash
+# 1. Start stack with real-cycle compose
+docker compose -f e2e/docker-compose.e2e.yml -f e2e/docker-compose.realcycle.yml up -d --build
+
+# 2. Complete HA onboarding (see E2E-TEST-PLAN.md S1-S2)
+
+# 3. Start collector with realcycle profile
+bash e2e/soak/soak-collector.sh --ha-token "<token>" --profile realcycle
+
+# 4. Wait 48 hours...
+
+# 5. Review results
+cat e2e/soak/soak-events.log
+```
+
+### What This Test Catches (That Accelerated Doesn't)
+
+- Discovery-to-Learned transition for slow domains (does Seasonal actually learn its ~24h cycle?)
+- Entity staleness between long poll intervals (are HA entities correctly "available" with old data?)
+- Budget accounting over many Forecast cycles vs few Seasonal cycles
+- Recovery of a slow-domain timer mid-cycle (restart at 20h, Seasonal timer should fire at ~24h)
+- Stream idle timeout for domains that don't produce data for hours

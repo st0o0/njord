@@ -5,6 +5,7 @@ set -euo pipefail
 DURATION="4h"
 INTERVAL="5m"
 RESTART_AT="2h"
+PROFILE=""
 HA_TOKEN=""
 NJORD_URL="http://localhost:8080"
 GRPC_HOST="localhost:8081"
@@ -12,12 +13,24 @@ HA_URL="http://localhost:8123"
 OUTPUT_DIR="e2e/soak"
 CONTAINER_NAME="njord-e2e"
 
+# Per-domain staleness thresholds (minutes). Entities whose domain poll
+# interval is longer get a proportionally higher staleness allowance.
+# Default profile (accelerated): all domains poll fast.
+STALE_FORECAST=30
+STALE_AIRQUALITY=30
+STALE_MARINE=60
+STALE_ENSEMBLE=60
+STALE_SEASONAL=120
+STALE_FLOOD=120
+
 # ── Argument parsing ─────────────────────────────────────────────
 usage() {
   cat <<'EOF'
 Usage: soak-collector.sh --ha-token TOKEN [OPTIONS]
 
 Options:
+  --profile PROFILE       Preset: "realcycle" (48h, 15m ticks, 20h restart,
+                          production staleness thresholds) or "default" (4h accelerated)
   --duration DURATION     Total run time (default: 4h)
   --interval INTERVAL     Tick interval (default: 5m)
   --restart-at TIME       Container restart time (default: 2h)
@@ -34,6 +47,7 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --profile)      PROFILE="$2"; shift 2 ;;
     --duration)     DURATION="$2"; shift 2 ;;
     --interval)     INTERVAL="$2"; shift 2 ;;
     --restart-at)   RESTART_AT="$2"; shift 2 ;;
@@ -47,6 +61,22 @@ while [[ $# -gt 0 ]]; do
     *)              echo "Unknown option: $1"; usage ;;
   esac
 done
+
+# ── Profile presets (applied before explicit overrides) ──────────
+if [[ "$PROFILE" == "realcycle" ]]; then
+  DURATION="${DURATION:-48h}";  [[ "$DURATION" == "4h" ]] && DURATION="48h"
+  INTERVAL="${INTERVAL:-15m}";  [[ "$INTERVAL" == "5m" ]] && INTERVAL="15m"
+  RESTART_AT="${RESTART_AT:-20h}"; [[ "$RESTART_AT" == "2h" ]] && RESTART_AT="20h"
+  STALE_FORECAST=120       # 1h poll + 1h grace
+  STALE_AIRQUALITY=120
+  STALE_MARINE=420         # 6h poll + 1h grace
+  STALE_ENSEMBLE=420
+  STALE_SEASONAL=1500      # 24h poll + 1h grace
+  STALE_FLOOD=1500
+elif [[ -n "$PROFILE" ]] && [[ "$PROFILE" != "default" ]]; then
+  echo "ERROR: Unknown profile '$PROFILE' (use 'realcycle' or 'default')"
+  exit 1
+fi
 
 if [[ -z "$HA_TOKEN" ]]; then
   echo "ERROR: --ha-token is required"
@@ -236,15 +266,45 @@ collect_ha_entities() {
     stalest_diff=0
   fi
 
+  # Per-domain staleness: classify entities by domain, find stalest per domain.
+  # Domain classification by entity_id patterns:
+  #   flood:      flood|river_discharge|discharge_mean
+  #   marine:     wave|water_temperature|ocean_current|surf|swimming|coastal_flood
+  #   seasonal:   seasonal
+  #   ensemble:   ensemble|forecast_model_comparison
+  #   airquality: pollen|pm25|pm10|aqi|ozone|nitrogen|carbon_monoxide|sulphur|dust|smog|ragweed|allergen|asthma
+  #   forecast:   everything else (weather, alerts, scores, etc.)
+  local domain_staleness
+  domain_staleness=$(echo "$raw" | jq -c --argjson now "$now_epoch" '
+    def domain_of:
+      if test("flood|river_discharge|discharge_mean") then "flood"
+      elif test("wave|water_temperature|ocean_current|surf_|swimming|coastal_flood") then "marine"
+      elif test("seasonal") then "seasonal"
+      elif test("ensemble|forecast_model_comparison") then "ensemble"
+      elif test("pollen|pm25|pm10|aqi|ozone|nitrogen|carbon_monoxide|sulphur|dust|smog|ragweed|allergen|asthma") then "airquality"
+      else "forecast"
+      end;
+    [.[] | select(.entity_id | test("njord|barcelona")) | select(.state != "unavailable") |
+     select(.last_updated != null) |
+     { domain: (.entity_id | domain_of),
+       age_min: ((($now - ((.last_updated | sub("\\+.*";"") | sub("\\.[0-9]+$";"")) | strptime("%Y-%m-%dT%H:%M:%S") | mktime)) / 60) | floor) }] |
+    group_by(.domain) |
+    map({ key: .[0].domain, value: (map(.age_min) | max) }) |
+    from_entries | . as $d |
+    { forecast: ($d.forecast // 0), airquality: ($d.airquality // 0),
+      marine: ($d.marine // 0), ensemble: ($d.ensemble // 0),
+      seasonal: ($d.seasonal // 0), flood: ($d.flood // 0) }
+  ' 2>/dev/null) || domain_staleness='{"forecast":0,"airquality":0,"marine":0,"ensemble":0,"seasonal":0,"flood":0}'
+
   local alerts_on_names
   alerts_on_names=$(echo "$raw" | jq -c '[.[] | select(.entity_id | test("_alert$")) | select(.state == "on") | .entity_id | sub("binary_sensor."; "") | sub("_alert$"; "")]')
 
-  printf '{"reachable":true,"total":%s,"unavailable_count":%s,"unavailable_ids":%s,"weather_state":"%s","temperature":%s,"stream_domain":"%s","stream_enrichment":"%s","alerts_on":%s,"alerts_on_count":%s,"alerts_off_count":%s,"stalest_entity":"%s","stalest_age_min":%s}' \
+  printf '{"reachable":true,"total":%s,"unavailable_count":%s,"unavailable_ids":%s,"weather_state":"%s","temperature":%s,"stream_domain":"%s","stream_enrichment":"%s","alerts_on":%s,"alerts_on_count":%s,"alerts_off_count":%s,"stalest_entity":"%s","stalest_age_min":%s,"domain_staleness":%s}' \
     "$total" "$unavailable_count" "$unavailable_ids" \
     "$(json_escape "$weather_state")" "$temperature" \
     "$stream_domain" "$stream_enrichment" \
     "$alerts_on_names" "$alerts_on" "$alerts_off" \
-    "$(json_escape "$stalest_id")" "$stalest_diff"
+    "$(json_escape "$stalest_id")" "$stalest_diff" "$domain_staleness"
 }
 
 # ── Phase detection ──────────────────────────────────────────────
@@ -342,8 +402,9 @@ START_EPOCH=$(date -u +%s)
 TICK=0
 TOTAL_TICKS=$(( DURATION_SEC / INTERVAL_SEC ))
 
-log_event "START" "Soak test started: duration=${DURATION} interval=${INTERVAL} restart_at=${RESTART_AT} ticks=${TOTAL_TICKS}"
+log_event "START" "Soak test started: duration=${DURATION} interval=${INTERVAL} restart_at=${RESTART_AT} ticks=${TOTAL_TICKS} profile=${PROFILE:-default}"
 log_event "START" "Config: njord=${NJORD_URL} grpc=${GRPC_HOST} ha=${HA_URL} container=${CONTAINER_NAME}"
+log_event "START" "Staleness thresholds (min): forecast=${STALE_FORECAST} aq=${STALE_AIRQUALITY} marine=${STALE_MARINE} ensemble=${STALE_ENSEMBLE} seasonal=${STALE_SEASONAL} flood=${STALE_FLOOD}"
 
 while true; do
   TICK=$(( TICK + 1 ))
@@ -412,10 +473,15 @@ while true; do
   metrics_json=$(echo "$metrics_budget_json" | jq -c '.metrics // {}' 2>/dev/null) || metrics_json='{}'
   budget_json=$(echo "$metrics_budget_json" | jq -c '.budget // {}' 2>/dev/null) || budget_json='{}'
 
+  # Staleness thresholds for the evaluator
+  local stale_thresholds
+  stale_thresholds=$(printf '{"forecast":%d,"airquality":%d,"marine":%d,"ensemble":%d,"seasonal":%d,"flood":%d}' \
+    "$STALE_FORECAST" "$STALE_AIRQUALITY" "$STALE_MARINE" "$STALE_ENSEMBLE" "$STALE_SEASONAL" "$STALE_FLOOD")
+
   # Assemble and write JSONL line
-  printf '{"tick":%d,"ts":"%s","elapsed_min":%d,"phase":"%s","in_restart_window":%s,"health":%s,"metrics":%s,"budget":%s,"grpc_status":%s,"entities":%s,"errors":%s}\n' \
+  printf '{"tick":%d,"ts":"%s","elapsed_min":%d,"phase":"%s","in_restart_window":%s,"health":%s,"metrics":%s,"budget":%s,"grpc_status":%s,"entities":%s,"staleness_thresholds":%s,"errors":%s}\n' \
     "$TICK" "$local_ts" "$elapsed_min" "$PHASE" "$in_restart_window" \
-    "$health_json" "$metrics_json" "$budget_json" "$grpc_json" "$entities_json" "$errors" \
+    "$health_json" "$metrics_json" "$budget_json" "$grpc_json" "$entities_json" "$stale_thresholds" "$errors" \
     >> "$RESULTS_FILE"
 
   # Log tick

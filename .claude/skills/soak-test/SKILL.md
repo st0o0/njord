@@ -1,12 +1,13 @@
 ---
 name: soak-test
-description: Run the 4-hour soak test against a real Docker stack (njord + Home Assistant). Validates stability over 16 poll cycles, container restart recovery, budget accuracy, and entity persistence. Produces a PASS/FAIL results report.
+description: Run the soak test against a real Docker stack (njord + Home Assistant). Two profiles -- default (4h accelerated) and realcycle (48h production intervals). Validates stability, container restart recovery, budget accuracy, and entity persistence. Produces a PASS/FAIL results report.
 ---
 
 # Soak Test -- njord + ha-njord
 
-4-hour stability test with accelerated polling, container restart at T+2h,
-and automated evaluation. Three phases: Setup, Collection, Evaluation.
+Stability test with container restart and automated evaluation.
+Two profiles: default (4h accelerated) and realcycle (48h production intervals).
+Three phases: Setup, Collection, Evaluation.
 
 Read the full test plan at `e2e/soak/SOAK-TEST-PLAN.md`.
 
@@ -28,16 +29,30 @@ ls e2e/soak/soak-results.jsonl 2>/dev/null
 - **If results exist**: offer to evaluate existing results (Phase 3 only) or start fresh
 - **If no results**: start from Phase 1
 
+## Profile Selection
+
+Ask the user which profile to use if not specified:
+- **default**: 4h, accelerated polling (15min), restart at 2h, compose: `docker-compose.soak.yml`
+- **realcycle**: 48h, production intervals (1h-24h), restart at 20h, compose: `docker-compose.realcycle.yml`
+
 ## Phase 1: Setup
 
 Reuse the E2E test's stack setup flow (S0-S2 from `e2e/E2E-TEST-PLAN.md`):
 
 ### S0 -- Stack Start
 
+For default profile:
 ```bash
 cd <repo-root>
 docker compose -f e2e/docker-compose.e2e.yml -f e2e/docker-compose.soak.yml down -v
 docker compose -f e2e/docker-compose.e2e.yml -f e2e/docker-compose.soak.yml up -d --build
+```
+
+For realcycle profile:
+```bash
+cd <repo-root>
+docker compose -f e2e/docker-compose.e2e.yml -f e2e/docker-compose.realcycle.yml down -v
+docker compose -f e2e/docker-compose.e2e.yml -f e2e/docker-compose.realcycle.yml up -d --build
 ```
 
 Poll for health:
@@ -61,13 +76,19 @@ Poll `/api/states` until `weather.barcelona` appears (timeout 120s).
 
 Start the collector in background:
 
+For default profile:
 ```bash
 bash e2e/soak/soak-collector.sh --ha-token "<token>" &
 ```
 
+For realcycle profile:
+```bash
+bash e2e/soak/soak-collector.sh --ha-token "<token>" --profile realcycle &
+```
+
 Tell the user:
-> Collector started. It will run for 4 hours, collecting data every 5 minutes.
-> Container restart happens at T+2h automatically.
+> Collector started. It will run for {4 hours / 48 hours} depending on profile.
+> Container restart happens at {T+2h / T+20h} automatically.
 > Re-invoke `/soak-test` when the collector completes to evaluate results.
 
 The collector runs unattended. Monitor progress with:
@@ -111,20 +132,25 @@ and what to cite as evidence on failure.
   Evidence: tick numbers and `unavailable_ids`.
 
 - **E3 (FAIL)**: For every tick where `in_restart_window == false` and
-  `entities.reachable == true`: `entities.stalest_age_min < 30`.
-  Evidence: tick number, stalest entity, age.
+  `entities.reachable == true`:
+  - If `staleness_thresholds` is present (realcycle profile): each
+    `entities.domain_staleness.<d>` must be < `staleness_thresholds.<d>`.
+  - Otherwise (default profile): `entities.stalest_age_min < 30`.
+  Evidence: tick number, domain, stalest entity/age, threshold.
 
-- **E4 (WARN)**: Same as E3 but threshold is 20 minutes.
+- **E4 (WARN)**: Same as E3 but at 80% of the threshold (default: 20 min;
+  realcycle: 80% of per-domain threshold).
 
 #### Budget (B1, B2)
 
 - **B1 (FAIL)**: `budget.monthly_used` must never decrease between consecutive ticks
   (where both have budget data). Evidence: tick pair and values.
 
-- **B2 (WARN)**: At the final tick, compute expected budget:
-  `expected = (elapsed_min / poll_interval_min) * 11` where poll_interval_min = 15.
-  Actual must be within 15% of expected: `abs(actual - expected) / expected <= 0.15`.
-  Evidence: actual vs expected values.
+- **B2 (WARN)**: At the final tick, compute expected budget. For default profile:
+  `expected = (elapsed_min / 15) * 11`. For realcycle profile: sum per-domain
+  contributions: `forecast_cycles * ~11 + marine_cycles * ~4 + seasonal_cycles * ~1
+  + flood_cycles * ~2` (see SOAK-TEST-PLAN.md for call weights).
+  Actual must be within 15% of expected. Evidence: actual vs expected values.
 
 #### Polling Lifecycle (P1-P3)
 
@@ -176,8 +202,8 @@ pre/post state.
   and restart event timestamp). Evidence: reconnect time or "not reconnected".
 
 - **R5 (WARN)**: `metrics.pipeline_events_total` must increase within one poll
-  interval (15 min) after restart. Compare first post-restart tick to a tick
-  15 min later. Evidence: event counts.
+  interval after restart (default: 15 min; realcycle: 60 min, the fastest domain).
+  Compare first post-restart tick to a tick one interval later. Evidence: event counts.
 
 ### Report Format
 
@@ -238,5 +264,8 @@ For failed checks, add evidence below the line:
 After evaluation, offer to tear down:
 
 ```bash
+# default profile
 docker compose -f e2e/docker-compose.e2e.yml -f e2e/docker-compose.soak.yml down -v
+# realcycle profile
+docker compose -f e2e/docker-compose.e2e.yml -f e2e/docker-compose.realcycle.yml down -v
 ```
