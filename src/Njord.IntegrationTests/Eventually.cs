@@ -29,8 +29,9 @@ internal static class Eventually
             }
             while (await timer.WaitForNextTickAsync(bound.Token).ConfigureAwait(false));
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
+            System.Diagnostics.Trace.WriteLine($"Eventually: attempt failed, retrying - {ex.Message}");
         }
 
         throw new TimeoutException($"Condition not met within {within ?? TimeSpan.FromSeconds(15)}.", last);

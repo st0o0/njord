@@ -16,9 +16,10 @@ public sealed class TemporaryDirectory : IDisposable
         {
             Directory.Delete(Path, recursive: true);
         }
-        catch (IOException)
+        catch (IOException ex)
         {
             // A SQLite handle that outlives the host on a slow runner must not fail the test run.
+            System.Diagnostics.Trace.WriteLine($"TemporaryDirectory cleanup failed: {ex.Message}");
         }
     }
 }
