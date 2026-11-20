@@ -44,5 +44,6 @@ RUN mkdir -p /app/data && chown 1654:1654 /app/data
 WORKDIR /app
 COPY --from=build --chown=1654 /app .
 VOLUME /app/data
+USER 1654:1654
 EXPOSE 8080 8081
 ENTRYPOINT ["dotnet", "Njord.dll"]
