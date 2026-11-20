@@ -46,4 +46,6 @@ COPY --from=build --chown=1654 /app .
 VOLUME /app/data
 USER 1654:1654
 EXPOSE 8080 8081
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD ["wget", "-qO", "/dev/null", "http://localhost:8080/alive"]
 ENTRYPOINT ["dotnet", "Njord.dll"]
