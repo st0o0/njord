@@ -70,7 +70,6 @@ public sealed class GrpcConsumerStreamTests : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 60_000)]
-    [SlopwatchSuppress("SW004", "30s KeepAlive interval requires waiting beyond the injection threshold")]
     public async Task Entity_stream_delivers_keepalives_through_sourceref()
     {
         var ct = TestContext.Current.CancellationToken;

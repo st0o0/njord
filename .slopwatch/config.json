@@ -1,0 +1,14 @@
+{
+  "suppressions": [
+    {
+      "ruleId": "SW004",
+      "pattern": "**/SourceRefIdleTimeoutTests.cs",
+      "justification": "Tests intentionally use Task.Delay to verify IdleTimeout stage behavior under demand stall"
+    },
+    {
+      "ruleId": "SW004",
+      "pattern": "**/GrpcConsumerStreamTests.cs",
+      "justification": "KeepAlive delivery test waits for 30s production interval heartbeat injection"
+    }
+  ]
+}

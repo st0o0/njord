@@ -2,8 +2,6 @@ using Akka;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Njord.Tests.Shared;
-
 namespace Njord.Grpc.Tests;
 
 public sealed class SourceRefIdleTimeoutTests : Akka.Hosting.TestKit.TestKit
@@ -14,7 +12,6 @@ public sealed class SourceRefIdleTimeoutTests : Akka.Hosting.TestKit.TestKit
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
     [Fact(Timeout = 15_000)]
-    [SlopwatchSuppress("SW004", "Intentional delay simulates demand stall to trigger IdleTimeout")]
     public async Task Producer_side_idle_timeout_fires_during_demand_stall()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -37,7 +34,6 @@ public sealed class SourceRefIdleTimeoutTests : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 15_000)]
-    [SlopwatchSuppress("SW004", "Intentional delay verifies stream survives beyond idle timeout duration")]
     public async Task Consumer_side_idle_timeout_survives_upstream_silence()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -77,7 +73,6 @@ public sealed class SourceRefIdleTimeoutTests : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 15_000)]
-    [SlopwatchSuppress("SW004", "Intentional delay verifies stream survives backpressure beyond idle timeout")]
     public async Task Consumer_side_keepalives_reset_timeout_under_backpressure()
     {
         var ct = TestContext.Current.CancellationToken;
