@@ -51,6 +51,16 @@ public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
 
     private static FetchDomain Fetch() => new(new Location("lucerne", 47.05, 8.31), DomainKind.Forecast);
 
+    private async Task WaitForGatewayReady(IActorRef gateway, CancellationToken ct)
+    {
+        await AwaitAssertAsync(async () =>
+        {
+            gateway.Tell(Fetch());
+            var reply = await _region.ExpectMsgAsync<FetchDomainResponse>(TimeSpan.FromSeconds(5), cancellationToken: ct);
+            Assert.IsType<FetchDomainCompleted>(reply);
+        }, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(200), cancellationToken: ct);
+    }
+
     [Fact(Timeout = 30000)]
     public async Task A_request_before_the_pipeline_input_is_attached_is_rejected_as_pipeline_unavailable()
     {
@@ -71,6 +81,7 @@ public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var (_, attached, _) = RegisterPipeline();
         var gateway = StartGateway();
+        await WaitForGatewayReady(gateway, ct);
         await attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
 
         gateway.Tell(Fetch());
@@ -83,13 +94,13 @@ public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
     public async Task The_gateway_restarts_and_attaches_again_after_the_pipeline_terminated()
     {
         var ct = TestContext.Current.CancellationToken;
-        var (first, firstAttached, _) = RegisterPipeline();
+        var (first, _, _) = RegisterPipeline();
         var gateway = StartGateway();
-        await firstAttached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
+        await WaitForGatewayReady(gateway, ct);
 
-        var (_, secondAttached, secondForecasts) = RegisterPipeline();
+        var (_, _, secondForecasts) = RegisterPipeline();
         await first.GracefulStop(TimeSpan.FromSeconds(5));
-        await secondAttached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
+        await WaitForGatewayReady(gateway, ct);
 
         gateway.Tell(Fetch());
 
@@ -102,12 +113,12 @@ public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
     public async Task A_high_weight_request_succeeds_when_burst_is_raised_to_call_weight()
     {
         var ct = TestContext.Current.CancellationToken;
-        var (_, attached, _) = RegisterPipeline();
+        var (_, _, _) = RegisterPipeline();
         _budget.CostPerMinute = 6000;
         _budget.MaxBurst = 2;
         _weather.CallWeight = 2;
         var gateway = StartGateway();
-        await attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
+        await WaitForGatewayReady(gateway, ct);
 
         gateway.Tell(Fetch());
 
@@ -119,12 +130,12 @@ public sealed class OpenMeteoGatewayAttachTests : Akka.Hosting.TestKit.TestKit
     public async Task Budget_gate_delays_consecutive_heavy_requests_without_rejection()
     {
         var ct = TestContext.Current.CancellationToken;
-        var (_, attached, _) = RegisterPipeline();
+        var (_, _, _) = RegisterPipeline();
         _budget.CostPerMinute = 6000;
         _budget.MaxBurst = 18;
         _weather.CallWeight = 18;
         var gateway = StartGateway();
-        await attached.ExpectMsgAsync<string>(TimeSpan.FromSeconds(5), cancellationToken: ct);
+        await WaitForGatewayReady(gateway, ct);
 
         gateway.Tell(Fetch());
         gateway.Tell(Fetch());
