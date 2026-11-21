@@ -1,46 +1,54 @@
 # grpc-client-liveness Specification
 
 ## Purpose
-TBD - created by archiving change gateway-wiretap-and-grpc-keepalive. Update Purpose after archive.
+Keeps the gRPC Subscribe entity stream alive during long polling intervals using heartbeat injection and idle timeout detection, and tears down dead streams to reclaim resources.
+
 ## Requirements
+
 ### Requirement: Heartbeat sentinel keeps idle streams alive
-The GrpcConsumer per-client stream SHALL include a `KeepAlive` stage that injects a `PipelineEvent.Heartbeat` sentinel when no pipeline event has arrived within the keepalive interval. The keepalive interval SHALL be configurable and default to a value that covers one full poll interval plus margin (e.g. 90 seconds for a 60-minute poll cycle is too short -- the interval must exceed the poll interval). The Heartbeat event SHALL be a singleton `PipelineEvent` subtype that carries no data and is filtered out by the gRPC service layer before reaching the wire.
+The GrpcConsumer per-client stream SHALL include a `KeepAlive` stage that injects a `ConsumerKeepAlive` sentinel when no entity event has arrived within the keepalive interval (30 seconds). The KeepAlive stage SHALL be placed on the producer side, upstream of the SourceRef materialization. The sentinel SHALL cross the SourceRef transport and be filtered out on the consumer side (in the gRPC service layer) after it has reset the consumer-side IdleTimeout.
 
 #### Scenario: Heartbeat injected during quiet period
-- **WHEN** no pipeline event arrives for longer than the keepalive interval
-- **THEN** the KeepAlive stage emits a Heartbeat event on the per-client stream
+- **WHEN** no entity event arrives for longer than the keepalive interval
+- **THEN** the KeepAlive stage emits a ConsumerKeepAlive event that flows through the SourceRef
 
 #### Scenario: Heartbeat does not reach the gRPC wire
-- **WHEN** a Heartbeat event reaches the gRPC mapping layer
-- **THEN** it SHALL be filtered out and not serialized to the client
+- **WHEN** a ConsumerKeepAlive event arrives on the consumer side of the SourceRef
+- **THEN** it SHALL pass through the IdleTimeout stage (resetting its timer) and then be filtered out before proto mapping
 
 #### Scenario: Normal events suppress heartbeats
-- **WHEN** pipeline events arrive within the keepalive interval
-- **THEN** no Heartbeat events are injected
+- **WHEN** entity events arrive within the keepalive interval
+- **THEN** no ConsumerKeepAlive events are injected
 
 ### Requirement: Idle timeout detects dead gRPC clients
-The GrpcConsumer per-client stream SHALL include an `IdleTimeout` stage that tears down the stream when no element has passed through for the idle timeout duration. The idle timeout SHALL be longer than the keepalive interval so that heartbeats prevent timeout for alive clients. A dead client that stops consuming causes backpressure that eventually starves the stream of elements, triggering the timeout.
+The gRPC service consumer pipeline SHALL include an `IdleTimeout` stage placed immediately after the SourceRef source, before the heartbeat filter. The idle timeout (90 seconds) SHALL tear down the stream when no element (including heartbeats) has arrived from the SourceRef for the timeout duration. A dead producer or broken SourceRef connection that stops delivering elements triggers the timeout.
 
-#### Scenario: Dead client stream tears down
-- **WHEN** a gRPC client stops consuming and no elements pass through the stream for the idle timeout duration
-- **THEN** the stream SHALL fail with a timeout exception and release its BroadcastHub slot
+#### Scenario: Dead producer stream tears down
+- **WHEN** the SourceRef stops delivering elements (producer dead or SourceRef connection broken) for the idle timeout duration
+- **THEN** the consumer stream SHALL fail with a TimeoutException
 
 #### Scenario: Slow but alive client survives
-- **WHEN** a gRPC client consumes slowly but heartbeats continue to flow through the stream
-- **THEN** the idle timeout SHALL NOT fire because elements (heartbeats) continue to pass
+- **WHEN** a gRPC client consumes slowly but heartbeats continue to arrive through the SourceRef
+- **THEN** the idle timeout SHALL NOT fire because heartbeats pass through IdleTimeout before being filtered
 
 #### Scenario: Idle timeout failure is handled gracefully
-- **WHEN** a per-client stream fails due to idle timeout
-- **THEN** the GrpcConsumer SHALL log a warning and not crash or affect other client streams
+- **WHEN** a consumer stream fails due to idle timeout
+- **THEN** the gRPC service SHALL log the error and not crash or affect other Subscribe calls
 
-### Requirement: Per-client buffer uses backpressure overflow
-The per-client stream Buffer SHALL use `OverflowStrategy.Backpressure` instead of `DropHead`. When the buffer is full, backpressure SHALL propagate to the BroadcastHub rather than dropping older events.
+### Requirement: Consumer-side buffer decouples IdleTimeout from gRPC write backpressure
+The consumer pipeline SHALL include a `Buffer(128, Backpressure)` between the heartbeat filter and the gRPC write stages. This buffer SHALL keep pulling demand through the IdleTimeout stage even when gRPC WriteAsync temporarily stalls due to HTTP/2 flow control.
 
-#### Scenario: Slow client receives all events in order
-- **WHEN** a gRPC client consumes slower than the pipeline produces
-- **THEN** events SHALL accumulate in the buffer and none SHALL be dropped
+#### Scenario: gRPC write stall does not trigger IdleTimeout
+- **WHEN** the gRPC WriteAsync temporarily blocks due to client-side flow control
+- **THEN** the Buffer SHALL continue pulling elements through IdleTimeout, preventing a false timeout
 
-#### Scenario: Buffer full applies backpressure
-- **WHEN** the per-client buffer reaches capacity
-- **THEN** the BroadcastHub connection for this client SHALL be backpressured until the client catches up
+#### Scenario: Buffer full applies backpressure to SourceRef
+- **WHEN** the consumer-side buffer reaches capacity
+- **THEN** backpressure SHALL propagate through IdleTimeout to the SourceRef, slowing the producer
 
+### Requirement: Producer pipeline has no Buffer or IdleTimeout
+The GrpcConsumer producer pipeline SHALL contain only the KeepAlive stage before the SourceRef materialization. No Buffer or IdleTimeout stage SHALL be present on the producer side.
+
+#### Scenario: Producer pipeline is KeepAlive then SourceRef
+- **WHEN** a client requests an entity stream
+- **THEN** the materialized stream topology SHALL be: Source.From(initial).Concat(hubSource).KeepAlive(interval).RunWith(SourceRef)

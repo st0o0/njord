@@ -12,9 +12,7 @@ namespace Njord.Grpc;
 
 public sealed class GrpcConsumer : ReceiveActor, IWithTimers
 {
-    private const int StreamClientBufferSize = 256;
     private static readonly TimeSpan _keepAliveInterval = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan _clientIdleTimeout = TimeSpan.FromSeconds(90);
     private static readonly TimeSpan _availabilityCheckInterval = TimeSpan.FromSeconds(60);
 
     internal static readonly TimeSpan StaleThreshold = TimeSpan.FromMinutes(150);
@@ -138,8 +136,6 @@ public sealed class GrpcConsumer : ReceiveActor, IWithTimers
         Source.From(initial)
             .Concat(_entityHubSource)
             .KeepAlive<ConsumerEvent, ConsumerEvent, NotUsed>(_keepAliveInterval, () => new ConsumerKeepAlive())
-            .Buffer(StreamClientBufferSize, OverflowStrategy.Backpressure)
-            .IdleTimeout(_clientIdleTimeout)
             .RunWith(StreamRefs.SourceRef<ConsumerEvent>(), _mat)
             .PipeTo(Sender, Self,
                 sr => new RequestEntityStreamCompleted(msg.RequestId, sr),

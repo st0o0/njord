@@ -69,6 +69,23 @@ public sealed class GrpcConsumerStreamTests : Akka.Hosting.TestKit.TestKit
         Assert.Equal("vienna_heat", changed.EntityId);
     }
 
+    [Fact(Timeout = 60_000)]
+    [SlopwatchSuppress("SW004", "30s KeepAlive interval requires waiting beyond the injection threshold")]
+    public async Task Entity_stream_delivers_keepalives_through_sourceref()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (consumer, _) = await StartAsync();
+        var completed = Assert.IsType<RequestEntityStreamCompleted>(
+            await consumer.Ask<RequestEntityStreamResponse>(new RequestEntityStream(1), _askTimeout, ct));
+
+        var firstKeepAlive = await completed.SourceRef.Source
+            .Where(static e => e is ConsumerKeepAlive)
+            .RunWith(Sink.First<ConsumerEvent>(), Sys.Materializer())
+            .WaitAsync(TimeSpan.FromSeconds(45), ct);
+
+        Assert.IsType<ConsumerKeepAlive>(firstKeepAlive);
+    }
+
     private async Task<(IActorRef Consumer, ISourceQueueWithComplete<PipelineEvent> Pipeline)> StartAsync()
     {
         var ready = new TaskCompletionSource<TestPipeline>(TaskCreationOptions.RunContinuationsAsynchronously);

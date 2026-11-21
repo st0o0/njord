@@ -71,7 +71,9 @@ public sealed class NjordGrpcService(
         await using var ctr = context.CancellationToken.Register(killSwitch.Shutdown).ConfigureAwait(false);
 
         await sourceRef.Source
+            .IdleTimeout(TimeSpan.FromSeconds(90))
             .Where(static e => e is not ConsumerKeepAlive)
+            .Buffer(128, OverflowStrategy.Backpressure)
             .Select(static e => e.ToProto())
             .Select(e => wanted is null ? e : Filter(e, wanted))
             .Where(static e => e is not null)
