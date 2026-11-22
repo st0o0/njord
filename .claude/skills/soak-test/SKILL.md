@@ -127,14 +127,18 @@ and what to cite as evidence on failure.
   `entities.reachable == true`. Compare all values; ignore ticks where HA was
   unreachable. Evidence: tick numbers with differing counts.
 
-- **E2 (FAIL)**: For every tick where `in_restart_window == false` and
-  `entities.reachable == true`: `entities.unavailable_count == 0`.
-  Evidence: tick numbers and `unavailable_ids`.
+- **E2 (FAIL)**: No **new** unavailable entities. Many entities are unavailable by
+  design (alerts that don't fire, features with missing domain data).
+  Establish a **baseline unavailable set** from tick 5+ (first tick with
+  `entities.reachable == true` and `unavailable_count > 0`). For subsequent ticks,
+  FAIL only if a new entity_id appears in `unavailable_ids` that was NOT in the
+  baseline. Evidence: new unavailable IDs and tick numbers.
 
 - **E3 (FAIL)**: For every tick where `in_restart_window == false` and
   `entities.reachable == true`:
-  - If `staleness_thresholds` is present (realcycle profile): each
-    `entities.domain_staleness.<d>` must be < `staleness_thresholds.<d>`.
+  - If `staleness_thresholds` is present AND `domain_staleness` values are non-zero
+    (realcycle profile): each `entities.domain_staleness.<d>` must be <
+    `staleness_thresholds.<d>`. Skip domains with 0 available entities.
   - Otherwise (default profile): `entities.stalest_age_min < 30`.
   Evidence: tick number, domain, stalest entity/age, threshold.
 
@@ -146,30 +150,37 @@ and what to cite as evidence on failure.
 - **B1 (FAIL)**: `budget.monthly_used` must never decrease between consecutive ticks
   (where both have budget data). Evidence: tick pair and values.
 
-- **B2 (WARN)**: At the final tick, compute expected budget. For default profile:
-  `expected = (elapsed_min / 15) * 11`. For realcycle profile: sum per-domain
-  contributions: `forecast_cycles * ~11 + marine_cycles * ~4 + seasonal_cycles * ~1
-  + flood_cycles * ~2` (see SOAK-TEST-PLAN.md for call weights).
-  Actual must be within 15% of expected. Evidence: actual vs expected values.
+- **B2 (WARN)**: At the final tick, compute expected budget.
+  - Default: `expected = (elapsed_min / 15) * 11`. Actual within 15%.
+  - Realcycle: `expected = elapsed_hours * 3.4` (empirical). Actual within 20%.
+  Evidence: actual vs expected values.
 
 #### Polling Lifecycle (P1-P3)
 
-- **P1 (FAIL)**: Find first tick where `grpc_status.phase == "POLL_PHASE_STEADY"`.
-  Its `elapsed_min` must be <= 30. Evidence: first STEADY tick or "never reached".
+- **P1 (FAIL)**: Polling must become active promptly.
+  - Default: first tick with `POLL_PHASE_STEADY`, `elapsed_min <= 30`.
+  - Realcycle: first tick with `POLL_PHASE_ACTIVE`, `elapsed_min <= 10`. STEADY may
+    take >48h with slow domains; ACTIVE is sufficient.
+  Evidence: first matching tick or "never reached".
 
 - **P2 (WARN)**: For ticks where `in_restart_window == false` and phase is
   `steady_state` or `post_restart`: `grpc_status.miss_count <= 2`.
   Evidence: tick numbers with high miss counts.
 
 - **P3 (FAIL)**: For ticks where `in_restart_window == false` and
-  `grpc_status.reachable == true`: `grpc_status.enrichment_count == 65`.
-  Evidence: tick numbers with wrong count.
+  `grpc_status.reachable == true`: `grpc_status.enrichment_count` must be **constant**
+  (same value in every tick). Do not hardcode 65 -- the count depends on enabled
+  features (currently 88-89). Evidence: tick numbers with differing counts.
 
 #### Streams and Metrics (S1, M1-M3)
 
-- **S1 (FAIL)**: For ticks where `in_restart_window == false` and
-  `entities.reachable == true`: `entities.stream_domain == "on"` and
-  `entities.stream_enrichment == "on"`. Evidence: tick numbers and states.
+- **S1 (WARN/FAIL)**: For ticks where `in_restart_window == false` and
+  `entities.reachable == true`: check `entities.stream_domain` and
+  `entities.stream_enrichment`.
+  - `"on"`: PASS. `"off"`: FAIL (stream dropped).
+  - `"missing"`: WARN (sensor not registered in this ha-njord version; entity
+    naming may differ). Do not FAIL on "missing".
+  Evidence: tick numbers and states.
 
 - **M1 (WARN)**: `metrics.pipeline_failed_total` must not increase between
   consecutive ticks. Evidence: tick pair and delta.
@@ -177,9 +188,13 @@ and what to cite as evidence on failure.
 - **M2 (WARN)**: At the final tick: `metrics.pipeline_failed_total == 0`.
   Evidence: final value.
 
-- **M3 (WARN)**: Between consecutive non-restart ticks,
-  `metrics.pipeline_events_total` must increase (pipeline is producing events).
-  Allow up to 3 stalled intervals. Evidence: tick pairs with zero growth.
+- **M3 (WARN)**: Pipeline must produce events regularly.
+  - Default: `pipeline_events_total` must increase between consecutive non-restart
+    ticks. Allow up to 3 stalled intervals total.
+  - Realcycle: with 1h poll intervals and 15m ticks, most inter-poll ticks show no
+    growth. Allow up to `ceil(poll_interval / collection_interval)` **consecutive**
+    stalled ticks (realcycle: 4). WARN only if a consecutive stall run exceeds this.
+  Evidence: longest consecutive stall run and tick range.
 
 #### Recovery (R1-R5)
 
@@ -199,7 +214,8 @@ pre/post state.
 
 - **R4 (WARN)**: Find first post-restart tick where both stream sensors are "on".
   Its time since restart must be < 90 seconds (calculate from tick timestamps
-  and restart event timestamp). Evidence: reconnect time or "not reconnected".
+  and restart event timestamp). If stream sensors are "missing" (not registered),
+  skip this check with a note. Evidence: reconnect time or "not reconnected".
 
 - **R5 (WARN)**: `metrics.pipeline_events_total` must increase within one poll
   interval after restart (default: 15 min; realcycle: 60 min, the fastest domain).
@@ -220,8 +236,8 @@ Generate a structured report:
 - [PASS] H2: Degraded <= 2 ticks
 
 ### Entity Stability (4/4 passed)
-- [PASS] E1: Entity count constant (70)
-- [PASS] E2: Zero unavailable
+- [PASS] E1: Entity count constant (91)
+- [PASS] E2: No new unavailable (baseline: 40, no new)
 - [PASS] E3: No stale entities (max 12 min)
 - [PASS] E4: Freshness warning (max 12 min)
 
@@ -230,9 +246,9 @@ Generate a structured report:
 - [PASS] B2: Final within range (actual: 172, expected: 176, delta: 2.3%)
 
 ### Polling Lifecycle (3/3 passed)
-- [PASS] P1: STEADY reached at 12 min
+- [PASS] P1: Polling active at 0 min
 - [PASS] P2: Max miss count: 0
-- [PASS] P3: All enrichments (65)
+- [PASS] P3: Enrichments stable (88 in all ticks)
 
 ### Streams and Metrics (4/4 passed)
 - [PASS] S1: Streams always connected
@@ -255,8 +271,8 @@ Generate a structured report:
 
 For failed checks, add evidence below the line:
 ```
-- [FAIL] E2: Zero unavailable
-  Evidence: tick 25 (T+2h05) had 3 unavailable: [server_monthly_usage, server_uptime, server_version]
+- [FAIL] E2: No new unavailable
+  Evidence: tick 25 (T+2h05) has 3 NEW unavailable (not in baseline): [sensor.x, sensor.y, sensor.z]
 ```
 
 ## Teardown

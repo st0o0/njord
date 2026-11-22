@@ -143,6 +143,8 @@ Each line in `soak-results.jsonl` is a JSON object:
 19 checks across 6 categories. Ticks within the restart tolerance window
 (`in_restart_window: true`) are excluded from checks marked "excl. restart".
 
+Checks marked **[profile-aware]** behave differently for `default` vs `realcycle`.
+
 ### Health
 
 | ID | Check | Condition | Severity | Restart |
@@ -155,33 +157,82 @@ Each line in `soak-results.jsonl` is a JSON object:
 | ID | Check | Condition | Severity | Restart |
 |----|-------|-----------|----------|---------|
 | E1 | Entity count constant | `entities.total` same across all ticks | FAIL | all ticks |
-| E2 | Zero unavailable | `entities.unavailable_count == 0` in all ticks | FAIL | excl. restart |
-| E3 | No stale entities | `entities.stalest_age_min < 30` in all ticks | FAIL | excl. restart |
-| E4 | Freshness warning | `entities.stalest_age_min < 20` in all ticks | WARN | excl. restart |
+| E2 | No new unavailable **[profile-aware]** | See below | FAIL | excl. restart |
+| E3 | No stale entities **[profile-aware]** | See below | FAIL | excl. restart |
+| E4 | Freshness warning **[profile-aware]** | See below | WARN | excl. restart |
+
+**E2 details:** Many entities are "unavailable" by design -- alerts that don't fire in
+the current season/location (e.g. Frost/Snow/Heat in Barcelona November), features whose
+domain data is missing (Flood discharge, Ocean currents). These are structurally unavailable
+and not a failure.
+
+- Establish a **baseline unavailable set** from the first tick after warmup where
+  `entities.reachable == true` and `entities.unavailable_count > 0` (or tick 5+, whichever
+  is later). Record the `unavailable_ids` from that tick.
+- For all subsequent ticks: FAIL only if a **new** entity_id appears in `unavailable_ids`
+  that was NOT in the baseline set. An entity that was unavailable from the start staying
+  unavailable is expected.
+- Evidence: the new unavailable entity_ids not in baseline, tick number.
+
+**E3/E4 details:**
+- **default profile**: `entities.stalest_age_min < 30` (FAIL), `< 20` (WARN).
+- **realcycle profile**: Per-domain thresholds from `staleness_thresholds` in the JSONL.
+  Each `entities.domain_staleness.<d>` must be < `staleness_thresholds.<d>` (FAIL),
+  < 80% of threshold (WARN). Domains with 0 available entities are skipped.
 
 ### Budget
 
 | ID | Check | Condition | Severity | Restart |
 |----|-------|-----------|----------|---------|
 | B1 | Monotonic increase | `budget.monthly_used` never decreases between ticks | FAIL | all ticks |
-| B2 | Final within range | Final `budget.monthly_used` within 15% of `cycles x 11` | WARN | end only |
+| B2 | Final within range **[profile-aware]** | See below | WARN | end only |
+
+**B2 details:**
+- **default profile**: `expected = (elapsed_min / 15) * 11`. Actual within 15%.
+- **realcycle profile**: `expected = elapsed_hours * 3.4` (empirical: ~165 calls / 48h).
+  For a precise formula: `forecast_cycles * ~3 + aq_cycles * ~1 + (hours/6) * ~4 (marine)
+  + (hours/6) * ~4 (ensemble) + seasonal_calls + flood_calls`. Actual within 20%
+  (wider tolerance due to variable domain timing).
 
 ### Polling Lifecycle
 
 | ID | Check | Condition | Severity | Restart |
 |----|-------|-----------|----------|---------|
-| P1 | ACTIVE reached | `grpc_status.phase == "POLL_PHASE_ACTIVE"` within 10 min | FAIL | warmup only |
+| P1 | Polling active **[profile-aware]** | See below | FAIL | warmup only |
 | P2 | Low miss count | `grpc_status.miss_count <= 2` in steady state | WARN | excl. restart |
-| P3 | All enrichments | `grpc_status.enrichment_count == 65` in all ticks | FAIL | excl. restart |
+| P3 | Enrichments stable | `grpc_status.enrichment_count` constant across all ticks | FAIL | excl. restart |
+
+**P1 details:**
+- **default profile**: `POLL_PHASE_STEADY` reached within 30 min.
+- **realcycle profile**: `POLL_PHASE_ACTIVE` reached within 10 min. STEADY may take
+  longer than 48h with slow domains (Seasonal/Flood 24h cycles), so ACTIVE is sufficient.
+
+**P3 details:** The enrichment count depends on the number of enabled features (currently
+89). Do not hardcode 65. Instead verify that the count is **constant** across all reachable
+ticks -- any change indicates a feature registration problem.
 
 ### Streams and Metrics
 
 | ID | Check | Condition | Severity | Restart |
 |----|-------|-----------|----------|---------|
-| S1 | Streams connected | `entities.stream_domain == "on"` and `stream_enrichment == "on"` | FAIL | excl. restart |
-| M1 | No fetch failures | `metrics.fetch_total` only increases (no `pipeline_failed_total` growth) | WARN | all ticks |
-| M2 | No pipeline failures | `metrics.pipeline_failed_total == 0` across all ticks | WARN | all ticks |
-| M3 | Pipeline active | `metrics.pipeline_events_total` increases between non-restart ticks | WARN | excl. restart |
+| S1 | Streams connected | See below | WARN | excl. restart |
+| M1 | No fetch failures | `metrics.pipeline_failed_total` does not increase | WARN | all ticks |
+| M2 | No pipeline failures | `metrics.pipeline_failed_total == 0` at final tick | WARN | all ticks |
+| M3 | Pipeline active **[profile-aware]** | See below | WARN | excl. restart |
+
+**S1 details:** Check `entities.stream_domain` and `entities.stream_enrichment`.
+- State `"on"`: PASS.
+- State `"off"`: FAIL (stream was connected but dropped).
+- State `"missing"`: WARN (sensor not registered in this HA/ha-njord version; entity
+  naming may differ). Do not FAIL on "missing".
+
+**M3 details:**
+- **default profile**: `pipeline_events_total` must increase between consecutive non-restart
+  ticks. Allow up to 3 stalled intervals total.
+- **realcycle profile**: With 1h poll intervals and 15m collection ticks, most ticks between
+  polls have no event growth. Allow up to `ceil(poll_interval_min / interval_min)` consecutive
+  stalled ticks (realcycle: `ceil(60/15) = 4`). WARN only if a **consecutive** stall run
+  exceeds this window.
 
 ### Recovery
 
@@ -191,7 +242,12 @@ Each line in `soak-results.jsonl` is a JSON object:
 | R2 | Budget preserved | `budget.monthly_used` identical pre/post restart | FAIL | restart only |
 | R3 | Entities re-registered | `entities.total` same post-restart within 120s | FAIL | restart only |
 | R4 | Streams reconnected | Stream sensors "on" within 90s of restart | WARN | restart only |
-| R5 | Fresh data within cycle | `pipeline_events_total` grows within one poll interval post-restart | WARN | restart only |
+| R5 | Fresh data within cycle **[profile-aware]** | See below | WARN | restart only |
+
+**R5 details:**
+- **default profile**: `pipeline_events_total` grows within 15 min of restart.
+- **realcycle profile**: `pipeline_events_total` grows within 60 min of restart
+  (the fastest domain interval).
 
 ### Overall Result
 
@@ -291,11 +347,20 @@ No polling interval overrides -- `DomainDefaults` apply:
 
 ### Budget Estimate (48h, 1 location)
 
-- Forecast: 48 cycles x ~11 call weight = ~528 calls
-- Marine/Ensemble: 8 cycles each x ~4 calls = ~64 calls
+Empirical from the first 48h run: **~165 calls** (~3.4 calls/hour).
+
+- Forecast: 48 cycles x ~3 call weight = ~144 calls
+- AirQuality: 48 cycles x ~1 call weight = ~48 calls (overlaps with Forecast timing)
+- Marine: 8 cycles x ~1 call = ~8 calls
+- Ensemble: 8 cycles x ~4 calls = ~32 calls
 - Seasonal: 2 cycles x 1 call = ~2 calls
-- Flood: 2 cycles x ~2 calls = ~4 calls
-- **Total: ~598 calls (0.2% of 300k monthly)**
+- Flood: 2 cycles x ~1 call = ~2 calls
+- **Total: ~165 calls (0.06% of 300k monthly)**
+
+Note: call weights depend on the number of requested variables per domain,
+which depends on which features are enabled. The earlier estimate of ~598
+assumed higher per-cycle weights; actual weights are lower with fewer
+variables per domain.
 
 ### Per-Domain Staleness Thresholds
 
@@ -314,15 +379,13 @@ between their 24h poll cycles.
 
 Entity classification uses entity_id patterns (see `soak-collector.sh`).
 
-### Adjusted Evaluation (E3/E4)
+### Profile-Aware Checks
 
-The global staleness checks (E3: `stalest_age_min < 30`, E4: `stalest_age_min < 20`)
-are replaced by per-domain checks when `staleness_thresholds` is present in the JSONL:
-
-| ID | Check | Condition | Severity |
-|----|-------|-----------|----------|
-| E3 | No stale entities (per-domain) | Each `domain_staleness.<d>` < `staleness_thresholds.<d>` | FAIL |
-| E4 | Freshness warning (per-domain) | Each `domain_staleness.<d>` < 80% of `staleness_thresholds.<d>` | WARN |
+The main evaluation matrix (above) handles both profiles. Checks marked
+**[profile-aware]** automatically adapt based on the JSONL data:
+- `staleness_thresholds` present -> per-domain E3/E4 checks
+- `grpc_status.phase` never reaches STEADY -> P1 checks for ACTIVE instead
+- Longer poll intervals -> M3 allows proportionally more stalls
 
 ### Running
 

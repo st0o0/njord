@@ -267,6 +267,8 @@ collect_ha_entities() {
   fi
 
   # Per-domain staleness: classify entities by domain, find stalest per domain.
+  # Uses date -d for timestamp parsing (works on Linux and Git Bash on Windows,
+  # unlike jq strptime which is unavailable on Windows jq).
   # Domain classification by entity_id patterns:
   #   flood:      flood|river_discharge|discharge_mean
   #   marine:     wave|water_temperature|ocean_current|surf|swimming|coastal_flood
@@ -274,27 +276,34 @@ collect_ha_entities() {
   #   ensemble:   ensemble|forecast_model_comparison
   #   airquality: pollen|pm25|pm10|aqi|ozone|nitrogen|carbon_monoxide|sulphur|dust|smog|ragweed|allergen|asthma
   #   forecast:   everything else (weather, alerts, scores, etc.)
-  local domain_staleness
-  domain_staleness=$(echo "$raw" | jq -c --argjson now "$now_epoch" '
-    def domain_of:
-      if test("flood|river_discharge|discharge_mean") then "flood"
-      elif test("wave|water_temperature|ocean_current|surf_|swimming|coastal_flood") then "marine"
-      elif test("seasonal") then "seasonal"
-      elif test("ensemble|forecast_model_comparison") then "ensemble"
-      elif test("pollen|pm25|pm10|aqi|ozone|nitrogen|carbon_monoxide|sulphur|dust|smog|ragweed|allergen|asthma") then "airquality"
-      else "forecast"
-      end;
-    [.[] | select(.entity_id | test("njord|barcelona")) | select(.state != "unavailable") |
-     select(.last_updated != null) |
-     { domain: (.entity_id | domain_of),
-       age_min: ((($now - ((.last_updated | sub("\\+.*";"") | sub("\\.[0-9]+$";"")) | strptime("%Y-%m-%dT%H:%M:%S") | mktime)) / 60) | floor) }] |
-    group_by(.domain) |
-    map({ key: .[0].domain, value: (map(.age_min) | max) }) |
-    from_entries | . as $d |
-    { forecast: ($d.forecast // 0), airquality: ($d.airquality // 0),
-      marine: ($d.marine // 0), ensemble: ($d.ensemble // 0),
-      seasonal: ($d.seasonal // 0), flood: ($d.flood // 0) }
-  ' 2>/dev/null) || domain_staleness='{"forecast":0,"airquality":0,"marine":0,"ensemble":0,"seasonal":0,"flood":0}'
+  domain_staleness='{"forecast":0,"airquality":0,"marine":0,"ensemble":0,"seasonal":0,"flood":0}'
+  if command -v date >/dev/null 2>&1; then
+    declare -A domain_max=([forecast]=0 [airquality]=0 [marine]=0 [ensemble]=0 [seasonal]=0 [flood]=0)
+    while IFS=$'\t' read -r eid last_upd; do
+      [[ -z "$eid" || -z "$last_upd" ]] && continue
+      local ts_clean="${last_upd%%+*}"
+      ts_clean="${ts_clean%%.*}"
+      local ent_epoch
+      ent_epoch=$(date -u -d "$ts_clean" +%s 2>/dev/null) || continue
+      local age_min=$(( (now_epoch - ent_epoch) / 60 ))
+      local dom="forecast"
+      case "$eid" in
+        *flood*|*river_discharge*|*discharge_mean*) dom="flood" ;;
+        *wave*|*water_temperature*|*ocean_current*|*surf_*|*swimming*|*coastal_flood*) dom="marine" ;;
+        *seasonal*) dom="seasonal" ;;
+        *ensemble*|*forecast_model_comparison*) dom="ensemble" ;;
+        *pollen*|*pm25*|*pm10*|*aqi*|*ozone*|*nitrogen*|*carbon_monoxide*|*sulphur*|*dust*|*smog*|*ragweed*|*allergen*|*asthma*) dom="airquality" ;;
+      esac
+      if [[ "$age_min" -gt "${domain_max[$dom]}" ]]; then
+        domain_max[$dom]=$age_min
+      fi
+    done < <(echo "$raw" | jq -r '
+      .[] | select(.entity_id | test("njord|barcelona")) | select(.state != "unavailable") |
+      select(.last_updated != null) | [.entity_id, .last_updated] | @tsv')
+    domain_staleness=$(printf '{"forecast":%d,"airquality":%d,"marine":%d,"ensemble":%d,"seasonal":%d,"flood":%d}' \
+      "${domain_max[forecast]}" "${domain_max[airquality]}" "${domain_max[marine]}" \
+      "${domain_max[ensemble]}" "${domain_max[seasonal]}" "${domain_max[flood]}")
+  fi
 
   local alerts_on_names
   alerts_on_names=$(echo "$raw" | jq -c '[.[] | select(.entity_id | test("_alert$")) | select(.state == "on") | .entity_id | sub("binary_sensor."; "") | sub("_alert$"; "")]')
