@@ -86,17 +86,11 @@ public sealed class GrpcConsumerAvailabilityTests : Akka.Hosting.TestKit.TestKit
         var consumer = Sys.ActorOf(Props.Create(() => new GrpcConsumer(registry, _time)), $"grpc-consumer-{Guid.NewGuid():N}");
         var pipeline = (await ready.Task.WaitAsync(TimeSpan.FromSeconds(15), ct)).Queue;
 
-        var completed = Assert.IsType<RequestEntityStreamCompleted>(
-            await consumer.Ask<RequestEntityStreamResponse>(new RequestEntityStream(1), _askTimeout, ct));
-        var unavailable = completed.SourceRef.Source
-            .Where(static e => e is EntityBecameUnavailable)
-            .RunWith(Sink.First<ConsumerEvent>(), Sys.Materializer());
-
         await pipeline.OfferAsync(EnrichmentEvents.Alerts(_vienna, _time.GetUtcNow()), ct);
         await AwaitAssertAsync(async () =>
         {
             var snapshot = Assert.IsType<RequestEntityStreamCompleted>(
-                await consumer.Ask<RequestEntityStreamResponse>(new RequestEntityStream(2), _askTimeout, ct));
+                await consumer.Ask<RequestEntityStreamResponse>(new RequestEntityStream(1), _askTimeout, ct));
             var first = await snapshot.SourceRef.Source.RunWith(Sink.First<ConsumerEvent>(), Sys.Materializer());
             var snap = Assert.IsType<ConsumerSnapshot>(first);
             Assert.Contains(snap.States, s => s.EntityId == "vienna_heat");
@@ -105,7 +99,15 @@ public sealed class GrpcConsumerAvailabilityTests : Akka.Hosting.TestKit.TestKit
         _time.Advance(GrpcConsumer.StaleThreshold + TimeSpan.FromMinutes(1));
         consumer.Tell(new GrpcConsumer.CheckAvailability());
 
-        var evt = Assert.IsType<EntityBecameUnavailable>(await unavailable.WaitAsync(TimeSpan.FromSeconds(5), ct));
-        Assert.Equal("vienna_heat", evt.EntityId);
+        await AwaitAssertAsync(async () =>
+        {
+            var stream = Assert.IsType<RequestEntityStreamCompleted>(
+                await consumer.Ask<RequestEntityStreamResponse>(new RequestEntityStream(2), _askTimeout, ct));
+            var events = await stream.SourceRef.Source
+                .Take(2)
+                .RunWith(Sink.Seq<ConsumerEvent>(), Sys.Materializer());
+            var evt = Assert.IsType<EntityBecameUnavailable>(events[1]);
+            Assert.Equal("vienna_heat", evt.EntityId);
+        }, TimeSpan.FromSeconds(5), cancellationToken: ct);
     }
 }
