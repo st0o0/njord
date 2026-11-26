@@ -1,4 +1,5 @@
-import DefaultTheme from 'vitepress/theme'
+import DefaultTheme from 'vitepress/theme-without-fonts'
+import '@fontsource-variable/inter'
 import type { Theme } from 'vitepress'
 import ConfigBuilder from './builder/ConfigBuilder.vue'
 import './custom.css'
