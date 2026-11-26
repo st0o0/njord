@@ -191,10 +191,10 @@ importers:
     devDependencies:
       '@leberkas-org/vitepress-likec4':
         specifier: ^1.0.0
-        version: 1.0.0(likec4@1.61.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rollup@4.68.8))(vitepress@1.6.4(@algolia/client-search@5.65.0)(lightningcss@1.33.0)(postcss@8.5.33)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(search-insights@2.17.3))
+        version: 1.0.0(likec4@1.61.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rollup@4.68.8))(vitepress@1.6.4(@algolia/client-search@5.65.0)(lightningcss@1.33.0)(postcss@8.5.33)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(search-insights@2.17.3))
       likec4:
         specifier: ^1.58.0
-        version: 1.61.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rollup@4.68.8)
+        version: 1.61.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rollup@4.68.8)
       vitepress:
         specifier: ^1.6.4
         version: 1.6.4(@algolia/client-search@5.65.0)(lightningcss@1.33.0)(postcss@8.5.33)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(search-insights@2.17.3)
@@ -509,14 +509,17 @@ packages:
       likec4: '>=1.33.0'
       vitepress: '>=1.0.0'
 
-  '@likec4/core@1.61.0':
-    resolution: {integrity: sha512-9G/VOPv/1PgFdg+bWQCoe3oZo0KqRunln5SzxHKZxgsU8KPl6XMubJFk5lz8f26KqGozPt69G3Ud3CQLIoWkVw==}
-
   '@likec4/icons@1.46.5':
     resolution: {integrity: sha512-CB3Uq+E2XBZsBlbJJUlGcVHmyXwn55FQJqbxDqAR3DdwRgesBl1J/i6HDbH2+xKbDBSk3rojGK8/0THCmPa/5A==}
     peerDependencies:
       react: ^18.x || ^19.x
       react-dom: ^18.x || ^19.x
+
+  '@likec4/log@1.61.1':
+    resolution: {integrity: sha512-U06HRNComYManxim8xbSDgmNmdGPFZcVIkugYIw3Zvo0MfRU68X7fv6YwzpqmnozQsOn3oaATzi7ARWEiBfzmQ==}
+
+  '@logtape/logtape@2.4.2':
+    resolution: {integrity: sha512-YJyC1gEMgWmTqJTRtKkjgasEbi8/0gP7Dj8n6bL46gQIAhpTY8uXJ+1QYMOgF5asotlGMvy3G7ejXUe45Yd1MQ==}
 
   '@mantine/core@9.7.4':
     resolution: {integrity: sha512-c7aTGELNn74CxG9i5/tq9BHGh0lKdKmGGz+9iDF+gR7Ipt4U1TMM286lAmLpRrKL2bR+UEaN4blZ8UJmOuGJ4Q==}
@@ -1183,8 +1186,8 @@ packages:
     resolution: {integrity: sha512-WkUDrojuJs0xkgGf2udWxa3yGBRxPtxUkB79i6aCZLRgc7PM8fZe9TosfPDcvEpQZbuFASnHYmRLBLUbmLOIIA==}
     engines: {node: '>= 12.0.0'}
 
-  likec4@1.61.0:
-    resolution: {integrity: sha512-v/yR/CuhUgTVvG4AuqRHoUyOJkGoDbQFMpOfpIY8X4BJPTeVbDmnR5FoWFnhGn8Qg52mMPgsPC/skLDrwydC4A==}
+  likec4@1.61.1:
+    resolution: {integrity: sha512-RYbwrhl2EpwH69r6oL7C3lyDSilX1jcEu4nL6QQD08+XCCff3ZDkhHXvoPAX9h+cKjRNBuF1TMJ2JRLjS981Qw==}
     engines: {node: '>=22.23.3'}
     hasBin: true
     peerDependencies:
@@ -1888,21 +1891,21 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.6.0': {}
 
-  '@leberkas-org/vitepress-likec4@1.0.0(likec4@1.61.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rollup@4.68.8))(vitepress@1.6.4(@algolia/client-search@5.65.0)(lightningcss@1.33.0)(postcss@8.5.33)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(search-insights@2.17.3))':
+  '@leberkas-org/vitepress-likec4@1.0.0(likec4@1.61.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rollup@4.68.8))(vitepress@1.6.4(@algolia/client-search@5.65.0)(lightningcss@1.33.0)(postcss@8.5.33)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(search-insights@2.17.3))':
     dependencies:
-      likec4: 1.61.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rollup@4.68.8)
+      likec4: 1.61.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rollup@4.68.8)
       vitepress: 1.6.4(@algolia/client-search@5.65.0)(lightningcss@1.33.0)(postcss@8.5.33)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(search-insights@2.17.3)
-
-  '@likec4/core@1.61.0':
-    dependencies:
-      immer: 11.2.10
-      type-fest: 4.41.0
-      zod: 4.6.7
 
   '@likec4/icons@1.46.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
+
+  '@likec4/log@1.61.1':
+    dependencies:
+      '@logtape/logtape': 2.4.2
+
+  '@logtape/logtape@2.4.2': {}
 
   '@mantine/core@9.7.4(@mantine/hooks@9.7.4(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
@@ -2447,12 +2450,12 @@ snapshots:
       lightningcss-win32-arm64-msvc: 1.33.0
       lightningcss-win32-x64-msvc: 1.33.0
 
-  likec4@1.61.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rollup@4.68.8):
+  likec4@1.61.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rollup@4.68.8):
     dependencies:
       '@floating-ui/dom': 1.8.0
       '@hpcc-js/wasm-graphviz': 1.29.2
-      '@likec4/core': 1.61.0
       '@likec4/icons': 1.46.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@likec4/log': 1.61.1
       '@mantine/core': 9.7.4(@mantine/hooks@9.7.4(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mantine/hooks': 9.7.4(react@19.3.1)
       '@vitejs/plugin-react': 6.3.0(vite@8.3.8(jiti@2.7.0))
