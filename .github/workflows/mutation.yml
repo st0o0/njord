@@ -23,7 +23,7 @@ jobs:
     outputs:
       matrix: ${{ steps.targets.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - id: targets
         env:
@@ -45,9 +45,9 @@ jobs:
       matrix:
         project: ${{ fromJson(needs.discover.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
         with:
           global-json-file: src/global.json
 
@@ -60,7 +60,7 @@ jobs:
           report=$(ls src/${{ matrix.project }}.Tests/StrykerOutput/*/reports/mutation-report.md | head -n 1)
           { echo "## Mutation score: ${{ matrix.project }}"; cat "$report"; } >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: mutation-${{ matrix.project }}
