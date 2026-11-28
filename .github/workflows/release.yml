@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   release-please:
-    uses: st0o0/github-workflows/.github/workflows/release-please.yml@main
+    uses: st0o0/github-workflows/.github/workflows/release-please.yml@v1.0.0
     permissions:
       contents: write
       pull-requests: write
@@ -19,7 +19,7 @@ jobs:
   docker:
     needs: release-please
     if: fromJSON(needs.release-please.outputs.json)['src--release_created'] == 'true'
-    uses: st0o0/github-workflows/.github/workflows/docker-release.yml@main
+    uses: st0o0/github-workflows/.github/workflows/docker-release.yml@v1.0.0
     with:
       version: ${{ fromJSON(needs.release-please.outputs.json)['src--version'] }}
       image-name: ghcr.io/st0o0/njord
@@ -33,7 +33,7 @@ jobs:
   docs:
     needs: release-please
     if: fromJSON(needs.release-please.outputs.json)['src--release_created'] == 'true'
-    uses: st0o0/github-workflows/.github/workflows/docs.yml@main
+    uses: st0o0/github-workflows/.github/workflows/docs.yml@v1.0.0
     with:
       needs-dotnet-build: false
     permissions:
